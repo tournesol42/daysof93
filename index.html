@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v31-nativectrl -->
-<meta name="build" content="v31-nativectrl">
-<script>console.log('days of 93 — build v31-nativectrl');</script>
+<!-- build: v32-directmp4 -->
+<meta name="build" content="v32-directmp4">
+<script>console.log('days of 93 — build v32-directmp4');</script>
 
 <meta name="description" content="days of 93 — audiovisual work by Tommy Gee." />
 <meta name="author" content="Tommy Gee" />
@@ -60,10 +60,9 @@
   }
   .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
   .piece .vid{
-    position:absolute; inset:0; width:100%; height:100%;
-    border:none; opacity:0; transition:opacity .2s ease; pointer-events:none;
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    border:none; pointer-events:none;
   }
-  .piece.playing .vid{ opacity:1; }
   .piece .stamp{
     position:absolute; top:calc(100% + 6px); left:0;
     font-family:'Google Sans Code', monospace; font-size:11px; letter-spacing:0.05em; color:var(--ink);
@@ -147,7 +146,12 @@
 <script>
 // Cloudflare Stream customer subdomain code.
 // Bunny Stream library ID — dashboard > your library, or in the embed URL
-const LIBRARY = "699160";  // Bunny Stream library ID
+const PULL_ZONE = "vz-9a21b965-65a.b-cdn.net";  // Bunny Stream pull zone
+function directMp4Src(id){
+  // Direct file access (Bunny Stream storage structure), bypasses the iframe
+  // player entirely — a same-origin <video> tag, no cross-origin postMessage.
+  return "https://"+PULL_ZONE+"/"+id+"/play_720p.mp4";
+}
 
 const PIECES = [
   { id:'a', video:'d5e6cbe8-d0b9-4a72-a7c2-4c8e8936f7b3', caption:'Serge VCFQ, Buchla 258t',
@@ -163,11 +167,6 @@ function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor(
 function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
 const SEED = daySeed();
 
-function streamSrc(id, showControls){
-  // Bunny Stream iframe embed. playsinline required for iOS autoplay.
-  return "https://iframe.mediadelivery.net/embed/"+LIBRARY+"/"+id
-    +"?autoplay=false&loop=true&muted=true&preload=true&responsive=false&playsinline=true&controls="+(showControls?"true":"false");
-}
 
 function layout(){
   const plane = document.getElementById('plane');
@@ -222,74 +221,32 @@ function layout(){
     slot.style.height = height+'px';
 
     if(p.video){
-      // hero still (your chosen frame) shows at rest — always visible underneath
-      const poster = document.createElement('img');
-      poster.className = 'poster';
-      poster.src = p.poster;
-      poster.alt = '';
-      slot.appendChild(poster);
-
-      el._videoId = p.video;
-      el._player = null;
-      el._ready = false;
-      let built = false;
-
-      // build the Bunny iframe once (lazily), bind Player.js
-      const ensure = ()=>{
-        if(built) return;
-        built = true;
-        const iframe = document.createElement('iframe');
-        iframe.className = 'vid';
-        iframe.src = streamSrc(p.video, MOBILE);
-        iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;';
-        // iOS Safari won't accept a play() command sent via postMessage as a real
-        // gesture inside the iframe's own origin — unmuted playback silently fails.
-        // On mobile we show Bunny's own native play/pause control (a real,
-        // in-frame tappable element) and let taps land on it directly. Desktop
-        // keeps the previous click-anywhere-on-piece behavior, which already works.
-        if(MOBILE) iframe.style.pointerEvents = 'auto';
-        slot.appendChild(iframe);
-        el._iframe = iframe;
-        if(window.playerjs){
-          const pl = new playerjs.Player(iframe);
-          pl.on('ready', ()=>{
-            el._ready = true;
-            pl.setLoop(true);
-            el._player = pl;
-            if(el._wantPlay){ doPlay(el._wantSound); }
-          });
-          // Reflect the player's real state (works whether playback was started
-          // by our own play() call or by a native tap directly on the iframe).
-          pl.on('play', ()=>{ el.classList.add('playing'); });
-          pl.on('pause', ()=>{ el.classList.remove('playing'); });
-        }
-      };
-
-      const doPlay = (withSound)=>{
-        if(!el._player || !el._ready) return;
-        if(withSound){ el._player.unmute(); } else { el._player.mute(); }
-        el._player.play();
-      };
+      const video = document.createElement('video');
+      video.className = 'vid';
+      video.src = directMp4Src(p.video);
+      video.poster = p.poster;               // your chosen still frame shows at rest
+      video.loop = true;
+      video.muted = true;                     // starts muted; unmuted on play(true)
+      video.setAttribute('playsinline', '');  // required so iOS plays inline, not fullscreen
+      video.preload = 'auto';
+      slot.appendChild(video);
+      el._video = video;
 
       const play = (withSound)=>{
-        el.classList.add('playing');
-        el._wantPlay = true; el._wantSound = withSound;
-        doPlay(withSound);   // runs now if ready, else fires on 'ready'
+        video.muted = !withSound;
+        // Native <video> in our own document: play() here runs synchronously
+        // inside the tap's own call stack, so iOS always honors it — no
+        // cross-origin iframe, no postMessage relay, nothing to silently block.
+        video.play();
       };
+      const freeze = ()=>{ video.pause(); };
 
-      // build the iframe immediately (not lazily on first tap): iOS only allows
-      // unmuted playback when play() runs inside the same call stack as the tap.
-      // If the iframe is still loading at tap time, play() fires later from the
-      // 'ready' postMessage callback, which iOS no longer treats as user-initiated.
-      ensure();
-      const freeze = ()=>{
-        el.classList.remove('playing');   // hides iframe → poster shows → Bunny controls gone
-        if(el._player && el._ready) el._player.pause();
-      };
+      video.addEventListener('play',  ()=> el.classList.add('playing'));
+      video.addEventListener('pause', ()=> el.classList.remove('playing'));
 
-      // click to play; click again to stop (shows poster, hides iframe)
+      // click to play; click again to stop (shows poster, hides video)
       el.addEventListener('click', ()=>{
-        if(el.classList.contains('playing')){ freeze(); }
+        if(!video.paused){ freeze(); }
         else { play(true); }
       });
 
@@ -381,13 +338,7 @@ function drawField(){
 
 function build(){ drawField(); layout(); }
 
-(function(){
-  const s = document.createElement('script');
-  s.src = 'https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js';
-  s.onload = build;
-  s.onerror = build;
-  document.head.appendChild(s);
-})();
+build();
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
