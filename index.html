@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v28-neutral -->
-<meta name="build" content="v28-neutral">
-<script>console.log('days of 93 — build v28-neutral');</script>
+<!-- build: v29-mobiletap -->
+<meta name="build" content="v29-mobiletap">
+<script>console.log('days of 93 — build v29-mobiletap');</script>
 
 <meta name="description" content="days of 93 — audiovisual work by Tommy Gee." />
 <meta name="author" content="Tommy Gee" />
@@ -242,6 +242,12 @@ function layout(){
         iframe.className = 'vid';
         iframe.src = streamSrc(p.video);
         iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;';
+        // Mobile Safari does not treat a play() command sent via postMessage from
+        // the parent as a real user gesture inside the iframe's own origin, so
+        // unmuted playback silently fails there. Fix: let the tap land directly
+        // on the iframe on mobile, so Bunny's own embed handles play/pause as a
+        // genuine native gesture. Desktop keeps the previous click-through behavior.
+        if(MOBILE) iframe.style.pointerEvents = 'auto';
         slot.appendChild(iframe);
         el._iframe = iframe;
         if(window.playerjs){
@@ -252,6 +258,10 @@ function layout(){
             el._player = pl;
             if(el._wantPlay){ doPlay(el._wantSound); }
           });
+          // Reflect the player's real state (works whether playback was started
+          // by our own play() call or by a native tap directly on the iframe).
+          pl.on('play', ()=>{ el.classList.add('playing'); });
+          pl.on('pause', ()=>{ el.classList.remove('playing'); });
         }
       };
 
