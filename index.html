@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v29-mobiletap -->
-<meta name="build" content="v29-mobiletap">
-<script>console.log('days of 93 — build v29-mobiletap');</script>
+<!-- build: v31-nativectrl -->
+<meta name="build" content="v31-nativectrl">
+<script>console.log('days of 93 — build v31-nativectrl');</script>
 
 <meta name="description" content="days of 93 — audiovisual work by Tommy Gee." />
 <meta name="author" content="Tommy Gee" />
@@ -163,10 +163,10 @@ function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor(
 function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
 const SEED = daySeed();
 
-function streamSrc(id){
+function streamSrc(id, showControls){
   // Bunny Stream iframe embed. playsinline required for iOS autoplay.
   return "https://iframe.mediadelivery.net/embed/"+LIBRARY+"/"+id
-    +"?autoplay=false&loop=true&muted=true&preload=true&responsive=false&playsinline=true&controls=false";
+    +"?autoplay=false&loop=true&muted=true&preload=true&responsive=false&playsinline=true&controls="+(showControls?"true":"false");
 }
 
 function layout(){
@@ -240,13 +240,13 @@ function layout(){
         built = true;
         const iframe = document.createElement('iframe');
         iframe.className = 'vid';
-        iframe.src = streamSrc(p.video);
+        iframe.src = streamSrc(p.video, MOBILE);
         iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;';
-        // Mobile Safari does not treat a play() command sent via postMessage from
-        // the parent as a real user gesture inside the iframe's own origin, so
-        // unmuted playback silently fails there. Fix: let the tap land directly
-        // on the iframe on mobile, so Bunny's own embed handles play/pause as a
-        // genuine native gesture. Desktop keeps the previous click-through behavior.
+        // iOS Safari won't accept a play() command sent via postMessage as a real
+        // gesture inside the iframe's own origin — unmuted playback silently fails.
+        // On mobile we show Bunny's own native play/pause control (a real,
+        // in-frame tappable element) and let taps land on it directly. Desktop
+        // keeps the previous click-anywhere-on-piece behavior, which already works.
         if(MOBILE) iframe.style.pointerEvents = 'auto';
         slot.appendChild(iframe);
         el._iframe = iframe;
