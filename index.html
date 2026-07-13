@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v45-layout -->
+<!-- build: v46-selectiveframes -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -63,6 +63,8 @@
   .piece{ position:absolute; cursor:pointer; }
   .piece .slot{
     position:relative; width:100%; overflow:hidden;
+  }
+  .piece .slot.framed{
     border: 8px solid #ffad00; border-radius: 3mm;
   }
   .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
@@ -162,14 +164,14 @@ function directMp4Src(id){
 
 const PIECES = [
   { id:'a', video:'d5e6cbe8-d0b9-4a72-a7c2-4c8e8936f7b3', caption:'Serge VCFQ, Buchla 258t',
-    poster:'/image_1.jpg',
+    poster:'/image_1.jpg', frame:true,
     doy:172, yr:26, col:0.02, row:120, w:0.46, aspect:1.78 },
   { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
-    poster:'/image_2.jpg',
+    poster:'/image_2.jpg', frame:true,
     doy:170, yr:26, col:0.56, row:380, w:0.304, aspect:1.78 },
   { id:'d', caption:"memories of '98",
     src:'/image_3.jpg',
-    doy:290, yr:98, col:0.36, row:1050, w:0.56, aspect:0.9957 },
+    doy:290, yr:98, col:0.36, row:1450, w:0.56, aspect:0.9957 },
   { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
     poster:'/Image_4.jpg',
     doy:194, yr:26, col:0.06, row:1950, w:0.74, aspect:0.5625 },
@@ -230,7 +232,7 @@ function layout(){
     el.style.width = width+'px';
 
     const slot = document.createElement('div');
-    slot.className = 'slot';
+    slot.className = 'slot' + (p.frame ? ' framed' : '');
     slot.style.height = height+'px';
 
     if(p.video){
