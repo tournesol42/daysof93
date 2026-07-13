@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v59-autoplay -->
+<!-- build: v60-daysoverlay -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -51,10 +51,7 @@
     backdrop-filter:blur(12px);
     -webkit-backdrop-filter:blur(12px);
   }
-  nav span{
-    font-size:14px; font-weight:400; letter-spacing:0.18em; opacity:1;
-  }
-  .tagline{
+  #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }  .tagline{
     position:fixed; z-index:51; pointer-events:none;
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:1.1rem; font-weight:300; text-transform:uppercase;
@@ -93,6 +90,21 @@
   }
   .tail{ height:40vh; }
 
+  /* ---- days of 93 overlay ---- */
+  .bio-title{
+    font-family:'Jost', sans-serif; font-size:2.2rem; font-weight:300;
+    text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
+    color:var(--ink); margin-bottom:18px;
+  }
+  .bio-text{
+    font-family:'Jost', sans-serif; font-size:1.4rem; font-weight:300;
+    letter-spacing:0.03em; line-height:1.5;
+    color:var(--ink); margin-bottom:32px;
+  }
+  .client-list-small li{
+    font-size:11px; letter-spacing:0.08em; line-height:2.2;
+    color:var(--ink); opacity:0.65;
+  }
   /* ---- past clients overlay ---- */
   .overlay{
     position:fixed; inset:0; z-index:100;
@@ -127,11 +139,37 @@
   <header>
     <nav>
       <a href="#" id="nav-work">work</a>
-      <span>days of 93</span>
-      <a href="#" id="nav-clients">past clients</a>
+      <a href="#" id="nav-days">days of 93</a>
+      <a href="#" id="nav-clients">contact</a>
     </nav>
     <div class="tagline">filmcomposer</div>
   </header>
+
+  <div class="overlay" id="about">
+    <div class="overlay-inner">
+      <p class="bio-title">Days of 93</p>
+      <p class="bio-text">Authoring. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source. No AI.</p>
+      <ul class="client-list client-list-small">
+        <li>Royal Danish Theatre</li>
+        <li>EMI Denmark</li>
+        <li>Sony Music UK</li>
+        <li>Universal Music Denmark</li>
+        <li>Warner Music US</li>
+        <li>Denmarks Radio / TV</li>
+        <li>TV2</li>
+        <li>Republique Theater</li>
+        <li>Mercedes-Benz Denmark</li>
+        <li>Profile Pictures</li>
+        <li>Bunim / Murray Productions</li>
+        <li>Get Lifted Film Co.</li>
+        <li>R&amp;S Records</li>
+        <li>King Street Sounds</li>
+        <li>Nordisk Film</li>
+        <li>Det Danske Filminstitut</li>
+      </ul>
+      <a href="#" class="overlay-close" id="about-close">close</a>
+    </div>
+  </div>
 
   <div class="overlay" id="clients">
     <div class="overlay-inner">
@@ -411,6 +449,16 @@ setTimeout(autostartA, 400);
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
+
+/* ---- days of 93 overlay ---- */
+(function(){
+  const overlay = document.getElementById('about');
+  const open  = document.getElementById('nav-days');
+  const close = document.getElementById('about-close');
+  if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
+  if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+})();
 
 /* ---- past clients overlay ---- */
 (function(){
