@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v47-blackframes -->
+<!-- build: v49-taglinejost -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -17,7 +17,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=VT323&family=Google+Sans+Code:wght@300..800&family=Bungee+Hairline&family=B612+Mono:ital@0;1&family=Space+Grotesk:wght@300;400;500&family=Jost:wght@200;300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Google+Sans+Code:wght@300..800&family=Bungee+Hairline&family=B612+Mono:ital@0;1&family=Space+Grotesk:wght@300;400;500&family=Jost:wght@200;300;400;600&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
 
 <style>
   :root{
@@ -38,7 +38,7 @@
   }
   header{
     position: fixed; top:0; left:0; right:0; z-index:50;
-    padding: 14px 20px; display:flex; gap:26px;
+    padding: 14px 20px; display:flex; flex-direction:column; gap:6px;
   }
   nav{ display:flex; gap:8px; align-items:center; }
   nav a, nav span{
@@ -51,12 +51,23 @@
     backdrop-filter:blur(12px);
     -webkit-backdrop-filter:blur(12px);
   }
-  nav span{ opacity:0.72; }
+  nav span{
+    font-size:14px; font-weight:400; letter-spacing:0.18em; opacity:1;
+  }
+  .tagline{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:14px; font-weight:300; text-transform:uppercase;
+    letter-spacing:0.22em; line-height:1;
+    color:#000;
+    pointer-events:none;
+  }
   @media (max-width:720px){
     nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
+    nav span{ font-size:12px; }
+    .tagline{ font-size:12px; }
   }
-  nav a:hover{ background:rgba(0,0,0,0.70); }
 
+  nav a:hover{ background:rgba(0,0,0,0.70); }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
 
@@ -119,6 +130,7 @@
       <span>days of 93</span>
       <a href="#" id="nav-clients">past clients</a>
     </nav>
+    <div class="tagline">filmcomposer</div>
   </header>
 
   <div class="overlay" id="clients">
