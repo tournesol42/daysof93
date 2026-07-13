@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v58-mobilewfix -->
+<!-- build: v59-autoplay -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -216,6 +216,7 @@ function layout(){
   ordered.forEach((p)=>{
     const el = document.createElement('div');
     el.className = 'piece';
+    el.dataset.id = p.id;
 
     const aspect = p.aspect || 1.78;
     let width, left, top;
@@ -381,6 +382,32 @@ function positionTagline(){
 }
 
 build();
+
+/* ---- autoplay piece a on load, pause on scroll ---- */
+function getVideoA(){
+  const el = document.querySelector('.piece[data-id="a"] video');
+  return el;
+}
+
+function autostartA(){
+  const v = getVideoA();
+  if(!v) return;
+  v.muted = true;
+  v.play().catch(()=>{});
+}
+
+let autoStopped = false;
+window.addEventListener('scroll', ()=>{
+  if(autoStopped) return;
+  if(window.scrollY > 80){
+    const v = getVideoA();
+    if(v && !v.paused){ v.pause(); v.currentTime = 0; }
+    autoStopped = true;
+  }
+}, { passive:true });
+
+// slight delay to let layout settle before autoplay
+setTimeout(autostartA, 400);
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
