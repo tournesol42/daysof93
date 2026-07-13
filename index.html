@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v57-mobilewidth -->
+<!-- build: v58-mobilewfix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -221,8 +221,8 @@ function layout(){
     let width, left, top;
 
     if(MOBILE){
-      // first piece (id 'a') a touch smaller than the rest
-      const mw = (p.id === 'a') ? 0.80 : 0.88;
+      // wMobile override if set, else defaults (piece 'a' slightly smaller)
+      const mw = p.wMobile ? p.wMobile : (p.id === 'a') ? 0.80 : 0.88;
       width = vw * mw;
       left  = (vw - width) / 2;        // centered
       top   = mobileCursor;
