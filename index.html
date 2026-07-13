@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v54-taglinefix -->
+<!-- build: v55-nudge -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -186,7 +186,7 @@ const PIECES = [
     doy:290, yr:98, col:0.36, row:1900, w:0.56, aspect:0.9957 },
   { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
     poster:'/Image_4.jpg',
-    doy:194, yr:26, col:0.06, row:3000, w:0.74, aspect:0.5625 },
+    doy:194, yr:26, col:0.16, row:3000, w:0.82, aspect:0.5625 },
 ];
 
 function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
@@ -373,7 +373,7 @@ function positionTagline(){
   if(!clients || !tagline) return;
   const r = clients.getBoundingClientRect();
   // "l" of "clients" ≈ 42% across the pill
-  const x = r.left + r.width * 0.42;
+  const x = r.left + r.width * 0.28;
   const y = r.bottom + 6;
   tagline.style.left = x + 'px';
   tagline.style.top  = y + 'px';
