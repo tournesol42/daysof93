@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v56-pieced -->
+<!-- build: v57-mobilewidth -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -57,7 +57,7 @@
   .tagline{
     position:fixed; z-index:51; pointer-events:none;
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size:1.4rem; font-weight:300; text-transform:uppercase;
+    font-size:1.1rem; font-weight:300; text-transform:uppercase;
     letter-spacing:0.22em; line-height:1;
     color:#000; white-space:nowrap; overflow:hidden;
   }
@@ -76,7 +76,7 @@
     position:relative; width:100%; overflow:hidden;
   }
   .piece .slot.framed{
-    border: 8px solid #000000; border-radius: 3mm;
+    border: 6px solid #000000; border-radius: 3mm;
   }
   .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
   .piece .vid{
@@ -186,7 +186,7 @@ const PIECES = [
     doy:290, yr:98, col:0.20, row:1550, w:0.56, aspect:0.9957 },
   { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
     poster:'/Image_4.jpg',
-    doy:194, yr:26, col:0.16, row:3000, w:0.82, aspect:0.5625 },
+    doy:194, yr:26, col:0.16, row:2500, w:0.82, wMobile:0.96, aspect:0.5625 },
 ];
 
 function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
@@ -232,7 +232,7 @@ function layout(){
       const salt = p.id.charCodeAt(0);
       const driftX = (seededRand(SEED+salt)-0.5)*24;
       const driftY = (seededRand(SEED+salt*7.3)-0.5)*30;
-      width = p.w * vw;
+      width = (MOBILE && p.wMobile ? p.wMobile : p.w) * vw;
       left  = p.col*vw + driftX;
       top   = p.row + driftY;
     }
