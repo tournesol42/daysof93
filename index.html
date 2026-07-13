@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v51-bgphoto15 -->
+<!-- build: v52-taglinepos -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -55,26 +55,20 @@
     font-size:14px; font-weight:400; letter-spacing:0.18em; opacity:1;
   }
   .tagline{
+    position:fixed; z-index:51; pointer-events:none;
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size:14px; font-weight:300; text-transform:uppercase;
+    font-size:1.4rem; font-weight:300; text-transform:uppercase;
     letter-spacing:0.22em; line-height:1;
-    color:#000;
-    pointer-events:none;
+    color:#000; white-space:nowrap;
   }
   @media (max-width:720px){
     nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
     nav span{ font-size:12px; }
-    .tagline{ font-size:12px; }
+    .tagline{ font-size:1rem; }
   }
 
   nav a:hover{ background:rgba(0,0,0,0.70); }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
-  .bgphoto{
-    position:fixed; inset:0; z-index:1; pointer-events:none;
-    background-image: url('/tommygee_Mulholland_drive_minimalistic_house_photo_morphed_wi_722c87bb-2937-41e2-8528-5f96897a471b_1.jpg');
-    background-size:cover; background-position:center;
-    opacity:0.15;
-  }
   .plane{ position:relative; z-index:10; width:100%; }
 
   .piece{ position:absolute; cursor:pointer; }
@@ -165,7 +159,6 @@
   </div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
-  <div class="bgphoto"></div>
 
   <div class="plane" id="plane">
     <div class="tail"></div>
@@ -372,7 +365,19 @@ function drawField(){
   svg.innerHTML = lines;
 }
 
-function build(){ drawField(); layout(); }
+function build(){ drawField(); layout(); positionTagline(); }
+
+function positionTagline(){
+  const clients = document.getElementById('nav-clients');
+  const tagline = document.querySelector('.tagline');
+  if(!clients || !tagline) return;
+  const r = clients.getBoundingClientRect();
+  // "s" of "past clients" = ~85% across the pill (just before the end)
+  const x = r.left + r.width * 0.85;
+  const y = r.bottom + 6;
+  tagline.style.left = x + 'px';
+  tagline.style.top  = y + 'px';
+}
 
 build();
 
