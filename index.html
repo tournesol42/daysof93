@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v53-taglinepos2 -->
+<!-- build: v54-taglinefix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -59,7 +59,7 @@
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:1.4rem; font-weight:300; text-transform:uppercase;
     letter-spacing:0.22em; line-height:1;
-    color:#000; white-space:nowrap;
+    color:#000; white-space:nowrap; overflow:hidden;
   }
   @media (max-width:720px){
     nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
@@ -372,11 +372,12 @@ function positionTagline(){
   const tagline = document.querySelector('.tagline');
   if(!clients || !tagline) return;
   const r = clients.getBoundingClientRect();
-  // "l" of "clients" ≈ 55% across the pill
-  const x = r.left + r.width * 0.55;
+  // "l" of "clients" ≈ 42% across the pill
+  const x = r.left + r.width * 0.42;
   const y = r.bottom + 6;
   tagline.style.left = x + 'px';
   tagline.style.top  = y + 'px';
+  tagline.style.maxWidth = (window.innerWidth - x - 8) + 'px';
 }
 
 build();
