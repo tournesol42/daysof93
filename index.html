@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v52-taglinepos -->
+<!-- build: v53-taglinepos2 -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -372,8 +372,8 @@ function positionTagline(){
   const tagline = document.querySelector('.tagline');
   if(!clients || !tagline) return;
   const r = clients.getBoundingClientRect();
-  // "s" of "past clients" = ~85% across the pill (just before the end)
-  const x = r.left + r.width * 0.85;
+  // "l" of "clients" ≈ 55% across the pill
+  const x = r.left + r.width * 0.55;
   const y = r.bottom + 6;
   tagline.style.left = x + 'px';
   tagline.style.top  = y + 'px';
