@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v64-newvideo1 -->
+<!-- build: v65-posterrestore -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -448,7 +448,7 @@ window.addEventListener('scroll', ()=>{
   if(autoStopped) return;
   if(window.scrollY > 80){
     const v = getVideoA();
-    if(v && !v.paused){ v.pause(); v.currentTime = 0; }
+    if(v && !v.paused){ v.pause(); v.load(); }
     autoStopped = true;
   }
 }, { passive:true });
