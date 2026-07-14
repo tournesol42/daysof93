@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v69-mp4fix -->
+<!-- build: v73-whitebg -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -21,7 +21,7 @@
 
 <style>
   :root{
-    --field: #FFFF00;
+    --field: #ffffff;
     --line:  rgba(0,0,0,0.45);
     --axis-x: rgba(0,0,0,0.60);
     --axis-y: rgba(0,0,0,0.60);
@@ -51,7 +51,8 @@
     backdrop-filter:blur(12px);
     -webkit-backdrop-filter:blur(12px);
   }
-  #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }  .tagline{
+  #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }
+  .tagline{
     position:fixed; z-index:51; pointer-events:none;
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:1.1rem; font-weight:300; text-transform:uppercase;
@@ -420,7 +421,6 @@ function positionTagline(){
   const tagline = document.querySelector('.tagline');
   if(!clients || !tagline) return;
   const r = clients.getBoundingClientRect();
-  // "l" of "clients" ≈ 42% across the pill
   const x = r.left + r.width * 0.28;
   const y = r.bottom + 6;
   tagline.style.left = x + 'px';
