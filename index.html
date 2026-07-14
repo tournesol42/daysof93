@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v67-removef -->
+<!-- build: v68-bunnystorage -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -222,7 +222,7 @@ function directMp4Src(id){
 }
 
 const PIECES = [
-  { id:'a', video:'73d90c5d-b636-4977-b8cb-3c63de244177', caption:'Serge VCFQ, Buchla 258t',
+  { id:'a', mp4:'https://daysof93-cdn.b-cdn.net/Original%20Jitter%20grey%20high%20res.mp4', caption:'Serge VCFQ, Buchla 258t',
     poster:'/image_1.jpg', frame:true,
     doy:172, yr:26, col:0.02, row:120, w:0.46, aspect:1.78 },
   { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
@@ -299,7 +299,7 @@ function layout(){
       slot.style.background = 'var(--field)';
       const video = document.createElement('video');
       video.className = 'vid';
-      video.src = directMp4Src(p.video);
+      video.src = p.mp4 ? p.mp4 : directMp4Src(p.video);
       video.poster = p.poster;               // your chosen still frame shows at rest
       video.loop = true;
       video.muted = true;                     // starts muted; unmuted on play(true)
