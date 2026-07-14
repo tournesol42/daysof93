@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>days of 93</title>
+<!-- build: v63-clients2 -->
+<meta name="build" content="v35-framefix">
+<script>console.log('days of 93 — build v35-framefix');</script>
+
+<meta name="description" content="days of 93 — audiovisual work by Tommy Gee." />
+<meta name="author" content="Tommy Gee" />
+<meta property="og:title" content="days of 93" />
+<meta property="og:description" content="A diary of work." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://daysof93.com" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Google+Sans+Code:wght@300..800&family=Bungee+Hairline&family=B612+Mono:ital@0;1&family=Space+Grotesk:wght@300;400;500&family=Jost:wght@200;300;400;600&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --field: #FFFF00;
+    --line:  rgba(0,0,0,0.45);
+    --axis-x: rgba(0,0,0,0.60);
+    --axis-y: rgba(0,0,0,0.60);
+    --ink:   #ffffff;
+    --hair:  0.75px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--field); }
+  body{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+  header{
+    position: fixed; top:0; left:0; right:0; z-index:50;
+    padding: 14px 20px; display:flex; flex-direction:column; gap:6px;
+  }
+  nav{ display:flex; gap:8px; align-items:center; }
+  nav a, nav span{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase;
+    color:#fff; text-decoration:none;
+    padding:6px 16px; border-radius:100px;
+    background:rgba(0,0,0,0.48);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+  }
+  #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }  .tagline{
+    position:fixed; z-index:51; pointer-events:none;
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:1.1rem; font-weight:300; text-transform:uppercase;
+    letter-spacing:0.22em; line-height:1;
+    color:#000; white-space:nowrap; overflow:hidden;
+  }
+  @media (max-width:720px){
+    nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
+    nav span{ font-size:12px; }
+    .tagline{ font-size:1rem; }
+  }
+
+  nav a:hover{ background:rgba(0,0,0,0.70); }
+  .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .plane{ position:relative; z-index:10; width:100%; }
+
+  .piece{ position:absolute; cursor:pointer; }
+  .piece .slot{
+    position:relative; width:100%; overflow:hidden;
+  }
+  .piece .slot.framed{
+    border: 3px solid #000000; border-radius: 3mm;
+  }
+  .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
+  .piece .vid{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    border:none; pointer-events:none;
+  }
+  .piece .stamp{
+    position:absolute; top:calc(100% + 6px); left:0;
+    font-family:'Google Sans Code', monospace; font-size:11px; letter-spacing:0.05em; color:#000000;
+    opacity:0.7; font-variant-numeric:tabular-nums;
+  }
+  @media (max-width:720px){
+    .piece .stamp{ font-size:9.5px; }
+  }
+  .tail{ height:40vh; }
+
+  /* ---- days of 93 overlay ---- */
+  .bio-title{
+    font-family:'Jost', sans-serif; font-size:3rem; font-weight:300;
+    text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
+    color:#000; margin-bottom:18px;
+  }
+  .bio-text{
+    font-family:'Jost', sans-serif; font-size:4rem; font-weight:300;
+    letter-spacing:0.02em; line-height:1.2;
+    color:#000; margin-bottom:32px;
+  }
+  .client-list-small li{
+    font-size:11px; letter-spacing:0.08em; line-height:2.2;
+    color:#000; opacity:0.65;
+  }
+  /* ---- past clients overlay ---- */
+  .overlay{
+    position:fixed; inset:0; z-index:100;
+    background:var(--field);
+    display:none; opacity:0; transition:opacity .3s ease;
+    overflow-y:auto;
+  }
+  .overlay.open{ display:block; opacity:1; }
+  .overlay-inner{
+    position:absolute; top:14vh; left:20px; right:20px;
+    max-width:520px;
+  }
+  .overlay-label{
+    font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
+    color:#000; opacity:0.55; margin-bottom:22px;
+    font-variant-numeric:tabular-nums;
+  }
+  .client-list{ list-style:none; }
+  .client-list li{
+    font-size:15px; letter-spacing:0.01em; line-height:2.05;
+    color:#000; opacity:0.9;
+  }
+  .overlay-close{
+    display:inline-block; margin-top:26px;
+    font-size:11px; letter-spacing:0.06em; color:#000;
+    opacity:0.5; text-decoration:none;
+  }
+  .overlay-close:hover{ opacity:0.85; }
+</style>
+</head>
+<body>
+
+  <header>
+    <nav>
+      <a href="#" id="nav-work">work</a>
+      <a href="#" id="nav-days">days of 93</a>
+      <a href="#" id="nav-clients">contact</a>
+    </nav>
+    <div class="tagline">filmcomposer</div>
+  </header>
+
+  <div class="overlay" id="about">
+    <div class="overlay-inner">
+      <p class="bio-title">Days of 93</p>
+      <p class="bio-text">Authoring. Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source.</p>
+      <ul class="client-list client-list-small">
+        <li>Royal Danish Theatre</li>
+        <li>EMI Denmark</li>
+        <li>Sony Music UK</li>
+        <li>Universal Music Denmark</li>
+        <li>Warner Music US</li>
+        <li>Denmarks Radio / TV</li>
+        <li>TV2</li>
+        <li>Republique Theater</li>
+        <li>Mercedes-Benz Denmark</li>
+        <li>Profile Pictures</li>
+        <li>Bunim / Murray Productions</li>
+        <li>Get Lifted Film Co.</li>
+        <li>R&amp;S Records</li>
+        <li>King Street Sounds</li>
+        <li>Nordisk Film</li>
+        <li>Det Danske Filminstitut</li>
+        <li>Syco UK</li>
+        <li>Borgen DK</li>
+        <li>!K7 Records Germany</li>
+        <li>Betty Nansen Theater Denmark</li>
+        <li>Sony Japan</li>
+        <li>Åben Dans Danmark</li>
+        <li>Johnny's Entertainment Japan</li>
+        <li>E-Types Denmark</li>
+      </ul>
+      <a href="#" class="overlay-close" id="about-close">close</a>
+    </div>
+  </div>
+
+  <div class="overlay" id="clients">
+    <div class="overlay-inner">
+      <div class="overlay-label">past clients</div>
+      <ul class="client-list">
+        <li>Royal Danish Theatre</li>
+        <li>EMI Denmark</li>
+        <li>Sony Music UK</li>
+        <li>Universal Music Denmark</li>
+        <li>Warner Music US</li>
+        <li>Denmarks Radio / TV</li>
+        <li>TV2</li>
+        <li>Republique Theater</li>
+        <li>Mercedes-Benz Denmark</li>
+        <li>Profile Pictures</li>
+        <li>Bunim / Murray Productions</li>
+        <li>Get Lifted Film Co.</li>
+        <li>R&amp;S Records</li>
+        <li>King Street Sounds</li>
+        <li>Nordisk Film</li>
+        <li>Det Danske Filminstitut</li>
+      </ul>
+      <a href="#" class="overlay-close" id="clients-close">close</a>
+    </div>
+  </div>
+
+  <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
+
+  <div class="plane" id="plane">
+    <div class="tail"></div>
+  </div>
+
+<script>
+// Cloudflare Stream customer subdomain code.
+// Bunny Stream library ID — dashboard > your library, or in the embed URL
+const PULL_ZONE = "vz-9a21b965-65a.b-cdn.net";  // Bunny Stream pull zone
+function directMp4Src(id){
+  // Direct file access (Bunny Stream storage structure), bypasses the iframe
+  // player entirely — a same-origin <video> tag, no cross-origin postMessage.
+  return "https://"+PULL_ZONE+"/"+id+"/play_720p.mp4";
+}
+
+const PIECES = [
+  { id:'a', video:'d5e6cbe8-d0b9-4a72-a7c2-4c8e8936f7b3', caption:'Serge VCFQ, Buchla 258t',
+    poster:'/image_1.jpg', frame:true,
+    doy:172, yr:26, col:0.02, row:120, w:0.46, aspect:1.78 },
+  { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
+    poster:'/image_2.jpg', frame:true,
+    doy:170, yr:26, col:0.56, row:380, w:0.304, aspect:1.78 },
+  { id:'d', caption:"memories of '98",
+    src:'/image_3.jpg',
+    doy:290, yr:98, col:0.20, row:1550, w:0.56, aspect:0.9957 },
+  { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
+    poster:'/Image_4.jpg',
+    doy:194, yr:26, col:0.16, row:2500, w:0.82, wMobile:0.96, aspect:0.5625 },
+];
+
+function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
+function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
+const SEED = daySeed();
+
+
+function layout(){
+  const plane = document.getElementById('plane');
+  const vw = window.innerWidth;
+  const MOBILE = vw < 720;
+  plane.querySelectorAll('.piece').forEach(n=>n.remove());
+
+  const ordered = [...PIECES].sort((a,b)=>{
+    if(a.pin && !b.pin) return -1;
+    if(b.pin && !a.pin) return 1;
+    return a.row - b.row;
+  });
+
+  let maxBottom = 0;
+
+  // mobile: one full-width column, generous vertical rhythm
+  let mobileCursor = 90;
+  const mobileGap = 46;
+
+  ordered.forEach((p)=>{
+    const el = document.createElement('div');
+    el.className = 'piece';
+    el.dataset.id = p.id;
+
+    const aspect = p.aspect || 1.78;
+    let width, left, top;
+
+    if(MOBILE){
+      // wMobile override if set, else defaults (piece 'a' slightly smaller)
+      const mw = p.wMobile ? p.wMobile : (p.id === 'a') ? 0.80 : 0.88;
+      width = vw * mw;
+      left  = (vw - width) / 2;        // centered
+      top   = mobileCursor;
+      const h = width * aspect;
+      mobileCursor += h + mobileGap + 22; // + room for stamp
+    } else {
+      const salt = p.id.charCodeAt(0);
+      const driftX = (seededRand(SEED+salt)-0.5)*24;
+      const driftY = (seededRand(SEED+salt*7.3)-0.5)*30;
+      width = (MOBILE && p.wMobile ? p.wMobile : p.w) * vw;
+      left  = p.col*vw + driftX;
+      top   = p.row + driftY;
+    }
+
+    const height = width * aspect;
+
+    el.style.left = left+'px';
+    el.style.top  = top+'px';
+    el.style.width = Math.min(width, vw * 0.72) +'px';
+
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (p.frame ? ' framed' : '');
+    slot.style.height = height+'px';
+
+    if(p.video){
+      slot.style.background = 'var(--field)';
+      const video = document.createElement('video');
+      video.className = 'vid';
+      video.src = directMp4Src(p.video);
+      video.poster = p.poster;               // your chosen still frame shows at rest
+      video.loop = true;
+      video.muted = true;                     // starts muted; unmuted on play(true)
+      video.setAttribute('playsinline', '');  // required so iOS plays inline, not fullscreen
+      video.preload = 'auto';
+      slot.appendChild(video);
+      el._video = video;
+
+      const play = (withSound)=>{
+        video.muted = !withSound;
+        // Native <video> in our own document: play() here runs synchronously
+        // inside the tap's own call stack, so iOS always honors it — no
+        // cross-origin iframe, no postMessage relay, nothing to silently block.
+        video.play();
+      };
+      const freeze = ()=>{ video.pause(); };
+
+      video.addEventListener('play',  ()=> el.classList.add('playing'));
+      video.addEventListener('pause', ()=> el.classList.remove('playing'));
+
+      // click to play; click again to stop (shows poster, hides video)
+      el.addEventListener('click', ()=>{
+        if(!video.paused){ freeze(); }
+        else { play(true); }
+      });
+
+      el._play = play; el._freeze = freeze;
+    } else {
+      const poster = document.createElement('img');
+      poster.className = 'poster';
+      poster.src = p.src;
+      poster.alt = '';
+      poster.loading = 'lazy';
+      slot.style.background = 'transparent'; // no black frame on still images
+      slot.appendChild(poster);
+    }
+
+    el.appendChild(slot);
+
+    const stamp = document.createElement('div');
+    stamp.className = 'stamp';
+    stamp.textContent = p.doy + '.' + p.yr + (p.caption ? '  —  ' + p.caption : '');
+    el.appendChild(stamp);
+
+    plane.appendChild(el);
+    maxBottom = Math.max(maxBottom, top + height);
+  });
+
+  plane.style.minHeight = (maxBottom + window.innerHeight*0.4)+'px';
+}
+
+function drawField(){
+  const svg = document.getElementById('field');
+  const w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox', "0 0 "+w+" "+h);
+  const camX = (seededRand(SEED+1)-0.5)*40;
+  const camTilt = (seededRand(SEED+2)-0.5)*0.02;
+  const vpX = w*0.5 + camX, vpY = h*0.62;
+  let lines = '';
+  const bands = 18;
+  for(let i=0;i<=bands;i++){
+    const t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=0.34*(1-t*0.65);
+    lines += '<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+op.toFixed(3)+'"/>';
+  }
+  const cols=16;
+  for(let i=0;i<=cols;i++){
+    const x=(i/cols)*w;
+    lines += '<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.18"/>';
+  }
+  const ay=Math.sin(camTilt);
+  lines += '<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="var(--axis-x)" stroke-width="var(--hair)" opacity="0.48"/>';
+  lines += '<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="var(--axis-y)" stroke-width="var(--hair)" opacity="0.42"/>';
+  const gx=vpX, gy=vpY, r=9;
+  lines += '<circle cx="'+gx+'" cy="'+gy+'" r="'+r+'" fill="none" stroke="var(--ink)" stroke-width="var(--hair)" stroke-dasharray="2 3" opacity="0.55"/>';
+  lines += '<line x1="'+(gx-r-4)+'" y1="'+gy+'" x2="'+(gx+r+4)+'" y2="'+gy+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
+  lines += '<line x1="'+gx+'" y1="'+(gy-r-4)+'" x2="'+gx+'" y2="'+(gy+r+4)+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
+
+  // --- lines that break symmetry & straightness, living in the UPPER field ---
+  // (the negative space around the nav, above where the pieces begin) — desktop only
+  if(w >= 720){
+    const upperBand = vpY * 0.72;   // confine to the top zone, above the horizon
+    const strays = 4;
+    for(let i=0;i<strays;i++){
+      const s1 = seededRand(SEED + 100 + i*3.1);
+      const s2 = seededRand(SEED + 200 + i*5.7);
+      const s3 = seededRand(SEED + 300 + i*2.3);
+      const s4 = seededRand(SEED + 350 + i*4.9);
+      // both endpoints roam the upper band, at irregular positions
+      const x1 = s1 * w;
+      const y1 = s2 * upperBand;
+      const x2 = s3 * w;
+      const y2 = s4 * upperBand;
+      if(s2 > 0.5){
+        // gentle bow — deviates from straightness
+        const mx = (x1+x2)/2 + (s3-0.5)*140;
+        const my = (y1+y2)/2 + (s1-0.5)*70;
+        lines += '<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'" fill="none" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s4*0.12).toFixed(3)+'"/>';
+      } else {
+        // straight but off-grid
+        lines += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s1*0.12).toFixed(3)+'"/>';
+      }
+    }
+    // a couple of long faint diagonals sweeping across the upper field
+    for(let i=0;i<1;i++){
+      const s1 = seededRand(SEED + 600 + i*7.9);
+      const s2 = seededRand(SEED + 700 + i*3.3);
+      lines += '<line x1="'+(s1*w*0.4).toFixed(1)+'" y1="'+(s2*upperBand*0.5).toFixed(1)+'" x2="'+((0.5+s2*0.5)*w).toFixed(1)+'" y2="'+((0.4+s1*0.6)*upperBand).toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.14"/>';
+    }
+  }
+
+  svg.innerHTML = lines;
+}
+
+function build(){ drawField(); layout(); positionTagline(); }
+
+function positionTagline(){
+  const clients = document.getElementById('nav-clients');
+  const tagline = document.querySelector('.tagline');
+  if(!clients || !tagline) return;
+  const r = clients.getBoundingClientRect();
+  // "l" of "clients" ≈ 42% across the pill
+  const x = r.left + r.width * 0.28;
+  const y = r.bottom + 6;
+  tagline.style.left = x + 'px';
+  tagline.style.top  = y + 'px';
+  tagline.style.maxWidth = (window.innerWidth - x - 8) + 'px';
+}
+
+build();
+
+/* ---- autoplay piece a on load, pause on scroll ---- */
+function getVideoA(){
+  const el = document.querySelector('.piece[data-id="a"] video');
+  return el;
+}
+
+function autostartA(){
+  const v = getVideoA();
+  if(!v) return;
+  v.muted = true;
+  v.play().catch(()=>{});
+}
+
+let autoStopped = false;
+window.addEventListener('scroll', ()=>{
+  if(autoStopped) return;
+  if(window.scrollY > 80){
+    const v = getVideoA();
+    if(v && !v.paused){ v.pause(); v.currentTime = 0; }
+    autoStopped = true;
+  }
+}, { passive:true });
+
+// slight delay to let layout settle before autoplay
+setTimeout(autostartA, 400);
+
+let rt;
+window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
+
+/* ---- days of 93 overlay ---- */
+(function(){
+  const overlay = document.getElementById('about');
+  const open  = document.getElementById('nav-days');
+  const close = document.getElementById('about-close');
+  if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
+  if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+})();
+
+/* ---- past clients overlay ---- */
+(function(){
+  const overlay = document.getElementById('clients');
+  const open  = document.getElementById('nav-clients');
+  const close = document.getElementById('clients-close');
+  if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
+  if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>
