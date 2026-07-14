@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v68-bunnystorage -->
+<!-- build: v69-mp4fix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -295,7 +295,7 @@ function layout(){
     slot.className = 'slot' + (p.frame ? ' framed' : '');
     slot.style.height = height+'px';
 
-    if(p.video){
+    if(p.video || p.mp4){
       slot.style.background = 'var(--field)';
       const video = document.createElement('video');
       video.className = 'vid';
