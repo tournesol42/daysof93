@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v81-posterframes -->
+<!-- build: v82-hcuts -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -545,6 +545,20 @@ function initCollage(el, video, slot, pieceId, posterUrl){
         speedAmp:Math.abs(spd)*(0.2+rng()*0.4),visible:false};
     });
 
+    // 2-4 guaranteed horizontal bleed cuts — always present, always full-width
+    const numExtra = 2 + Math.floor(rng()*3);
+    for(let i=0;i<numExtra;i++){
+      const ey = Math.round(slotH*(0.1+rng()*0.8));
+      const eh = 3 + Math.floor(rng()*7);
+      const sign = rng()>0.5?1:-1;
+      const spd = sign*(1.0+rng()*3.0)*3;
+      panels.push({x:0,y:ey,w:slotW,h:eh,img,bleeds:true,
+        cropX:rng(),cropY:rng(),
+        offset:rng()*200-100,phase:rng()*Math.PI*2,
+        phaseSpd:0.02+rng()*0.12,speed:spd,
+        speedAmp:Math.abs(spd)*(0.3+rng()*0.4),visible:false,guaranteed:true});
+    }
+
     let visCount=0;
     function revealNext(){
       if(visCount>=panels.length) return;
@@ -552,7 +566,11 @@ function initCollage(el, video, slot, pieceId, posterUrl){
       const delay=visCount<=6?250:REVEAL_SLOW+rng()*300;
       setTimeout(revealNext,delay);
     }
-    setTimeout(revealNext,START_DELAY);
+    // Guaranteed cuts appear first, slightly before the rest
+    panels.filter(p=>p.guaranteed).forEach((p,i)=>{
+      setTimeout(()=>{ p.visible=true; }, START_DELAY + i*400);
+    });
+    setTimeout(revealNext,START_DELAY+600);
 
     function drawBase(){
       const sc=Math.max(slotW/img.naturalWidth,slotH/img.naturalHeight);
@@ -594,7 +612,11 @@ function initCollage(el, video, slot, pieceId, posterUrl){
   // Load poster image — no video seeking, works on all devices
   if(!posterUrl) return;
   const img=new Image();
-  img.onload=()=>setup(img);
+  img.onload=()=>{
+    // Guard: if slot not laid out yet (cached image fires immediately), wait a frame
+    if(slot.offsetWidth > 0) setup(img);
+    else requestAnimationFrame(()=>requestAnimationFrame(()=>setup(img)));
+  };
   img.src=posterUrl;
 }
 </script>
