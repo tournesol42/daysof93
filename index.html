@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v79-mobilefix -->
+<!-- build: v80-hidecapture -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -615,11 +615,27 @@ function initCollage(el, video, slot, pieceId){
     video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
   }
 
+  // Create canvas cover immediately — hides video during frame capture
+  const slotW0=slot.offsetWidth, slotH0=slot.offsetHeight;
+  const bleedPx0=Math.round(slotW0*BLEED);
+  const cvW0=slotW0+bleedPx0*2;
+  const wrapEarly=document.createElement('div');
+  wrapEarly.style.cssText='position:absolute;top:0;left:0;width:'+slotW0+'px;height:'+slotH0+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
+  const cvEarly=document.createElement('canvas');
+  cvEarly.width=cvW0; cvEarly.height=slotH0;
+  cvEarly.style.cssText='position:absolute;top:0;left:'+(-bleedPx0)+'px;width:'+cvW0+'px;height:'+slotH0+'px;';
+  wrapEarly.appendChild(cvEarly); slot.appendChild(wrapEarly);
+  // Fill with page background to hide video seeking
+  const bgCol=getComputedStyle(document.documentElement).getPropertyValue('--field').trim()||'#F5D033';
+  const ctxEarly=cvEarly.getContext('2d');
+  ctxEarly.fillStyle=bgCol; ctxEarly.fillRect(bleedPx0,0,slotW0,slotH0);
+
   function init(){
-    if(video.readyState>=2) captureFrames(setup);
-    else video.addEventListener('loadeddata',()=>captureFrames(setup),{once:true});
+    function go(){ captureFrames(frames=>{ wrapEarly.remove(); setup(frames); }); }
+    if(video.readyState>=2) go();
+    else video.addEventListener('loadeddata',go,{once:true});
   }
-  setTimeout(init,300);
+  setTimeout(init,100);
 }
 
 </script>
