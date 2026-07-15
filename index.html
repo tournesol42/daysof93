@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v77-collage -->
+<!-- build: v79-mobilefix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -472,22 +472,27 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
    COLLAGE ENGINE — animated line-cut poster from video frames
    ============================================================ */
 function initCollage(el, video, slot, pieceId){
-  const BLEED    = 0.4;   // canvas extends 40% beyond slot on each side
-  const MAX_D    = 7;     // BSP depth — many thin cuts
-  const MIN_S    = 2;     // minimum strip height px
-  const REVEAL_MS= 60;    // ms between revealing each strip
-  const ZOOM     = 1.18;
+  if(window.innerWidth < 720) return;
+
+  const BLEED       = 0.4;
+  const MAX_D       = 7;
+  const MIN_STRIP   = 2;
+  const MAX_STRIP   = 13;
+  const MAX_COVER   = 0.40;
+  const START_DELAY = 4500;
+  const REVEAL_SLOW = 700;
+  const ZOOM        = 1.18;
 
   function rngMake(seed){
     let h=0; for(let i=0;i<seed.length;i++) h=Math.imul(31,h)+seed.charCodeAt(i)|0;
     return ()=>{ h=Math.imul(h^(h>>>16),0x45d9f3b)|0; h=Math.imul(h^(h>>>16),0x45d9f3b)|0; return ((h^(h>>>16))>>>0)/2**32; };
   }
 
-  function bsp(rect, depth, rng){
+  function bsp(rect,depth,rng){
     if(depth>=MAX_D) return [rect];
-    const canH=rect.h>=MIN_S*2, canV=rect.w>=MIN_S*2;
+    const canH=rect.h>=MIN_STRIP*2, canV=rect.w>=MIN_STRIP*2;
     if(!canH&&!canV) return [rect];
-    const horiz = !canH?false:!canV?true:rng()>0.15; // 85% horizontal = line cuts
+    const horiz=!canH?false:!canV?true:rng()>0.15;
     if(horiz){
       const sy=Math.round(rect.y+rect.h*(0.05+rng()*0.9));
       if(sy<=rect.y||sy>=rect.y+rect.h) return [rect];
@@ -502,11 +507,11 @@ function initCollage(el, video, slot, pieceId){
   }
 
   function captureFrames(cb){
-    const dur = video.duration||10;
-    const times = [0.08,0.25,0.45,0.65,0.85].map(t=>dur*t);
+    const dur=video.duration||10;
+    const times=[0.08,0.25,0.45,0.65,0.85].map(t=>dur*t);
     const frames=[]; let i=0;
     function next(){
-      if(i>=times.length){ cb(frames); return; }
+      if(i>=times.length){cb(frames);return;}
       video.currentTime=times[i];
       const onSeeked=()=>{
         video.removeEventListener('seeked',onSeeked);
@@ -521,60 +526,86 @@ function initCollage(el, video, slot, pieceId){
   }
 
   function setup(frames){
-    const slotW = slot.offsetWidth;
-    const slotH = slot.offsetHeight;
-    const bleedPx = Math.round(slotW*BLEED);
-    const cvW = slotW+bleedPx*2, cvH = slotH;
+    const slotW=slot.offsetWidth, slotH=slot.offsetHeight;
+    const bleedPx=Math.round(slotW*BLEED);
+    const cvW=slotW+bleedPx*2, cvH=slotH;
+    const totalArea=slotW*slotH;
+    const baseFrame=frames[0];
 
-    const wrap = document.createElement('div');
+    const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
-    const cv = document.createElement('canvas');
+    const cv=document.createElement('canvas');
     cv.width=cvW; cv.height=cvH;
-    cv.style.cssText='position:absolute;top:0;left:'+-bleedPx+'px;width:'+cvW+'px;height:'+cvH+'px;';
+    cv.style.cssText='position:absolute;top:0;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
     wrap.appendChild(cv); slot.appendChild(wrap);
     const ctx=cv.getContext('2d');
-    ctx.fillStyle='#111'; ctx.fillRect(0,0,cvW,cvH);
 
     const rng=rngMake(pieceId+'_col');
-    const rects=bsp({x:0,y:0,w:slotW,h:slotH},0,rng);
-    rects.sort((a,b)=>a.y-b.y);
+    const allRects=bsp({x:0,y:0,w:slotW,h:slotH},0,rng);
+    const thinRects=allRects.filter(r=>r.h>=MIN_STRIP&&r.h<=MAX_STRIP);
 
-    const panels=rects.map(r=>{
+    for(let i=thinRects.length-1;i>0;i--){
+      const j=Math.floor(rng()*(i+1));
+      [thinRects[i],thinRects[j]]=[thinRects[j],thinRects[i]];
+    }
+
+    let covered=0;
+    const eligible=[];
+    for(const r of thinRects){
+      const a=r.w*r.h;
+      if(covered+a>totalArea*MAX_COVER) break;
+      covered+=a; eligible.push(r);
+    }
+
+    const panels=eligible.map(r=>{
       const img=frames[Math.floor(rng()*frames.length)];
-      const thin=r.h<=12;
-      const bleeds=thin&&rng()>0.25;  // thin strips may bleed beyond frame
-      const anim=rng()>0.15;
+      const bleeds=rng()>0.45;
       const sign=rng()>0.5?1:-1;
-      const spd=sign*(0.4+rng()*2.2)*3;
-      return{...r,img,bleeds,dir:anim?'H':null,cropX:rng(),cropY:rng(),
+      const spd=sign*(0.5+rng()*2.5)*3;
+      return{...r,img,bleeds,cropX:rng(),cropY:rng(),
         offset:rng()*200-100,phase:rng()*Math.PI*2,
-        phaseSpd:0.03+rng()*0.18,speed:spd,
-        speedAmp:Math.abs(spd)*(0.25+rng()*0.5),visible:false};
+        phaseSpd:0.03+rng()*0.15,speed:spd,
+        speedAmp:Math.abs(spd)*(0.2+rng()*0.4),visible:false};
     });
 
-    let vis=0;
-    const timer=setInterval(()=>{ if(vis<panels.length) panels[vis++].visible=true; else clearInterval(timer); },REVEAL_MS);
+    let visCount=0;
+    function revealNext(){
+      if(visCount>=panels.length) return;
+      panels[visCount++].visible=true;
+      const delay=visCount<=6?250:REVEAL_SLOW+rng()*300;
+      setTimeout(revealNext,delay);
+    }
+    setTimeout(revealNext,START_DELAY);
+
+    function drawBaseFrame(){
+      if(!baseFrame) return;
+      const sc=Math.max(slotW/baseFrame.width,slotH/baseFrame.height);
+      const dw=baseFrame.width*sc, dh=baseFrame.height*sc;
+      const dx=bleedPx+(slotW-dw)/2, dy=(slotH-dh)/2;
+      ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,0,slotW,slotH); ctx.clip();
+      ctx.drawImage(baseFrame,dx,dy,dw,dh); ctx.restore();
+    }
 
     function drawPanel(p,dt){
       if(!p.visible||!p.img) return;
-      if(p.dir){p.phase+=p.phaseSpd*dt; p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;}
-      const gap=1;
-      const px=p.x+bleedPx+gap, py=p.y+gap, pw=p.w-gap*2, ph=p.h-gap*2;
-      if(pw<=0||ph<=0) return;
+      p.phase+=p.phaseSpd*dt;
+      p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;
+      const px=p.x+bleedPx, py=p.y, pw=p.w, ph=p.h;
       const sc=Math.max(pw/p.img.width,ph/p.img.height)*ZOOM;
       const dw=p.img.width*sc, dh=p.img.height*sc;
-      const eX=Math.max(0,dw-pw), eY=Math.max(0,dh-ph);
-      let dx=px-eX*p.cropX, dy=py-eY*p.cropY;
-      if(p.dir==='H'&&eX>0){const r=eX*0.7;dx+=((p.offset%(r*2))+(r*2))%(r*2)-r;}
+      const eX=Math.max(0,dw-pw);
+      let dx=px-eX*p.cropX, dy2=py-(Math.max(0,dh-ph))*p.cropY;
+      if(eX>0){const r=eX*0.7;dx+=((p.offset%(r*2))+(r*2))%(r*2)-r;}
       ctx.save(); ctx.beginPath();
-      p.bleeds ? ctx.rect(0,py,cvW,ph) : ctx.rect(px,py,pw,ph);  // bleed = full canvas width
-      ctx.clip(); ctx.drawImage(p.img,dx,dy,dw,dh); ctx.restore();
+      p.bleeds?ctx.rect(0,py,cvW,ph):ctx.rect(px,py,pw,ph);
+      ctx.clip(); ctx.drawImage(p.img,dx,dy2,dw,dh); ctx.restore();
     }
 
-    let rafId, lastT=performance.now();
+    let rafId,lastT=performance.now();
     function frame(ts){
       const dt=Math.min((ts-lastT)/1000,0.05); lastT=ts;
-      ctx.fillStyle='#111'; ctx.fillRect(0,0,cvW,cvH);
+      ctx.clearRect(0,0,cvW,cvH);
+      drawBaseFrame();
       panels.forEach(p=>drawPanel(p,dt));
       rafId=requestAnimationFrame(frame);
     }
@@ -588,9 +619,9 @@ function initCollage(el, video, slot, pieceId){
     if(video.readyState>=2) captureFrames(setup);
     else video.addEventListener('loadeddata',()=>captureFrames(setup),{once:true});
   }
-  // small delay to let layout settle
-  setTimeout(init, 300);
+  setTimeout(init,300);
 }
+
 </script>
 </body>
 </html>
