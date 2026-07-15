@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v74-sulfuryellow -->
+<!-- build: v75-straightframes -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -53,11 +53,10 @@
   }
   #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }
   .tagline{
-    position:fixed; z-index:51; pointer-events:none;
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:1.1rem; font-weight:300; text-transform:uppercase;
     letter-spacing:0.22em; line-height:1;
-    color:#000; white-space:nowrap; overflow:hidden; opacity:0.85;
+    color:#000; white-space:nowrap; opacity:0.85;
   }
   @media (max-width:720px){
     nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
@@ -74,7 +73,7 @@
     position:relative; width:100%; overflow:hidden;
   }
   .piece .slot.framed{
-    border: 3px solid #000000; border-radius: 3mm;
+    border: 3px solid #000000; border-radius: 0;
   }
   .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
   .piece .vid{
@@ -143,8 +142,8 @@
       <a href="#" id="nav-work">work</a>
       <a href="#" id="nav-days">days of 93</a>
       <a href="#" id="nav-clients">contact</a>
+      <div class="tagline">filmcomposer</div>
     </nav>
-    <div class="tagline">filmcomposer</div>
   </header>
 
   <div class="overlay" id="about">
@@ -414,19 +413,8 @@ function drawField(){
   svg.innerHTML = lines;
 }
 
-function build(){ drawField(); layout(); positionTagline(); }
+function build(){ drawField(); layout(); }
 
-function positionTagline(){
-  const clients = document.getElementById('nav-clients');
-  const tagline = document.querySelector('.tagline');
-  if(!clients || !tagline) return;
-  const r = clients.getBoundingClientRect();
-  const x = r.left + r.width * 0.28;
-  const y = r.bottom + 6;
-  tagline.style.left = x + 'px';
-  tagline.style.top  = y + 'px';
-  tagline.style.maxWidth = (window.innerWidth - x - 8) + 'px';
-}
 
 build();
 
