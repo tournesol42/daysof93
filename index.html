@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v80-hidecapture -->
+<!-- build: v81-posterframes -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -327,7 +327,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
-      initCollage(el, video, slot, p.id);
+      initCollage(el, video, slot, p.id, p.poster);
     } else {
       const poster = document.createElement('img');
       poster.className = 'poster';
@@ -469,11 +469,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 
 /* ============================================================
-   COLLAGE ENGINE — animated line-cut poster from video frames
+   COLLAGE ENGINE — poster-based animated line cuts
    ============================================================ */
-function initCollage(el, video, slot, pieceId){
-  if(window.innerWidth < 720) return;
-
+function initCollage(el, video, slot, pieceId, posterUrl){
   const BLEED       = 0.4;
   const MAX_D       = 7;
   const MIN_STRIP   = 2;
@@ -506,31 +504,11 @@ function initCollage(el, video, slot, pieceId){
     }
   }
 
-  function captureFrames(cb){
-    const dur=video.duration||10;
-    const times=[0.08,0.25,0.45,0.65,0.85].map(t=>dur*t);
-    const frames=[]; let i=0;
-    function next(){
-      if(i>=times.length){cb(frames);return;}
-      video.currentTime=times[i];
-      const onSeeked=()=>{
-        video.removeEventListener('seeked',onSeeked);
-        const off=document.createElement('canvas');
-        off.width=video.videoWidth||640; off.height=video.videoHeight||360;
-        off.getContext('2d').drawImage(video,0,0,off.width,off.height);
-        frames.push(off); i++; next();
-      };
-      video.addEventListener('seeked',onSeeked);
-    }
-    next();
-  }
-
-  function setup(frames){
+  function setup(img){
     const slotW=slot.offsetWidth, slotH=slot.offsetHeight;
     const bleedPx=Math.round(slotW*BLEED);
     const cvW=slotW+bleedPx*2, cvH=slotH;
     const totalArea=slotW*slotH;
-    const baseFrame=frames[0];
 
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
@@ -558,7 +536,6 @@ function initCollage(el, video, slot, pieceId){
     }
 
     const panels=eligible.map(r=>{
-      const img=frames[Math.floor(rng()*frames.length)];
       const bleeds=rng()>0.45;
       const sign=rng()>0.5?1:-1;
       const spd=sign*(0.5+rng()*2.5)*3;
@@ -577,35 +554,34 @@ function initCollage(el, video, slot, pieceId){
     }
     setTimeout(revealNext,START_DELAY);
 
-    function drawBaseFrame(){
-      if(!baseFrame) return;
-      const sc=Math.max(slotW/baseFrame.width,slotH/baseFrame.height);
-      const dw=baseFrame.width*sc, dh=baseFrame.height*sc;
+    function drawBase(){
+      const sc=Math.max(slotW/img.naturalWidth,slotH/img.naturalHeight);
+      const dw=img.naturalWidth*sc, dh=img.naturalHeight*sc;
       const dx=bleedPx+(slotW-dw)/2, dy=(slotH-dh)/2;
       ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,0,slotW,slotH); ctx.clip();
-      ctx.drawImage(baseFrame,dx,dy,dw,dh); ctx.restore();
+      ctx.drawImage(img,dx,dy,dw,dh); ctx.restore();
     }
 
     function drawPanel(p,dt){
-      if(!p.visible||!p.img) return;
+      if(!p.visible) return;
       p.phase+=p.phaseSpd*dt;
       p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;
       const px=p.x+bleedPx, py=p.y, pw=p.w, ph=p.h;
-      const sc=Math.max(pw/p.img.width,ph/p.img.height)*ZOOM;
-      const dw=p.img.width*sc, dh=p.img.height*sc;
+      const sc=Math.max(pw/img.naturalWidth,ph/img.naturalHeight)*ZOOM;
+      const dw=img.naturalWidth*sc, dh=img.naturalHeight*sc;
       const eX=Math.max(0,dw-pw);
       let dx=px-eX*p.cropX, dy2=py-(Math.max(0,dh-ph))*p.cropY;
       if(eX>0){const r=eX*0.7;dx+=((p.offset%(r*2))+(r*2))%(r*2)-r;}
       ctx.save(); ctx.beginPath();
       p.bleeds?ctx.rect(0,py,cvW,ph):ctx.rect(px,py,pw,ph);
-      ctx.clip(); ctx.drawImage(p.img,dx,dy2,dw,dh); ctx.restore();
+      ctx.clip(); ctx.drawImage(img,dx,dy2,dw,dh); ctx.restore();
     }
 
     let rafId,lastT=performance.now();
     function frame(ts){
       const dt=Math.min((ts-lastT)/1000,0.05); lastT=ts;
       ctx.clearRect(0,0,cvW,cvH);
-      drawBaseFrame();
+      drawBase();
       panels.forEach(p=>drawPanel(p,dt));
       rafId=requestAnimationFrame(frame);
     }
@@ -615,29 +591,12 @@ function initCollage(el, video, slot, pieceId){
     video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
   }
 
-  // Create canvas cover immediately — hides video during frame capture
-  const slotW0=slot.offsetWidth, slotH0=slot.offsetHeight;
-  const bleedPx0=Math.round(slotW0*BLEED);
-  const cvW0=slotW0+bleedPx0*2;
-  const wrapEarly=document.createElement('div');
-  wrapEarly.style.cssText='position:absolute;top:0;left:0;width:'+slotW0+'px;height:'+slotH0+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
-  const cvEarly=document.createElement('canvas');
-  cvEarly.width=cvW0; cvEarly.height=slotH0;
-  cvEarly.style.cssText='position:absolute;top:0;left:'+(-bleedPx0)+'px;width:'+cvW0+'px;height:'+slotH0+'px;';
-  wrapEarly.appendChild(cvEarly); slot.appendChild(wrapEarly);
-  // Fill with page background to hide video seeking
-  const bgCol=getComputedStyle(document.documentElement).getPropertyValue('--field').trim()||'#F5D033';
-  const ctxEarly=cvEarly.getContext('2d');
-  ctxEarly.fillStyle=bgCol; ctxEarly.fillRect(bleedPx0,0,slotW0,slotH0);
-
-  function init(){
-    function go(){ captureFrames(frames=>{ wrapEarly.remove(); setup(frames); }); }
-    if(video.readyState>=2) go();
-    else video.addEventListener('loadeddata',go,{once:true});
-  }
-  setTimeout(init,100);
+  // Load poster image — no video seeking, works on all devices
+  if(!posterUrl) return;
+  const img=new Image();
+  img.onload=()=>setup(img);
+  img.src=posterUrl;
 }
-
 </script>
 </body>
 </html>
