@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v76-mobilenav -->
+<!-- build: v77-collage -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -70,7 +70,7 @@
 
   .piece{ position:absolute; cursor:pointer; }
   .piece .slot{
-    position:relative; width:100%; overflow:hidden;
+    position:relative; width:100%; overflow:visible;
   }
   .piece .slot.framed{
     border: 1.5px solid #000000; border-radius: 0;
@@ -327,6 +327,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
+      initCollage(el, video, slot, p.id);
     } else {
       const poster = document.createElement('img');
       poster.className = 'poster';
@@ -466,6 +467,130 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
 })();
+
+/* ============================================================
+   COLLAGE ENGINE — animated line-cut poster from video frames
+   ============================================================ */
+function initCollage(el, video, slot, pieceId){
+  const BLEED    = 0.4;   // canvas extends 40% beyond slot on each side
+  const MAX_D    = 7;     // BSP depth — many thin cuts
+  const MIN_S    = 2;     // minimum strip height px
+  const REVEAL_MS= 60;    // ms between revealing each strip
+  const ZOOM     = 1.18;
+
+  function rngMake(seed){
+    let h=0; for(let i=0;i<seed.length;i++) h=Math.imul(31,h)+seed.charCodeAt(i)|0;
+    return ()=>{ h=Math.imul(h^(h>>>16),0x45d9f3b)|0; h=Math.imul(h^(h>>>16),0x45d9f3b)|0; return ((h^(h>>>16))>>>0)/2**32; };
+  }
+
+  function bsp(rect, depth, rng){
+    if(depth>=MAX_D) return [rect];
+    const canH=rect.h>=MIN_S*2, canV=rect.w>=MIN_S*2;
+    if(!canH&&!canV) return [rect];
+    const horiz = !canH?false:!canV?true:rng()>0.15; // 85% horizontal = line cuts
+    if(horiz){
+      const sy=Math.round(rect.y+rect.h*(0.05+rng()*0.9));
+      if(sy<=rect.y||sy>=rect.y+rect.h) return [rect];
+      return [...bsp({x:rect.x,y:rect.y,w:rect.w,h:sy-rect.y},depth+1,rng),
+              ...bsp({x:rect.x,y:sy,w:rect.w,h:rect.y+rect.h-sy},depth+1,rng)];
+    } else {
+      const sx=Math.round(rect.x+rect.w*(0.15+rng()*0.7));
+      if(sx<=rect.x||sx>=rect.x+rect.w) return [rect];
+      return [...bsp({x:rect.x,y:rect.y,w:sx-rect.x,h:rect.h},depth+1,rng),
+              ...bsp({x:sx,y:rect.y,w:rect.x+rect.w-sx,h:rect.h},depth+1,rng)];
+    }
+  }
+
+  function captureFrames(cb){
+    const dur = video.duration||10;
+    const times = [0.08,0.25,0.45,0.65,0.85].map(t=>dur*t);
+    const frames=[]; let i=0;
+    function next(){
+      if(i>=times.length){ cb(frames); return; }
+      video.currentTime=times[i];
+      const onSeeked=()=>{
+        video.removeEventListener('seeked',onSeeked);
+        const off=document.createElement('canvas');
+        off.width=video.videoWidth||640; off.height=video.videoHeight||360;
+        off.getContext('2d').drawImage(video,0,0,off.width,off.height);
+        frames.push(off); i++; next();
+      };
+      video.addEventListener('seeked',onSeeked);
+    }
+    next();
+  }
+
+  function setup(frames){
+    const slotW = slot.offsetWidth;
+    const slotH = slot.offsetHeight;
+    const bleedPx = Math.round(slotW*BLEED);
+    const cvW = slotW+bleedPx*2, cvH = slotH;
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
+    const cv = document.createElement('canvas');
+    cv.width=cvW; cv.height=cvH;
+    cv.style.cssText='position:absolute;top:0;left:'+-bleedPx+'px;width:'+cvW+'px;height:'+cvH+'px;';
+    wrap.appendChild(cv); slot.appendChild(wrap);
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#111'; ctx.fillRect(0,0,cvW,cvH);
+
+    const rng=rngMake(pieceId+'_col');
+    const rects=bsp({x:0,y:0,w:slotW,h:slotH},0,rng);
+    rects.sort((a,b)=>a.y-b.y);
+
+    const panels=rects.map(r=>{
+      const img=frames[Math.floor(rng()*frames.length)];
+      const thin=r.h<=12;
+      const bleeds=thin&&rng()>0.25;  // thin strips may bleed beyond frame
+      const anim=rng()>0.15;
+      const sign=rng()>0.5?1:-1;
+      const spd=sign*(0.4+rng()*2.2)*3;
+      return{...r,img,bleeds,dir:anim?'H':null,cropX:rng(),cropY:rng(),
+        offset:rng()*200-100,phase:rng()*Math.PI*2,
+        phaseSpd:0.03+rng()*0.18,speed:spd,
+        speedAmp:Math.abs(spd)*(0.25+rng()*0.5),visible:false};
+    });
+
+    let vis=0;
+    const timer=setInterval(()=>{ if(vis<panels.length) panels[vis++].visible=true; else clearInterval(timer); },REVEAL_MS);
+
+    function drawPanel(p,dt){
+      if(!p.visible||!p.img) return;
+      if(p.dir){p.phase+=p.phaseSpd*dt; p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;}
+      const gap=1;
+      const px=p.x+bleedPx+gap, py=p.y+gap, pw=p.w-gap*2, ph=p.h-gap*2;
+      if(pw<=0||ph<=0) return;
+      const sc=Math.max(pw/p.img.width,ph/p.img.height)*ZOOM;
+      const dw=p.img.width*sc, dh=p.img.height*sc;
+      const eX=Math.max(0,dw-pw), eY=Math.max(0,dh-ph);
+      let dx=px-eX*p.cropX, dy=py-eY*p.cropY;
+      if(p.dir==='H'&&eX>0){const r=eX*0.7;dx+=((p.offset%(r*2))+(r*2))%(r*2)-r;}
+      ctx.save(); ctx.beginPath();
+      p.bleeds ? ctx.rect(0,py,cvW,ph) : ctx.rect(px,py,pw,ph);  // bleed = full canvas width
+      ctx.clip(); ctx.drawImage(p.img,dx,dy,dw,dh); ctx.restore();
+    }
+
+    let rafId, lastT=performance.now();
+    function frame(ts){
+      const dt=Math.min((ts-lastT)/1000,0.05); lastT=ts;
+      ctx.fillStyle='#111'; ctx.fillRect(0,0,cvW,cvH);
+      panels.forEach(p=>drawPanel(p,dt));
+      rafId=requestAnimationFrame(frame);
+    }
+    rafId=requestAnimationFrame(frame);
+
+    video.addEventListener('play', ()=>{ wrap.style.opacity='0'; });
+    video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
+  }
+
+  function init(){
+    if(video.readyState>=2) captureFrames(setup);
+    else video.addEventListener('loadeddata',()=>captureFrames(setup),{once:true});
+  }
+  // small delay to let layout settle
+  setTimeout(init, 300);
+}
 </script>
 </body>
 </html>
