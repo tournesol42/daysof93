@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v84-vertcuts -->
+<!-- build: v85-bleedfix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -327,7 +327,7 @@ function layout(){
 
       el._play = play; el._freeze = freeze;
       const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52} : {orient:'H', focusX:0};
-      initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
+      if(p.id !== 'e') initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
     } else {
       const poster = document.createElement('img');
       poster.className = 'poster';
@@ -514,14 +514,15 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     const slotW=slot.offsetWidth, slotH=slot.offsetHeight;
     if(slotW===0||slotH===0) return;
     const bleedPx=Math.round(slotW*BLEED);
-    const cvW=slotW+bleedPx*2, cvH=slotH;
+    const bleedY=VERT?Math.round(slotH*0.3):0;  // vertical bleed for V mode
+    const cvW=slotW+bleedPx*2, cvH=slotH+bleedY*2;
     const totalArea=slotW*slotH;
 
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
     const cv=document.createElement('canvas');
     cv.width=cvW; cv.height=cvH;
-    cv.style.cssText='position:absolute;top:0;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
+    cv.style.cssText='position:absolute;top:'+(-bleedY)+'px;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
     wrap.appendChild(cv); slot.appendChild(wrap);
     const ctx=cv.getContext('2d');
 
@@ -559,14 +560,15 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
         speedAmp:Math.abs(spd)*(0.2+rng()*0.4),visible:false};
     });
 
-    // 2-4 guaranteed cuts in the focus region
+    // 2-4 guaranteed cuts in the focus region; 2-3 bleed past borders
     const numExtra=2+Math.floor(rng()*3);
     for(let i=0;i<numExtra;i++){
       const sign=rng()>0.5?1:-1;
       const spd=sign*(1.0+rng()*3.0)*3;
+      const doesBleed = i<2; // first 2 always bleed, rest stay contained
       const ep = VERT
-        ? { x:Math.round(slotW*(FOCUS_X+rng()*(1-FOCUS_X))), y:0, w:3+Math.floor(rng()*7), h:slotH, bleeds:false }
-        : { x:0, y:Math.round(slotH*(0.1+rng()*0.8)), w:slotW, h:3+Math.floor(rng()*7), bleeds:true };
+        ? { x:Math.round(slotW*(FOCUS_X+rng()*(1-FOCUS_X))), y:0, w:3+Math.floor(rng()*7), h:slotH, bleeds:false, bleeds_v:doesBleed }
+        : { x:0, y:Math.round(slotH*(0.1+rng()*0.8)), w:slotW, h:3+Math.floor(rng()*7), bleeds:doesBleed, bleeds_v:false };
       panels.push({...ep,cropX:rng(),cropY:rng(),
         offset:rng()*200-100,phase:rng()*Math.PI*2,
         phaseSpd:0.02+rng()*0.12,speed:spd,
@@ -589,8 +591,8 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       const s=src(), sw=srcW(s), sh=srcH(s);
       const sc=Math.max(slotW/sw,slotH/sh);
       const dw=sw*sc, dh=sh*sc;
-      ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,0,slotW,slotH); ctx.clip();
-      ctx.drawImage(s,bleedPx+(slotW-dw)/2,(slotH-dh)/2,dw,dh); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,bleedY,slotW,slotH); ctx.clip();
+      ctx.drawImage(s,bleedPx+(slotW-dw)/2,bleedY+(slotH-dh)/2,dw,dh); ctx.restore();
     }
 
     function drawPanel(p,dt){
@@ -598,7 +600,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       p.phase+=p.phaseSpd*dt;
       p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;
       const s=src(), sw=srcW(s), sh=srcH(s);
-      const px=p.x+bleedPx, py=p.y, pw=p.w, ph=p.h;
+      const px=p.x+bleedPx, py=p.y+bleedY, pw=p.w, ph=p.h;
       const sc=Math.max(pw/sw,ph/sh)*ZOOM;
       const dw=sw*sc, dh=sh*sc;
       const eX=Math.max(0,dw-pw), eY=Math.max(0,dh-ph);
@@ -606,7 +608,9 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       if(VERT && eY>0){ const r=eY*0.7; dy+=((p.offset%(r*2))+(r*2))%(r*2)-r; }
       else if(eX>0){    const r=eX*0.7; dx+=((p.offset%(r*2))+(r*2))%(r*2)-r; }
       ctx.save(); ctx.beginPath();
-      p.bleeds ? ctx.rect(0,py,cvW,ph) : ctx.rect(px,py,pw,ph);
+      if(p.bleeds_v) ctx.rect(px,0,pw,cvH);         // bleed top+bottom
+      else if(p.bleeds) ctx.rect(0,py,cvW,ph);       // bleed left+right
+      else ctx.rect(px,py,pw,ph);                    // contained
       ctx.clip(); ctx.drawImage(s,dx,dy,dw,dh); ctx.restore();
     }
 
