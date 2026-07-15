@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v82-hcuts -->
+<!-- build: v83-livevideo -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -34,7 +34,6 @@
     font-family: "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     color: var(--ink);
-    overflow-x: hidden;
   }
   header{
     position: fixed; top:0; left:0; right:0; z-index:50;
@@ -327,7 +326,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
-      initCollage(el, video, slot, p.id, p.poster);
+      initCollage(el, video, slot, p.id, p.poster, p.id==='a');
     } else {
       const poster = document.createElement('img');
       poster.className = 'poster';
@@ -469,9 +468,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 
 /* ============================================================
-   COLLAGE ENGINE — poster-based animated line cuts
+   COLLAGE ENGINE — poster-based cuts + optional live video cuts
    ============================================================ */
-function initCollage(el, video, slot, pieceId, posterUrl){
+function initCollage(el, video, slot, pieceId, posterUrl, useLive){
   const BLEED       = 0.4;
   const MAX_D       = 7;
   const MIN_STRIP   = 2;
@@ -504,8 +503,9 @@ function initCollage(el, video, slot, pieceId, posterUrl){
     }
   }
 
-  function setup(img){
+  function setup(posterImg){
     const slotW=slot.offsetWidth, slotH=slot.offsetHeight;
+    if(slotW===0||slotH===0) return;
     const bleedPx=Math.round(slotW*BLEED);
     const cvW=slotW+bleedPx*2, cvH=slotH;
     const totalArea=slotW*slotH;
@@ -518,15 +518,18 @@ function initCollage(el, video, slot, pieceId, posterUrl){
     wrap.appendChild(cv); slot.appendChild(wrap);
     const ctx=cv.getContext('2d');
 
+    // Source helpers — live mode uses playing video, else poster
+    function src(){ return (useLive&&!video.paused&&video.readyState>=2) ? video : posterImg; }
+    function srcW(s){ return s.naturalWidth||s.videoWidth||1; }
+    function srcH(s){ return s.naturalHeight||s.videoHeight||1; }
+
     const rng=rngMake(pieceId+'_col');
     const allRects=bsp({x:0,y:0,w:slotW,h:slotH},0,rng);
     const thinRects=allRects.filter(r=>r.h>=MIN_STRIP&&r.h<=MAX_STRIP);
-
     for(let i=thinRects.length-1;i>0;i--){
       const j=Math.floor(rng()*(i+1));
       [thinRects[i],thinRects[j]]=[thinRects[j],thinRects[i]];
     }
-
     let covered=0;
     const eligible=[];
     for(const r of thinRects){
@@ -534,65 +537,69 @@ function initCollage(el, video, slot, pieceId, posterUrl){
       if(covered+a>totalArea*MAX_COVER) break;
       covered+=a; eligible.push(r);
     }
-
     const panels=eligible.map(r=>{
       const bleeds=rng()>0.45;
       const sign=rng()>0.5?1:-1;
       const spd=sign*(0.5+rng()*2.5)*3;
-      return{...r,img,bleeds,cropX:rng(),cropY:rng(),
+      return{...r,bleeds,cropX:rng(),cropY:rng(),
         offset:rng()*200-100,phase:rng()*Math.PI*2,
         phaseSpd:0.03+rng()*0.15,speed:spd,
         speedAmp:Math.abs(spd)*(0.2+rng()*0.4),visible:false};
     });
 
-    // 2-4 guaranteed horizontal bleed cuts — always present, always full-width
-    const numExtra = 2 + Math.floor(rng()*3);
+    // 2-4 guaranteed horizontal bleed cuts
+    const numExtra=2+Math.floor(rng()*3);
     for(let i=0;i<numExtra;i++){
-      const ey = Math.round(slotH*(0.1+rng()*0.8));
-      const eh = 3 + Math.floor(rng()*7);
-      const sign = rng()>0.5?1:-1;
-      const spd = sign*(1.0+rng()*3.0)*3;
-      panels.push({x:0,y:ey,w:slotW,h:eh,img,bleeds:true,
+      const ey=Math.round(slotH*(0.1+rng()*0.8));
+      const eh=3+Math.floor(rng()*7);
+      const sign=rng()>0.5?1:-1;
+      const spd=sign*(1.0+rng()*3.0)*3;
+      panels.push({x:0,y:ey,w:slotW,h:eh,bleeds:true,
         cropX:rng(),cropY:rng(),
         offset:rng()*200-100,phase:rng()*Math.PI*2,
         phaseSpd:0.02+rng()*0.12,speed:spd,
         speedAmp:Math.abs(spd)*(0.3+rng()*0.4),visible:false,guaranteed:true});
     }
 
+    // Guaranteed cuts appear first
+    panels.filter(p=>p.guaranteed).forEach((p,i)=>{
+      setTimeout(()=>{ p.visible=true; },START_DELAY+i*400);
+    });
     let visCount=0;
     function revealNext(){
       if(visCount>=panels.length) return;
-      panels[visCount++].visible=true;
+      if(!panels[visCount].guaranteed) panels[visCount].visible=true;
+      visCount++;
       const delay=visCount<=6?250:REVEAL_SLOW+rng()*300;
       setTimeout(revealNext,delay);
     }
-    // Guaranteed cuts appear first, slightly before the rest
-    panels.filter(p=>p.guaranteed).forEach((p,i)=>{
-      setTimeout(()=>{ p.visible=true; }, START_DELAY + i*400);
-    });
     setTimeout(revealNext,START_DELAY+600);
 
     function drawBase(){
-      const sc=Math.max(slotW/img.naturalWidth,slotH/img.naturalHeight);
-      const dw=img.naturalWidth*sc, dh=img.naturalHeight*sc;
+      const s=src();
+      const sw=srcW(s), sh=srcH(s);
+      const sc=Math.max(slotW/sw,slotH/sh);
+      const dw=sw*sc, dh=sh*sc;
       const dx=bleedPx+(slotW-dw)/2, dy=(slotH-dh)/2;
       ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,0,slotW,slotH); ctx.clip();
-      ctx.drawImage(img,dx,dy,dw,dh); ctx.restore();
+      ctx.drawImage(s,dx,dy,dw,dh); ctx.restore();
     }
 
     function drawPanel(p,dt){
       if(!p.visible) return;
       p.phase+=p.phaseSpd*dt;
       p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;
+      const s=src();
+      const sw=srcW(s), sh=srcH(s);
       const px=p.x+bleedPx, py=p.y, pw=p.w, ph=p.h;
-      const sc=Math.max(pw/img.naturalWidth,ph/img.naturalHeight)*ZOOM;
-      const dw=img.naturalWidth*sc, dh=img.naturalHeight*sc;
+      const sc=Math.max(pw/sw,ph/sh)*ZOOM;
+      const dw=sw*sc, dh=sh*sc;
       const eX=Math.max(0,dw-pw);
       let dx=px-eX*p.cropX, dy2=py-(Math.max(0,dh-ph))*p.cropY;
       if(eX>0){const r=eX*0.7;dx+=((p.offset%(r*2))+(r*2))%(r*2)-r;}
       ctx.save(); ctx.beginPath();
       p.bleeds?ctx.rect(0,py,cvW,ph):ctx.rect(px,py,pw,ph);
-      ctx.clip(); ctx.drawImage(img,dx,dy2,dw,dh); ctx.restore();
+      ctx.clip(); ctx.drawImage(s,dx,dy2,dw,dh); ctx.restore();
     }
 
     let rafId,lastT=performance.now();
@@ -605,16 +612,20 @@ function initCollage(el, video, slot, pieceId, posterUrl){
     }
     rafId=requestAnimationFrame(frame);
 
-    video.addEventListener('play', ()=>{ wrap.style.opacity='0'; });
-    video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
+    if(useLive){
+      // Live mode: hide video element, canvas always on top showing live cuts
+      video.style.opacity='0';
+      wrap.style.opacity='1';
+    } else {
+      video.addEventListener('play', ()=>{ wrap.style.opacity='0'; });
+      video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
+    }
   }
 
-  // Load poster image — no video seeking, works on all devices
   if(!posterUrl) return;
   const img=new Image();
   img.onload=()=>{
-    // Guard: if slot not laid out yet (cached image fires immediately), wait a frame
-    if(slot.offsetWidth > 0) setup(img);
+    if(slot.offsetWidth>0) setup(img);
     else requestAnimationFrame(()=>requestAnimationFrame(()=>setup(img)));
   };
   img.src=posterUrl;
