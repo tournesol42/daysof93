@@ -352,6 +352,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
 <script>
 (function(){
+  if(typeof THREE === 'undefined'){ console.error('d93: THREE not loaded'); return; }
+  if(typeof THREE.GLTFLoader === 'undefined'){ console.error('d93: GLTFLoader not loaded'); return; }
+
   var canvas = document.getElementById('mesh-canvas');
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -363,21 +366,27 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
   var mesh = null;
 
-  new THREE.GLTFLoader().load('/indexvector.glb', function(gltf){
-    var root = gltf.scene;
-    var box = new THREE.Box3().setFromObject(root);
-    var center = box.getCenter(new THREE.Vector3());
-    var size = box.getSize(new THREE.Vector3());
-    root.position.sub(center);
-    root.scale.setScalar(3.5 / Math.max(size.x, size.y, size.z));
-    root.traverse(function(child){
-      if(child.isMesh){
-        child.material = new THREE.MeshBasicMaterial({ color: 0x2d2d2d, wireframe: true });
-      }
-    });
-    scene.add(root);
-    mesh = root;
-  });
+  new THREE.GLTFLoader().load(
+    '/Indexvector.glb',
+    function(gltf){
+      console.log('d93: GLB loaded OK');
+      var root = gltf.scene;
+      var box = new THREE.Box3().setFromObject(root);
+      var center = box.getCenter(new THREE.Vector3());
+      var size = box.getSize(new THREE.Vector3());
+      root.position.sub(center);
+      root.scale.setScalar(3.5 / Math.max(size.x, size.y, size.z));
+      root.traverse(function(child){
+        if(child.isMesh){
+          child.material = new THREE.MeshBasicMaterial({ color: 0x2d2d2d, wireframe: true });
+        }
+      });
+      scene.add(root);
+      mesh = root;
+    },
+    null,
+    function(err){ console.error('d93: GLB load error', err); }
+  );
 
   (function animate(){
     requestAnimationFrame(animate);
