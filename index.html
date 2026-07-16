@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v99-focusy -->
+<!-- build: v100-twopage -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -62,8 +62,10 @@
   .hero{
     position:relative; z-index:5;
     padding: 100px 28px 20px;
-    min-height:54vh; display:flex; flex-direction:column; justify-content:center;
+    min-height:54vh; display:flex; flex-direction:row;
+    align-items:flex-end; justify-content:space-between;
   }
+  .hero-left{ display:flex; flex-direction:column; }
   .hero-title{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size: clamp(4.5rem, 13vw, 16rem);
@@ -78,8 +80,18 @@
     text-transform:uppercase; color:#000; opacity:0.4;
     margin-top:28px;
   }
+  .hero-music{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size: clamp(3.6rem, 10.4vw, 12.8rem);
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:-0.02em; line-height:0.88;
+    color:#000; text-decoration:none; opacity:0.85;
+    padding-right:2vw;
+  }
+  .hero-music:hover{ opacity:1; }
   @media (max-width:720px){
-    .hero{ padding:80px 18px 30px; min-height:42vh; }
+    .hero{ padding:80px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
+    .hero-music{ padding-right:0; }
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
@@ -162,8 +174,11 @@
   </header>
 
   <div class="hero">
-    <div class="hero-title">DAYS<br>OF 93.</div>
-    <div class="hero-sub">Film Composer</div>
+    <div class="hero-left">
+      <div class="hero-title">DAYS<br>OF 93.</div>
+      <div class="hero-sub">Film Composer</div>
+    </div>
+    <a href="music.html" class="hero-music">MUSIC</a>
   </div>
 
   <div class="overlay" id="about">
@@ -227,150 +242,16 @@
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
 
-  <div class="plane" id="plane">
-    <div class="tail"></div>
-  </div>
+
 
 <script>
-// Cloudflare Stream customer subdomain code.
-// Bunny Stream library ID — dashboard > your library, or in the embed URL
-const PULL_ZONE = "vz-9a21b965-65a.b-cdn.net";  // Bunny Stream pull zone
-function directMp4Src(id){
-  // Direct file access (Bunny Stream storage structure), bypasses the iframe
-  // player entirely — a same-origin <video> tag, no cross-origin postMessage.
-  return "https://"+PULL_ZONE+"/"+id+"/play_720p.mp4";
-}
-
-const PIECES = [
-  { id:'a', mp4:'https://daysof93-cdn.b-cdn.net/Original%20Jitter%20grey%20high%20res.mp4', caption:'Serge VCFQ, Buchla 258t',
-    poster:'/image_1.jpg', frame:true,
-    doy:172, yr:26, col:0.18, w:0.26, row:-20, aspect:1.78 },
-  { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
-    poster:'/image_2.jpg', frame:true,
-    doy:170, yr:26, col:0.69, w:0.21, row:-220, aspect:1.78 },
-  { id:'d', caption:"memories of '98",
-    src:'/image_3.jpg',
-    doy:290, yr:98, col:0.20, row:900, w:0.46, aspect:0.9957 },
-  { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
-    poster:'/Image_4.jpg',
-    doy:194, yr:26, col:0.08, row:680, w:0.50, wMobile:0.96, aspect:0.5625 },
-];
-
 function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
 function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
 const SEED = daySeed();
 
+// layout() removed — pieces live on music.html
 
-function layout(){
-  const plane = document.getElementById('plane');
-  const vw = window.innerWidth;
-  const MOBILE = vw < 720;
-  plane.querySelectorAll('.piece').forEach(n=>n.remove());
-
-  const MOBILE_ORDER = ['a','c','e','d'];
-  const ordered = MOBILE
-    ? MOBILE_ORDER.map(id=>PIECES.find(p=>p.id===id)).filter(Boolean)
-    : [...PIECES].sort((a,b)=>{ if(a.pin&&!b.pin)return -1; if(b.pin&&!a.pin)return 1; return a.row-b.row; });
-
-  let maxBottom = 0;
-
-  // mobile: one full-width column, generous vertical rhythm
-  let mobileCursor = 90;
-  const mobileGap = 46;
-
-  ordered.forEach((p)=>{
-    const el = document.createElement('div');
-    el.className = 'piece';
-    el.dataset.id = p.id;
-
-    const aspect = p.aspect || 1.78;
-    let width, left, top;
-
-    if(MOBILE){
-      // wMobile override if set, else defaults (piece 'a' slightly smaller)
-      const mw = p.wMobile ? p.wMobile : (p.id === 'a') ? 0.80 : 0.88;
-      width = vw * mw;
-      left  = (vw - width) / 2;        // centered
-      top   = mobileCursor;
-      const h = width * aspect;
-      mobileCursor += h + mobileGap + 22; // + room for stamp
-    } else {
-      const salt = p.id.charCodeAt(0);
-      const driftX = (seededRand(SEED+salt)-0.5)*24;
-      const driftY = (seededRand(SEED+salt*7.3)-0.5)*30;
-      width = (MOBILE && p.wMobile ? p.wMobile : p.w) * vw;
-      left  = p.col*vw + driftX;
-      top   = p.row + driftY;
-    }
-
-    const height = width * aspect;
-
-    el.style.left = left+'px';
-    el.style.top  = top+'px';
-    el.style.width = Math.min(width, vw * 0.72) +'px';
-
-    const slot = document.createElement('div');
-    slot.className = 'slot' + (p.frame ? ' framed' : '');
-    slot.style.height = height+'px';
-
-    if(p.video || p.mp4){
-      slot.style.background = 'var(--field)';
-      const video = document.createElement('video');
-      video.className = 'vid';
-      video.src = p.mp4 ? p.mp4 : directMp4Src(p.video);
-      video.poster = p.poster;               // your chosen still frame shows at rest
-      video.loop = true;
-      video.muted = true;                     // starts muted; unmuted on play(true)
-      video.setAttribute('playsinline', '');  // required so iOS plays inline, not fullscreen
-      video.preload = 'auto';
-      slot.appendChild(video);
-      el._video = video;
-
-      const play = (withSound)=>{
-        video.muted = !withSound;
-        // Native <video> in our own document: play() here runs synchronously
-        // inside the tap's own call stack, so iOS always honors it — no
-        // cross-origin iframe, no postMessage relay, nothing to silently block.
-        video.play();
-      };
-      const freeze = ()=>{ video.pause(); };
-
-      video.addEventListener('play',  ()=> el.classList.add('playing'));
-      video.addEventListener('pause', ()=> el.classList.remove('playing'));
-
-      // click to play; click again to stop (shows poster, hides video)
-      el.addEventListener('click', ()=>{
-        if(!video.paused){ freeze(); }
-        else { play(true); }
-      });
-
-      el._play = play; el._freeze = freeze;
-      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:7000} : {orient:'H', focusX:0, focusY:0.55, startDelay:10000};
-      if(p.id !== 'e') initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
-    } else {
-      const poster = document.createElement('img');
-      poster.className = 'poster';
-      poster.src = p.src;
-      poster.alt = '';
-      poster.loading = 'lazy';
-      slot.style.background = 'transparent'; // no black frame on still images
-      slot.appendChild(poster);
-    }
-
-    el.appendChild(slot);
-
-    const stamp = document.createElement('div');
-    stamp.className = 'stamp';
-    stamp.textContent = p.doy + '.' + p.yr + (p.caption ? '  —  ' + p.caption : '');
-    el.appendChild(stamp);
-
-    plane.appendChild(el);
-    maxBottom = Math.max(maxBottom, top + height);
-  });
-
-  plane.style.minHeight = (maxBottom + window.innerHeight*0.4)+'px';
-}
 
 function drawField(){
   const svg = document.getElementById('field');
@@ -434,52 +315,9 @@ function drawField(){
   svg.innerHTML = lines;
 }
 
-function build(){ drawField(); layout(); }
-
+function build(){ drawField(); }
 
 build();
-
-/* ---- piece fade-in sequence ---- */
-(function(){
-  // piece 'a' fades in first at 5s, others follow randomly
-  const delays = { a: 3000, c: 4500 + Math.random()*1500, d: 8000 + Math.random()*2000, e: 6000 + Math.random()*2000 };
-  Object.entries(delays).forEach(([id, ms])=>{
-    setTimeout(()=>{
-      const el = document.querySelector('.piece[data-id="'+id+'"]');
-      if(el) el.style.opacity = '1';
-    }, ms);
-  });
-  // Safety net — make sure everything is visible after 15s regardless
-  setTimeout(()=>{
-    document.querySelectorAll('.piece').forEach(el=>{ el.style.opacity='1'; });
-  }, 15000);
-})();
-
-/* ---- autoplay piece a on load, pause on scroll ---- */
-function getVideoA(){
-  const el = document.querySelector('.piece[data-id="a"] video');
-  return el;
-}
-
-function autostartA(){
-  const v = getVideoA();
-  if(!v) return;
-  v.muted = true;
-  v.play().catch(()=>{});
-}
-
-let autoStopped = false;
-window.addEventListener('scroll', ()=>{
-  if(autoStopped) return;
-  if(window.scrollY > 80){
-    const v = getVideoA();
-    if(v && !v.paused){ v.pause(); v.load(); }
-    autoStopped = true;
-  }
-}, { passive:true });
-
-// slight delay to let layout settle before autoplay
-setTimeout(autostartA, 400);
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
@@ -504,187 +342,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
 })();
 
-/* ============================================================
-   COLLAGE ENGINE — poster-based cuts + optional live video cuts
-   cfg: { orient:'H'|'V', focusX:0-1 }
-   ============================================================ */
-function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
-  if(window.innerWidth < 720) return; // skip on mobile — video shows normally
-  cfg = cfg || {orient:'H', focusX:0};
-  const VERT        = cfg.orient === 'V';
-  const FOCUS_X     = cfg.focusX || 0;
-  const FOCUS_Y     = cfg.focusY || 0;
-  const BLEED       = 0.4;
-  const MAX_D       = 7;
-  const MIN_STRIP   = 2;
-  const MAX_STRIP   = 13;
-  const MAX_COVER   = 0.40;
-  const START_DELAY = cfg.startDelay || 4500;
-  const REVEAL_SLOW = 700;
-  const ZOOM        = 1.18;
 
-  function rngMake(seed){
-    let h=0; for(let i=0;i<seed.length;i++) h=Math.imul(31,h)+seed.charCodeAt(i)|0;
-    return ()=>{ h=Math.imul(h^(h>>>16),0x45d9f3b)|0; h=Math.imul(h^(h>>>16),0x45d9f3b)|0; return ((h^(h>>>16))>>>0)/2**32; };
-  }
-
-  function bsp(rect,depth,rng){
-    if(depth>=MAX_D) return [rect];
-    const canH=rect.h>=MIN_STRIP*2, canV=rect.w>=MIN_STRIP*2;
-    if(!canH&&!canV) return [rect];
-    // Orient bias: V mode favours vertical cuts (narrow columns), H mode favours horizontal
-    const preferVcut = VERT ? rng()>0.15 : rng()>0.85;
-    const horiz = !canH ? false : !canV ? true : !preferVcut;
-    if(horiz){
-      const sy=Math.round(rect.y+rect.h*(0.05+rng()*0.9));
-      if(sy<=rect.y||sy>=rect.y+rect.h) return [rect];
-      return [...bsp({x:rect.x,y:rect.y,w:rect.w,h:sy-rect.y},depth+1,rng),
-              ...bsp({x:rect.x,y:sy,w:rect.w,h:rect.y+rect.h-sy},depth+1,rng)];
-    } else {
-      const sx=Math.round(rect.x+rect.w*(0.05+rng()*0.9));
-      if(sx<=rect.x||sx>=rect.x+rect.w) return [rect];
-      return [...bsp({x:rect.x,y:rect.y,w:sx-rect.x,h:rect.h},depth+1,rng),
-              ...bsp({x:sx,y:rect.y,w:rect.x+rect.w-sx,h:rect.h},depth+1,rng)];
-    }
-  }
-
-  function setup(posterImg){
-    const slotW=slot.offsetWidth, slotH=slot.offsetHeight;
-    if(slotW===0||slotH===0) return;
-    const bleedPx=Math.round(slotW*BLEED);
-    const bleedY=VERT?Math.round(slotH*0.3):0;  // vertical bleed for V mode
-    const cvW=slotW+bleedPx*2, cvH=slotH+bleedY*2;
-    const totalArea=slotW*slotH;
-
-    const wrap=document.createElement('div');
-    wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
-    const cv=document.createElement('canvas');
-    const dpr=window.devicePixelRatio||1;
-    cv.width=cvW*dpr; cv.height=cvH*dpr;
-    cv.style.cssText='position:absolute;top:'+(-bleedY)+'px;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
-    wrap.appendChild(cv); slot.appendChild(wrap);
-    const ctx=cv.getContext('2d');
-    ctx.scale(dpr,dpr);
-
-    function src(){ return (useLive&&!video.paused&&video.readyState>=2)?video:posterImg; }
-    function srcW(s){ return s.naturalWidth||s.videoWidth||1; }
-    function srcH(s){ return s.naturalHeight||s.videoHeight||1; }
-
-    const rng=rngMake(pieceId+'_col');
-    const allRects=bsp({x:0,y:0,w:slotW,h:slotH},0,rng);
-
-    // Filter by orientation and focus region
-    const strips = VERT
-      ? allRects.filter(r=>r.w>=MIN_STRIP&&r.w<=MAX_STRIP && r.x>=slotW*FOCUS_X)
-      : allRects.filter(r=>r.h>=MIN_STRIP&&r.h<=MAX_STRIP && r.y>=slotH*FOCUS_Y);
-
-    for(let i=strips.length-1;i>0;i--){
-      const j=Math.floor(rng()*(i+1));
-      [strips[i],strips[j]]=[strips[j],strips[i]];
-    }
-    let covered=0;
-    const eligible=[];
-    for(const r of strips){
-      const a=r.w*r.h;
-      if(covered+a>totalArea*MAX_COVER) break;
-      covered+=a; eligible.push(r);
-    }
-
-    const panels=eligible.map(r=>{
-      const sign=rng()>0.5?1:-1;
-      const spd=sign*(0.5+rng()*2.5)*3;
-      return{...r,cropX:rng(),cropY:rng(),
-        bleeds:!VERT&&rng()>0.45,
-        offset:rng()*200-100,phase:rng()*Math.PI*2,
-        phaseSpd:0.03+rng()*0.15,speed:spd,
-        speedAmp:Math.abs(spd)*(0.2+rng()*0.4),visible:false};
-    });
-
-    // 2-4 guaranteed cuts in the focus region; 2-3 bleed past borders
-    const numExtra=2+Math.floor(rng()*3);
-    for(let i=0;i<numExtra;i++){
-      const sign=rng()>0.5?1:-1;
-      const spd=sign*(1.0+rng()*3.0)*3;
-      const doesBleed = i<2; // first 2 always bleed, rest stay contained
-      const ep = VERT
-        ? { x:Math.round(slotW*(FOCUS_X+rng()*(1-FOCUS_X))), y:0, w:3+Math.floor(rng()*7), h:slotH, bleeds:false, bleeds_v:doesBleed }
-        : { x:0, y:Math.round(slotH*(FOCUS_Y+rng()*(1-FOCUS_Y))), w:slotW, h:3+Math.floor(rng()*7), bleeds:doesBleed, bleeds_v:false };
-      panels.push({...ep,cropX:rng(),cropY:rng(),
-        offset:rng()*200-100,phase:rng()*Math.PI*2,
-        phaseSpd:0.02+rng()*0.12,speed:spd,
-        speedAmp:Math.abs(spd)*(0.3+rng()*0.4),visible:false,guaranteed:true});
-    }
-
-    panels.filter(p=>p.guaranteed).forEach((p,i)=>{
-      setTimeout(()=>{ p.visible=true; },START_DELAY+i*400);
-    });
-    let visCount=0;
-    function revealNext(){
-      if(visCount>=panels.length) return;
-      if(!panels[visCount].guaranteed) panels[visCount].visible=true;
-      visCount++;
-      setTimeout(revealNext,visCount<=6?250:REVEAL_SLOW+rng()*300);
-    }
-    setTimeout(revealNext,START_DELAY+600);
-
-    function drawBase(){
-      const s=src(), sw=srcW(s), sh=srcH(s);
-      const sc=Math.max(slotW/sw,slotH/sh);
-      const dw=sw*sc, dh=sh*sc;
-      ctx.save(); ctx.beginPath(); ctx.rect(bleedPx,bleedY,slotW,slotH); ctx.clip();
-      ctx.drawImage(s,bleedPx+(slotW-dw)/2,bleedY+(slotH-dh)/2,dw,dh); ctx.restore();
-    }
-
-    function drawPanel(p,dt){
-      if(!p.visible) return;
-      p.phase+=p.phaseSpd*dt;
-      p.offset+=(p.speed+p.speedAmp*Math.sin(p.phase))*dt;
-      const s=src(), sw=srcW(s), sh=srcH(s);
-      const px=p.x+bleedPx, py=p.y+bleedY, pw=p.w, ph=p.h;
-      const sc=Math.max(pw/sw,ph/sh)*ZOOM;
-      const dw=sw*sc, dh=sh*sc;
-      const eX=Math.max(0,dw-pw), eY=Math.max(0,dh-ph);
-      let dx=px-eX*p.cropX, dy=py-eY*p.cropY;
-      if(VERT && eY>0){ const r=eY*0.7; dy+=((p.offset%(r*2))+(r*2))%(r*2)-r; }
-      else if(eX>0){    const r=eX*0.7; dx+=((p.offset%(r*2))+(r*2))%(r*2)-r; }
-      ctx.save(); ctx.beginPath();
-      if(p.bleeds_v) ctx.rect(px,0,pw,cvH);         // bleed top+bottom
-      else if(p.bleeds) ctx.rect(0,py,cvW,ph);       // bleed left+right
-      else ctx.rect(px,py,pw,ph);                    // contained
-      ctx.clip(); ctx.drawImage(s,dx,dy,dw,dh); ctx.restore();
-    }
-
-    let rafId,lastT=performance.now();
-    function frame(ts){
-      const dt=Math.min((ts-lastT)/1000,0.05); lastT=ts;
-      ctx.clearRect(0,0,cvW,cvH);
-      drawBase();
-      panels.forEach(p=>drawPanel(p,dt));
-      rafId=requestAnimationFrame(frame);
-    }
-    rafId=requestAnimationFrame(frame);
-
-    if(useLive){
-      video.style.opacity='0';
-      wrap.style.opacity='1';
-    } else {
-      video.addEventListener('play', ()=>{ wrap.style.opacity='0'; });
-      video.addEventListener('pause',()=>{ wrap.style.opacity='1'; });
-    }
-  }
-
-  if(!posterUrl) return;
-  const img=new Image();
-  img.onload=()=>{
-    // Wait for slot to be in DOM and have layout
-    function trySetup(attempt){
-      if(slot.offsetWidth>0){ setup(img); return; }
-      if(attempt<20) setTimeout(()=>trySetup(attempt+1), 100);
-    }
-    trySetup(0);
-  };
-  img.src=posterUrl;
-}
 </script>
 </body>
 </html>
