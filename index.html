@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v98-ctxfix -->
+<!-- build: v99-focusy -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -268,11 +268,10 @@ function layout(){
   const MOBILE = vw < 720;
   plane.querySelectorAll('.piece').forEach(n=>n.remove());
 
-  const ordered = [...PIECES].sort((a,b)=>{
-    if(a.pin && !b.pin) return -1;
-    if(b.pin && !a.pin) return 1;
-    return a.row - b.row;
-  });
+  const MOBILE_ORDER = ['a','c','e','d'];
+  const ordered = MOBILE
+    ? MOBILE_ORDER.map(id=>PIECES.find(p=>p.id===id)).filter(Boolean)
+    : [...PIECES].sort((a,b)=>{ if(a.pin&&!b.pin)return -1; if(b.pin&&!a.pin)return 1; return a.row-b.row; });
 
   let maxBottom = 0;
 
@@ -347,7 +346,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
-      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:7000} : {orient:'H', focusX:0, startDelay:10000};
+      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:7000} : {orient:'H', focusX:0, focusY:0.55, startDelay:10000};
       if(p.id !== 'e') initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
     } else {
       const poster = document.createElement('img');
@@ -514,6 +513,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   cfg = cfg || {orient:'H', focusX:0};
   const VERT        = cfg.orient === 'V';
   const FOCUS_X     = cfg.focusX || 0;
+  const FOCUS_Y     = cfg.focusY || 0;
   const BLEED       = 0.4;
   const MAX_D       = 7;
   const MIN_STRIP   = 2;
@@ -576,7 +576,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     // Filter by orientation and focus region
     const strips = VERT
       ? allRects.filter(r=>r.w>=MIN_STRIP&&r.w<=MAX_STRIP && r.x>=slotW*FOCUS_X)
-      : allRects.filter(r=>r.h>=MIN_STRIP&&r.h<=MAX_STRIP);
+      : allRects.filter(r=>r.h>=MIN_STRIP&&r.h<=MAX_STRIP && r.y>=slotH*FOCUS_Y);
 
     for(let i=strips.length-1;i>0;i--){
       const j=Math.floor(rng()*(i+1));
@@ -608,7 +608,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       const doesBleed = i<2; // first 2 always bleed, rest stay contained
       const ep = VERT
         ? { x:Math.round(slotW*(FOCUS_X+rng()*(1-FOCUS_X))), y:0, w:3+Math.floor(rng()*7), h:slotH, bleeds:false, bleeds_v:doesBleed }
-        : { x:0, y:Math.round(slotH*(0.1+rng()*0.8)), w:slotW, h:3+Math.floor(rng()*7), bleeds:doesBleed, bleeds_v:false };
+        : { x:0, y:Math.round(slotH*(FOCUS_Y+rng()*(1-FOCUS_Y))), w:slotW, h:3+Math.floor(rng()*7), bleeds:doesBleed, bleeds_v:false };
       panels.push({...ep,cropX:rng(),cropY:rng(),
         offset:rng()*200-100,phase:rng()*Math.PI*2,
         phaseSpd:0.02+rng()*0.12,speed:spd,
