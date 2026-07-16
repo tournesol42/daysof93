@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v90-rightlayout -->
+<!-- build: v95-v2up -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -84,7 +84,7 @@
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
 
-  .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 10s ease; }
+  .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 5s ease; }
   .piece .slot{
     position:relative; width:100%; overflow:visible;
   }
@@ -244,10 +244,10 @@ function directMp4Src(id){
 const PIECES = [
   { id:'a', mp4:'https://daysof93-cdn.b-cdn.net/Original%20Jitter%20grey%20high%20res.mp4', caption:'Serge VCFQ, Buchla 258t',
     poster:'/image_1.jpg', frame:true,
-    doy:172, yr:26, col:0.43, w:0.21, row:10, aspect:1.78 },
+    doy:172, yr:26, col:0.18, w:0.26, row:-20, aspect:1.78 },
   { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
     poster:'/image_2.jpg', frame:true,
-    doy:170, yr:26, col:0.69, w:0.17, row:-20, aspect:1.78 },
+    doy:170, yr:26, col:0.69, w:0.21, row:-220, aspect:1.78 },
   { id:'d', caption:"memories of '98",
     src:'/image_3.jpg',
     doy:290, yr:98, col:0.20, row:900, w:0.46, aspect:0.9957 },
@@ -347,7 +347,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
-      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52} : {orient:'H', focusX:0};
+      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:20000} : {orient:'H', focusX:0, startDelay:30000};
       if(p.id !== 'e') initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
     } else {
       const poster = document.createElement('img');
@@ -443,7 +443,7 @@ build();
 /* ---- piece fade-in sequence ---- */
 (function(){
   // piece 'a' fades in first at 5s, others follow randomly
-  const delays = { a: 5000, c: 6200 + Math.random()*1800, e: 7500 + Math.random()*2500 };
+  const delays = { a: 3000, c: 4500 + Math.random()*1500, e: 6000 + Math.random()*2000 };
   Object.entries(delays).forEach(([id, ms])=>{
     setTimeout(()=>{
       const el = document.querySelector('.piece[data-id="'+id+'"]');
@@ -514,7 +514,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   const MIN_STRIP   = 2;
   const MAX_STRIP   = 13;
   const MAX_COVER   = 0.40;
-  const START_DELAY = 4500;
+  const START_DELAY = cfg.startDelay || 4500;
   const REVEAL_SLOW = 700;
   const ZOOM        = 1.18;
 
