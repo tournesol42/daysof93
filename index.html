@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v85-bleedfix -->
+<!-- build: v86-retina -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -521,8 +521,10 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;top:0;left:0;width:'+slotW+'px;height:'+slotH+'px;overflow:visible;pointer-events:none;z-index:3;transition:opacity 0.4s;';
     const cv=document.createElement('canvas');
-    cv.width=cvW; cv.height=cvH;
+    const dpr=window.devicePixelRatio||1;
+    cv.width=cvW*dpr; cv.height=cvH*dpr;
     cv.style.cssText='position:absolute;top:'+(-bleedY)+'px;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
+    ctx.scale(dpr,dpr);
     wrap.appendChild(cv); slot.appendChild(wrap);
     const ctx=cv.getContext('2d');
 
