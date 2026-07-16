@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v86-retina -->
+<!-- build: v87-minimal -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -21,11 +21,11 @@
 
 <style>
   :root{
-    --field: #F5D033;
-    --line:  rgba(0,0,0,0.45);
-    --axis-x: rgba(0,0,0,0.60);
-    --axis-y: rgba(0,0,0,0.60);
-    --ink:   #ffffff;
+    --field: #ffffff;
+    --line:  rgba(0,0,0,0.18);
+    --axis-x: rgba(0,0,0,0.28);
+    --axis-y: rgba(0,0,0,0.28);
+    --ink:   #000000;
     --hair:  0.75px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -37,37 +37,54 @@
   }
   header{
     position: fixed; top:0; left:0; right:0; z-index:50;
-    padding: 14px 20px; display:flex; flex-direction:column; gap:6px;
+    padding: 20px 28px; display:flex; align-items:center; justify-content:space-between;
   }
-  nav{ display:flex; gap:8px; align-items:center; }
-  nav a, nav span{
+  .nav-logo{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase;
-    color:#fff; text-decoration:none;
-    padding:6px 16px; border-radius:100px;
-    background:rgba(0,0,0,0.48);
-    backdrop-filter:blur(12px);
-    -webkit-backdrop-filter:blur(12px);
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
   }
-  #nav-days{ font-size:14px; font-weight:400; letter-spacing:0.18em; }
-  .tagline{
+  .nav-logo:hover{ opacity:1; }
+  nav{ display:flex; gap:28px; align-items:center; }
+  nav a{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size:1.1rem; font-weight:300; text-transform:uppercase;
-    letter-spacing:0.22em; line-height:1;
-    color:#000; white-space:nowrap; opacity:0.85;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
   }
+  nav a:hover{ opacity:1; }
   @media (max-width:720px){
-    nav a, nav span{ font-size:10px; padding:5px 12px; letter-spacing:0.10em; }
-    nav span{ font-size:12px; }
-    .tagline{ display:none; }
+    header{ padding:16px 18px; }
+    nav{ gap:18px; }
+    nav a, .nav-logo{ font-size:10px; }
   }
 
-  nav a:hover{ background:rgba(0,0,0,0.70); }
+  /* hero */
+  .hero{
+    position:relative; z-index:5;
+    padding: 100px 28px 60px;
+    min-height:88vh; display:flex; flex-direction:column; justify-content:center;
+  }
+  .hero-title{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size: clamp(4.5rem, 13vw, 16rem);
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:-0.02em; line-height:0.88;
+    color:#000;
+  }
+  .hero-sub{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size: clamp(0.7rem, 1.2vw, 1rem);
+    font-weight:300; letter-spacing:0.28em;
+    text-transform:uppercase; color:#000; opacity:0.4;
+    margin-top:28px;
+  }
+  @media (max-width:720px){
+    .hero{ padding:80px 18px 40px; min-height:70vh; }
+  }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
 
-  .piece{ position:absolute; cursor:pointer; }
+  .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 10s ease; }
   .piece .slot{
     position:relative; width:100%; overflow:visible;
   }
@@ -137,13 +154,17 @@
 <body>
 
   <header>
+    <a href="#" id="nav-days" class="nav-logo">Days of 93</a>
     <nav>
       <a href="#" id="nav-work">work</a>
-      <a href="#" id="nav-days">days of 93</a>
       <a href="#" id="nav-clients">contact</a>
-      <div class="tagline">filmcomposer</div>
     </nav>
   </header>
+
+  <div class="hero">
+    <div class="hero-title">DAYS<br>OF 93.</div>
+    <div class="hero-sub">Film Composer</div>
+  </div>
 
   <div class="overlay" id="about">
     <div class="overlay-inner">
@@ -223,16 +244,16 @@ function directMp4Src(id){
 const PIECES = [
   { id:'a', mp4:'https://daysof93-cdn.b-cdn.net/Original%20Jitter%20grey%20high%20res.mp4', caption:'Serge VCFQ, Buchla 258t',
     poster:'/image_1.jpg', frame:true,
-    doy:172, yr:26, col:0.02, row:120, w:0.46, aspect:1.78 },
+    doy:172, yr:26, col:0.04, row:50, w:0.38, aspect:1.78 },
   { id:'c', video:'22743d49-b673-48fd-af62-b2303e6b3a02', caption:'Cad inspired glitches',
     poster:'/image_2.jpg', frame:true,
-    doy:170, yr:26, col:0.56, row:380, w:0.304, aspect:1.78 },
+    doy:170, yr:26, col:0.57, row:80, w:0.26, aspect:1.78 },
   { id:'d', caption:"memories of '98",
     src:'/image_3.jpg',
-    doy:290, yr:98, col:0.20, row:1550, w:0.56, aspect:0.9957 },
+    doy:290, yr:98, col:0.20, row:900, w:0.46, aspect:0.9957 },
   { id:'e', video:'72b81796-81e8-4b71-bf87-282d79787272', caption:'Workspace',
     poster:'/Image_4.jpg',
-    doy:194, yr:26, col:0.16, row:2500, w:0.82, wMobile:0.96, aspect:0.5625 },
+    doy:194, yr:26, col:0.08, row:680, w:0.50, wMobile:0.96, aspect:0.5625 },
 ];
 
 function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
@@ -418,6 +439,18 @@ function build(){ drawField(); layout(); }
 
 
 build();
+
+/* ---- piece fade-in sequence ---- */
+(function(){
+  // piece 'a' fades in first at 5s, others follow randomly
+  const delays = { a: 5000, c: 6200 + Math.random()*1800, e: 7500 + Math.random()*2500 };
+  Object.entries(delays).forEach(([id, ms])=>{
+    setTimeout(()=>{
+      const el = document.querySelector('.piece[data-id="'+id+'"]');
+      if(el) el.style.opacity = '1';
+    }, ms);
+  });
+})();
 
 /* ---- autoplay piece a on load, pause on scroll ---- */
 function getVideoA(){
