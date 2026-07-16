@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v95-v2up -->
+<!-- build: v96-collagefix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -347,7 +347,7 @@ function layout(){
       });
 
       el._play = play; el._freeze = freeze;
-      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:20000} : {orient:'H', focusX:0, startDelay:30000};
+      const collageCfg = p.id==='c' ? {orient:'V', focusX:0.52, startDelay:7000} : {orient:'H', focusX:0, startDelay:10000};
       if(p.id !== 'e') initCollage(el, video, slot, p.id, p.poster, p.id==='a', collageCfg);
     } else {
       const poster = document.createElement('img');
@@ -671,8 +671,12 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   if(!posterUrl) return;
   const img=new Image();
   img.onload=()=>{
-    if(slot.offsetWidth>0) setup(img);
-    else requestAnimationFrame(()=>requestAnimationFrame(()=>setup(img)));
+    // Wait for slot to be in DOM and have layout
+    function trySetup(attempt){
+      if(slot.offsetWidth>0){ setup(img); return; }
+      if(attempt<20) setTimeout(()=>trySetup(attempt+1), 100);
+    }
+    trySetup(0);
   };
   img.src=posterUrl;
 }
