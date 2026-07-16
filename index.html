@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v96-collagefix -->
+<!-- build: v98-ctxfix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -79,7 +79,7 @@
     margin-top:28px;
   }
   @media (max-width:720px){
-    .hero{ padding:80px 18px 40px; min-height:70vh; }
+    .hero{ padding:80px 18px 30px; min-height:42vh; }
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
@@ -443,13 +443,17 @@ build();
 /* ---- piece fade-in sequence ---- */
 (function(){
   // piece 'a' fades in first at 5s, others follow randomly
-  const delays = { a: 3000, c: 4500 + Math.random()*1500, e: 6000 + Math.random()*2000 };
+  const delays = { a: 3000, c: 4500 + Math.random()*1500, d: 8000 + Math.random()*2000, e: 6000 + Math.random()*2000 };
   Object.entries(delays).forEach(([id, ms])=>{
     setTimeout(()=>{
       const el = document.querySelector('.piece[data-id="'+id+'"]');
       if(el) el.style.opacity = '1';
     }, ms);
   });
+  // Safety net — make sure everything is visible after 15s regardless
+  setTimeout(()=>{
+    document.querySelectorAll('.piece').forEach(el=>{ el.style.opacity='1'; });
+  }, 15000);
 })();
 
 /* ---- autoplay piece a on load, pause on scroll ---- */
@@ -506,6 +510,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
    cfg: { orient:'H'|'V', focusX:0-1 }
    ============================================================ */
 function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
+  if(window.innerWidth < 720) return; // skip on mobile — video shows normally
   cfg = cfg || {orient:'H', focusX:0};
   const VERT        = cfg.orient === 'V';
   const FOCUS_X     = cfg.focusX || 0;
@@ -557,9 +562,9 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     const dpr=window.devicePixelRatio||1;
     cv.width=cvW*dpr; cv.height=cvH*dpr;
     cv.style.cssText='position:absolute;top:'+(-bleedY)+'px;left:'+(-bleedPx)+'px;width:'+cvW+'px;height:'+cvH+'px;';
-    ctx.scale(dpr,dpr);
     wrap.appendChild(cv); slot.appendChild(wrap);
     const ctx=cv.getContext('2d');
+    ctx.scale(dpr,dpr);
 
     function src(){ return (useLive&&!video.paused&&video.readyState>=2)?video:posterImg; }
     function srcW(s){ return s.naturalWidth||s.videoWidth||1; }
