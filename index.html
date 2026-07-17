@@ -607,139 +607,115 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 <script>
-/* ============================================================
-   GLITCH SYSTEM — roaming points, 2D fragments, glitch sounds
-   ============================================================ */
+/* GLITCH SYSTEM */
 (function(){
-  console.log('d93: glitch system init');
+  console.log('d93: glitch init');
+
   var canvas = document.getElementById('glitch-canvas');
-  if(!canvas){ console.error('d93: no glitch canvas'); return; }
-  var ctx    = canvas.getContext('2d');
-  var dpr    = window.devicePixelRatio || 1;
+  if(!canvas){ console.error('d93: no canvas'); return; }
+  var ctx = canvas.getContext('2d');
 
   function resize(){
-    canvas.width  = window.innerWidth  * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width  = window.innerWidth  + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
   resize();
   window.addEventListener('resize', resize);
 
-  // Mouse (screen space)
   var mx = -9999, my = -9999;
   window.addEventListener('mousemove', function(e){ mx=e.clientX; my=e.clientY; });
 
-  // Glitch sound pool
+  // Sounds
   var SOUNDS = [
-    '/glitch/Glitchdrone1.mp3',
-    '/glitch/Glitchsound1.mp3',
-    '/glitch/Glitchsound2.mp3',
-    '/glitch/Glitchsound3.mp3',
-    '/glitch/Glitchsound4.mp3',
-    '/glitch/Glitchsound5.mp3'
+    '/glitch/Glitchdrone1.mp3','/glitch/Glitchsound1.mp3','/glitch/Glitchsound2.mp3',
+    '/glitch/Glitchsound3.mp3','/glitch/Glitchsound4.mp3','/glitch/Glitchsound5.mp3'
   ];
   function playGlitch(){
     var url = SOUNDS[Math.floor(Math.random()*SOUNDS.length)];
-    var a = new Audio(url);
-    a.volume = 0.55;
-    a.play().catch(function(e){ console.error('d93: glitch sound error',e,url); });
-    console.log('d93: glitch sound', url);
+    var a = new Audio(url); a.volume=0.55;
+    a.play().catch(function(e){ console.error('d93: sound error',e.message); });
+    console.log('d93: sound', url);
   }
 
-  // Roaming points
-  var CONTACT_R  = 38;
-  var COOLDOWN   = 3000;
-  var roamers = [];
-  for(var i=0;i<3;i++){
-    roamers.push({
-      x: 100 + Math.random()*(window.innerWidth-200),
-      y: 100 + Math.random()*(window.innerHeight-200),
-      vx: (Math.random()-0.5)*1.4,
-      vy: (Math.random()-0.5)*1.4,
-      cd: 0
-    });
-  }
-
-  // Active fragments
+  // Fragments
   var frags = [];
-
   function spawnFrag(x, y){
-    var n = 1 + Math.floor(Math.random()*2); // 1–2 triangles
+    console.log('d93: spawn at', Math.round(x), Math.round(y));
     var tris = [];
+    var n = 1 + Math.floor(Math.random()*2);
     for(var i=0;i<n;i++){
-      var size  = 40 + Math.random()*60;
-      var angle = Math.random()*Math.PI*2;
-      var ox = x + (Math.random()-0.5)*28;
-      var oy = y + (Math.random()-0.5)*28;
-      // Irregular triangle — three spokes at uneven angles and radii
-      var a0=angle, a1=angle+Math.PI*0.55+Math.random()*0.9, a2=angle+Math.PI*1.25+Math.random()*0.9;
-      var r0=size*(0.5+Math.random()*0.5), r1=size*(0.5+Math.random()*0.5), r2=size*(0.5+Math.random()*0.5);
+      var size = 40 + Math.random()*50;
+      var a0 = Math.random()*Math.PI*2;
+      var a1 = a0 + 1.8 + Math.random()*0.8;
+      var a2 = a1 + 1.8 + Math.random()*0.8;
+      var ox = x+(Math.random()-0.5)*20, oy = y+(Math.random()-0.5)*20;
       tris.push({
-        x1:ox+Math.cos(a0)*r0, y1:oy+Math.sin(a0)*r0,
-        x2:ox+Math.cos(a1)*r1, y2:oy+Math.sin(a1)*r1,
-        x3:ox+Math.cos(a2)*r2, y3:oy+Math.sin(a2)*r2
+        x1:ox+Math.cos(a0)*size*(0.6+Math.random()*0.4), y1:oy+Math.sin(a0)*size*(0.6+Math.random()*0.4),
+        x2:ox+Math.cos(a1)*size*(0.6+Math.random()*0.4), y2:oy+Math.sin(a1)*size*(0.6+Math.random()*0.4),
+        x3:ox+Math.cos(a2)*size*(0.6+Math.random()*0.4), y3:oy+Math.sin(a2)*size*(0.6+Math.random()*0.4)
       });
     }
-    frags.push({ tris:tris, t0:performance.now(), dur:1800+Math.random()*1200 });
+    frags.push({tris:tris, t0:performance.now(), dur:2000+Math.random()*1000});
   }
 
-  var lastT = performance.now();
+  // Auto-spawn test every 4s to confirm canvas works
+  setInterval(function(){
+    spawnFrag(window.innerWidth*0.5, window.innerHeight*0.4);
+  }, 4000);
 
+  // Roamers
+  var CONTACT_R = 38, COOLDOWN = 3000;
+  var roamers = [];
+  for(var i=0;i<3;i++) roamers.push({
+    x:150+Math.random()*(window.innerWidth-300),
+    y:150+Math.random()*(window.innerHeight-300),
+    vx:(Math.random()-0.5)*1.4, vy:(Math.random()-0.5)*1.4, cd:0
+  });
+
+  var lastT = performance.now();
   (function loop(now){
     requestAnimationFrame(loop);
-    var dt = now - lastT; lastT = now;
+    var dt = now-lastT; lastT=now;
+    var W=canvas.width, H=canvas.height;
 
-    // Update roamers
-    var W=window.innerWidth, H=window.innerHeight;
+    // Roamers
     roamers.forEach(function(r){
-      r.vx += (Math.random()-0.5)*0.09;
-      r.vy += (Math.random()-0.5)*0.09;
-      var spd = Math.sqrt(r.vx*r.vx+r.vy*r.vy);
-      if(spd>1.6){ r.vx=r.vx/spd*1.6; r.vy=r.vy/spd*1.6; }
-      if(spd<0.4){ r.vx=r.vx/spd*0.4; r.vy=r.vy/spd*0.4; }
-      // Soft boundary repulsion
-      if(r.x<60)   r.vx+=0.25;
-      if(r.x>W-60) r.vx-=0.25;
-      if(r.y<60)   r.vy+=0.25;
-      if(r.y>H-60) r.vy-=0.25;
+      r.vx+=(Math.random()-0.5)*0.09; r.vy+=(Math.random()-0.5)*0.09;
+      var spd=Math.sqrt(r.vx*r.vx+r.vy*r.vy);
+      if(spd>1.6){r.vx=r.vx/spd*1.6;r.vy=r.vy/spd*1.6;}
+      if(spd<0.4){r.vx=r.vx/spd*0.4;r.vy=r.vy/spd*0.4;}
+      if(r.x<60) r.vx+=0.3; if(r.x>W-60) r.vx-=0.3;
+      if(r.y<60) r.vy+=0.3; if(r.y>H-60) r.vy-=0.3;
       r.x+=r.vx; r.y+=r.vy;
       if(r.cd>0) r.cd-=dt;
-
-      // Mouse contact
       if(r.cd<=0){
         var dx=mx-r.x, dy=my-r.y;
-        if(dx*dx+dy*dy < CONTACT_R*CONTACT_R){
-          console.log('d93: contact at',Math.round(r.x),Math.round(r.y));
-          r.cd = COOLDOWN;
-          spawnFrag(r.x, r.y);
-          console.log('d93: frags now',frags.length);
-          playGlitch();
+        if(dx*dx+dy*dy<CONTACT_R*CONTACT_R){
+          console.log('d93: contact');
+          r.cd=COOLDOWN; spawnFrag(r.x,r.y); playGlitch();
         }
       }
     });
 
-    // Draw fragments
-    ctx.clearRect(0, 0, W, H);
+    // Draw
+    ctx.clearRect(0,0,W,H);
     frags = frags.filter(function(f){
-      var t = (now-f.t0)/f.dur;
+      var t=(now-f.t0)/f.dur;
       if(t>=1) return false;
-      ctx.globalAlpha = Math.pow(1-t, 1.4);
-      ctx.strokeStyle = '#2d2d2d';
-      ctx.lineWidth   = 1.5;
-      ctx.lineCap     = 'square';
+      ctx.globalAlpha=Math.pow(1-t,1.3);
+      ctx.strokeStyle='#1a1a1a';
+      ctx.lineWidth=1.5;
       f.tris.forEach(function(tri){
         ctx.beginPath();
-        ctx.moveTo(tri.x1, tri.y1);
-        ctx.lineTo(tri.x2, tri.y2);
-        ctx.lineTo(tri.x3, tri.y3);
+        ctx.moveTo(tri.x1,tri.y1);
+        ctx.lineTo(tri.x2,tri.y2);
+        ctx.lineTo(tri.x3,tri.y3);
         ctx.closePath();
         ctx.stroke();
       });
       return true;
     });
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
   })(performance.now());
 })();
 </script>
