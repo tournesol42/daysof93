@@ -98,6 +98,7 @@
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   #mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
+  #glitch-canvas{ position:fixed; inset:0; z-index:3; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
 
   .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 5s ease; }
@@ -246,6 +247,7 @@
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
   <canvas id="mesh-canvas"></canvas>
+  <canvas id="glitch-canvas"></canvas>
 
 
 
@@ -602,6 +604,136 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
+})();
+</script>
+<script>
+/* ============================================================
+   GLITCH SYSTEM — roaming points, 2D fragments, glitch sounds
+   ============================================================ */
+(function(){
+  var canvas = document.getElementById('glitch-canvas');
+  var ctx    = canvas.getContext('2d');
+  var dpr    = window.devicePixelRatio || 1;
+
+  function resize(){
+    canvas.width  = window.innerWidth  * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width  = window.innerWidth  + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Mouse (screen space)
+  var mx = -9999, my = -9999;
+  window.addEventListener('mousemove', function(e){ mx=e.clientX; my=e.clientY; });
+
+  // Glitch sound pool
+  var SOUNDS = [
+    '/glitch/Glitchdrone1.mp3',
+    '/glitch/Glitchsound1.mp3',
+    '/glitch/Glitchsound2.mp3',
+    '/glitch/Glitchsound3.mp3',
+    '/glitch/Glitchsound4.mp3',
+    '/glitch/Glitchsound5.mp3'
+  ];
+  var soundEls = SOUNDS.map(function(url){
+    var a = new Audio(url); a.preload='auto'; return a;
+  });
+  function playGlitch(){
+    var a = soundEls[Math.floor(Math.random()*soundEls.length)];
+    var s = a.cloneNode();
+    s.volume = 0.55;
+    s.play().catch(function(){});
+  }
+
+  // Roaming points
+  var CONTACT_R  = 38;
+  var COOLDOWN   = 3000;
+  var roamers = [];
+  for(var i=0;i<3;i++){
+    roamers.push({
+      x: 100 + Math.random()*(window.innerWidth-200),
+      y: 100 + Math.random()*(window.innerHeight-200),
+      vx: (Math.random()-0.5)*1.4,
+      vy: (Math.random()-0.5)*1.4,
+      cd: 0
+    });
+  }
+
+  // Active fragments
+  var frags = [];
+
+  function spawnFrag(x, y){
+    var n = 2 + Math.floor(Math.random()*3); // 2–4 lines
+    var lines = [];
+    for(var i=0;i<n;i++){
+      var angle = Math.random()*Math.PI*2;
+      var len   = 12 + Math.random()*48;
+      var ox = x + (Math.random()-0.5)*18;
+      var oy = y + (Math.random()-0.5)*18;
+      lines.push({
+        x1:ox, y1:oy,
+        x2:ox+Math.cos(angle)*len,
+        y2:oy+Math.sin(angle)*len
+      });
+    }
+    frags.push({ lines:lines, t0:performance.now(), dur:1800+Math.random()*1200 });
+  }
+
+  var lastT = performance.now();
+
+  (function loop(now){
+    requestAnimationFrame(loop);
+    var dt = now - lastT; lastT = now;
+
+    // Update roamers
+    var W=window.innerWidth, H=window.innerHeight;
+    roamers.forEach(function(r){
+      r.vx += (Math.random()-0.5)*0.09;
+      r.vy += (Math.random()-0.5)*0.09;
+      var spd = Math.sqrt(r.vx*r.vx+r.vy*r.vy);
+      if(spd>1.6){ r.vx=r.vx/spd*1.6; r.vy=r.vy/spd*1.6; }
+      if(spd<0.4){ r.vx=r.vx/spd*0.4; r.vy=r.vy/spd*0.4; }
+      // Soft boundary repulsion
+      if(r.x<60)   r.vx+=0.25;
+      if(r.x>W-60) r.vx-=0.25;
+      if(r.y<60)   r.vy+=0.25;
+      if(r.y>H-60) r.vy-=0.25;
+      r.x+=r.vx; r.y+=r.vy;
+      if(r.cd>0) r.cd-=dt;
+
+      // Mouse contact
+      if(r.cd<=0){
+        var dx=mx-r.x, dy=my-r.y;
+        if(dx*dx+dy*dy < CONTACT_R*CONTACT_R){
+          r.cd = COOLDOWN;
+          spawnFrag(r.x, r.y);
+          playGlitch();
+        }
+      }
+    });
+
+    // Draw fragments
+    ctx.clearRect(0, 0, W, H);
+    frags = frags.filter(function(f){
+      var t = (now-f.t0)/f.dur;
+      if(t>=1) return false;
+      ctx.globalAlpha = Math.pow(1-t, 1.4);
+      ctx.strokeStyle = '#2d2d2d';
+      ctx.lineWidth   = 0.75;
+      ctx.lineCap     = 'square';
+      f.lines.forEach(function(l){
+        ctx.beginPath();
+        ctx.moveTo(l.x1,l.y1);
+        ctx.lineTo(l.x2,l.y2);
+        ctx.stroke();
+      });
+      return true;
+    });
+    ctx.globalAlpha = 1;
+  })(performance.now());
 })();
 </script>
 </body>
