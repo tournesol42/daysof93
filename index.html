@@ -512,19 +512,26 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
     var activeA=-1, minD=HOVER_R;
     for(var a=0;a<4;a++){
-      var d=_mW.distanceTo(_aW[a]);
+      var dx=_mW.x-_aW[a].x, dy=_mW.y-_aW[a].y;
+      var d=Math.sqrt(dx*dx+dy*dy); // 2D only — ignore Z
       if(d<minD){minD=d;activeA=a;}
     }
     var prox = activeA>=0 ? 1-minD/HOVER_R : 0;
 
-    /* ---- audio trigger: bottom anchors are indices 2 & 3 ---- */
-    var bottomActive = (activeA===2||activeA===3);
-    if(bottomActive && !bottomWasActive && audioUnlocked && !audioPlaying){
-      var t = nextTrack();
-      if(t){ console.log('d93: playing (hover)',t); playTrack(t); }
-      else{ console.log('d93: all tracks played'); }
+    /* ---- audio trigger: whichever anchor is currently lowest in world Y ---- */
+    var bottomAnchorIdx=0;
+    for(var a=1;a<4;a++){ if(_aW[a].y<_aW[bottomAnchorIdx].y) bottomAnchorIdx=a; }
+    var bottomActive = (activeA===bottomAnchorIdx);
+    if(bottomActive && !bottomWasActive){
+      console.log('d93: bottom anchor hit, unlocked='+audioUnlocked+' playing='+audioPlaying);
+      if(audioUnlocked && !audioPlaying){
+        var t=nextTrack();
+        if(t){ console.log('d93: playing',t); playTrack(t); }
+      }
     }
-    if(bottomActive && !bottomWasActive){ console.log('d93: bottom anchor hit, unlocked='+audioUnlocked); }
+    if(audioUnlocked && bottomActive && !bottomWasActive && !audioPlaying){
+      var t2=nextTrack(); if(t2) playTrack(t2);
+    }
     bottomWasActive = bottomActive;
     /* ---- end audio trigger ---- */
 
