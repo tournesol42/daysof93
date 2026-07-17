@@ -399,6 +399,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
     gainNode.connect(audioCtx.destination);
     audioUnlocked = true;
+    console.log('d93: audio unlocked');
+    // If already hovering bottom anchor when click fires, trigger immediately
+    if(bottomWasActive && !audioPlaying){
+      var t = nextTrack();
+      if(t){ console.log('d93: playing (click+hover)',t); playTrack(t); }
+    }
   });
 
   function nextTrack(){
@@ -515,8 +521,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var bottomActive = (activeA===2||activeA===3);
     if(bottomActive && !bottomWasActive && audioUnlocked && !audioPlaying){
       var t = nextTrack();
-      if(t) playTrack(t);
+      if(t){ console.log('d93: playing (hover)',t); playTrack(t); }
+      else{ console.log('d93: all tracks played'); }
     }
+    if(bottomActive && !bottomWasActive){ console.log('d93: bottom anchor hit, unlocked='+audioUnlocked); }
     bottomWasActive = bottomActive;
     /* ---- end audio trigger ---- */
 
