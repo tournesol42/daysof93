@@ -519,7 +519,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
       root.scale.setScalar(3.2/Math.max(size.x,size.y,size.z));
-      root.position.y+=1.4;
+      root.position.y+=0.7;
+      root.position.x-=0.6;
       root.traverse(function(child){
         if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true});
       });
