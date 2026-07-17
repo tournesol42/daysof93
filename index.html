@@ -375,7 +375,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var center = box.getCenter(new THREE.Vector3());
       var size = box.getSize(new THREE.Vector3());
       root.position.sub(center);
-      root.scale.setScalar(2.8 / Math.max(size.x, size.y, size.z));
+      root.scale.setScalar(3.2 / Math.max(size.x, size.y, size.z));
     root.position.y += 1.4;
       root.traverse(function(child){
         if(child.isMesh){
