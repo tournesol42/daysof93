@@ -383,6 +383,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var _mL     = new THREE.Vector3();
   var _aW     = [new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
   var _tmpInv = new THREE.Matrix4();
+  var _tmpV3  = new THREE.Vector3();
+  var _prevActiveA = -1;
 
   /* ---- AUDIO CAROUSEL ---- */
   var TRACKS  = ['/Common_frequencis_remix.mp3'];
@@ -519,6 +521,20 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     }
     var prox = activeA>=0 ? 1-minD/HOVER_R : 0;
 
+    /* ---- expose anchor hit to glitch system ---- */
+    if(activeA>=0 && activeA!==_prevActiveA){
+      _tmpV3.copy(_aW[activeA]).project(camera);
+      window._d93AnchorHit = {
+        idx: activeA,
+        sx: (_tmpV3.x+1)/2*window.innerWidth,
+        sy: (1-_tmpV3.y)/2*window.innerHeight
+      };
+    } else if(activeA<0 && _prevActiveA>=0){
+      window._d93AnchorHit = null;
+    }
+    _prevActiveA = activeA;
+    /* ---- end anchor hit ---- */
+
     /* ---- audio trigger: whichever anchor is currently lowest world Y ---- */
     var bottomAnchorIdx=0;
     for(var a=1;a<4;a++){ if(_aW[a].y<_aW[bottomAnchorIdx].y) bottomAnchorIdx=a; }
@@ -607,58 +623,79 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 <script>
-/* GLITCH SYSTEM */
+/* GLITCH SYSTEM — anchor-triggered, mesh-edge spawn */
 (function(){
   var canvas = document.getElementById('glitch-canvas');
   var ctx    = canvas.getContext('2d');
-
   function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
   resize();
   window.addEventListener('resize', resize);
 
-  var mx=-9999, my=-9999;
-  window.addEventListener('mousemove', function(e){ mx=e.clientX; my=e.clientY; });
-
-  // Sounds
+  /* ---- WEB AUDIO: pre-load on first click ---- */
   var SOUNDS=['/glitch/Glitchdrone1.mp3','/glitch/Glitchsound1.mp3','/glitch/Glitchsound2.mp3',
               '/glitch/Glitchsound3.mp3','/glitch/Glitchsound4.mp3','/glitch/Glitchsound5.mp3'];
+  var gCtx=null, gBuffers={};
+
+  document.addEventListener('click', function(){
+    if(gCtx) return;
+    gCtx = new (window.AudioContext||window.webkitAudioContext)();
+    SOUNDS.forEach(function(url){
+      fetch(url)
+        .then(function(r){
+          if(!r.ok) throw new Error(r.status+' '+url);
+          return r.arrayBuffer();
+        })
+        .then(function(b){ return gCtx.decodeAudioData(b); })
+        .then(function(buf){ gBuffers[url]=buf; console.log('d93: loaded',url); })
+        .catch(function(e){ console.error('d93: sound load fail',e.message); });
+    });
+  });
+
   function playGlitch(){
+    if(!gCtx) return;
     var url=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];
-    var a=new Audio(url); a.volume=0.55;
-    a.play().catch(function(e){ console.error('d93: sound',e.message,url); });
+    var buf=gBuffers[url];
+    if(!buf){ console.warn('d93: buffer not ready',url); return; }
+    var src=gCtx.createBufferSource();
+    src.buffer=buf;
+    var gain=gCtx.createGain();
+    gain.gain.value=0.55;
+    src.connect(gain);
+    gain.connect(gCtx.destination);
+    src.start(0);
+    console.log('d93: playing glitch',url);
   }
 
-  // Mesh exclusion zone (approx screen position of the 3D mesh)
-  function inMesh(x,y){
-    var W=canvas.width, H=canvas.height;
-    var dx=x-W*0.40, dy=y-H*0.42;
-    var r=Math.min(W,H)*0.34;
-    return dx*dx+dy*dy < r*r;
-  }
-
-  // Pick random position outside mesh zone
-  function safePos(){
-    var W=canvas.width, H=canvas.height;
-    for(var i=0;i<20;i++){
-      var x=80+Math.random()*(W-160), y=80+Math.random()*(H-160);
-      if(!inMesh(x,y)) return {x:x,y:y};
-    }
-    return {x:W*0.85, y:H*0.5}; // fallback: right edge
-  }
-
-  // Spawn thin elongated triangle fragment
+  /* ---- FRAGMENTS: thin triangles spawned at mesh edge ---- */
   var frags=[];
-  function spawnFrag(x,y){
+
+  // Approx mesh center in screen-fraction coords
+  var MCX=0.40, MCY=0.40, MR=0.30;
+
+  function spawnFromEdge(anchorSX, anchorSY){
+    var W=canvas.width, H=canvas.height;
+    var cx=W*MCX, cy=H*MCY, r=Math.min(W,H)*MR;
+    // Direction: mesh center → anchor screen pos
+    var dx=anchorSX-cx, dy=anchorSY-cy;
+    var dist=Math.sqrt(dx*dx+dy*dy)||1;
+    var nx=dx/dist, ny=dy/dist;
+    // Spawn at mesh edge
+    var ex=cx+nx*r, ey=cy+ny*r;
+    // Add slight angle spread
+    var spread=(Math.random()-0.5)*0.6;
+    var cos=Math.cos(spread), sin=Math.sin(spread);
+    var fx=nx*cos-ny*sin, fy=nx*sin+ny*cos;
+    var speed=0.5+Math.random()*0.9;
+
     var n=1+Math.floor(Math.random()*2);
     var tris=[];
     for(var i=0;i<n;i++){
-      var len=45+Math.random()*65;   // long axis
-      var wid=3+Math.random()*6;     // thin axis
-      var ang=Math.random()*Math.PI*2;
-      var ax=Math.cos(ang), ay=Math.sin(ang);
-      var px=-ay, py=ax;
+      var len=40+Math.random()*60, wid=2+Math.random()*5;
+      var ang=Math.atan2(fy,fx)+(Math.random()-0.5)*0.4;
+      var ax=Math.cos(ang),ay=Math.sin(ang);
+      var px=-ay,py=ax;
       var hw=wid/2;
-      var ox=(Math.random()-0.5)*16, oy=(Math.random()-0.5)*16;
+      var ox=(Math.random()-0.5)*12, oy=(Math.random()-0.5)*12;
       tris.push({
         x1:ox+ax*len,  y1:oy+ay*len,
         x2:ox+px*hw,   y2:oy+py*hw,
@@ -666,58 +703,29 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       });
     }
     frags.push({
-      tris:tris, cx:x, cy:y,
-      vx:(Math.random()-0.5)*1.0,
-      vy:-0.2-Math.random()*0.5,  // slow upward drift
-      t0:performance.now(), dur:2200+Math.random()*900
+      tris:tris, cx:ex, cy:ey,
+      vx:fx*speed, vy:fy*speed,
+      t0:performance.now(), dur:2000+Math.random()*800
     });
   }
 
-  // Roamers — stay outside mesh zone
-  var CONTACT_R=38, COOLDOWN=3000;
-  var roamers=[];
-  for(var i=0;i<3;i++){
-    var p=safePos();
-    roamers.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*1.4,vy:(Math.random()-0.5)*1.4,cd:0});
-  }
+  /* ---- ANCHOR HIT POLLING ---- */
+  var lastHitIdx=-1;
 
-  // Auto-spawn test (confirms canvas + sound both work)
-  setInterval(function(){
-    var p=safePos();
-    spawnFrag(p.x,p.y);
-    playGlitch();
-  }, 4000);
-
+  /* ---- DRAW LOOP ---- */
   var lastT=performance.now();
   (function loop(now){
     requestAnimationFrame(loop);
-    var dt=now-lastT; lastT=now;
     var W=canvas.width, H=canvas.height;
 
-    // Roamers
-    roamers.forEach(function(r){
-      r.vx+=(Math.random()-0.5)*0.09; r.vy+=(Math.random()-0.5)*0.09;
-      var spd=Math.sqrt(r.vx*r.vx+r.vy*r.vy);
-      if(spd>1.6){r.vx=r.vx/spd*1.6;r.vy=r.vy/spd*1.6;}
-      if(spd<0.4){r.vx=r.vx/spd*0.4;r.vy=r.vy/spd*0.4;}
-      // Boundary
-      if(r.x<60)r.vx+=0.3; if(r.x>W-60)r.vx-=0.3;
-      if(r.y<60)r.vy+=0.3; if(r.y>H-60)r.vy-=0.3;
-      // Mesh zone repulsion
-      var mdx=r.x-W*0.40, mdy=r.y-H*0.42;
-      var mr=Math.min(W,H)*0.34;
-      if(mdx*mdx+mdy*mdy<mr*mr*1.2){
-        r.vx+=mdx*0.01; r.vy+=mdy*0.01;
-      }
-      r.x+=r.vx; r.y+=r.vy;
-      if(r.cd>0)r.cd-=dt;
-      if(r.cd<=0&&!inMesh(r.x,r.y)){
-        var dx=mx-r.x, dy=my-r.y;
-        if(dx*dx+dy*dy<CONTACT_R*CONTACT_R){
-          r.cd=COOLDOWN; spawnFrag(r.x,r.y); playGlitch();
-        }
-      }
-    });
+    // Check for new anchor hit from Three.js
+    var hit=window._d93AnchorHit;
+    if(hit && hit.idx!==lastHitIdx){
+      lastHitIdx=hit.idx;
+      spawnFromEdge(hit.sx, hit.sy);
+      playGlitch();
+    }
+    if(!hit) lastHitIdx=-1;
 
     // Draw
     ctx.clearRect(0,0,W,H);
@@ -726,7 +734,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       if(t>=1) return false;
       f.cx+=f.vx; f.cy+=f.vy;
       ctx.save();
-      ctx.globalAlpha=Math.pow(1-t,1.3);
+      ctx.globalAlpha=Math.pow(1-t,1.2);
       ctx.translate(f.cx,f.cy);
       ctx.strokeStyle='#1a1a1a';
       ctx.lineWidth=0.8;
