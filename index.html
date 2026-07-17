@@ -374,7 +374,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var PUSH    = 0.08;
   var HOVER_R = 1.2;
 
-  // Pre-allocated vectors — no GC in the hot loop
   var _m2d    = new THREE.Vector2(-9999,-9999);
   var _ray    = new THREE.Raycaster();
   var _plane  = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
@@ -382,6 +381,52 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var _mL     = new THREE.Vector3();
   var _aW     = [new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
   var _tmpInv = new THREE.Matrix4();
+
+  /* ---- AUDIO CAROUSEL ---- */
+  var TRACKS  = ['/Common_frequencis_remix.mp3'];
+  var VOLUME  = 0.35;
+  var played  = new Set();
+  var audioCtx   = null;
+  var gainNode   = null;
+  var audioPlaying  = false;
+  var audioUnlocked = false;
+  var bottomWasActive = false;
+
+  document.addEventListener('click', function(){
+    if(audioCtx) return;
+    audioCtx  = new (window.AudioContext||window.webkitAudioContext)();
+    gainNode  = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.connect(audioCtx.destination);
+    audioUnlocked = true;
+  });
+
+  function nextTrack(){
+    var pool = TRACKS.filter(function(t){ return !played.has(t); });
+    if(!pool.length) return null;
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  function playTrack(url){
+    if(!audioCtx||audioPlaying) return;
+    played.add(url);
+    audioPlaying = true;
+    fetch(url)
+      .then(function(r){ return r.arrayBuffer(); })
+      .then(function(b){ return audioCtx.decodeAudioData(b); })
+      .then(function(buf){
+        var src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(gainNode);
+        src.start(0);
+        gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(VOLUME, audioCtx.currentTime+2.5);
+        src.onended = function(){ audioPlaying=false; };
+      })
+      .catch(function(e){ console.error('d93: audio',e); audioPlaying=false; });
+  }
+  /* ---- END AUDIO ---- */
 
   window.addEventListener('mousemove', function(e){
     _m2d.x = (e.clientX/window.innerWidth)*2-1;
@@ -392,7 +437,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     root.updateMatrixWorld(true);
     var rootInv = new THREE.Matrix4().copy(root.matrixWorld).invert();
 
-    // Bounding box in root local space
     var lBox = new THREE.Box3();
     root.traverse(function(child){
       if(!child.isMesh) return;
@@ -406,7 +450,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var lCx=(lMin.x+lMax.x)/2, lCy=(lMin.y+lMax.y)/2, lCz=(lMin.z+lMax.z)/2;
     var lW=lMax.x-lMin.x, lH=lMax.y-lMin.y;
 
-    // 4 anchors spread across mesh in root local space
     anchorLocal = [
       new THREE.Vector3(lCx-lW*0.28, lCy+lH*0.28, lCz),
       new THREE.Vector3(lCx+lW*0.28, lCy+lH*0.28, lCz),
@@ -432,7 +475,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
         n:    n,
         aIdx: new Int8Array(n).fill(-1),
         aW:   new Float32Array(n),
-        mW:   child.matrixWorld  // live reference — updates as root rotates
+        mW:   child.matrixWorld
       };
 
       for(var i=0;i<n;i++){
@@ -459,10 +502,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     _ray.setFromCamera(_m2d, camera);
     _ray.ray.intersectPlane(_plane, _mW);
 
-    // Anchors to world space (rotates with mesh each frame)
     for(var a=0;a<4;a++) _aW[a].copy(anchorLocal[a]).applyMatrix4(mesh.matrixWorld);
 
-    // Nearest anchor to mouse
     var activeA=-1, minD=HOVER_R;
     for(var a=0;a<4;a++){
       var d=_mW.distanceTo(_aW[a]);
@@ -470,10 +511,19 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     }
     var prox = activeA>=0 ? 1-minD/HOVER_R : 0;
 
+    /* ---- audio trigger: bottom anchors are indices 2 & 3 ---- */
+    var bottomActive = (activeA===2||activeA===3);
+    if(bottomActive && !bottomWasActive && audioUnlocked && !audioPlaying){
+      var t = nextTrack();
+      if(t) playTrack(t);
+    }
+    bottomWasActive = bottomActive;
+    /* ---- end audio trigger ---- */
+
     meshDatas.forEach(function(md){
       var arr = md.geo.attributes.position.array;
       _tmpInv.copy(md.mW).invert();
-      _mL.copy(_mW).applyMatrix4(_tmpInv); // mouse in child local space
+      _mL.copy(_mW).applyMatrix4(_tmpInv);
       var dirty = false;
 
       for(var i=0;i<md.n;i++){
@@ -482,17 +532,14 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
         var dvx=md.vx[i],    dvy=md.vy[i];
         var dx=ox-cx,         dy=oy-cy;
 
-        // Skip truly resting vertices
         if(activeA<0 && Math.abs(dx)<1e-4 && Math.abs(dy)<1e-4 && Math.abs(dvx)<1e-4 && Math.abs(dvy)<1e-4) continue;
 
-        // Pull toward mouse if this vertex belongs to the active anchor
         if(activeA>=0 && md.aIdx[i]===activeA){
           var w2=md.aW[i]*prox*PUSH;
           dvx+=(_mL.x-cx)*w2;
           dvy+=(_mL.y-cy)*w2;
         }
 
-        // Spring back to original position
         dvx+=dx*SPRING;
         dvy+=dy*SPRING;
         dvx*=DAMPING;
@@ -526,7 +573,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       });
       scene.add(root);
       mesh=root;
-      // Wait one frame for matrixWorld to be valid
       requestAnimationFrame(function(){
         scene.updateMatrixWorld(true);
         setupSpring(root);
