@@ -386,26 +386,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var TRACKS  = ['/Common_frequencis_remix.mp3'];
   var VOLUME  = 0.35;
   var played  = new Set();
-  var audioCtx   = null;
-  var gainNode   = null;
+  var audioEl = null;
   var audioPlaying  = false;
   var audioUnlocked = false;
   var bottomWasActive = false;
-
-  document.addEventListener('click', function(){
-    if(audioCtx) return;
-    audioCtx  = new (window.AudioContext||window.webkitAudioContext)();
-    gainNode  = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.connect(audioCtx.destination);
-    audioUnlocked = true;
-    console.log('d93: audio unlocked');
-    // If already hovering bottom anchor when click fires, trigger immediately
-    if(bottomWasActive && !audioPlaying){
-      var t = nextTrack();
-      if(t){ console.log('d93: playing (click+hover)',t); playTrack(t); }
-    }
-  });
 
   function nextTrack(){
     var pool = TRACKS.filter(function(t){ return !played.has(t); });
@@ -413,25 +397,40 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
-  function playTrack(url){
-    if(!audioCtx||audioPlaying) return;
-    played.add(url);
+  function startAudio(){
+    if(audioPlaying) return;
+    var track = nextTrack();
+    if(!track){ console.log('d93: all tracks played'); return; }
+    console.log('d93: starting', track);
+    played.add(track);
     audioPlaying = true;
-    fetch(url)
-      .then(function(r){ return r.arrayBuffer(); })
-      .then(function(b){ return audioCtx.decodeAudioData(b); })
-      .then(function(buf){
-        var src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        src.connect(gainNode);
-        src.start(0);
-        gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(VOLUME, audioCtx.currentTime+2.5);
-        src.onended = function(){ audioPlaying=false; };
-      })
-      .catch(function(e){ console.error('d93: audio',e); audioPlaying=false; });
+    audioEl.src = track;
+    audioEl.volume = 0;
+    var p = audioEl.play();
+    if(p) p.catch(function(e){ console.error('d93: play error',e); audioPlaying=false; });
+    // Fade in over 2.5s
+    var t0 = performance.now();
+    (function fade(){
+      var pct = Math.min((performance.now()-t0)/2500, 1);
+      audioEl.volume = pct * VOLUME;
+      if(pct<1) requestAnimationFrame(fade);
+    })();
   }
+
+  function initAudio(){
+    if(audioUnlocked) return;
+    audioEl = document.createElement('audio');
+    audioEl.preload = 'auto';
+    audioEl.volume  = 0;
+    audioEl.addEventListener('ended', function(){ audioPlaying=false; });
+    document.body.appendChild(audioEl);
+    audioUnlocked = true;
+    console.log('d93: audio unlocked');
+    // Already hovering bottom anchor when click fired
+    if(bottomWasActive && !audioPlaying) startAudio();
+  }
+
+  document.addEventListener('click', initAudio);
   /* ---- END AUDIO ---- */
 
   window.addEventListener('mousemove', function(e){
@@ -518,19 +517,13 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     }
     var prox = activeA>=0 ? 1-minD/HOVER_R : 0;
 
-    /* ---- audio trigger: whichever anchor is currently lowest in world Y ---- */
+    /* ---- audio trigger: whichever anchor is currently lowest world Y ---- */
     var bottomAnchorIdx=0;
     for(var a=1;a<4;a++){ if(_aW[a].y<_aW[bottomAnchorIdx].y) bottomAnchorIdx=a; }
     var bottomActive = (activeA===bottomAnchorIdx);
     if(bottomActive && !bottomWasActive){
-      console.log('d93: bottom anchor hit, unlocked='+audioUnlocked+' playing='+audioPlaying);
-      if(audioUnlocked && !audioPlaying){
-        var t=nextTrack();
-        if(t){ console.log('d93: playing',t); playTrack(t); }
-      }
-    }
-    if(audioUnlocked && bottomActive && !bottomWasActive && !audioPlaying){
-      var t2=nextTrack(); if(t2) playTrack(t2);
+      console.log('d93: bottom anchor hit, unlocked='+audioUnlocked);
+      if(audioUnlocked && !audioPlaying) startAudio();
     }
     bottomWasActive = bottomActive;
     /* ---- end audio trigger ---- */
