@@ -638,14 +638,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     '/glitch/Glitchsound4.mp3',
     '/glitch/Glitchsound5.mp3'
   ];
-  var soundEls = SOUNDS.map(function(url){
-    var a = new Audio(url); a.preload='auto'; return a;
-  });
   function playGlitch(){
-    var a = soundEls[Math.floor(Math.random()*soundEls.length)];
-    var s = a.cloneNode();
-    s.volume = 0.55;
-    s.play().catch(function(){});
+    var url = SOUNDS[Math.floor(Math.random()*SOUNDS.length)];
+    var a = new Audio(url);
+    a.volume = 0.55;
+    a.play().catch(function(e){ console.error('d93: glitch sound error',e,url); });
+    console.log('d93: glitch sound', url);
   }
 
   // Roaming points
@@ -666,20 +664,23 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var frags = [];
 
   function spawnFrag(x, y){
-    var n = 2 + Math.floor(Math.random()*3); // 2–4 lines
-    var lines = [];
+    var n = 1 + Math.floor(Math.random()*2); // 1–2 triangles
+    var tris = [];
     for(var i=0;i<n;i++){
+      var size  = 14 + Math.random()*42;
       var angle = Math.random()*Math.PI*2;
-      var len   = 12 + Math.random()*48;
-      var ox = x + (Math.random()-0.5)*18;
-      var oy = y + (Math.random()-0.5)*18;
-      lines.push({
-        x1:ox, y1:oy,
-        x2:ox+Math.cos(angle)*len,
-        y2:oy+Math.sin(angle)*len
+      var ox = x + (Math.random()-0.5)*28;
+      var oy = y + (Math.random()-0.5)*28;
+      // Irregular triangle — three spokes at uneven angles and radii
+      var a0=angle, a1=angle+Math.PI*0.55+Math.random()*0.9, a2=angle+Math.PI*1.25+Math.random()*0.9;
+      var r0=size*(0.5+Math.random()*0.5), r1=size*(0.5+Math.random()*0.5), r2=size*(0.5+Math.random()*0.5);
+      tris.push({
+        x1:ox+Math.cos(a0)*r0, y1:oy+Math.sin(a0)*r0,
+        x2:ox+Math.cos(a1)*r1, y2:oy+Math.sin(a1)*r1,
+        x3:ox+Math.cos(a2)*r2, y3:oy+Math.sin(a2)*r2
       });
     }
-    frags.push({ lines:lines, t0:performance.now(), dur:1800+Math.random()*1200 });
+    frags.push({ tris:tris, t0:performance.now(), dur:1800+Math.random()*1200 });
   }
 
   var lastT = performance.now();
@@ -724,10 +725,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       ctx.strokeStyle = '#2d2d2d';
       ctx.lineWidth   = 0.75;
       ctx.lineCap     = 'square';
-      f.lines.forEach(function(l){
+      f.tris.forEach(function(tri){
         ctx.beginPath();
-        ctx.moveTo(l.x1,l.y1);
-        ctx.lineTo(l.x2,l.y2);
+        ctx.moveTo(tri.x1, tri.y1);
+        ctx.lineTo(tri.x2, tri.y2);
+        ctx.lineTo(tri.x3, tri.y3);
+        ctx.closePath();
         ctx.stroke();
       });
       return true;
