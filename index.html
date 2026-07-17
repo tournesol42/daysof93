@@ -611,7 +611,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
    GLITCH SYSTEM — roaming points, 2D fragments, glitch sounds
    ============================================================ */
 (function(){
+  console.log('d93: glitch system init');
   var canvas = document.getElementById('glitch-canvas');
+  if(!canvas){ console.error('d93: no glitch canvas'); return; }
   var ctx    = canvas.getContext('2d');
   var dpr    = window.devicePixelRatio || 1;
 
@@ -667,7 +669,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var n = 1 + Math.floor(Math.random()*2); // 1–2 triangles
     var tris = [];
     for(var i=0;i<n;i++){
-      var size  = 14 + Math.random()*42;
+      var size  = 40 + Math.random()*60;
       var angle = Math.random()*Math.PI*2;
       var ox = x + (Math.random()-0.5)*28;
       var oy = y + (Math.random()-0.5)*28;
@@ -709,8 +711,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       if(r.cd<=0){
         var dx=mx-r.x, dy=my-r.y;
         if(dx*dx+dy*dy < CONTACT_R*CONTACT_R){
+          console.log('d93: contact at',Math.round(r.x),Math.round(r.y));
           r.cd = COOLDOWN;
           spawnFrag(r.x, r.y);
+          console.log('d93: frags now',frags.length);
           playGlitch();
         }
       }
@@ -723,7 +727,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       if(t>=1) return false;
       ctx.globalAlpha = Math.pow(1-t, 1.4);
       ctx.strokeStyle = '#2d2d2d';
-      ctx.lineWidth   = 0.75;
+      ctx.lineWidth   = 1.5;
       ctx.lineCap     = 'square';
       f.tris.forEach(function(tri){
         ctx.beginPath();
