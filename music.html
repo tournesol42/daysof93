@@ -21,11 +21,11 @@
 
 <style>
   :root{
-    --field: #d0d0d0;
-    --line:  rgba(0,0,0,0.45);
-    --axis-x: rgba(0,0,0,0.60);
-    --axis-y: rgba(0,0,0,0.60);
-    --ink:   #000000;
+    --field: #000000;
+    --line:  rgba(255,255,255,0.18);
+    --axis-x: rgba(255,255,255,0.28);
+    --axis-y: rgba(255,255,255,0.28);
+    --ink:   #ffffff;
     --hair:  0.75px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -42,14 +42,14 @@
   .nav-logo{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
+    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:0.5;
   }
   .nav-logo:hover{ opacity:1; }
   nav{ display:flex; gap:28px; align-items:center; }
   nav a{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
+    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:0.5;
   }
   nav a:hover{ opacity:1; }
   @media (max-width:720px){
@@ -69,13 +69,13 @@
     font-size: clamp(4.5rem, 13vw, 16rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
-    color:#000;
+    color:var(--ink);
   }
   .hero-sub{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size: clamp(0.7rem, 1.2vw, 1rem);
     font-weight:300; letter-spacing:0.28em;
-    text-transform:uppercase; color:#000; opacity:0.4;
+    text-transform:uppercase; color:var(--ink); opacity:0.4;
     margin-top:28px;
   }
   @media (max-width:720px){
@@ -89,7 +89,7 @@
     position:relative; width:100%; overflow:visible;
   }
   .piece .slot.framed{
-    border: 1.5px solid #000000; border-radius: 0;
+    border: 1.5px solid var(--ink); border-radius: 0;
   }
   .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
   .piece .vid{
@@ -99,7 +99,7 @@
   .piece .stamp{
     position:absolute; top:calc(100% + 6px); left:0;
     font-family:'Google Sans Code', monospace; font-size:11px; letter-spacing:0.05em; color:#000000;
-    opacity:0.7; font-variant-numeric:tabular-nums;
+    opacity:0.7; font-variant-numeric:tabular-nums; color:var(--ink);
   }
   @media (max-width:720px){
     .piece .stamp{ font-size:9.5px; }
@@ -126,16 +126,16 @@
   .bio-title{
     font-family:'Jost', sans-serif; font-size:3rem; font-weight:300;
     text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
-    color:#000; margin-bottom:18px;
+    color:var(--ink); margin-bottom:18px;
   }
   .bio-text{
     font-family:'Jost', sans-serif; font-size:4rem; font-weight:300;
     letter-spacing:0.02em; line-height:1.2;
-    color:#000; margin-bottom:32px;
+    color:var(--ink); margin-bottom:32px;
   }
   .client-list-small li{
     font-size:11px; letter-spacing:0.08em; line-height:2.2;
-    color:#000; opacity:0.65;
+    color:var(--ink); opacity:0.65;
   }
   /* ---- past clients overlay ---- */
   .overlay{
@@ -151,17 +151,17 @@
   }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
-    color:#000; opacity:0.55; margin-bottom:22px;
+    color:var(--ink); opacity:0.55; margin-bottom:22px;
     font-variant-numeric:tabular-nums;
   }
   .client-list{ list-style:none; }
   .client-list li{
     font-size:15px; letter-spacing:0.01em; line-height:2.05;
-    color:#000; opacity:0.9;
+    color:var(--ink); opacity:0.9;
   }
   .overlay-close{
     display:inline-block; margin-top:26px;
-    font-size:11px; letter-spacing:0.06em; color:#000;
+    font-size:11px; letter-spacing:0.06em; color:var(--ink);
     opacity:0.5; text-decoration:none;
   }
   .overlay-close:hover{ opacity:0.85; }
