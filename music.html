@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v101-alphawebm -->
+<!-- build: v105-ig-musicsize -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -61,15 +61,17 @@
   /* hero */
   .hero{
     position:relative; z-index:5;
-    padding: 100px 28px 20px;
-    min-height:54vh; display:flex; flex-direction:column; justify-content:center;
+    padding: 52px 28px 20px;
+    min-height: auto; display:flex; flex-direction:row;
+    align-items:flex-start; justify-content:space-between;
   }
   .hero-title{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size: clamp(4.5rem, 13vw, 16rem);
+    font-size: clamp(5rem, 14vw, 20rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
     color:var(--ink);
+    margin-top: 8vh; margin-right: 4vw;
   }
   .hero-sub{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
@@ -79,7 +81,8 @@
     margin-top:28px;
   }
   @media (max-width:720px){
-    .hero{ padding:80px 18px 30px; min-height:42vh; }
+    .hero{ padding:80px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
+    .hero-title{ margin-top:18vw; margin-right:0; align-self:flex-end; }
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
@@ -177,7 +180,8 @@
     </nav>
   </header>
 
-  <div class="hero" style="min-height:80px; display:block; padding: 100px 28px 0;">
+  <div class="hero" style="">
+    <div class="hero-left"></div>
     <div class="hero-title">MUSIC</div>
   </div>
 
