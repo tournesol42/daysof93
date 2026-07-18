@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v103-vector4 -->
+<!-- build: v103-vector4-syntaxfix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -631,7 +631,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   resize();
   window.addEventListener('resize', resize);
 
-  /* ---- WEB AUDIO: pre-load on first click ---- */
+  // ---- WEB AUDIO: pre-load on first click ----
   var SOUNDS=['/glitch/Glitchdrone1.mp3','/glitch/Glitchsound1.mp3','/glitch/Glitchsound2.mp3',
               '/glitch/Glitchsound3.mp3','/glitch/Glitchsound4.mp3','/glitch/Glitchsound5.mp3'];
   var gCtx=null, gBuffers={};
@@ -666,7 +666,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     console.log('d93: playing glitch',url);
   }
 
-  /* ---- FRAGMENTS: thin triangles spawned at mesh edge ---- */
+  // ---- FRAGMENTS: thin triangles spawned at mesh edge ----
   var frags=[];
 
   // Approx mesh center in screen-fraction coords
@@ -709,10 +709,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     });
   }
 
-  /* ---- ANCHOR HIT POLLING ---- */
+  // ---- ANCHOR HIT POLLING ----
   var lastHitIdx=-1;
 
-  /* ---- DRAW LOOP ---- */
+  // ---- DRAW LOOP ----
   var lastT=performance.now();
   (function loop(now){
     requestAnimationFrame(loop);
