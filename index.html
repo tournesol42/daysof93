@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v101-mesh -->
+<!-- build: v102-mobilelayout -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -94,7 +94,7 @@
   .hero-music:hover{ opacity:1; }
   @media (max-width:720px){
     .hero{ padding:80px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
-    .hero-music{ margin-top:0; margin-right:0; }
+    .hero-music{ margin-top:18vw; margin-right:0; align-self:flex-end; }
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   #mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
@@ -593,7 +593,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.position.sub(center);
       root.scale.setScalar(4.2/Math.max(size.x,size.y,size.z));
       root.position.y+=1.0;
-      root.position.x-=0.6;
+      root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.6;
       root.traverse(function(child){
         if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true});
       });
