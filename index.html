@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v103-vector4-syntaxfix -->
+<!-- build: v104-meshscale -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -591,9 +591,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var center = box.getCenter(new THREE.Vector3());
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
-      root.scale.setScalar(4.2/Math.max(size.x,size.y,size.z));
+      root.scale.setScalar(3.15/Math.max(size.x,size.y,size.z));
       root.position.y+=1.0;
-      root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.6;
+      root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.3;
       root.traverse(function(child){
         if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true});
       });
