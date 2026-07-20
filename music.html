@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v107-igicon-days93ghost -->
+<!-- build: v109-layered-tdcolors -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -60,7 +60,7 @@
 
   /* hero */
   .hero{
-    position:relative; z-index:5;
+    position:relative; z-index:20;
     padding: 52px 28px 20px;
     min-height:54vh; display:flex; flex-direction:row;
     align-items:flex-start; justify-content:space-between;
@@ -84,7 +84,7 @@
     .hero{ padding:80px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
     .hero-title{ margin-top:18vw; margin-right:0; align-self:flex-end; }
   }
-  .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .field{ position:fixed; inset:0; z-index:15; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
 
   .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 5s ease; }
@@ -119,7 +119,6 @@
   }
   .alpha-wrap video{
     width: 53vw;
-    background: transparent;
     display: block;
   }
   @media (max-width:720px){
@@ -190,7 +189,7 @@
 
   <div class="alpha-wrap">
     <video autoplay loop muted playsinline>
-      <source src="https://daysof93-cdn.b-cdn.net/Original%20Jitter%20no%20BG.webm" type="video/webm">
+      <source src="https://daysof93-cdn.b-cdn.net/TD%20COLORS%20h264.mp4" type="video/mp4">
     </video>
   </div>
 
