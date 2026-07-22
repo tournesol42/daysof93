@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v129-pagescroll-about -->
+<!-- build: v130-hero-title-audiostop -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -125,13 +125,15 @@
 
   /* ---- days of 93 overlay ---- */
   .bio-title{
-    font-family:'Jost', sans-serif; font-size:3rem; font-weight:500;
-    text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:clamp(4.5rem, 13vw, 16rem);
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:-0.02em; line-height:0.88;
     color:#000; margin-bottom:18px;
     text-shadow: 0 0 18px #fff, 0 0 36px #fff, 0 0 54px rgba(255,255,255,0.7);
   }
   .bio-text{
-    font-family:'Jost', sans-serif; font-size:4rem; font-weight:400;
+    font-family:'Jost', sans-serif; font-size:4rem; font-weight:500;
     letter-spacing:0.02em; line-height:1.2;
     color:#000; margin-bottom:32px;
     text-shadow: 0 0 22px #fff, 0 0 44px #fff, 0 0 66px rgba(255,255,255,0.6);
@@ -159,7 +161,7 @@
   }
   /* about overlay-inner: normal flow so it scrolls with the page */
   #about .overlay-inner{
-    position:relative; margin:14vh 0 15vh 20px;
+    position:relative; margin:52px 0 15vh 28px;
     max-width:520px; z-index:1;
   }
   .about-field{
@@ -180,7 +182,8 @@
   .fg-strip-1{ top:3vh;  opacity:0.24; }
   .fg-strip-2{ top:26vh; opacity:0.22; }
   .fg-strip-3{ top:52vh; opacity:0.14; }
-  .fg-strip-4{ top:74vh; opacity:0.10; }
+  .fg-strip-4{ top:74vh; opacity:0.07; width:140vw; }
+  .fg-strip-4 img{ width:70vw; }
   .fg-strip-5{ top:0; left:auto; right:0; width:38%; opacity:0.13; }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
@@ -244,7 +247,7 @@
       <img src="/Fontgraphics_5.png?v=1" alt=""><img src="/Fontgraphics_5.png?v=1" alt="">
     </div>
     <div class="overlay-inner">
-      <p class="bio-title">Days of 93</p>
+      <p class="bio-title">DAYS<br>OF 93.</p>
       <p class="bio-text">Authoring. Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source.</p>
       <ul class="client-list client-list-small">
         <li>Royal Danish Theatre</li>
@@ -491,6 +494,14 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   }
 
   document.addEventListener('click', initAudio);
+
+  /* d93: pause audio when leaving page / backgrounding on iOS */
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && audioEl) audioEl.pause();
+  });
+  window.addEventListener('pagehide', function(){
+    if(audioEl){ audioEl.pause(); audioEl.src=''; }
+  });
   /* ---- END AUDIO ---- */
 
   window.addEventListener('mousemove', function(e){
@@ -818,8 +829,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var strips = [
     { sel:'.fg-strip-1', axis:'x', dir:1,  spd:0.009, lfo:true,  f:[0.00019,0.00043,0.00091], p:[0.7,3.1,5.4] },
     { sel:'.fg-strip-2', axis:'x', dir:-1, spd:0.006, lfo:false },
-    { sel:'.fg-strip-3', axis:'x', dir:1,  spd:0.013, lfo:true,  f:[0.00025,0.00058,0.00079], p:[4.2,1.8,2.6] },
-    { sel:'.fg-strip-4', axis:'x', dir:-1, spd:0.004, lfo:true,  f:[0.00013,0.00067,0.00108], p:[2.9,5.5,0.3] },
+    { sel:'.fg-strip-3', axis:'x', dir:1,  spd:0.003, lfo:true,  f:[0.00025,0.00058,0.00079], p:[4.2,1.8,2.6] },
+    { sel:'.fg-strip-4', axis:'x', dir:-1, spd:0.004, lfo:true,  scale:0.7, f:[0.00013,0.00067,0.00108], p:[2.9,5.5,0.3] },
     { sel:'.fg-strip-5', axis:'y', dir:1,  spd:0.007, lfo:false }
   ];
   strips.forEach(function(s){ s.el=document.querySelector(s.sel); s.pos=0; });
@@ -842,7 +853,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
         var raw = Math.sin(ts*s.f[0]+s.p[0])*0.5
                 + Math.sin(ts*s.f[1]+s.p[1])*0.33
                 + Math.sin(ts*s.f[2]+s.p[2])*0.17;
-        s.el.style.opacity = (0.15 + (raw+1)*0.5*0.85).toFixed(3);
+        s.el.style.opacity = ((0.15 + (raw+1)*0.5*0.85) * (s.scale||1)).toFixed(3);
       }
     });
     requestAnimationFrame(tick);
