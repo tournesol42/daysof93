@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v127-revert-bold-dims -->
+<!-- build: v128-grid-scroll-rightstrip -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -152,6 +152,10 @@
   .overlay-inner{
     position:absolute; top:14vh; left:20px; right:20px;
     max-width:520px; z-index:1;
+    max-height:78vh; overflow-y:auto;
+  }
+  .about-field{
+    position:absolute; inset:0; z-index:0; pointer-events:none;
   }
   .fg-strip{
     position:absolute; left:0;
@@ -169,7 +173,7 @@
   .fg-strip-2{ top:26vh; opacity:0.22; }
   .fg-strip-3{ top:52vh; opacity:0.14; }
   .fg-strip-4{ top:74vh; opacity:0.10; }
-  .fg-strip-5{ top:0;    opacity:0.13; }
+  .fg-strip-5{ top:0; left:auto; right:0; width:38%; opacity:0.13; }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
     color:#000; opacity:0.55; margin-bottom:22px;
@@ -215,6 +219,7 @@
   </div>
 
   <div class="overlay" id="about">
+    <svg class="about-field" id="about-field" preserveAspectRatio="xMidYMid slice"></svg>
     <div class="fg-strip h fg-strip-1">
       <img src="/Fontgraphics_1.png?v=3" alt=""><img src="/Fontgraphics_1.png?v=3" alt="">
     </div>
@@ -303,8 +308,8 @@ const SEED = daySeed();
 // layout() removed — pieces live on music.html
 
 
-function drawField(){
-  const svg = document.getElementById('field');
+function drawField(targetId){
+  const svg = document.getElementById(targetId || 'field');
   const w = window.innerWidth, h = window.innerHeight;
   svg.setAttribute('viewBox', "0 0 "+w+" "+h);
   const camX = (seededRand(SEED+1)-0.5)*40;
@@ -365,7 +370,7 @@ function drawField(){
   svg.innerHTML = lines;
 }
 
-function build(){ drawField(); }
+function build(){ drawField(); drawField('about-field'); }
 
 build();
 
