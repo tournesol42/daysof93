@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v134-no-cutmove -->
+<!-- build: v135-contact-email -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -198,6 +198,13 @@
     font-size:11px; letter-spacing:0.06em; color:#000;
     opacity:0.5; text-decoration:none;
   }
+  .contact-email{
+    display:inline-block;
+    font-family:'Jost',sans-serif; font-size:1.1rem; font-weight:300;
+    letter-spacing:0.03em; color:#000; text-decoration:none;
+    opacity:0.85;
+  }
+  .contact-email:hover{ opacity:1; }
   /* ---- work overlay ---- */
   #work{ overflow-y:scroll; scrollbar-width:none; }
   #work::-webkit-scrollbar{ width:0; }
@@ -323,7 +330,9 @@
 
   <div class="overlay" id="clients">
     <div class="overlay-inner">
-      <div class="overlay-label">past clients</div>
+      <div class="overlay-label">contact</div>
+      <a href="mailto:inquiries@daysof93.com" class="contact-email">inquiries@daysof93.com</a>
+      <div class="overlay-label" style="margin-top:32px;">past clients</div>
       <ul class="client-list">
         <li>Royal Danish Theatre</li>
         <li>EMI Denmark</li>
