@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v111-bassreactive -->
+<!-- build: v112-noreactive -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -710,44 +710,9 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
 </audio>
 <script>
 (function(){
-  const audio  = document.getElementById('music-audio');
-  const video  = document.querySelector('.alpha-wrap video');
-  let ctx, analyser, bassEnvelope = 0;
+  const audio = document.getElementById('music-audio');
 
-  function setupAudio(){
-    if(ctx) return;
-    ctx      = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    const src = ctx.createMediaElementSource(audio);
-    src.connect(analyser);
-    analyser.connect(ctx.destination);
-    startLoop();
-  }
-
-  function startLoop(){
-    const data   = new Uint8Array(analyser.frequencyBinCount);
-    const binHz  = ctx.sampleRate / analyser.fftSize;
-    const bins   = Math.max(1, Math.floor(60 / binHz)); // 0–60 Hz bins
-    (function tick(){
-      requestAnimationFrame(tick);
-      analyser.getByteFrequencyData(data);
-      let sum = 0;
-      for(let i = 0; i < bins; i++) sum += data[i];
-      const raw = sum / (bins * 255);
-      // fast attack, slower decay
-      bassEnvelope += raw > bassEnvelope
-        ? (raw - bassEnvelope) * 0.75
-        : (raw - bassEnvelope) * 0.05;
-      if(video) video.style.filter = 'brightness(' + (1 + bassEnvelope * 4).toFixed(2) + ')';
-    })();
-  }
-
-  function tryPlay(){
-    setupAudio();
-    audio.play().catch(function(){});
-  }
-
+  function tryPlay(){ audio.play().catch(function(){}); }
   tryPlay();
   if(audio.paused){
     function onInteract(){
