@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v128-grid-scroll-rightstrip -->
+<!-- build: v129-pagescroll-about -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -148,17 +148,25 @@
     display:none; opacity:0; transition:opacity .3s ease;
     overflow:hidden;
   }
+  /* about overlay: page-style scroll, no scrollbar */
+  #about{ overflow-y:scroll; scrollbar-width:none; }
+  #about::-webkit-scrollbar{ width:0; }
   .overlay.open{ display:block; opacity:1; }
+  /* default overlay-inner (clients overlay) */
   .overlay-inner{
     position:absolute; top:14vh; left:20px; right:20px;
     max-width:520px; z-index:1;
-    max-height:78vh; overflow-y:auto;
+  }
+  /* about overlay-inner: normal flow so it scrolls with the page */
+  #about .overlay-inner{
+    position:relative; margin:14vh 0 15vh 20px;
+    max-width:520px; z-index:1;
   }
   .about-field{
-    position:absolute; inset:0; z-index:0; pointer-events:none;
+    position:fixed; inset:0; z-index:0; pointer-events:none;
   }
   .fg-strip{
-    position:absolute; left:0;
+    position:fixed; left:0;
     display:flex;
     pointer-events:none; z-index:0;
     mix-blend-mode:multiply;
