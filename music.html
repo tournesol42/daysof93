@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v109-layered-tdcolors -->
+<!-- build: v110-musicaudio -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -699,6 +699,26 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   };
   img.src=posterUrl;
 }
+</script>
+
+<audio id="music-audio" loop preload="auto">
+  <source src="/MUSIC_1_loop%20music_V1.mp3" type="audio/mpeg">
+</audio>
+<script>
+(function(){
+  const audio = document.getElementById('music-audio');
+  // Try immediate autoplay
+  audio.play().catch(function(){
+    // Fall back to first interaction
+    function startAudio(){
+      audio.play();
+      document.removeEventListener('click', startAudio);
+      document.removeEventListener('touchstart', startAudio);
+    }
+    document.addEventListener('click', startAudio);
+    document.addEventListener('touchstart', startAudio);
+  });
+})();
 </script>
 </body>
 </html>
