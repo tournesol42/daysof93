@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v112-mobilenav -->
+<!-- build: v114-fontgraphic-noopacity -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -148,7 +148,12 @@
   .overlay.open{ display:block; opacity:1; }
   .overlay-inner{
     position:absolute; top:14vh; left:20px; right:20px;
-    max-width:520px;
+    max-width:520px; z-index:1;
+  }
+  .overlay-graphic{
+    position:absolute; top:16vh; left:-10px;
+    width:80%; max-width:700px;
+    pointer-events:none; z-index:0;
   }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
@@ -195,6 +200,7 @@
   </div>
 
   <div class="overlay" id="about">
+    <img src="/Fontgraphics_1.png" class="overlay-graphic" alt="">
     <div class="overlay-inner">
       <p class="bio-title">Days of 93</p>
       <p class="bio-text">Authoring. Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source.</p>
