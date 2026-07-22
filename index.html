@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v116-graphic-2x -->
+<!-- build: v118-multiply-back -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -143,7 +143,7 @@
     position:fixed; inset:0; z-index:100;
     background:var(--field);
     display:none; opacity:0; transition:opacity .3s ease;
-    overflow-y:auto;
+    overflow:hidden;
   }
   .overlay.open{ display:block; opacity:1; }
   .overlay-inner{
@@ -155,6 +155,7 @@
     width:160%; max-width:1400px;
     pointer-events:none; z-index:0;
     opacity:0.5;
+    mix-blend-mode: multiply;
   }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
