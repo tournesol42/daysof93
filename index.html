@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v125-text-glow -->
+<!-- build: v126-red-overlay -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -125,21 +125,18 @@
 
   /* ---- days of 93 overlay ---- */
   .bio-title{
-    font-family:'Jost', sans-serif; font-size:3rem; font-weight:300;
+    font-family:'Jost', sans-serif; font-size:3rem; font-weight:500;
     text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
-    color:#000; margin-bottom:18px;
-    text-shadow: 0 0 18px #fff, 0 0 36px #fff, 0 0 54px rgba(255,255,255,0.7);
+    color:#0a0a0a; margin-bottom:18px;
   }
   .bio-text{
-    font-family:'Jost', sans-serif; font-size:4rem; font-weight:300;
+    font-family:'Jost', sans-serif; font-size:4rem; font-weight:400;
     letter-spacing:0.02em; line-height:1.2;
-    color:#000; margin-bottom:32px;
-    text-shadow: 0 0 22px #fff, 0 0 44px #fff, 0 0 66px rgba(255,255,255,0.6);
+    color:#0a0a0a; margin-bottom:32px;
   }
   .client-list-small li{
     font-size:11px; letter-spacing:0.08em; line-height:2.2;
-    color:#000; opacity:0.65;
-    text-shadow: 0 0 12px #fff, 0 0 24px #fff;
+    color:#fff; opacity:0.72;
   }
   /* ---- past clients overlay ---- */
   .overlay{
@@ -148,6 +145,8 @@
     display:none; opacity:0; transition:opacity .3s ease;
     overflow:hidden;
   }
+  /* days of 93 overlay — red bg */
+  #about{ background:#CC0605; }
   .overlay.open{ display:block; opacity:1; }
   .overlay-inner{
     position:absolute; top:14vh; left:20px; right:20px;
@@ -159,17 +158,18 @@
     pointer-events:none; z-index:0;
     mix-blend-mode:multiply;
     will-change:transform;
+    filter:grayscale(1) brightness(1.6);
   }
   .fg-strip.h{ flex-direction:row; width:200vw; }
   .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; }
   .fg-strip.v{ flex-direction:column; width:100%; left:0; top:0; }
   .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; }
   /* positions & base opacity — JS drives transform + lfo opacity */
-  .fg-strip-1{ top:3vh;  opacity:0.30; }
-  .fg-strip-2{ top:26vh; opacity:0.28; }
-  .fg-strip-3{ top:52vh; opacity:0.18; }
-  .fg-strip-4{ top:74vh; opacity:0.13; }
-  .fg-strip-5{ top:0;    opacity:0.16; }
+  .fg-strip-1{ top:3vh;  opacity:0.55; }
+  .fg-strip-2{ top:26vh; opacity:0.50; }
+  .fg-strip-3{ top:52vh; opacity:0.35; }
+  .fg-strip-4{ top:74vh; opacity:0.28; }
+  .fg-strip-5{ top:0;    opacity:0.30; }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
     color:#000; opacity:0.55; margin-bottom:22px;
@@ -185,6 +185,8 @@
     font-size:11px; letter-spacing:0.06em; color:#000;
     opacity:0.5; text-decoration:none;
   }
+  #about-close{ color:#fff; opacity:0.55; }
+  #about-close:hover{ opacity:1; }
   .overlay-close:hover{ opacity:0.85; }
 </style>
 </head>
