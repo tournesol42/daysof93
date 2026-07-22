@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v110-musicaudio -->
+<!-- build: v111-bassreactive -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -120,6 +120,7 @@
   .alpha-wrap video{
     width: 53vw;
     display: block;
+    mix-blend-mode: screen;
   }
   @media (max-width:720px){
     .alpha-wrap video{ width: 88vw; }
@@ -184,7 +185,10 @@
     <div class="hero-left">
       <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); margin-top:0; margin-right:0; color:var(--ink); opacity:0.07;">DAYS<br>OF 93.</div>
     </div>
-    <div class="hero-title">MUSIC</div>
+    <div style="margin-top:auto; margin-right:4vw; position:relative; display:inline-block;">
+      <div id="music-label" class="hero-title" style="margin:0; transition:opacity 1.2s ease;">MUSIC</div>
+      <a href="music2.html" id="music-arrow" class="hero-title" style="position:absolute; right:0; bottom:0; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&gt;</a>
+    </div>
   </div>
 
   <div class="alpha-wrap">
@@ -706,18 +710,62 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
 </audio>
 <script>
 (function(){
-  const audio = document.getElementById('music-audio');
-  // Try immediate autoplay
-  audio.play().catch(function(){
-    // Fall back to first interaction
-    function startAudio(){
-      audio.play();
-      document.removeEventListener('click', startAudio);
-      document.removeEventListener('touchstart', startAudio);
+  const audio  = document.getElementById('music-audio');
+  const video  = document.querySelector('.alpha-wrap video');
+  let ctx, analyser, bassEnvelope = 0;
+
+  function setupAudio(){
+    if(ctx) return;
+    ctx      = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    const src = ctx.createMediaElementSource(audio);
+    src.connect(analyser);
+    analyser.connect(ctx.destination);
+    startLoop();
+  }
+
+  function startLoop(){
+    const data   = new Uint8Array(analyser.frequencyBinCount);
+    const binHz  = ctx.sampleRate / analyser.fftSize;
+    const bins   = Math.max(1, Math.floor(60 / binHz)); // 0–60 Hz bins
+    (function tick(){
+      requestAnimationFrame(tick);
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for(let i = 0; i < bins; i++) sum += data[i];
+      const raw = sum / (bins * 255);
+      // fast attack, slower decay
+      bassEnvelope += raw > bassEnvelope
+        ? (raw - bassEnvelope) * 0.75
+        : (raw - bassEnvelope) * 0.05;
+      if(video) video.style.filter = 'brightness(' + (1 + bassEnvelope * 4).toFixed(2) + ')';
+    })();
+  }
+
+  function tryPlay(){
+    setupAudio();
+    audio.play().catch(function(){});
+  }
+
+  tryPlay();
+  if(audio.paused){
+    function onInteract(){
+      tryPlay();
+      document.removeEventListener('click', onInteract);
+      document.removeEventListener('touchstart', onInteract);
     }
-    document.addEventListener('click', startAudio);
-    document.addEventListener('touchstart', startAudio);
-  });
+    document.addEventListener('click', onInteract);
+    document.addEventListener('touchstart', onInteract);
+  }
+
+  // MUSIC fades → > appears
+  setTimeout(function(){
+    const label = document.getElementById('music-label');
+    const arrow = document.getElementById('music-arrow');
+    if(label) label.style.opacity = '0';
+    setTimeout(function(){ if(arrow) arrow.style.opacity = '1'; }, 1200);
+  }, 4000);
 })();
 </script>
 </body>
