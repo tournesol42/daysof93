@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v124-unified-raf -->
+<!-- build: v125-text-glow -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -128,15 +128,18 @@
     font-family:'Jost', sans-serif; font-size:3rem; font-weight:300;
     text-transform:uppercase; letter-spacing:0.08em; line-height:1.1;
     color:#000; margin-bottom:18px;
+    text-shadow: 0 0 18px #fff, 0 0 36px #fff, 0 0 54px rgba(255,255,255,0.7);
   }
   .bio-text{
     font-family:'Jost', sans-serif; font-size:4rem; font-weight:300;
     letter-spacing:0.02em; line-height:1.2;
     color:#000; margin-bottom:32px;
+    text-shadow: 0 0 22px #fff, 0 0 44px #fff, 0 0 66px rgba(255,255,255,0.6);
   }
   .client-list-small li{
     font-size:11px; letter-spacing:0.08em; line-height:2.2;
     color:#000; opacity:0.65;
+    text-shadow: 0 0 12px #fff, 0 0 24px #fff;
   }
   /* ---- past clients overlay ---- */
   .overlay{
@@ -162,11 +165,11 @@
   .fg-strip.v{ flex-direction:column; width:100%; left:0; top:0; }
   .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; }
   /* positions & base opacity — JS drives transform + lfo opacity */
-  .fg-strip-1{ top:3vh;  opacity:0.42; }
-  .fg-strip-2{ top:26vh; opacity:0.38; }
-  .fg-strip-3{ top:52vh; opacity:0.24; }
-  .fg-strip-4{ top:74vh; opacity:0.18; }
-  .fg-strip-5{ top:0;    opacity:0.22; }
+  .fg-strip-1{ top:3vh;  opacity:0.30; }
+  .fg-strip-2{ top:26vh; opacity:0.28; }
+  .fg-strip-3{ top:52vh; opacity:0.18; }
+  .fg-strip-4{ top:74vh; opacity:0.13; }
+  .fg-strip-5{ top:0;    opacity:0.16; }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
     color:#000; opacity:0.55; margin-bottom:22px;
