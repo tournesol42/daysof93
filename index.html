@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v130-hero-title-audiostop -->
+<!-- build: v131-work-login-video -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -182,8 +182,6 @@
   .fg-strip-1{ top:3vh;  opacity:0.24; }
   .fg-strip-2{ top:26vh; opacity:0.22; }
   .fg-strip-3{ top:52vh; opacity:0.14; }
-  .fg-strip-4{ top:74vh; opacity:0.07; width:140vw; }
-  .fg-strip-4 img{ width:70vw; }
   .fg-strip-5{ top:0; left:auto; right:0; width:38%; opacity:0.13; }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
@@ -200,7 +198,37 @@
     font-size:11px; letter-spacing:0.06em; color:#000;
     opacity:0.5; text-decoration:none;
   }
-  .overlay-close:hover{ opacity:0.85; }
+  /* ---- work overlay ---- */
+  #work{ overflow-y:scroll; scrollbar-width:none; }
+  #work::-webkit-scrollbar{ width:0; }
+  .work-login-inner{
+    position:absolute; top:50%; left:28px; transform:translateY(-50%);
+  }
+  .work-label{
+    font-family:'Jost',sans-serif; font-size:11px; letter-spacing:0.08em;
+    text-transform:lowercase; color:#000; opacity:0.55; margin-bottom:20px;
+  }
+  .work-pw-input{
+    display:block; font-family:'Jost',sans-serif; font-size:2rem; font-weight:300;
+    letter-spacing:0.05em; color:#000; background:none;
+    border:none; border-bottom:1px solid rgba(0,0,0,0.22);
+    outline:none; width:240px; padding-bottom:6px;
+  }
+  .work-pw-error{
+    font-family:'Jost',sans-serif; font-size:11px; letter-spacing:0.06em;
+    color:#000; opacity:0; margin-top:12px; transition:opacity .3s;
+  }
+  .work-pw-error.show{ opacity:0.45; }
+  .work-videos-inner{
+    position:relative; margin:52px 0 15vh 28px;
+  }
+  .work-video{
+    display:block; width:100%; max-width:calc(100vw - 56px);
+    height:auto; max-height:80vh; object-fit:contain;
+  }
+  .work-close-btn{
+    position:fixed; bottom:28px; left:28px;
+  }
 </style>
 </head>
 <body>
@@ -240,9 +268,6 @@
     <div class="fg-strip h fg-strip-3">
       <img src="/Fontgraphics_3.png?v=3" alt=""><img src="/Fontgraphics_3.png?v=3" alt="">
     </div>
-    <div class="fg-strip h fg-strip-4">
-      <img src="/Fontgraphics_4.png?v=3" alt=""><img src="/Fontgraphics_4.png?v=3" alt="">
-    </div>
     <div class="fg-strip v fg-strip-5">
       <img src="/Fontgraphics_5.png?v=1" alt=""><img src="/Fontgraphics_5.png?v=1" alt="">
     </div>
@@ -277,6 +302,23 @@
       </ul>
       <a href="#" class="overlay-close" id="about-close">close</a>
     </div>
+  </div>
+
+  <div class="overlay" id="work">
+    <svg class="about-field" id="work-field" preserveAspectRatio="xMidYMid slice"></svg>
+    <!-- login state -->
+    <div class="work-login-inner" id="work-login">
+      <p class="work-label">client access</p>
+      <input type="password" id="work-pw" class="work-pw-input" placeholder="password" autocomplete="off" spellcheck="false">
+      <p class="work-pw-error" id="work-pw-error">incorrect password</p>
+    </div>
+    <!-- video state -->
+    <div class="work-videos-inner" id="work-videos" style="display:none">
+      <video class="work-video" id="work-video-1"
+        src="https://daysof93-cdn.b-cdn.net/Trailer_Tommy_Gee_and_Toke_Odin-001.mp4"
+        controls preload="metadata" playsinline></video>
+    </div>
+    <a href="#" class="overlay-close work-close-btn" id="work-close">close</a>
   </div>
 
   <div class="overlay" id="clients">
@@ -381,7 +423,7 @@ function drawField(targetId){
   svg.innerHTML = lines;
 }
 
-function build(){ drawField(); drawField('about-field'); }
+function build(){ drawField(); drawField('about-field'); drawField('work-field'); }
 
 build();
 
@@ -406,6 +448,58 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
   if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+})();
+
+/* ---- work overlay ---- */
+(function(){
+  const overlay  = document.getElementById('work');
+  const loginEl  = document.getElementById('work-login');
+  const videosEl = document.getElementById('work-videos');
+  const pwInput  = document.getElementById('work-pw');
+  const pwError  = document.getElementById('work-pw-error');
+  const video1   = document.getElementById('work-video-1');
+  const PW       = 'sirius';
+
+  function showLogin(){
+    loginEl.style.display  = '';
+    videosEl.style.display = 'none';
+    setTimeout(function(){ if(pwInput) pwInput.focus(); }, 80);
+  }
+  function showVideos(){
+    loginEl.style.display  = 'none';
+    videosEl.style.display = '';
+  }
+  function openWork(){
+    overlay.classList.add('open');
+    overlay.scrollTop = 0;
+    if(sessionStorage.getItem('d93-work-auth') === '1') showVideos();
+    else showLogin();
+  }
+  function closeWork(){
+    overlay.classList.remove('open');
+    if(video1) video1.pause();
+  }
+
+  const navWork = document.getElementById('nav-work');
+  if(navWork) navWork.addEventListener('click', e=>{ e.preventDefault(); openWork(); });
+
+  const closeBtn = document.getElementById('work-close');
+  if(closeBtn) closeBtn.addEventListener('click', e=>{ e.preventDefault(); closeWork(); });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape') closeWork();
+    if(e.key === 'Enter' && overlay.classList.contains('open') && loginEl.style.display !== 'none'){
+      const val = pwInput ? pwInput.value.trim().toLowerCase() : '';
+      if(val === PW){
+        sessionStorage.setItem('d93-work-auth','1');
+        pwError.classList.remove('show');
+        showVideos();
+      } else {
+        pwError.classList.add('show');
+        if(pwInput){ pwInput.value=''; pwInput.focus(); }
+      }
+    }
+  });
 })();
 
 
@@ -830,7 +924,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     { sel:'.fg-strip-1', axis:'x', dir:1,  spd:0.009, lfo:true,  f:[0.00019,0.00043,0.00091], p:[0.7,3.1,5.4] },
     { sel:'.fg-strip-2', axis:'x', dir:-1, spd:0.006, lfo:false },
     { sel:'.fg-strip-3', axis:'x', dir:1,  spd:0.003, lfo:true,  f:[0.00025,0.00058,0.00079], p:[4.2,1.8,2.6] },
-    { sel:'.fg-strip-4', axis:'x', dir:-1, spd:0.004, lfo:true,  scale:0.7, f:[0.00013,0.00067,0.00108], p:[2.9,5.5,0.3] },
     { sel:'.fg-strip-5', axis:'y', dir:1,  spd:0.007, lfo:false }
   ];
   strips.forEach(function(s){ s.el=document.querySelector(s.sel); s.pos=0; });
