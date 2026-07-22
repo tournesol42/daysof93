@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v131-work-login-video -->
+<!-- build: v132-cutmove-video -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -167,6 +167,14 @@
   .about-field{
     position:fixed; inset:0; z-index:0; pointer-events:none;
   }
+  .about-video{
+    position:fixed; top:0; left:0;
+    width:100vw; height:100vh;
+    object-fit:cover;
+    pointer-events:none; z-index:0;
+    mix-blend-mode:multiply;
+    opacity:0.55;
+  }
   .fg-strip{
     position:fixed; left:0;
     display:flex;
@@ -259,6 +267,9 @@
 
   <div class="overlay" id="about">
     <svg class="about-field" id="about-field" preserveAspectRatio="xMidYMid slice"></svg>
+    <video class="about-video" autoplay muted loop playsinline>
+      <source src="/cutmove_F4O24S.webm" type="video/webm">
+    </video>
     <div class="fg-strip h fg-strip-1">
       <img src="/Fontgraphics_1.png?v=3" alt=""><img src="/Fontgraphics_1.png?v=3" alt="">
     </div>
