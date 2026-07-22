@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v119-cachebust -->
+<!-- build: v120-drifting-fontgraphics -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -150,12 +150,48 @@
     position:absolute; top:14vh; left:20px; right:20px;
     max-width:520px; z-index:1;
   }
+  @keyframes drift-1{
+    0%  { transform:translateX(0px)   translateY(0px);   }
+    50% { transform:translateX(60px)  translateY(-20px); }
+    100%{ transform:translateX(0px)   translateY(0px);   }
+  }
+  @keyframes drift-2{
+    0%  { transform:translateX(0px)   translateY(0px);   }
+    50% { transform:translateX(-80px) translateY(30px);  }
+    100%{ transform:translateX(0px)   translateY(0px);   }
+  }
+  @keyframes drift-3{
+    0%  { transform:translateX(0px)   translateY(0px);   }
+    50% { transform:translateX(40px)  translateY(50px);  }
+    100%{ transform:translateX(0px)   translateY(0px);   }
+  }
+  @keyframes drift-4{
+    0%  { transform:translateX(0px)   translateY(0px);   }
+    50% { transform:translateX(-50px) translateY(-40px); }
+    100%{ transform:translateX(0px)   translateY(0px);   }
+  }
   .overlay-graphic{
-    position:absolute; top:16vh; left:-10px;
+    position:absolute;
     width:160%; max-width:1400px;
     pointer-events:none; z-index:0;
-    opacity:0.5;
-    mix-blend-mode: multiply;
+    mix-blend-mode:multiply;
+    will-change:transform;
+  }
+  .overlay-graphic-1{
+    top:10vh; left:-10px; opacity:0.45;
+    animation:drift-1 38s ease-in-out infinite;
+  }
+  .overlay-graphic-2{
+    top:18vh; left:-60px; opacity:0.35;
+    animation:drift-2 52s ease-in-out infinite;
+  }
+  .overlay-graphic-3{
+    top:26vh; left:5px; opacity:0.28;
+    animation:drift-3 29s ease-in-out infinite;
+  }
+  .overlay-graphic-4{
+    top:34vh; left:-30px; opacity:0.22;
+    animation:drift-4 63s ease-in-out infinite;
   }
   .overlay-label{
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
@@ -202,7 +238,10 @@
   </div>
 
   <div class="overlay" id="about">
-    <img src="/Fontgraphics_1.png?v=2" class="overlay-graphic" alt="">
+    <img src="/Fontgraphics_1.png?v=3" class="overlay-graphic overlay-graphic-1" alt="">
+    <img src="/Fontgraphics_2.png?v=3" class="overlay-graphic overlay-graphic-2" alt="">
+    <img src="/Fontgraphics_3.png?v=3" class="overlay-graphic overlay-graphic-3" alt="">
+    <img src="/Fontgraphics_4.png?v=3" class="overlay-graphic overlay-graphic-4" alt="">
     <div class="overlay-inner">
       <p class="bio-title">Days of 93</p>
       <p class="bio-text">Authoring. Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source.</p>
