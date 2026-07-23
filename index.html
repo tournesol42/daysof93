@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v141-half-barcode -->
+<!-- build: v142-collagestrips -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -167,6 +167,16 @@
   .about-field{
     position:fixed; inset:0; z-index:0; pointer-events:none;
   }
+  /* collage strips — behind red vstrips, sine-wave centered */
+  .cstrip{
+    position:fixed; top:0; pointer-events:none; z-index:0;
+    will-change:transform;
+  }
+  .cstrip img{ display:block; }
+  .cstrip-1{ left:calc(50% - 40px); opacity:0.65; }
+  .cstrip-1 img{ width:36px; height:auto; }
+  .cstrip-2{ left:calc(50% + 28px); opacity:0.55; }
+  .cstrip-2 img{ width:13px; height:auto; }
   /* vertical color strips */
   .vstrip{
     position:fixed; top:0; pointer-events:none; z-index:0;
@@ -284,6 +294,8 @@
   </div>
 
   <div class="overlay" id="about">
+    <div class="cstrip cstrip-1"><img src="/collagestrip_1.png" alt=""></div>
+    <div class="cstrip cstrip-2"><img src="/collagestrip_2.png" alt=""></div>
     <div class="vstrip vstrip-1"><img src="/ral_red_strip_1.png" alt=""><img src="/ral_red_strip_1.png" alt=""></div>
     <div class="vstrip vstrip-2"><img src="/ral_red_strip_2.png" alt=""><img src="/ral_red_strip_2.png" alt=""></div>
     <div class="vstrip vstrip-3"><img src="/ral_red_strip_3.png" alt=""><img src="/ral_red_strip_3.png" alt=""></div>
@@ -1012,6 +1024,33 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       if(!h) return;
       s.pos = (s.pos + s.spd * h * dt / 1000) % h;
       var ty = s.dir === -1 ? -s.pos : s.pos - h;
+      s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+/* d93: collage strips — sine-wave centered oscillation */
+(function(){
+  var cstrips = [
+    { sel:'.cstrip-1', freq:0.000035, dir:-1, phase:0          },
+    { sel:'.cstrip-2', freq:0.000025, dir:1,  phase:Math.PI    }
+  ];
+  cstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
+
+  function tick(ts){
+    cstrips.forEach(function(s){
+      if(!s.el) return;
+      var img = s.el.querySelector('img');
+      if(!img || !img.offsetHeight) return;
+      var h  = img.offsetHeight;
+      var vh = window.innerHeight;
+      var center = (vh - h) / 2;
+      var amp    = vh * 0.22;
+      var ty = center + Math.sin(ts * s.freq + s.phase) * amp * s.dir;
       s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
     });
     requestAnimationFrame(tick);
