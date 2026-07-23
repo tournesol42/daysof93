@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v135-contact-email -->
+<!-- build: v136-vstrips -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -167,6 +167,20 @@
   .about-field{
     position:fixed; inset:0; z-index:0; pointer-events:none;
   }
+  /* vertical color strips */
+  .vstrip{
+    position:fixed; top:0; pointer-events:none; z-index:0;
+    will-change:transform; overflow:visible;
+  }
+  .vstrip-inner{ width:100%; }
+  .vstrip-1{ left:calc(50% - 14px); width:4px; }
+  .vstrip-1 .vstrip-inner{ height:78vh; background:#CC0605; }
+  .vstrip-2{ left:calc(50% - 7px);  width:5px; }
+  .vstrip-2 .vstrip-inner{ height:65vh; background:#8B1A1A; }
+  .vstrip-3{ left:calc(50% + 2px);  width:3px; }
+  .vstrip-3 .vstrip-inner{ height:88vh; background:#CC0605; }
+  .vstrip-4{ left:calc(50% + 10px); width:5px; }
+  .vstrip-4 .vstrip-inner{ height:72vh; background:#111111; }
   .fg-strip{
     position:fixed; left:0;
     display:flex;
@@ -265,6 +279,10 @@
   </div>
 
   <div class="overlay" id="about">
+    <div class="vstrip vstrip-1"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
+    <div class="vstrip vstrip-2"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
+    <div class="vstrip vstrip-3"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
+    <div class="vstrip vstrip-4"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
     <svg class="about-field" id="about-field" preserveAspectRatio="xMidYMid slice"></svg>
     <div class="fg-strip h fg-strip-1">
       <img src="/Fontgraphics_1.png?v=3" alt=""><img src="/Fontgraphics_1.png?v=3" alt="">
@@ -957,6 +975,34 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
                 + Math.sin(ts*s.f[2]+s.p[2])*0.17;
         s.el.style.opacity = ((0.15 + (raw+1)*0.5*0.85) * (s.scale||1)).toFixed(3);
       }
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+/* d93: vertical color strips rAF */
+(function(){
+  var vstrips = [
+    { sel:'.vstrip-1', dir:-1, spd:0.004, pos:0.0  },
+    { sel:'.vstrip-2', dir:1,  spd:0.003, pos:0.45 },
+    { sel:'.vstrip-3', dir:-1, spd:0.005, pos:0.7  },
+    { sel:'.vstrip-4', dir:1,  spd:0.0025,pos:0.2  }
+  ];
+  vstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
+  var last = null;
+  function tick(ts){
+    var dt = last ? Math.min(ts - last, 50) : 16;
+    last = ts;
+    vstrips.forEach(function(s){
+      if(!s.el) return;
+      var inner = s.el.querySelector('.vstrip-inner');
+      var h = inner ? inner.offsetHeight : 600;
+      s.pos = (s.pos + s.spd * h * dt / 1000) % h;
+      var ty = s.dir === -1 ? -s.pos : s.pos - h;
+      s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
     });
     requestAnimationFrame(tick);
   }
