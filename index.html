@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v142-collagestrips -->
+<!-- build: v143-stagger-noglow -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -212,7 +212,11 @@
   .fg-strip-2{ top:26vh; opacity:0.22; }
   .fg-strip-3{ top:52vh; opacity:0.14; }
   .fg-strip-5{ top:0; left:auto; right:0; width:38%; opacity:0.13; }
-  .overlay-label{
+  @media(max-width:720px){
+    .bio-title{ text-shadow:none; }
+    .bio-text{ text-shadow:none; }
+    .client-list-small li{ text-shadow:none; }
+  }
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
     color:#000; opacity:0.55; margin-bottom:22px;
     font-variant-numeric:tabular-nums;
@@ -1005,12 +1009,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 /* d93: vertical color strips rAF */
 (function(){
   var vstrips = [
-    { sel:'.vstrip-1',     dir:-1,  spd:0.004,  pos:0 },
-    { sel:'.vstrip-2',     dir:1,   spd:0.003,  pos:0 },
-    { sel:'.vstrip-3',     dir:-1,  spd:0.0025, pos:0 },
-    { sel:'.vstrip-4',     dir:1,   spd:0.010,  pos:0 },
-    { sel:'.vstrip-5',     dir:-1,  spd:0.005,  pos:0 },
-    { sel:'.vstrip-black', dir:1,   spd:0.002,  pos:0 }
+    { sel:'.vstrip-1',     dir:-1,  spd:0.004,  pos:0, initFrac:0.0  },
+    { sel:'.vstrip-2',     dir:1,   spd:0.003,  pos:0, initFrac:0.55 },
+    { sel:'.vstrip-3',     dir:-1,  spd:0.0025, pos:0, initFrac:0.3  },
+    { sel:'.vstrip-4',     dir:1,   spd:0.010,  pos:0, initFrac:0.7  },
+    { sel:'.vstrip-5',     dir:-1,  spd:0.005,  pos:0, initFrac:0.15 },
+    { sel:'.vstrip-black', dir:1,   spd:0.002,  pos:0, initFrac:0.45 }
   ];
   vstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
   var last = null;
@@ -1022,6 +1026,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var child = s.el.querySelector('img') || s.el.querySelector('.vstrip-inner');
       var h = child ? child.offsetHeight : 600;
       if(!h) return;
+      if(!s.inited){ s.pos = (s.initFrac||0) * h; s.inited = true; }
       s.pos = (s.pos + s.spd * h * dt / 1000) % h;
       var ty = s.dir === -1 ? -s.pos : s.pos - h;
       s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
