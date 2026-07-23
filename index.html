@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v139-strip-tune -->
+<!-- build: v140-barcode-gaps -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -172,19 +172,19 @@
     position:fixed; top:0; pointer-events:none; z-index:0;
     will-change:transform;
   }
-  .vstrip img{ display:block; width:auto; }
-  .vstrip-1{ left:calc(50% - 30px); }
-  .vstrip-1 img{ height:58vh; }
-  .vstrip-2{ left:calc(50% - 18px); }
-  .vstrip-2 img{ height:72vh; }
-  .vstrip-3{ left:calc(50% - 14px); }
-  .vstrip-3 img{ height:46vh; }
-  .vstrip-4{ left:calc(50% + 6px);  }
-  .vstrip-4 img{ height:64vh; }
-  .vstrip-5{ left:calc(50% + 12px); }
-  .vstrip-5 img{ height:42vh; }
-  .vstrip-black{ left:calc(50% + 26px); width:5px; }
-  .vstrip-black .vstrip-inner{ height:72vh; background:#111111; width:5px; }
+  .vstrip img{ display:block; object-fit:cover; }
+  .vstrip-1{ left:calc(50% - 108px); }
+  .vstrip-1 img{ width:4px;  height:58vh; }
+  .vstrip-2{ left:calc(50% - 89px); }
+  .vstrip-2 img{ width:34px; height:45vh; }
+  .vstrip-3{ left:calc(50% - 40px); }
+  .vstrip-3 img{ width:17px; height:70vh; }
+  .vstrip-4{ left:calc(50% - 8px); }
+  .vstrip-4 img{ width:67px; height:55vh; }
+  .vstrip-5{ left:calc(50% + 74px); }
+  .vstrip-5 img{ width:14px; height:40vh; }
+  .vstrip-black{ left:calc(50% + 103px); width:5px; }
+  .vstrip-black .vstrip-inner{ height:65vh; background:#111111; width:5px; }
   .fg-strip{
     position:fixed; left:0;
     display:flex;
@@ -993,10 +993,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 (function(){
   var vstrips = [
     { sel:'.vstrip-1',     dir:-1,  spd:0.004,  pos:0.0  },
-    { sel:'.vstrip-2',     dir:1,   spd:0.010,  pos:0.45 },
-    { sel:'.vstrip-3',     dir:-1,  spd:0.003,  pos:0.7  },
-    { sel:'.vstrip-4',     dir:1,   spd:0.005,  pos:0.2  },
-    { sel:'.vstrip-5',     dir:-1,  spd:0.0025, pos:0.55 },
+    { sel:'.vstrip-2',     dir:1,   spd:0.003,  pos:0.45 },
+    { sel:'.vstrip-3',     dir:-1,  spd:0.0025, pos:0.7  },
+    { sel:'.vstrip-4',     dir:1,   spd:0.010,  pos:0.2  },
+    { sel:'.vstrip-5',     dir:-1,  spd:0.005,  pos:0.55 },
     { sel:'.vstrip-black', dir:1,   spd:0.002,  pos:0.3  }
   ];
   vstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
