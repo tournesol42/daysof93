@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v136-vstrips -->
+<!-- build: v137-img-strips -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -170,17 +170,16 @@
   /* vertical color strips */
   .vstrip{
     position:fixed; top:0; pointer-events:none; z-index:0;
-    will-change:transform; overflow:visible;
+    will-change:transform;
   }
-  .vstrip-inner{ width:100%; }
-  .vstrip-1{ left:calc(50% - 14px); width:4px; }
-  .vstrip-1 .vstrip-inner{ height:78vh; background:#CC0605; }
-  .vstrip-2{ left:calc(50% - 7px);  width:5px; }
-  .vstrip-2 .vstrip-inner{ height:65vh; background:#8B1A1A; }
-  .vstrip-3{ left:calc(50% + 2px);  width:3px; }
-  .vstrip-3 .vstrip-inner{ height:88vh; background:#CC0605; }
-  .vstrip-4{ left:calc(50% + 10px); width:5px; }
-  .vstrip-4 .vstrip-inner{ height:72vh; background:#111111; }
+  .vstrip img{ display:block; }
+  .vstrip-1{ left:calc(50% - 12px); }
+  .vstrip-2{ left:calc(50% - 6px);  }
+  .vstrip-3{ left:calc(50% + 0px);  }
+  .vstrip-4{ left:calc(50% + 5px);  }
+  .vstrip-5{ left:calc(50% + 10px); }
+  .vstrip-black{ left:calc(50% + 16px); width:5px; }
+  .vstrip-black .vstrip-inner{ height:72vh; background:#111111; width:5px; }
   .fg-strip{
     position:fixed; left:0;
     display:flex;
@@ -279,10 +278,12 @@
   </div>
 
   <div class="overlay" id="about">
-    <div class="vstrip vstrip-1"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
-    <div class="vstrip vstrip-2"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
-    <div class="vstrip vstrip-3"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
-    <div class="vstrip vstrip-4"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
+    <div class="vstrip vstrip-1"><img src="/ral_red_strip_1.png" alt=""><img src="/ral_red_strip_1.png" alt=""></div>
+    <div class="vstrip vstrip-2"><img src="/ral_red_strip_2.png" alt=""><img src="/ral_red_strip_2.png" alt=""></div>
+    <div class="vstrip vstrip-3"><img src="/ral_red_strip_3.png" alt=""><img src="/ral_red_strip_3.png" alt=""></div>
+    <div class="vstrip vstrip-4"><img src="/ral_red_strip_4.png" alt=""><img src="/ral_red_strip_4.png" alt=""></div>
+    <div class="vstrip vstrip-5"><img src="/ral_red_strip_5.png" alt=""><img src="/ral_red_strip_5.png" alt=""></div>
+    <div class="vstrip vstrip-black"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
     <svg class="about-field" id="about-field" preserveAspectRatio="xMidYMid slice"></svg>
     <div class="fg-strip h fg-strip-1">
       <img src="/Fontgraphics_1.png?v=3" alt=""><img src="/Fontgraphics_1.png?v=3" alt="">
@@ -986,10 +987,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 /* d93: vertical color strips rAF */
 (function(){
   var vstrips = [
-    { sel:'.vstrip-1', dir:-1, spd:0.004, pos:0.0  },
-    { sel:'.vstrip-2', dir:1,  spd:0.003, pos:0.45 },
-    { sel:'.vstrip-3', dir:-1, spd:0.005, pos:0.7  },
-    { sel:'.vstrip-4', dir:1,  spd:0.0025,pos:0.2  }
+    { sel:'.vstrip-1',     dir:-1,  spd:0.004,  pos:0.0  },
+    { sel:'.vstrip-2',     dir:1,   spd:0.003,  pos:0.45 },
+    { sel:'.vstrip-3',     dir:-1,  spd:0.005,  pos:0.7  },
+    { sel:'.vstrip-4',     dir:1,   spd:0.0035, pos:0.2  },
+    { sel:'.vstrip-5',     dir:-1,  spd:0.0025, pos:0.55 },
+    { sel:'.vstrip-black', dir:1,   spd:0.002,  pos:0.3  }
   ];
   vstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
   var last = null;
@@ -998,8 +1001,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     last = ts;
     vstrips.forEach(function(s){
       if(!s.el) return;
-      var inner = s.el.querySelector('.vstrip-inner');
-      var h = inner ? inner.offsetHeight : 600;
+      var child = s.el.querySelector('img') || s.el.querySelector('.vstrip-inner');
+      var h = child ? child.offsetHeight : 600;
+      if(!h) return;
       s.pos = (s.pos + s.spd * h * dt / 1000) % h;
       var ty = s.dir === -1 ? -s.pos : s.pos - h;
       s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
