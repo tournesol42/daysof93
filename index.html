@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v144-cstrip-tilt -->
+<!-- build: v145-skew-movement -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -1041,8 +1041,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 /* d93: collage strips — sine-wave centered oscillation */
 (function(){
   var cstrips = [
-    { sel:'.cstrip-1', freq:0.000035, dir:-1, phase:0,       rot:0  },
-    { sel:'.cstrip-2', freq:0.000025, dir:1,  phase:Math.PI, rot:3  }
+    { sel:'.cstrip-1', freq:0.000035, dir:-1, phase:0,       skew:0    },
+    { sel:'.cstrip-2', freq:0.000025, dir:1,  phase:Math.PI, skew:0.03 }
   ];
   cstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
 
@@ -1056,8 +1056,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var center = (vh - h) / 2;
       var amp    = vh * 0.22;
       var ty = center + Math.sin(ts * s.freq + s.phase) * amp * s.dir;
-      var rot = s.rot ? ' rotate(' + s.rot + 'deg)' : '';
-      s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)' + rot;
+      var tx = ty * (s.skew || 0);
+      s.el.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px)';
     });
     requestAnimationFrame(tick);
   }
