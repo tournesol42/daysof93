@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>days of 93 — past clients</title>
+<!-- build: v1-past-clients -->
+<script>console.log('d93: past-clients v1');</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300..800&family=Jost:wght@200;300;400;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --field: #000000;
+    --line:  rgba(255,255,255,0.12);
+    --axis-x: rgba(255,255,255,0.28);
+    --axis-y: rgba(255,255,255,0.28);
+    --ink:   #ffffff;
+    --hair:  1.2px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--field); min-height:100vh; }
+  body{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink);
+  }
+  header{
+    position: fixed; top:0; left:0; right:0; z-index:50;
+    padding: 20px 28px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .nav-logo{
+    font-family:'Jost', sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:0.5;
+  }
+  .nav-logo:hover{ opacity:1; }
+  nav{ display:flex; gap:28px; align-items:center; }
+  nav a{
+    font-family:'Jost', sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:0.5;
+  }
+  nav a:hover{ opacity:1; }
+  @media (max-width:720px){
+    header{ padding:16px 18px; }
+    nav{ gap:18px; }
+    nav a, .nav-logo{ font-size:10px; }
+  }
+
+  .page-inner{
+    position: relative; z-index:10;
+    padding: 22vh 28px 80px;
+    max-width: 600px;
+  }
+  @media (max-width:720px){
+    .page-inner{ padding: 18vh 18px 60px; }
+  }
+
+  .page-label{
+    font-family:'Jost', sans-serif;
+    font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
+    color:var(--ink); opacity:0.45; margin-bottom:32px;
+  }
+  .client-list{ list-style:none; }
+  .client-list li{
+    font-family:'Jost', sans-serif;
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-weight:300; letter-spacing:0.01em; line-height:2.1;
+    color:var(--ink); opacity:0.85;
+  }
+
+  .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+</style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="nav-logo">Days of 93</a>
+    <nav>
+      <a href="index.html">work</a>
+      <a href="music.html">music</a>
+      <a href="mailto:contact@daysof93.com">contact</a>
+    </nav>
+  </header>
+
+  <div class="page-inner">
+    <div class="page-label">past clients</div>
+    <ul class="client-list">
+      <li>Royal Danish Theatre</li>
+      <li>EMI Denmark</li>
+      <li>Sony Music UK</li>
+      <li>Universal Music Denmark</li>
+      <li>Warner Music US</li>
+      <li>Denmarks Radio / TV</li>
+      <li>TV2</li>
+      <li>Republique Theater</li>
+      <li>Mercedes-Benz Denmark</li>
+      <li>Profile Pictures</li>
+      <li>Bunim / Murray Productions</li>
+      <li>Get Lifted Film Co.</li>
+      <li>R&amp;S Records</li>
+      <li>King Street Sounds</li>
+      <li>Nordisk Film</li>
+      <li>Det Danske Filminstitut</li>
+      <li>Syco UK</li>
+      <li>Borgen DK</li>
+      <li>!K7 Records Germany</li>
+      <li>Betty Nansen Theater Denmark</li>
+      <li>Sony Japan</li>
+      <li>Åben Dans Danmark</li>
+      <li>Johnny's Entertainment Japan</li>
+      <li>E-Types Denmark</li>
+    </ul>
+  </div>
+
+  <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
+
+<script>
+function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
+function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
+const SEED = daySeed();
+
+function drawField(){
+  const svg = document.getElementById('field');
+  const w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox', "0 0 "+w+" "+h);
+  const camX = (seededRand(SEED+1)-0.5)*40;
+  const camTilt = (seededRand(SEED+2)-0.5)*0.02;
+  const vpX = w*0.5 + camX, vpY = h*0.62;
+  let lines = '';
+  const bands = 18;
+  for(let i=0;i<=bands;i++){
+    const t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=0.34*(1-t*0.65);
+    lines += '<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+op.toFixed(3)+'"/>';
+  }
+  const cols=16;
+  for(let i=0;i<=cols;i++){
+    const x=(i/cols)*w;
+    lines += '<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.18"/>';
+  }
+  const ay=Math.sin(camTilt);
+  lines += '<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="var(--axis-x)" stroke-width="var(--hair)" opacity="0.48"/>';
+  lines += '<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="var(--axis-y)" stroke-width="var(--hair)" opacity="0.42"/>';
+  svg.innerHTML = lines;
+}
+
+drawField();
+let rt;
+window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawField,150); });
+</script>
+</body>
+</html>
