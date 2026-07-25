@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v148-past-clients-page -->
+<!-- build: v149-music-pulse -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -269,6 +269,11 @@
   .work-close-btn{
     position:fixed; bottom:28px; left:28px;
   }
+  @keyframes d93pulse {
+    0%, 100% { opacity: 0.85; }
+    50%       { opacity: 0.25; }
+  }
+  .d93-pulse { animation: d93pulse 2.4s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -459,6 +464,12 @@ function drawField(targetId){
 function build(){ drawField(); drawField('about-field'); drawField('work-field'); }
 
 build();
+
+// pulse MUSIC link after 2s
+setTimeout(function(){
+  const el = document.querySelector('.hero-music');
+  if(el) el.classList.add('d93-pulse');
+}, 2000);
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });

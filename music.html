@@ -169,6 +169,12 @@
     opacity:0.5; text-decoration:none;
   }
   .overlay-close:hover{ opacity:0.85; }
+
+  @keyframes d93pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.32; }
+  }
+  .d93-pulse { animation: d93pulse 2.4s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -724,12 +730,20 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     document.addEventListener('touchstart', onInteract);
   }
 
-  // MUSIC fades → > appears
+  // pulse hint on MUSIC after 2s
+  setTimeout(function(){
+    const label = document.getElementById('music-label');
+    if(label) label.classList.add('d93-pulse');
+  }, 2000);
+
+  // MUSIC fades → > appears and pulses
   setTimeout(function(){
     const label = document.getElementById('music-label');
     const arrow = document.getElementById('music-arrow');
-    if(label) label.style.opacity = '0';
-    setTimeout(function(){ if(arrow) arrow.style.opacity = '1'; }, 1200);
+    if(label){ label.classList.remove('d93-pulse'); label.style.opacity = '0'; }
+    setTimeout(function(){
+      if(arrow){ arrow.style.opacity = '1'; arrow.classList.add('d93-pulse'); }
+    }, 1200);
   }, 4000);
 })();
 </script>
