@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v155-comfy-right -->
+<!-- build: v157-comfy-img-mask -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -286,6 +286,8 @@
   }
   .comfy-inner img{
     height:100vh; width:auto; display:block; flex-shrink:0;
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
+    mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
   }
   @keyframes comfyScroll{
     from { transform: translateY(-100vh); }
