@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v8-webm-v4 -->
+<!-- build: v12-days-overlay -->
 <script>console.log('d93: music2 v2-layout-fix');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,16 +74,16 @@
   .video-wrap{
     position: relative; z-index: 10;
     display: flex; justify-content: center; align-items: flex-start;
-    padding: 0 28px 80px;
+    padding-top: 20px; padding-bottom: 80px;
     margin-top: -38vh;
   }
   .video-wrap video{
-    width: 62vw;
+    width: 53vw;
     display: block;
   }
   @media (max-width:720px){
-    .video-wrap{ padding: 0 18px 60px; margin-top: -10vh; }
-    .video-wrap video{ width: 90vw; }
+    .video-wrap{ padding: 0 18px 60px; margin-top: -38vh; }
+    .video-wrap video{ width: 88vw; }
   }
 
   .stamp{
@@ -109,9 +109,10 @@
     <div style="margin-top:auto; margin-left:4vw; position:relative; display:inline-block;">
       <a href="music.html" class="hero-title" style="display:inline-block; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;" id="back-arrow">&lt;</a>
     </div>
-    <div style="margin-top:0; margin-right:4vw;">
-      <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07;">DAYS<br>OF 93.</div>
-    </div>
+  </div>
+
+  <div id="days-label" style="position:fixed; top:52px; right:28px; z-index:40; pointer-events:none;">
+    <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07; text-align:right;">DAYS<br>OF 93.</div>
   </div>
 
   <div class="video-wrap">

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v112-noreactive -->
+<!-- build: v115-arrow-fix -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -191,9 +191,8 @@
     <div class="hero-left">
       <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); margin-top:0; margin-right:0; color:var(--ink); opacity:0.07;">DAYS<br>OF 93.</div>
     </div>
-    <div style="margin-top:auto; margin-right:4vw; position:relative; display:inline-block;">
-      <div id="music-label" class="hero-title" style="margin:0; transition:opacity 1.2s ease;">MUSIC</div>
-      <a href="music2.html" id="music-arrow" class="hero-title" style="position:absolute; right:0; bottom:0; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&gt;</a>
+    <div style="margin-top:auto; align-self:flex-end; margin-right:4vw;">
+      <a href="music2.html" id="music-arrow" class="hero-title" style="display:block; margin:0; color:var(--ink); text-decoration:none;">&gt;</a>
     </div>
   </div>
 
@@ -207,32 +206,6 @@
     <div class="overlay-inner">
       <p class="bio-title">Days of 93</p>
       <p class="bio-text">Authoring. Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds from the source.</p>
-      <ul class="client-list client-list-small">
-        <li>Royal Danish Theatre</li>
-        <li>EMI Denmark</li>
-        <li>Sony Music UK</li>
-        <li>Universal Music Denmark</li>
-        <li>Warner Music US</li>
-        <li>Denmarks Radio / TV</li>
-        <li>TV2</li>
-        <li>Republique Theater</li>
-        <li>Mercedes-Benz Denmark</li>
-        <li>Profile Pictures</li>
-        <li>Bunim / Murray Productions</li>
-        <li>Get Lifted Film Co.</li>
-        <li>R&amp;S Records</li>
-        <li>King Street Sounds</li>
-        <li>Nordisk Film</li>
-        <li>Det Danske Filminstitut</li>
-        <li>Syco UK</li>
-        <li>Borgen DK</li>
-        <li>!K7 Records Germany</li>
-        <li>Betty Nansen Theater Denmark</li>
-        <li>Sony Japan</li>
-        <li>Åben Dans Danmark</li>
-        <li>Johnny's Entertainment Japan</li>
-        <li>E-Types Denmark</li>
-      </ul>
       <a href="#" class="overlay-close" id="about-close">close</a>
     </div>
   </div>
@@ -730,21 +703,11 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     document.addEventListener('touchstart', onInteract);
   }
 
-  // pulse hint on MUSIC after 2s
+  // pulse > arrow after 2s
   setTimeout(function(){
-    const label = document.getElementById('music-label');
-    if(label) label.classList.add('d93-pulse');
-  }, 2000);
-
-  // MUSIC fades → > appears and pulses
-  setTimeout(function(){
-    const label = document.getElementById('music-label');
     const arrow = document.getElementById('music-arrow');
-    if(label){ label.classList.remove('d93-pulse'); label.style.opacity = '0'; }
-    setTimeout(function(){
-      if(arrow){ arrow.style.opacity = '1'; arrow.classList.add('d93-pulse'); }
-    }, 1200);
-  }, 4000);
+    if(arrow) arrow.classList.add('d93-pulse');
+  }, 2000);
 })();
 </script>
 </body>
