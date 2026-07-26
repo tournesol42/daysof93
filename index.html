@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v154-comfy-strip -->
+<!-- build: v155-comfy-right -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -277,12 +277,12 @@
 
   /* ---- comfy image strip — behind everything in about overlay ---- */
   .comfy-strip{
-    position:fixed; inset:0; overflow:hidden;
+    position:fixed; top:0; bottom:0; left:48vw; right:0; overflow:hidden;
     pointer-events:none; opacity:0.4;
   }
   .comfy-inner{
     display:flex; flex-direction:column;
-    animation: comfyScroll 40s linear infinite;
+    animation: comfyScroll 60s linear infinite;
   }
   .comfy-inner img{
     height:100vh; width:auto; display:block; flex-shrink:0;
