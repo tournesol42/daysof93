@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v161-redblack-video -->
+<!-- build: v162-video-rotate -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -63,7 +63,7 @@
 
   /* hero */
   .hero{
-    position:relative; z-index:5;
+    position:relative; z-index:10;
     padding: 52px 28px 20px;
     min-height:54vh; display:flex; flex-direction:row;
     align-items:flex-start; justify-content:space-between;
@@ -101,8 +101,13 @@
   #redblack-video{
     position:fixed; z-index:1; pointer-events:none;
     left:50%; top:48%; transform:translate(-50%,-50%);
-    width:52vw; height:auto;
+    width:39vw; height:auto;
     opacity:0; transition:opacity 1.2s ease;
+    animation: rbRotate 22s linear infinite;
+  }
+  @keyframes rbRotate{
+    from { transform: translate(-50%,-50%) rotate(0deg); }
+    to   { transform: translate(-50%,-50%) rotate(360deg); }
   }
   #glitch-canvas{ position:fixed; inset:0; z-index:3; pointer-events:none; }
   .plane{ position:relative; z-index:10; width:100%; }
