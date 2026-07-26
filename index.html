@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v162-video-rotate -->
+<!-- build: v163-rb-anchor-cycle -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -513,11 +513,40 @@ setTimeout(function(){
   if(el) el.classList.add('d93-pulse');
 }, 2000);
 
-// redblack video — plays after 10s
-setTimeout(function(){
-  var v = document.getElementById('redblack-video');
-  if(v){ v.play().catch(function(){}); v.style.opacity='1'; }
-}, 10000);
+// redblack video — appears after 12s on first anchor hover, then cycles
+(function(){
+  var rbReady   = false;
+  var rbCycling = false;
+  var rbPrevHit = null;
+
+  setTimeout(function(){ rbReady = true; }, 12000);
+
+  function rbShow(){
+    var v = document.getElementById('redblack-video');
+    if(!v) return;
+    v.play().catch(function(){});
+    v.style.opacity = '1';
+    setTimeout(rbHide, 15000);
+  }
+
+  function rbHide(){
+    var v = document.getElementById('redblack-video');
+    if(!v) return;
+    v.style.opacity = '0';
+    var delay = 5000 + Math.random() * 5000; // 5–10s
+    setTimeout(rbShow, delay);
+  }
+
+  setInterval(function(){
+    if(!rbReady || rbCycling) return;
+    var hit = window._d93AnchorHit;
+    if(hit && !rbPrevHit){
+      rbCycling = true;
+      rbShow();
+    }
+    rbPrevHit = hit;
+  }, 50);
+})();
 
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
