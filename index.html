@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v158-comfy68-no-grid -->
+<!-- build: v159-nav-right-no-lines -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -296,6 +296,8 @@
   }
   .d93-pulse { animation: d93pulse 2.4s ease-in-out infinite; }
 
+  #about .fg-strip.h { display:none; }
+
   /* ---- comfy image strip — behind everything in about overlay ---- */
   .comfy-strip{
     position:fixed; top:0; bottom:0; left:48vw; right:0; overflow:hidden;
@@ -319,7 +321,6 @@
 <body>
 
   <header>
-    <a href="#" id="nav-days" class="nav-logo">Days of 93</a>
     <nav>
       <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" id="nav-ig" aria-label="Instagram" style="display:flex;align-items:center;opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
         <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -332,6 +333,7 @@
       <a href="#" id="nav-work">work</a>
       <a href="past-clients.html">past clients</a>
       <a href="#" id="nav-clients">contact</a>
+      <a href="#" id="nav-days" class="nav-logo">Days of 93</a>
     </nav>
   </header>
 
