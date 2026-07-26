@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v157-comfy-img-mask -->
+<!-- build: v158-comfy68-no-grid -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -166,6 +166,27 @@
   }
   .about-field{
     position:fixed; inset:0; z-index:0; pointer-events:none;
+    display:none;
+  }
+
+  /* ---- comfy68 image strip — narrow, right of red lines, upward ---- */
+  .comfy68-strip{
+    position:fixed; top:0; bottom:0;
+    left:calc(50% + 160px); width:14vw; overflow:hidden;
+    pointer-events:none; opacity:0.3;
+  }
+  .comfy68-inner{
+    display:flex; flex-direction:column;
+    animation: comfy68Scroll 90s linear infinite;
+  }
+  .comfy68-inner img{
+    width:100%; height:100vh; object-fit:cover;
+    display:block; flex-shrink:0;
+    filter:grayscale(1);
+  }
+  @keyframes comfy68Scroll{
+    from { transform: translateY(0); }
+    to   { transform: translateY(-100vh); }
   }
   /* collage strips — behind red vstrips, sine-wave centered */
   .cstrip{
@@ -327,6 +348,12 @@
       <div class="comfy-inner">
         <img src="/ComfyUI_00008_.png" alt="">
         <img src="/ComfyUI_00008_.png" alt="">
+      </div>
+    </div>
+    <div class="comfy68-strip">
+      <div class="comfy68-inner">
+        <img src="/ComfyUI_00068_.png" alt="">
+        <img src="/ComfyUI_00068_.png" alt="">
       </div>
     </div>
     <div class="cstrip cstrip-1"><img src="/collagestrip_1.png" alt=""></div>
