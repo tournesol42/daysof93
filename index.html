@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v151-about-black-bg -->
+<!-- build: v152-fg-invert -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -200,9 +200,9 @@
     will-change:transform;
   }
   .fg-strip.h{ flex-direction:row; width:200vw; }
-  .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; }
+  .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; filter:invert(1); }
   .fg-strip.v{ flex-direction:column; width:100%; left:0; top:0; }
-  .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; }
+  .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; filter:invert(1); }
   /* positions & base opacity — JS drives transform + lfo opacity */
   .fg-strip-1{ top:3vh;  opacity:0.24; }
   .fg-strip-2{ top:26vh; opacity:0.22; }
