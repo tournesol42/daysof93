@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v159-nav-right-no-lines -->
+<!-- build: v160-mesh-interact -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -40,7 +40,7 @@
   }
   header{
     position: fixed; top:0; left:0; right:0; z-index:50;
-    padding: 20px 28px; display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 28px; display:flex; align-items:center; justify-content:flex-end;
   }
   .nav-logo{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
@@ -738,6 +738,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     console.log('d93: spring ready');
   }
 
+  var rotDirTarget   = 1;
+  var rotDirCurrent  = 1;
+  var rotBoostTarget = 0;
+  var rotBoostCurrent= 0;
+  var hasHitRight    = false;
+
   function updateSpring(){
     if(!springReady||!mesh) return;
 
@@ -765,6 +771,21 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     } else if(activeA<0 && _prevActiveA>=0){
       window._d93AnchorHit = null;
     }
+    /* ---- rotation speed / direction trigger ---- */
+    if(activeA >= 0 && activeA !== _prevActiveA){
+      var isRight = (activeA === 1 || activeA === 3);
+      var isLeft  = (activeA === 0 || activeA === 2);
+      if(isRight){
+        rotBoostTarget = 0.010;
+        hasHitRight = true;
+      } else if(isLeft && hasHitRight){
+        rotDirTarget  *= -1;
+        rotBoostTarget = 0.008;
+        hasHitRight    = false;
+      }
+    }
+    /* ---- end rotation trigger ---- */
+
     _prevActiveA = activeA;
     /* ---- end anchor hit ---- */
 
@@ -843,7 +864,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
   (function animate(){
     requestAnimationFrame(animate);
-    if(mesh) mesh.rotation.y+=0.002;
+    if(mesh){
+      rotBoostCurrent += (rotBoostTarget  - rotBoostCurrent) * 0.12;
+      rotBoostTarget  *= 0.992;
+      rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
+      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent;
+    }
     updateSpring();
     renderer.render(scene,camera);
   })();
