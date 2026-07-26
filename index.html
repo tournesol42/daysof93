@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v153-revert-white-bg -->
+<!-- build: v154-comfy-strip -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -274,6 +274,23 @@
     50%       { opacity: 0.25; }
   }
   .d93-pulse { animation: d93pulse 2.4s ease-in-out infinite; }
+
+  /* ---- comfy image strip — behind everything in about overlay ---- */
+  .comfy-strip{
+    position:fixed; inset:0; overflow:hidden;
+    pointer-events:none; opacity:0.4;
+  }
+  .comfy-inner{
+    display:flex; flex-direction:column;
+    animation: comfyScroll 40s linear infinite;
+  }
+  .comfy-inner img{
+    height:100vh; width:auto; display:block; flex-shrink:0;
+  }
+  @keyframes comfyScroll{
+    from { transform: translateY(-100vh); }
+    to   { transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
@@ -304,6 +321,12 @@
   </div>
 
   <div class="overlay" id="about">
+    <div class="comfy-strip">
+      <div class="comfy-inner">
+        <img src="/ComfyUI_00008_.png" alt="">
+        <img src="/ComfyUI_00008_.png" alt="">
+      </div>
+    </div>
     <div class="cstrip cstrip-1"><img src="/collagestrip_1.png" alt=""></div>
     <div class="cstrip cstrip-2"><img src="/collagestrip_2.png" alt=""></div>
     <div class="vstrip vstrip-1"><img src="/ral_red_strip_1.png" alt=""><img src="/ral_red_strip_1.png" alt=""></div>
