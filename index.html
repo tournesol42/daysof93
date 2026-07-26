@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v152-fg-invert -->
+<!-- build: v153-revert-white-bg -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -129,16 +129,19 @@
     font-size:clamp(4.5rem, 13vw, 16rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
-    color:#fff; margin-bottom:18px;
+    color:#000; margin-bottom:18px;
+    text-shadow: 0 0 18px #fff, 0 0 36px #fff, 0 0 54px rgba(255,255,255,0.7);
   }
   .bio-text{
     font-family:'Jost', sans-serif; font-size:4rem; font-weight:500;
     letter-spacing:0.02em; line-height:1.2;
-    color:#fff; margin-bottom:32px;
+    color:#000; margin-bottom:32px;
+    text-shadow: 0 0 22px #fff, 0 0 44px #fff, 0 0 66px rgba(255,255,255,0.6);
   }
   .client-list-small li{
     font-size:11px; font-weight:400; letter-spacing:0.08em; line-height:2.2;
-    color:#fff; opacity:0.65;
+    color:#000; opacity:0.65;
+    text-shadow: 0 0 12px #fff, 0 0 24px #fff;
   }
   /* ---- past clients overlay ---- */
   .overlay{
@@ -147,7 +150,8 @@
     display:none; opacity:0; transition:opacity .3s ease;
     overflow:hidden;
   }
-  #about{ background:#000; overflow-y:scroll; scrollbar-width:none; }
+  /* about overlay: page-style scroll, no scrollbar */
+  #about{ overflow-y:scroll; scrollbar-width:none; }
   #about::-webkit-scrollbar{ width:0; }
   .overlay.open{ display:block; opacity:1; }
   /* default overlay-inner (clients overlay) */
@@ -200,9 +204,9 @@
     will-change:transform;
   }
   .fg-strip.h{ flex-direction:row; width:200vw; }
-  .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; filter:invert(1); }
+  .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; }
   .fg-strip.v{ flex-direction:column; width:100%; left:0; top:0; }
-  .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; filter:invert(1); }
+  .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; }
   /* positions & base opacity — JS drives transform + lfo opacity */
   .fg-strip-1{ top:3vh;  opacity:0.24; }
   .fg-strip-2{ top:26vh; opacity:0.22; }
@@ -227,7 +231,6 @@
     font-size:11px; letter-spacing:0.06em; color:#000;
     opacity:0.5; text-decoration:none;
   }
-  #about .overlay-close{ color:#fff; }
   .contact-email{
     display:inline-block;
     font-family:'Jost',sans-serif; font-size:1.1rem; font-weight:300;
