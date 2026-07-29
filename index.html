@@ -85,7 +85,7 @@
   }
   .hero-music{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size: clamp(5rem, 14vw, 20rem);
+    font-size: clamp(2.5rem, 7vw, 9rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
     color:#000; text-decoration:none; opacity:0.85;
@@ -892,7 +892,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
       root.scale.setScalar(3.15/Math.max(size.x,size.y,size.z));
-      root.position.y+=1.0;
+      root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.3;
       root.traverse(function(child){
         if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true});
