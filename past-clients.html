@@ -41,9 +41,10 @@
   nav a{
     font-family:'Jost', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:0.5;
+    text-transform:uppercase; color:var(--ink); text-decoration:none; opacity:1;
   }
   nav a:hover{ opacity:1; }
+  nav a.nav-active{ border-bottom:1.5px solid currentColor; padding-bottom:1px; opacity:1; }
   @media (max-width:720px){
     header{ padding:16px 18px; }
     nav{ gap:18px; }
@@ -78,11 +79,20 @@
 <body>
 
   <header>
-    <a href="index.html" class="nav-logo">Days of 93</a>
     <nav>
       <a href="index.html">work</a>
       <a href="music.html">music</a>
+      <a href="past-clients.html" class="nav-active">past clients</a>
       <a href="mailto:contact@daysof93.com">contact</a>
+      <a href="index.html">about</a>
+      <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" aria-label="Instagram" style="display:flex;align-items:center;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
+          <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
+          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="#000" stroke="white" stroke-width="2"/>
+          <circle cx="12" cy="12" r="4.5" fill="none" stroke="white" stroke-width="2"/>
+          <circle cx="17" cy="7" r="1.2" fill="white"/>
+        </svg>
+      </a>
     </nav>
   </header>
 

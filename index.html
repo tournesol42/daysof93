@@ -56,6 +56,7 @@
     text-transform:uppercase; color:#000; text-decoration:none; opacity:1;
   }
   nav a:hover{ opacity:1; }
+  nav a.nav-active{ border-bottom:1.5px solid currentColor; padding-bottom:1px; opacity:1; }
   @media (max-width:720px){
     header{ padding:16px 18px; }
     nav{ gap:18px; }
@@ -81,7 +82,7 @@
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size: clamp(0.7rem, 1.2vw, 1rem);
     font-weight:300; letter-spacing:0.28em;
-    text-transform:uppercase; color:#000; opacity:0.4;
+    text-transform:uppercase; color:#000; opacity:0.85;
     margin-top:28px;
   }
   .hero-music{
@@ -335,6 +336,11 @@
 
   <header>
     <nav>
+      <a href="#" id="nav-work">work</a>
+      <a href="music.html">music</a>
+      <a href="past-clients.html">past clients</a>
+      <a href="#" id="nav-clients">contact</a>
+      <a href="#" id="nav-days">about</a>
       <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" id="nav-ig" aria-label="Instagram" style="display:flex;align-items:center;opacity:1;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
         <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
           <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
@@ -343,10 +349,6 @@
           <circle cx="17" cy="7" r="1.2" fill="white"/>
         </svg>
       </a>
-      <a href="#" id="nav-work">work</a>
-      <a href="past-clients.html">past clients</a>
-      <a href="#" id="nav-clients">contact</a>
-      <a href="#" id="nav-days" class="nav-logo">About</a>
     </nav>
   </header>
 
