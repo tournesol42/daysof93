@@ -57,7 +57,7 @@
   nav a:hover{ opacity:1; }
   @media (max-width:720px){
     header{ padding:16px 18px; }
-    nav{ gap:18px; position:fixed; bottom:24px; right:18px; z-index:51; }
+    nav{ gap:18px; }
     nav a, .nav-logo{ font-size:10px; }
   }
 
@@ -898,7 +898,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.3;
       root.traverse(function(child){
-        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x888888, wireframe:true, opacity:0.55, transparent:true});
+        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.65, transparent:true});
       });
       scene.add(root);
       mesh=root;
