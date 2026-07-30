@@ -45,14 +45,14 @@
   .nav-logo{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:1;
   }
   .nav-logo:hover{ opacity:1; }
   nav{ display:flex; gap:28px; align-items:center; }
   nav a{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
     font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:#000; text-decoration:none; opacity:0.5;
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:1;
   }
   nav a:hover{ opacity:1; }
   @media (max-width:720px){
@@ -88,8 +88,9 @@
     font-size: clamp(4rem, 11.5vw, 14rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
-    color:#000; text-decoration:none; opacity:0.85;
+    color:#000; text-decoration:none; opacity:0;
     margin-top: auto; margin-right: 4vw;
+    transition: opacity 1.5s ease;
   }
   .hero-music:hover{ opacity:1; }
   @media (max-width:720px){
@@ -333,10 +334,10 @@
 
   <header>
     <nav>
-      <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" id="nav-ig" aria-label="Instagram" style="display:flex;align-items:center;opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
-        <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="currentColor"/>
-          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="currentColor" stroke="white" stroke-width="2"/>
+      <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" id="nav-ig" aria-label="Instagram" style="display:flex;align-items:center;opacity:1;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
+          <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
+          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="#000" stroke="white" stroke-width="2"/>
           <circle cx="12" cy="12" r="4.5" fill="none" stroke="white" stroke-width="2"/>
           <circle cx="17" cy="7" r="1.2" fill="white"/>
         </svg>
@@ -344,7 +345,7 @@
       <a href="#" id="nav-work">work</a>
       <a href="past-clients.html">past clients</a>
       <a href="#" id="nav-clients">contact</a>
-      <a href="#" id="nav-days" class="nav-logo">Days of 93</a>
+      <a href="#" id="nav-days" class="nav-logo">About</a>
     </nav>
   </header>
 
@@ -504,11 +505,13 @@ function build(){ drawField(); drawField('about-field'); drawField('work-field')
 
 build();
 
-// pulse MUSIC link after 2s
+// fade in MUSIC after 3s, then pulse
 setTimeout(function(){
   const el = document.querySelector('.hero-music');
-  if(el) el.classList.add('d93-pulse');
-}, 2000);
+  if(!el) return;
+  el.style.opacity = '0.85';
+  setTimeout(function(){ el.classList.add('d93-pulse'); }, 1500);
+}, 3000);
 
 // redblack video — appears after 12s on first anchor hover, then cycles
 (function(){
@@ -895,7 +898,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0.0 : 0.3;
       root.traverse(function(child){
-        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true});
+        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x888888, wireframe:true, opacity:0.55, transparent:true});
       });
       scene.add(root);
       mesh=root;
