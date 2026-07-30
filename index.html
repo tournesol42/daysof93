@@ -623,6 +623,32 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   });
 })();
 
+/* ---- back button: close overlay instead of leaving site ---- */
+(function(){
+  var _pushed = false;
+
+  function onOpen() {
+    if (!_pushed) { history.pushState({d93: 'overlay'}, ''); _pushed = true; }
+  }
+  function onClose() {
+    if (_pushed) { _pushed = false; history.back(); }
+  }
+
+  window.addEventListener('popstate', function() {
+    _pushed = false;
+    document.querySelectorAll('.overlay.open').forEach(function(el){ el.classList.remove('open'); });
+    var v = document.getElementById('work-video-1'); if(v) v.pause();
+  });
+
+  ['nav-days','nav-clients','nav-work'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('click', onOpen);
+  });
+  ['about-close','clients-close','work-close'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('click', onClose);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') onClose(); });
+})();
+
 
 </script>
 
