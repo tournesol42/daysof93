@@ -193,6 +193,20 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 
 // fade in back arrow
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
+
+// unmute video on first user interaction (browser autoplay requires muted start)
+(function(){
+  var vid = document.querySelector('.video-wrap video');
+  if(!vid) return;
+  function unmute(){
+    vid.muted = false;
+    vid.play().catch(function(){});
+    document.removeEventListener('click', unmute);
+    document.removeEventListener('touchstart', unmute);
+  }
+  document.addEventListener('click', unmute);
+  document.addEventListener('touchstart', unmute);
+})();
 </script>
 </body>
 </html>
