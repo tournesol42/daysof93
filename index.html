@@ -189,6 +189,22 @@
     position:fixed; inset:0; z-index:0; pointer-events:none;
     display:none;
   }
+  /* about overlay: video bg — decorative strips muted (display:none, not removed) */
+  #about{ background:#000; }
+  .about-bg-video{
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:cover; z-index:0; pointer-events:none;
+  }
+  #about .comfy-strip,
+  #about .comfy68-strip,
+  #about .cstrip,
+  #about .vstrip,
+  #about .fg-strip { display:none; }
+  #about-field{ display:block; z-index:1; }
+  #about .overlay-inner{ z-index:2; }
+  #about .bio-title,
+  #about .bio-text,
+  #about .overlay-close{ color:#fff; }
 
   /* ---- comfy68 image strip — narrow, right of red lines, upward ---- */
   .comfy68-strip{
@@ -370,6 +386,9 @@
   </div>
 
   <div class="overlay" id="about">
+    <video class="about-bg-video" autoplay loop muted playsinline>
+      <source src="https://daysof93-cdn.b-cdn.net/DAYSOF93_5.webm" type="video/webm">
+    </video>
     <header style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
       <nav style="display:flex;gap:28px;align-items:center;">
         <a href="#" id="about-nav-work" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:300;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">work</a>
