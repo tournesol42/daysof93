@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v166-pong-ball -->
+<!-- build: v167-clean -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -1221,76 +1221,5 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 
-<script>
-/* d93: pong-ball — red square bouncing around the viewport */
-(function(){
-  var SIZE = 28;
-  var sq = document.createElement('div');
-  sq.style.cssText = [
-    'position:fixed',
-    'width:' + SIZE + 'px',
-    'height:' + SIZE + 'px',
-    'background:#FF2D21',
-    'z-index:45',
-    'pointer-events:none',
-    'opacity:0',
-    'transition:opacity 0.8s ease',
-    'will-change:transform'
-  ].join(';');
-  document.body.appendChild(sq);
-
-  var W, H, x, y, vx, vy, running = false, raf = null;
-
-  function clampSpeed(s){ return Math.max(1.6, Math.min(4.2, s)); }
-
-  function bounce(){
-    var spd = clampSpeed(Math.sqrt(vx*vx + vy*vy) * (0.82 + Math.random() * 0.44));
-    var ang = Math.atan2(vy, vx);
-    vx = Math.cos(ang) * spd;
-    vy = Math.sin(ang) * spd;
-  }
-
-  function tick(){
-    if(!running) return;
-    raf = requestAnimationFrame(tick);
-    x += vx; y += vy;
-    var hit = false;
-    if(x <= 0)          { x = 0;        vx =  Math.abs(vx); hit = true; }
-    if(x + SIZE >= W)   { x = W - SIZE; vx = -Math.abs(vx); hit = true; }
-    if(y <= 0)          { y = 0;        vy =  Math.abs(vy); hit = true; }
-    if(y + SIZE >= H)   { y = H - SIZE; vy = -Math.abs(vy); hit = true; }
-    if(hit) bounce();
-    sq.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
-  }
-
-  function stop(){
-    running = false;
-    if(raf){ cancelAnimationFrame(raf); raf = null; }
-    sq.style.opacity = '0';
-    setTimeout(function(){ if(sq.parentNode) sq.parentNode.removeChild(sq); }, 800);
-  }
-
-  setTimeout(function(){
-    W = window.innerWidth; H = window.innerHeight;
-    x = W * 0.45; y = H * 0.38;
-    var ang = Math.PI * 0.22 + (Math.random() - 0.5) * 0.5;
-    vx = Math.cos(ang) * 2.4;
-    vy = Math.sin(ang) * 2.4;
-    sq.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
-    sq.style.opacity = '1';
-    running = true;
-    tick();
-  }, 4000);
-
-  window.addEventListener('resize', function(){ W = window.innerWidth; H = window.innerHeight; });
-
-  /* stop on any nav link or hero-music click */
-  document.querySelector('header').addEventListener('click', function(e){
-    if(e.target.closest('a')) stop();
-  }, true);
-  var heroMusic = document.querySelector('.hero-music');
-  if(heroMusic) heroMusic.addEventListener('click', stop, true);
-})();
-</script>
 </body>
 </html>
