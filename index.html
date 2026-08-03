@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v167-clean -->
+<!-- build: v168-red-triangle -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -965,6 +965,114 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     });
   }
 
+  /* ---- RED TRIANGLE FLASH ---- */
+  var redTriFlash = (function(){
+    var flashObj  = null;
+    var flashMat  = null;
+    var flashGeo  = null;
+    var srcMesh   = null;
+    var useTri    = false;
+    var active    = false;
+
+    function setup(root){
+      var idxMesh = null, anyMesh = null;
+      root.traverse(function(child){
+        if(!child.isMesh) return;
+        if(!anyMesh) anyMesh = child;
+        if(!idxMesh && child.geometry && child.geometry.index) idxMesh = child;
+      });
+
+      if(idxMesh){
+        console.log('d93: red-triangle — indexed mesh, tri count:', Math.floor(idxMesh.geometry.index.count/3));
+        srcMesh = idxMesh;
+        useTri  = true;
+        flashMat = new THREE.MeshBasicMaterial({color:0xFF2D21, transparent:true, opacity:0, side:THREE.DoubleSide});
+        flashGeo = new THREE.BufferGeometry();
+        flashGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+        flashObj = new THREE.Mesh(flashGeo, flashMat);
+      } else if(anyMesh){
+        console.log('d93: red-triangle — no index, line fallback, verts:', anyMesh.geometry.attributes.position.count);
+        srcMesh = anyMesh;
+        useTri  = false;
+        flashMat = new THREE.LineBasicMaterial({color:0xFF2D21, transparent:true, opacity:0});
+        flashGeo = new THREE.BufferGeometry();
+        flashGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3));
+        flashObj = new THREE.LineSegments(flashGeo, flashMat);
+      } else {
+        console.log('d93: red-triangle — no mesh found, skipping');
+        return;
+      }
+
+      flashObj.visible = false;
+      srcMesh.add(flashObj);
+      schedule();
+    }
+
+    function schedule(){
+      setTimeout(flash, 4000 + Math.random()*4000);
+    }
+
+    function flash(){
+      if(!srcMesh || !flashObj){ schedule(); return; }
+
+      var geo = srcMesh.geometry;
+      var pos = geo.attributes.position.array;
+      var fp  = flashGeo.attributes.position.array;
+
+      if(useTri){
+        var idx      = geo.index.array;
+        var triCount = Math.floor(idx.length/3);
+        var t        = Math.floor(Math.random()*triCount);
+        var i0=idx[t*3], i1=idx[t*3+1], i2=idx[t*3+2];
+        fp[0]=pos[i0*3]; fp[1]=pos[i0*3+1]; fp[2]=pos[i0*3+2];
+        fp[3]=pos[i1*3]; fp[4]=pos[i1*3+1]; fp[5]=pos[i1*3+2];
+        fp[6]=pos[i2*3]; fp[7]=pos[i2*3+1]; fp[8]=pos[i2*3+2];
+      } else {
+        var n=Math.floor(pos.length/3);
+        var a=Math.floor(Math.random()*n), b=Math.floor(Math.random()*n);
+        var c=Math.floor(Math.random()*n), d=Math.floor(Math.random()*n);
+        fp[0]=pos[a*3]; fp[1]=pos[a*3+1]; fp[2]=pos[a*3+2];
+        fp[3]=pos[b*3]; fp[4]=pos[b*3+1]; fp[5]=pos[b*3+2];
+        fp[6]=pos[c*3]; fp[7]=pos[c*3+1]; fp[8]=pos[c*3+2];
+        fp[9]=pos[d*3]; fp[10]=pos[d*3+1]; fp[11]=pos[d*3+2];
+      }
+      flashGeo.attributes.position.needsUpdate = true;
+
+      flashObj.visible = true;
+      active = true;
+
+      var FADE_IN  = 500;
+      var HOLD     = 1500 + Math.random()*500;
+      var FADE_OUT = 800;
+      var PEAK     = useTri ? 0.75 : 0.6;
+      var t0       = performance.now();
+
+      (function animFlash(now){
+        if(!active) return;
+        var e = now - t0, op;
+        if(e < FADE_IN){
+          op = PEAK*(e/FADE_IN);
+          requestAnimationFrame(animFlash);
+        } else if(e < FADE_IN+HOLD){
+          op = PEAK;
+          requestAnimationFrame(animFlash);
+        } else if(e < FADE_IN+HOLD+FADE_OUT){
+          op = PEAK*(1-(e-FADE_IN-HOLD)/FADE_OUT);
+          requestAnimationFrame(animFlash);
+        } else {
+          op = 0;
+          flashObj.visible = false;
+          active = false;
+          schedule();
+        }
+        flashMat.opacity = op;
+      })(performance.now());
+    }
+
+    return { setup: setup };
+  })();
+  /* ---- END RED TRIANGLE FLASH ---- */
+
   new THREE.GLTFLoader().load(
     '/Indexvector4.glb',
     function(gltf){
@@ -985,6 +1093,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       requestAnimationFrame(function(){
         scene.updateMatrixWorld(true);
         setupSpring(root);
+        redTriFlash.setup(root);
       });
     },
     null,
