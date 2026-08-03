@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v164-no-redblack -->
+<!-- build: v165-red-trail -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v101-mesh');</script>
 
@@ -105,11 +105,6 @@
   @media (max-width:720px){
     .hero{ padding:44px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
     .hero-music{ position:fixed; bottom:90px; right:18px; margin:0; }
-  }
-  .top-stripe{
-    position:fixed; top:0; left:0; right:0;
-    height:9vh; background:#FF2D21;
-    z-index:1; pointer-events:none;
   }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
   #mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
@@ -458,7 +453,6 @@
     </div>
   </div>
 
-  <div class="top-stripe"></div>
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
   <canvas id="mesh-canvas"></canvas>
   <canvas id="glitch-canvas"></canvas>
@@ -706,6 +700,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   camera.position.set(0,0,5);
 
   var mesh = null;
+  var trailObj = null;
+  var trailRotY = 0;
   var springReady = false;
   var meshDatas = [];
   var anchorLocal = [];
@@ -970,6 +966,32 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       requestAnimationFrame(function(){
         scene.updateMatrixWorld(true);
         setupSpring(root);
+
+        // build sparse red trail from subset of mesh vertices
+        var verts = [];
+        var rootInv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+        root.traverse(function(child){
+          if(!child.isMesh) return;
+          var pos = child.geometry.attributes.position;
+          var childToRoot = new THREE.Matrix4().copy(rootInv).multiply(child.matrixWorld);
+          var v = new THREE.Vector3();
+          for(var i = 0; i < pos.count; i += 8){
+            v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(childToRoot);
+            verts.push(v.x, v.y, v.z);
+          }
+        });
+        var trailGeo = new THREE.BufferGeometry();
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+        var trailMat = new THREE.PointsMaterial({
+          color: 0xFF2D21, size: 0.028,
+          transparent: true, opacity: 0.42,
+          sizeAttenuation: true
+        });
+        trailObj = new THREE.Points(trailGeo, trailMat);
+        trailObj.position.copy(root.position);
+        trailObj.scale.copy(root.scale);
+        trailRotY = root.rotation.y;
+        scene.add(trailObj);
       });
     },
     null,
@@ -983,6 +1005,11 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       rotBoostTarget  *= 0.992;
       rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
       mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent;
+    }
+    if(trailObj && mesh){
+      trailRotY += (mesh.rotation.y - trailRotY) * 0.03;
+      trailObj.rotation.y = trailRotY;
+      trailObj.rotation.x = mesh.rotation.x;
     }
     updateSpring();
     renderer.render(scene,camera);
