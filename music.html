@@ -127,7 +127,7 @@
     .alpha-wrap video{ width: 88vw; }
   }
   #play-btn{
-    display:none;
+    display:block;
     position:absolute; top:50%; left:50%;
     transform:translate(-50%,-50%);
     background:none; border:none; padding:0; margin:0;
@@ -137,7 +137,6 @@
     opacity:1; transition:opacity 0.35s ease;
   }
   #play-btn.gone{ opacity:0; pointer-events:none; }
-  @media(max-width:720px){ #play-btn{ display:block; } }
 
   /* ---- days of 93 overlay ---- */
   .bio-title{
