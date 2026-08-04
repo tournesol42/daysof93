@@ -91,6 +91,7 @@
     font-weight:300; letter-spacing:0.28em;
     text-transform:uppercase; color:#000; opacity:0.85;
     margin-top:28px;
+    transition: opacity 1.5s ease;
   }
   .hero-music{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
@@ -557,8 +558,11 @@ function build(){ drawField(); drawField('about-field'); drawField('work-field')
 
 build();
 
-// fade in bg-vector after 3s
-setTimeout(function(){ var v=document.getElementById('bg-vector'); if(v) v.style.opacity='1'; }, 3000);
+// fade in bg-vector + MUSIC, fade out hero-sub after 3s
+setTimeout(function(){
+  var v=document.getElementById('bg-vector'); if(v) v.style.opacity='1';
+  var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
+}, 3000);
 
 // fade in MUSIC after 3s, then pulse
 setTimeout(function(){
