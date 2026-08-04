@@ -389,7 +389,7 @@
 
   <div class="overlay" id="about">
     <video class="about-bg-video" autoplay loop muted playsinline>
-      <source src="https://daysof93-cdn.b-cdn.net/Daysof93_9.webm" type="video/webm">
+      <source src="https://daysof93-cdn.b-cdn.net/Orange%206.webm" type="video/webm">
     </video>
     <header style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
       <nav style="display:flex;gap:28px;align-items:center;">
@@ -1011,84 +1011,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 
-<script>
-(function(){
-  var orig = document.querySelector('.hero-title');
-  if(!orig) return;
-
-  var dup = document.createElement('div');
-  dup.innerHTML = 'DAYS<br>OF 93.';
-  dup.style.cssText = 'position:fixed;top:0;left:0;margin:0;padding:0;'
-    + 'font-family:Jost,"Helvetica Neue",sans-serif;'
-    + 'font-size:clamp(4.5rem,13vw,16rem);font-weight:700;'
-    + 'text-transform:uppercase;letter-spacing:-0.02em;line-height:0.88;'
-    + 'color:#FF6700;pointer-events:none;user-select:none;'
-    + 'will-change:transform;z-index:9;';
-  document.body.appendChild(dup);
-
-  var SPEED = 25; // px/s
-  var x, isReturnPass, running, lastT, origRect, dupW, vpW;
-  var firstAppeared = false, fadeStart = 0;
-  var FADE_DUR = 3000; // ms
-
-  function init(){
-    origRect = orig.getBoundingClientRect();
-    vpW = window.innerWidth;
-    dupW = dup.offsetWidth;
-    x = origRect.left;
-    isReturnPass = false;
-    dup.style.top = origRect.top + 'px';
-    dup.style.transform = 'translateX(' + x + 'px)';
-    dup.style.opacity = '0.25';
-    dup.style.zIndex = '9';
-  }
-
-  function frame(ts){
-    if(!running) return;
-    var dt = lastT ? Math.min((ts - lastT) / 1000, 0.1) : 0;
-    lastT = ts;
-
-    x += SPEED * dt;
-
-    if(x > vpW){
-      x = -dupW;
-      isReturnPass = !isReturnPass;
-    }
-
-    // Both true or both false → z-index above (11); otherwise below (9)
-    var isBeforeRight = x < origRect.right;
-    dup.style.zIndex = (isReturnPass === isBeforeRight) ? '11' : '9';
-    dup.style.transform = 'translateX(' + x + 'px)';
-
-    // First appearance: when outbound pass clears the right edge, start fade
-    if(!firstAppeared && !isReturnPass && !isBeforeRight){
-      firstAppeared = true;
-      fadeStart = ts;
-    }
-    if(firstAppeared && fadeStart){
-      var t = Math.min((ts - fadeStart) / FADE_DUR, 1);
-      dup.style.opacity = (0.25 + 0.75 * t).toFixed(3);
-      if(t >= 1) fadeStart = 0; // done
-    }
-
-    requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('resize', function(){
-    origRect = orig.getBoundingClientRect();
-    vpW = window.innerWidth;
-    dupW = dup.offsetWidth;
-    dup.style.top = origRect.top + 'px';
-  });
-
-  init();
-  setTimeout(function(){
-    running = true;
-    lastT = 0;
-    requestAnimationFrame(frame);
-  }, 2000);
-})();
-</script>
 
 <script>
 /* GLITCH SYSTEM — disabled, re-enable later
