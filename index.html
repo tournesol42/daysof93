@@ -1026,8 +1026,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     + 'will-change:transform;z-index:9;';
   document.body.appendChild(dup);
 
-  var SPEED = 35; // px/s
+  var SPEED = 25; // px/s
   var x, isReturnPass, running, lastT, origRect, dupW, vpW;
+  var firstAppeared = false, fadeStart = 0;
+  var FADE_DUR = 7000; // ms
 
   function init(){
     origRect = orig.getBoundingClientRect();
@@ -1037,6 +1039,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     isReturnPass = false;
     dup.style.top = origRect.top + 'px';
     dup.style.transform = 'translateX(' + x + 'px)';
+    dup.style.opacity = '0.15';
     dup.style.zIndex = '9';
   }
 
@@ -1056,6 +1059,17 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var isBeforeRight = x < origRect.right;
     dup.style.zIndex = (isReturnPass === isBeforeRight) ? '11' : '9';
     dup.style.transform = 'translateX(' + x + 'px)';
+
+    // First appearance: when outbound pass clears the right edge, start fade
+    if(!firstAppeared && !isReturnPass && !isBeforeRight){
+      firstAppeared = true;
+      fadeStart = ts;
+    }
+    if(firstAppeared && fadeStart){
+      var t = Math.min((ts - fadeStart) / FADE_DUR, 1);
+      dup.style.opacity = (0.15 + 0.85 * t).toFixed(3);
+      if(t >= 1) fadeStart = 0; // done
+    }
 
     requestAnimationFrame(frame);
   }
