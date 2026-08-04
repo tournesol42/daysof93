@@ -4,9 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v167-clean -->
-<meta name="build" content="v35-framefix">
-<script>console.log('days of 93 — build v101-mesh');</script>
+<!-- build: v168-anchor-flicker -->
+<meta name="build" content="v168-anchor-flicker">
+<script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
 <meta name="description" content="Film Composer Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream." />
 <meta name="keywords" content="film composer, organic electronic music, R&S Records, modular synthesizers, No AI, Copenhagen Denmark, Days of 93" />
@@ -1017,6 +1017,58 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 
+
+<script>
+/* ANCHOR FLICKER — organic opacity pulse on #bg-vector when mesh anchor fires */
+(function(){
+  var img = document.getElementById('bg-vector');
+  if(!img) return;
+
+  var lastHitIdx = -1;
+  var flickerRaf = null;
+
+  function flicker(){
+    if(flickerRaf) cancelAnimationFrame(flickerRaf);
+    img.style.transition = 'none';
+
+    var dur   = 140 + Math.random() * 160;   // 140–300 ms total
+    var dip   = 0.28 + Math.random() * 0.30; // dim to 28%–58%
+    var t0    = null;
+
+    function tick(ts){
+      if(!t0) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1);
+      var op;
+      if(p < 0.35){
+        // fast dive down
+        op = 1 - (1 - dip) * (p / 0.35);
+      } else {
+        // slower recover
+        op = dip + (1 - dip) * ((p - 0.35) / 0.65);
+      }
+      img.style.opacity = op.toFixed(4);
+      if(p < 1){
+        flickerRaf = requestAnimationFrame(tick);
+      } else {
+        img.style.opacity = '1';
+        img.style.transition = 'opacity 2s ease';
+        flickerRaf = null;
+      }
+    }
+    flickerRaf = requestAnimationFrame(tick);
+  }
+
+  (function poll(){
+    requestAnimationFrame(poll);
+    var hit = window._d93AnchorHit;
+    if(hit && hit.idx !== lastHitIdx){
+      lastHitIdx = hit.idx;
+      flicker();
+    }
+    if(!hit) lastHitIdx = -1;
+  })();
+})();
+</script>
 
 <script>
 /* GLITCH SYSTEM — disabled, re-enable later
