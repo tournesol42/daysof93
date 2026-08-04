@@ -127,7 +127,7 @@
     .alpha-wrap video{ width: 88vw; }
   }
   #play-btn{
-    display:block;
+    display:none;
     position:absolute; top:50%; left:50%;
     transform:translate(-50%,-50%);
     background:none; border:none; padding:0; margin:0;
@@ -725,7 +725,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
     if(playing) return;
     audio.play()
       .then(function(){ playing = true; if(btn) btn.classList.add('gone'); })
-      .catch(function(){});
+      .catch(function(){ if(btn) btn.style.display = 'block'; });
   }
 
   // Try autoplay — works on desktop and some Android browsers.

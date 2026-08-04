@@ -94,7 +94,7 @@
     position: relative; z-index:10;
   }
   #play-btn{
-    display:block;
+    display:none;
     position:absolute; top:50%; left:50%;
     transform:translate(-50%,-50%);
     background:none; border:none; padding:0; margin:0;
@@ -211,24 +211,30 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 // fade in back arrow
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
 
-// Video starts only when play button is pressed — no autoplay.
-// preload="auto" ensures it's buffered so playback is instant on tap.
+// Try unmuted autoplay — succeeds on Chrome/Firefox, fails on Safari/iOS.
+// Button stays hidden if autoplay works; appears only if blocked.
 (function(){
   var vid = document.querySelector('.video-wrap video');
   var btn = document.getElementById('play-btn');
-  if(!vid || !btn) return;
+  if(!vid) return;
 
-  btn.addEventListener('click', function(){
-    vid.muted = false;
-    vid.play()
-      .then(function(){ btn.classList.add('gone'); })
-      .catch(function(){
-        // Unmuted blocked — play muted as fallback
-        vid.muted = true;
-        vid.play().catch(function(){});
-        btn.classList.add('gone');
-      });
-  }, { once: true });
+  vid.muted = false;
+  vid.play()
+    .then(function(){ if(btn) btn.classList.add('gone'); })
+    .catch(function(){
+      vid.muted = true;
+      vid.play().catch(function(){});
+      if(btn) btn.style.display = 'block';
+    });
+
+  if(btn){
+    btn.addEventListener('click', function(){
+      vid.muted = false;
+      vid.play()
+        .then(function(){ btn.classList.add('gone'); })
+        .catch(function(){});
+    }, { once: true });
+  }
 })();
 </script>
 </body>
