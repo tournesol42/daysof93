@@ -219,7 +219,7 @@
   </div>
 
   <div class="alpha-wrap">
-    <video autoplay loop muted playsinline>
+    <video autoplay loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/TD%20COLORS%20h264.mp4" type="video/mp4">
     </video>
     <button id="play-btn" aria-label="Play">
@@ -732,9 +732,13 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   // If it succeeds, the play button fades out automatically.
   startAudio();
 
-  // Mobile play button: tap → audio starts with full sound immediately.
+  // Play button: start audio AND ensure the alpha video is playing.
+  // On slow connections the video may still be buffering — play() here
+  // gives it an explicit push inside the user-gesture context.
   if(btn){
     btn.addEventListener('click', function(){
+      var vid = document.querySelector('.alpha-wrap video');
+      if(vid && vid.paused) vid.play().catch(function(){});
       startAudio();
       btn.classList.add('gone');
     }, { once: true });

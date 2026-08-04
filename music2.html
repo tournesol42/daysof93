@@ -137,7 +137,7 @@
   </div>
 
   <div class="video-wrap">
-    <video autoplay loop muted playsinline preload="auto">
+    <video loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/BLACK%20AND%20RED_final_iphone.mov" type="video/mp4">
     </video>
     <button id="play-btn" aria-label="Play">
@@ -211,37 +211,24 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 // fade in back arrow
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
 
-// play video with audio — autoplay muted for visuals, play button for sound
+// Video starts only when play button is pressed — no autoplay.
+// preload="auto" ensures it's buffered so playback is instant on tap.
 (function(){
   var vid = document.querySelector('.video-wrap video');
   var btn = document.getElementById('play-btn');
-  if(!vid) return;
+  if(!vid || !btn) return;
 
-  function startWithAudio(){
+  btn.addEventListener('click', function(){
     vid.muted = false;
     vid.play()
-      .then(function(){ if(btn) btn.classList.add('gone'); })
-      .catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
-  }
-
-  // Try unmuted autoplay — succeeds on desktop, fails silently on iOS.
-  // On iOS the video falls back to muted autoplay (visuals only) and
-  // the play button stays visible for the user to tap.
-  vid.muted = false;
-  var p = vid.play();
-  if(p !== undefined){
-    p.then(function(){ if(btn) btn.classList.add('gone'); })
-     .catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
-  }
-
-  if(btn){
-    btn.addEventListener('click', function(){
-      vid.muted = false;
-      vid.play()
-        .then(function(){ btn.classList.add('gone'); })
-        .catch(function(){});
-    }, { once: true });
-  }
+      .then(function(){ btn.classList.add('gone'); })
+      .catch(function(){
+        // Unmuted blocked — play muted as fallback
+        vid.muted = true;
+        vid.play().catch(function(){});
+        btn.classList.add('gone');
+      });
+  }, { once: true });
 })();
 </script>
 </body>
