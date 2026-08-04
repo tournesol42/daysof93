@@ -93,14 +93,18 @@
     padding: 8px 28px 0;
     position: relative; z-index:10;
   }
-  #tap-hint{
-    position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
-    z-index:60; pointer-events:none;
-    font-family:'Jost', sans-serif; font-size:11px; letter-spacing:0.22em;
-    text-transform:uppercase; color:var(--ink); opacity:0;
-    transition:opacity 0.6s ease;
+  #play-btn{
+    display:none;
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:none; border:none; padding:0; margin:0;
+    cursor:pointer; z-index:25;
+    -webkit-tap-highlight-color:transparent;
+    width:72px; height:72px;
+    opacity:1; transition:opacity 0.35s ease;
   }
-  #tap-hint.show{ opacity:0.45; }
+  #play-btn.gone{ opacity:0; pointer-events:none; }
+  @media(max-width:720px){ #play-btn{ display:block; } }
 </style>
 </head>
 <body>
@@ -137,9 +141,13 @@
     <video autoplay loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/BLACK%20AND%20RED_final_iphone.mov" type="video/mp4">
     </video>
+    <button id="play-btn" aria-label="Play">
+      <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="30" fill="rgba(0,0,0,0.18)" stroke="white" stroke-width="1.5"/>
+        <polygon points="29,20 29,52 56,36" fill="white"/>
+      </svg>
+    </button>
   </div>
-
-  <div id="tap-hint">tap for sound</div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
 
@@ -204,40 +212,36 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 // fade in back arrow
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
 
-// play video with audio — try immediately, fall back to tap-to-unmute
+// play video with audio — autoplay muted for visuals, play button for sound
 (function(){
   var vid = document.querySelector('.video-wrap video');
+  var btn = document.getElementById('play-btn');
   if(!vid) return;
-  var hint = document.getElementById('tap-hint');
 
-  function unmute(){
+  function startWithAudio(){
     vid.muted = false;
-    vid.play().catch(function(){ vid.muted = true; });
-    if(hint) hint.classList.remove('show');
+    vid.play()
+      .then(function(){ if(btn) btn.classList.add('gone'); })
+      .catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
   }
 
-  function showHintAndWait(){
-    // Show "tap for sound" after video starts playing (muted)
-    vid.addEventListener('playing', function(){
-      if(vid.muted && hint) hint.classList.add('show');
-    }, { once: true });
-
-    document.addEventListener('touchstart', unmute, { once: true, passive: true, capture: true });
-    document.addEventListener('click',      unmute, { once: true, passive: true, capture: true });
-  }
-
-  // Try unmuted autoplay first
+  // Try unmuted autoplay — succeeds on desktop, fails silently on iOS.
+  // On iOS the video falls back to muted autoplay (visuals only) and
+  // the play button stays visible for the user to tap.
   vid.muted = false;
   var p = vid.play();
   if(p !== undefined){
-    p.catch(function(){
-      // Unmuted blocked — fall back to muted + tap-to-unmute
-      vid.muted = true;
-      vid.play().catch(function(){});
-      showHintAndWait();
-    });
-  } else {
-    if(vid.muted) showHintAndWait();
+    p.then(function(){ if(btn) btn.classList.add('gone'); })
+     .catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+  }
+
+  if(btn){
+    btn.addEventListener('click', function(){
+      vid.muted = false;
+      vid.play()
+        .then(function(){ btn.classList.add('gone'); })
+        .catch(function(){});
+    }, { once: true });
   }
 })();
 </script>

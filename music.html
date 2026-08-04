@@ -126,6 +126,18 @@
   @media (max-width:720px){
     .alpha-wrap video{ width: 88vw; }
   }
+  #play-btn{
+    display:none;
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:none; border:none; padding:0; margin:0;
+    cursor:pointer; z-index:25;
+    -webkit-tap-highlight-color:transparent;
+    width:72px; height:72px;
+    opacity:1; transition:opacity 0.35s ease;
+  }
+  #play-btn.gone{ opacity:0; pointer-events:none; }
+  @media(max-width:720px){ #play-btn{ display:block; } }
 
   /* ---- days of 93 overlay ---- */
   .bio-title{
@@ -211,6 +223,12 @@
     <video autoplay loop muted playsinline>
       <source src="https://daysof93-cdn.b-cdn.net/TD%20COLORS%20h264.mp4" type="video/mp4">
     </video>
+    <button id="play-btn" aria-label="Play">
+      <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="30" fill="rgba(0,0,0,0.18)" stroke="white" stroke-width="1.5"/>
+        <polygon points="29,20 29,52 56,36" fill="white"/>
+      </svg>
+    </button>
   </div>
 
   <div class="overlay" id="about">
@@ -701,23 +719,27 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
 <script>
 (function(){
   var audio = document.getElementById('music-audio');
+  var btn   = document.getElementById('play-btn');
   var playing = false;
 
-  function start(){
+  function startAudio(){
     if(playing) return;
     audio.play()
-      .then(function(){ playing = true; })
+      .then(function(){ playing = true; if(btn) btn.classList.add('gone'); })
       .catch(function(){});
   }
 
-  // Try autoplay on load
-  start();
+  // Try autoplay — works on desktop and some Android browsers.
+  // If it succeeds, the play button fades out automatically.
+  startAudio();
 
-  // touchstart fires before link navigation — so even tapping the arrow
-  // unlocks audio before the page changes. Both listeners use once:true
-  // so they self-remove. click covers desktop.
-  document.addEventListener('touchstart', start, { once: true, passive: true, capture: true });
-  document.addEventListener('click',      start, { once: true, passive: true, capture: true });
+  // Mobile play button: tap → audio starts with full sound immediately.
+  if(btn){
+    btn.addEventListener('click', function(){
+      startAudio();
+      btn.classList.add('gone');
+    }, { once: true });
+  }
 
   setTimeout(function(){
     var arrow = document.getElementById('music-arrow');
