@@ -126,7 +126,8 @@
   </div>
 
   <div class="video-wrap">
-    <video autoplay loop muted playsinline>
+    <video autoplay loop muted playsinline preload="auto">
+      <source src="https://daysof93-cdn.b-cdn.net/BlackAndRedFINAL.mp4" type="video/mp4">
       <source src="https://daysof93-cdn.b-cdn.net/BlackAndRedFINAL.webm" type="video/webm">
     </video>
   </div>
@@ -199,25 +200,30 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
   var vid = document.querySelector('.video-wrap video');
   if(!vid) return;
 
-  function tryPlayWithAudio(){
-    vid.muted = false;
-    vid.play().catch(function(){
-      vid.muted = true;
-      vid.play().catch(function(){});
-    });
-  }
-
-  tryPlayWithAudio();
-
-  if(vid.muted){
+  function addUnmuteListener(){
     function onInteract(){
       vid.muted = false;
-      vid.play().catch(function(){});
+      vid.play().catch(function(){ vid.muted = true; });
       document.removeEventListener('click', onInteract);
-      document.removeEventListener('touchstart', onInteract);
+      document.removeEventListener('touchstart', onInteract, true);
     }
     document.addEventListener('click', onInteract);
-    document.addEventListener('touchstart', onInteract);
+    document.addEventListener('touchstart', onInteract, true);
+  }
+
+  // Try unmuted first; if autoplay policy blocks it, fall back to muted
+  // autoplay and wait for a tap to unmute. Use the Promise to detect
+  // the block — the sync vid.muted check fires before policy resolves.
+  vid.muted = false;
+  var p = vid.play();
+  if(p !== undefined){
+    p.catch(function(){
+      vid.muted = true;
+      vid.play().catch(function(){});
+      addUnmuteListener();
+    });
+  } else {
+    if(vid.muted) addUnmuteListener();
   }
 })();
 </script>

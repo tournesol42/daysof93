@@ -1018,58 +1018,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 </script>
 
 
-<script>
-/* ANCHOR FLICKER — organic opacity pulse on #bg-vector when mesh anchor fires */
-(function(){
-  var img = document.getElementById('bg-vector');
-  if(!img) return;
-
-  var lastHitIdx = -1;
-  var flickerRaf = null;
-
-  function flicker(){
-    if(flickerRaf) cancelAnimationFrame(flickerRaf);
-    img.style.transition = 'none';
-
-    var dur   = 500 + Math.random() * 300;   // 500–800 ms — long release
-    var dip   = 0.05 + Math.random() * 0.20; // darken hard: 5–25% opacity
-    var t0    = null;
-
-    function tick(ts){
-      if(!t0) t0 = ts;
-      var p = Math.min((ts - t0) / dur, 1);
-      var op;
-      if(p < 0.10){
-        // snap-dark attack
-        op = 1 - (1 - dip) * (p / 0.10);
-      } else {
-        // slow glowing release with ease-out curve
-        var rp = (p - 0.10) / 0.90;
-        op = dip + (1 - dip) * (1 - Math.pow(1 - rp, 1.8));
-      }
-      img.style.opacity = op.toFixed(4);
-      if(p < 1){
-        flickerRaf = requestAnimationFrame(tick);
-      } else {
-        img.style.opacity = '1';
-        img.style.transition = 'opacity 2s ease';
-        flickerRaf = null;
-      }
-    }
-    flickerRaf = requestAnimationFrame(tick);
-  }
-
-  (function poll(){
-    requestAnimationFrame(poll);
-    var hit = window._d93AnchorHit;
-    if(hit && hit.idx !== lastHitIdx){
-      lastHitIdx = hit.idx;
-      flicker();
-    }
-    if(!hit) lastHitIdx = -1;
-  })();
-})();
-</script>
 
 <script>
 /* GLITCH SYSTEM — disabled, re-enable later
