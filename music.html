@@ -701,22 +701,22 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
 <script>
 (function(){
   var audio = document.getElementById('music-audio');
+  var started = false;
 
-  function addFallback(){
-    function onInteract(){
-      audio.play().catch(function(){});
-      document.removeEventListener('click', onInteract);
-      document.removeEventListener('touchstart', onInteract, true);
-    }
-    document.addEventListener('click', onInteract);
-    document.addEventListener('touchstart', onInteract, true);
+  function start(){
+    if(started) return;
+    started = true;
+    audio.play().catch(function(){ started = false; });
   }
 
-  // Use the Promise return to detect autoplay block — the sync
-  // audio.paused check fires before the browser resolves the policy.
-  var p = audio.play();
-  if(p !== undefined){ p.catch(function(){ addFallback(); }); }
-  else { if(audio.paused) addFallback(); }
+  // Try autoplay on load
+  start();
+
+  // On any user interaction, try again — covers iOS tap-to-unlock requirement.
+  // Listening to both touchend and click covers iOS Safari's strict gesture policy.
+  ['touchend', 'click'].forEach(function(evt){
+    document.addEventListener(evt, start, { passive: true, capture: true });
+  });
 
   setTimeout(function(){
     var arrow = document.getElementById('music-arrow');
