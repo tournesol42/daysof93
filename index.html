@@ -58,7 +58,7 @@
   nav a:hover{ opacity:1; }
   nav a.nav-active{ border-bottom:1.5px solid currentColor; padding-bottom:1px; opacity:1; }
   @media (max-width:720px){
-    .hero-sub{ order:-1; margin-top:0; margin-bottom:12px; }
+    .hero-sub{ margin-top:0; margin-bottom:12px; }
     header{
       top:auto; bottom:0; padding:14px 18px 20px;
       background:rgba(255,255,255,0.92);
@@ -68,6 +68,11 @@
     nav{ gap:14px; overflow-x:auto; white-space:nowrap; }
     nav a, .nav-logo{ font-size:9px; letter-spacing:0.16em; }
     nav svg{ width:20px; height:20px; }
+    #about-header{
+      top:auto; bottom:0; padding:14px 18px 20px;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    }
   }
 
   /* hero */
@@ -182,10 +187,18 @@
     position:absolute; top:14vh; left:20px; right:20px;
     max-width:520px; z-index:1;
   }
+  /* about overlay internal header — absolute by default, fixed+bottom on mobile */
+  #about-header{
+    position:absolute; top:0; left:0; right:0; z-index:200;
+    padding:20px 28px; display:flex; align-items:center; justify-content:flex-end;
+  }
   /* about overlay-inner: normal flow so it scrolls with the page */
   #about .overlay-inner{
-    position:relative; margin:52px 0 15vh 28px;
+    position:relative; padding:52px 0 15vh 28px;
     max-width:none; z-index:1;
+  }
+  @media (max-width:720px){
+    #about .overlay-inner{ padding:44px 0 15vh 18px; }
   }
   #about .bio-text,
   #about .overlay-close{ max-width:520px; }
@@ -280,10 +293,6 @@
     .client-list-small li{ text-shadow:none; }
     #about .bio-title{ font-weight:800; }
     #about .bio-text{ font-weight:600; }
-    #about header{
-      bottom:auto; background:transparent;
-      backdrop-filter:none; -webkit-backdrop-filter:none;
-    }
   }
     font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
     color:#000; opacity:0.55; margin-bottom:22px;
@@ -395,7 +404,7 @@
     <video class="about-bg-video" autoplay loop muted playsinline>
       <source src="https://daysof93-cdn.b-cdn.net/Orange%206.webm" type="video/webm">
     </video>
-    <header style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
+    <header id="about-header">
       <nav style="display:flex;gap:28px;align-items:center;">
         <a href="#" id="about-nav-work" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:600;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">work</a>
         <a href="music.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:600;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">music</a>
