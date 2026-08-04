@@ -1001,10 +1001,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
       var maxDim = Math.max(size.x, size.y, size.z);
-      root.scale.setScalar(2.8 / maxDim);
-      root.rotation.x = -Math.PI * 0.38;
-      root.position.y = -1.1;
-      root.position.z = 0.2;
+      root.scale.setScalar(8.0 / maxDim);
+      root.rotation.x = -Math.PI * 0.5;
+      root.position.y = -1.4;
+      root.position.z = 0.0;
       root.traverse(function(child){
         if(child.isMesh) child.material = new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.55, transparent:true});
       });
