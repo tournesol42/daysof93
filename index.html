@@ -991,6 +991,30 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     function(err){ console.error('d93: GLB load error', err); }
   );
 
+  var cadMesh = null;
+  new THREE.GLTFLoader().load(
+    '/Cad3.glb',
+    function(gltf){
+      var root = gltf.scene;
+      var box  = new THREE.Box3().setFromObject(root);
+      var center = box.getCenter(new THREE.Vector3());
+      var size   = box.getSize(new THREE.Vector3());
+      root.position.sub(center);
+      var maxDim = Math.max(size.x, size.y, size.z);
+      root.scale.setScalar(2.8 / maxDim);
+      root.rotation.x = -Math.PI * 0.38;
+      root.position.y = -1.1;
+      root.position.z = 0.2;
+      root.traverse(function(child){
+        if(child.isMesh) child.material = new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.55, transparent:true});
+      });
+      scene.add(root);
+      cadMesh = root;
+    },
+    null,
+    function(err){ console.error('d93: Cad1 load error', err); }
+  );
+
   (function animate(){
     requestAnimationFrame(animate);
     if(mesh){
