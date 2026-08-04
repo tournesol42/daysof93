@@ -1012,6 +1012,71 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 </script>
 
 <script>
+(function(){
+  var orig = document.querySelector('.hero-title');
+  if(!orig) return;
+
+  var dup = document.createElement('div');
+  dup.innerHTML = 'DAYS<br>OF 93.';
+  dup.style.cssText = 'position:fixed;top:0;left:0;margin:0;padding:0;'
+    + 'font-family:Jost,"Helvetica Neue",sans-serif;'
+    + 'font-size:clamp(4.5rem,13vw,16rem);font-weight:700;'
+    + 'text-transform:uppercase;letter-spacing:-0.02em;line-height:0.88;'
+    + 'color:#ffad00;pointer-events:none;user-select:none;'
+    + 'will-change:transform;z-index:9;';
+  document.body.appendChild(dup);
+
+  var SPEED = 120; // px/s
+  var x, isReturnPass, running, lastT, origRect, dupW, vpW;
+
+  function init(){
+    origRect = orig.getBoundingClientRect();
+    vpW = window.innerWidth;
+    dupW = dup.offsetWidth;
+    x = origRect.left;
+    isReturnPass = false;
+    dup.style.top = origRect.top + 'px';
+    dup.style.transform = 'translateX(' + x + 'px)';
+    dup.style.zIndex = '9';
+  }
+
+  function frame(ts){
+    if(!running) return;
+    var dt = lastT ? Math.min((ts - lastT) / 1000, 0.1) : 0;
+    lastT = ts;
+
+    x += SPEED * dt;
+
+    if(x > vpW){
+      x = -dupW;
+      isReturnPass = !isReturnPass;
+    }
+
+    // Both true or both false → z-index above (11); otherwise below (9)
+    var isBeforeRight = x < origRect.right;
+    dup.style.zIndex = (isReturnPass === isBeforeRight) ? '11' : '9';
+    dup.style.transform = 'translateX(' + x + 'px)';
+
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', function(){
+    origRect = orig.getBoundingClientRect();
+    vpW = window.innerWidth;
+    dupW = dup.offsetWidth;
+    dup.style.top = origRect.top + 'px';
+  });
+
+  init();
+  setTimeout(function(){
+    running = true;
+    lastT = 0;
+    requestAnimationFrame(frame);
+  }, 3000);
+})();
+</script>
+
+<script>
 /* GLITCH SYSTEM — disabled, re-enable later
 (function(){
   var canvas = document.getElementById('glitch-canvas');
