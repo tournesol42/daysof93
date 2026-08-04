@@ -185,8 +185,10 @@
   /* about overlay-inner: normal flow so it scrolls with the page */
   #about .overlay-inner{
     position:relative; margin:52px 0 15vh 28px;
-    max-width:520px; z-index:1;
+    max-width:none; z-index:1;
   }
+  #about .bio-text,
+  #about .overlay-close{ max-width:520px; }
   .about-field{
     position:fixed; inset:0; z-index:0; pointer-events:none;
     display:none;
