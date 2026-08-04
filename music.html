@@ -701,22 +701,23 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
 <script>
 (function(){
   var audio = document.getElementById('music-audio');
-  var started = false;
+  var playing = false;
 
   function start(){
-    if(started) return;
-    started = true;
-    audio.play().catch(function(){ started = false; });
+    if(playing) return;
+    audio.play()
+      .then(function(){ playing = true; })
+      .catch(function(){});
   }
 
   // Try autoplay on load
   start();
 
-  // On any user interaction, try again — covers iOS tap-to-unlock requirement.
-  // Listening to both touchend and click covers iOS Safari's strict gesture policy.
-  ['touchend', 'click'].forEach(function(evt){
-    document.addEventListener(evt, start, { passive: true, capture: true });
-  });
+  // touchstart fires before link navigation — so even tapping the arrow
+  // unlocks audio before the page changes. Both listeners use once:true
+  // so they self-remove. click covers desktop.
+  document.addEventListener('touchstart', start, { once: true, passive: true, capture: true });
+  document.addEventListener('click',      start, { once: true, passive: true, capture: true });
 
   setTimeout(function(){
     var arrow = document.getElementById('music-arrow');

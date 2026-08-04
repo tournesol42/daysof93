@@ -93,6 +93,14 @@
     padding: 8px 28px 0;
     position: relative; z-index:10;
   }
+  #tap-hint{
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+    z-index:60; pointer-events:none;
+    font-family:'Jost', sans-serif; font-size:11px; letter-spacing:0.22em;
+    text-transform:uppercase; color:var(--ink); opacity:0;
+    transition:opacity 0.6s ease;
+  }
+  #tap-hint.show{ opacity:0.45; }
 </style>
 </head>
 <body>
@@ -130,6 +138,8 @@
       <source src="https://daysof93-cdn.b-cdn.net/BLACK%20AND%20RED_final_iphone.mov" type="video/mp4">
     </video>
   </div>
+
+  <div id="tap-hint">tap for sound</div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
 
@@ -194,35 +204,40 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 // fade in back arrow
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
 
-// play video with audio — try immediately, fall back to first interaction
+// play video with audio — try immediately, fall back to tap-to-unmute
 (function(){
   var vid = document.querySelector('.video-wrap video');
   if(!vid) return;
+  var hint = document.getElementById('tap-hint');
 
-  function addUnmuteListener(){
-    function onInteract(){
-      vid.muted = false;
-      vid.play().catch(function(){ vid.muted = true; });
-      document.removeEventListener('click', onInteract);
-      document.removeEventListener('touchstart', onInteract, true);
-    }
-    document.addEventListener('click', onInteract);
-    document.addEventListener('touchstart', onInteract, true);
+  function unmute(){
+    vid.muted = false;
+    vid.play().catch(function(){ vid.muted = true; });
+    if(hint) hint.classList.remove('show');
   }
 
-  // Try unmuted first; if autoplay policy blocks it, fall back to muted
-  // autoplay and wait for a tap to unmute. Use the Promise to detect
-  // the block — the sync vid.muted check fires before policy resolves.
+  function showHintAndWait(){
+    // Show "tap for sound" after video starts playing (muted)
+    vid.addEventListener('playing', function(){
+      if(vid.muted && hint) hint.classList.add('show');
+    }, { once: true });
+
+    document.addEventListener('touchstart', unmute, { once: true, passive: true, capture: true });
+    document.addEventListener('click',      unmute, { once: true, passive: true, capture: true });
+  }
+
+  // Try unmuted autoplay first
   vid.muted = false;
   var p = vid.play();
   if(p !== undefined){
     p.catch(function(){
+      // Unmuted blocked — fall back to muted + tap-to-unmute
       vid.muted = true;
       vid.play().catch(function(){});
-      addUnmuteListener();
+      showHintAndWait();
     });
   } else {
-    if(vid.muted) addUnmuteListener();
+    if(vid.muted) showHintAndWait();
   }
 })();
 </script>
