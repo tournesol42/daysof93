@@ -1031,20 +1031,21 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     if(flickerRaf) cancelAnimationFrame(flickerRaf);
     img.style.transition = 'none';
 
-    var dur   = 140 + Math.random() * 160;   // 140–300 ms total
-    var dip   = 0.28 + Math.random() * 0.30; // dim to 28%–58%
+    var dur   = 500 + Math.random() * 300;   // 500–800 ms — long release
+    var dip   = 0.05 + Math.random() * 0.20; // darken hard: 5–25% opacity
     var t0    = null;
 
     function tick(ts){
       if(!t0) t0 = ts;
       var p = Math.min((ts - t0) / dur, 1);
       var op;
-      if(p < 0.35){
-        // fast dive down
-        op = 1 - (1 - dip) * (p / 0.35);
+      if(p < 0.10){
+        // snap-dark attack
+        op = 1 - (1 - dip) * (p / 0.10);
       } else {
-        // slower recover
-        op = dip + (1 - dip) * ((p - 0.35) / 0.65);
+        // slow glowing release with ease-out curve
+        var rp = (p - 0.10) / 0.90;
+        op = dip + (1 - dip) * (1 - Math.pow(1 - rp, 1.8));
       }
       img.style.opacity = op.toFixed(4);
       if(p < 1){
