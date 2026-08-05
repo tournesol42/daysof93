@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v1-music3 -->
-<script>console.log('d93: music3 v1');</script>
+<!-- build: v1-music4 -->
+<script>console.log('d93: music4 v1');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,11 +13,11 @@
 
 <style>
   :root{
-    --field: #000000;
-    --line:  rgba(255,255,255,0.13);
-    --axis-x: rgba(255,255,255,0.30);
-    --axis-y: rgba(255,255,255,0.30);
-    --ink:   #ffffff;
+    --field: #ffffff;
+    --line:  rgba(0,0,0,0.13);
+    --axis-x: rgba(0,0,0,0.30);
+    --axis-y: rgba(0,0,0,0.30);
+    --ink:   #000000;
     --hair:  1.2px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -66,17 +66,37 @@
 
   .field{ position:fixed; inset:0; z-index:15; pointer-events:none; }
 
-  .full-video-wrap{
+  .video-wrap{
     position: relative; z-index: 10;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding-top: 20px; padding-bottom: 60px;
     margin-top: -38vh;
   }
-  .full-video-wrap video{
-    width: 100%; display: block;
+  .video-wrap video{
+    width: 53vw;
+    display: block;
+  }
+  .video-wrap + .video-wrap{
+    margin-top: 0;
+    padding-top: 0;
+  }
+  @media (max-width:720px){
+    .video-wrap{ padding: 40px 18px 40px; margin-top: -20vh; }
+    .video-wrap + .video-wrap{ margin-top: 0; padding-top: 0; }
+    .video-wrap video{ width: 88vw; }
   }
 
-  @media (max-width:720px){
-    .full-video-wrap{ margin-top: -20vh; }
+  #play-btn{
+    display:none;
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:none; border:none; padding:0; margin:0;
+    cursor:pointer; z-index:25;
+    -webkit-tap-highlight-color:transparent;
+    width:72px; height:72px;
+    opacity:1; transition:opacity 0.35s ease;
   }
+  #play-btn.gone{ opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -89,8 +109,9 @@
       <a href="past-clients.html">past clients</a>
       <a href="mailto:contact@daysof93.com">contact</a>
       <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" aria-label="Instagram" style="display:flex;align-items:center;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
-        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="none" stroke="white" stroke-width="2"/>
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
+          <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
+          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="#000" stroke="white" stroke-width="2"/>
           <circle cx="12" cy="12" r="4.5" fill="none" stroke="white" stroke-width="2"/>
           <circle cx="17" cy="7" r="1.2" fill="white"/>
         </svg>
@@ -100,10 +121,7 @@
 
   <div class="hero">
     <div style="margin-top:auto; margin-left:4vw; position:relative; display:inline-block;">
-      <a href="music2.html" class="hero-title" style="display:inline-block; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;" id="back-arrow">&lt;</a>
-    </div>
-    <div style="margin-top:auto; align-self:flex-end; margin-right:4vw;">
-      <a href="music4.html" id="fwd-arrow" class="hero-title" style="display:block; margin:0; color:var(--ink); text-decoration:none;">&gt;</a>
+      <a href="music3.html" class="hero-title" style="display:inline-block; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;" id="back-arrow">&lt;</a>
     </div>
   </div>
 
@@ -111,10 +129,22 @@
     <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07; text-align:right;">DAYS<br>OF 93.</div>
   </div>
 
-  <div class="full-video-wrap">
+  <div class="video-wrap">
     <video autoplay loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/Iceland1993.mov" type="video/mp4">
     </video>
+  </div>
+
+  <div class="video-wrap">
+    <video autoplay loop muted playsinline preload="auto">
+      <source src="https://daysof93-cdn.b-cdn.net/ALBINO2.webm" type="video/webm">
+    </video>
+    <button id="play-btn" aria-label="Play">
+      <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="30" fill="rgba(0,0,0,0.18)" stroke="white" stroke-width="1.5"/>
+        <polygon points="29,20 29,52 56,36" fill="white"/>
+      </svg>
+    </button>
   </div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
@@ -178,6 +208,30 @@ let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawField,150); });
 
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
+
+(function(){
+  var vid = document.querySelector('.video-wrap video');
+  var btn = document.getElementById('play-btn');
+  if(!vid) return;
+
+  vid.muted = false;
+  vid.play()
+    .then(function(){ if(btn) btn.classList.add('gone'); })
+    .catch(function(){
+      vid.muted = true;
+      vid.play().catch(function(){});
+      if(btn) btn.style.display = 'block';
+    });
+
+  if(btn){
+    btn.addEventListener('click', function(){
+      vid.muted = false;
+      vid.play()
+        .then(function(){ btn.classList.add('gone'); })
+        .catch(function(){});
+    }, { once: true });
+  }
+})();
 </script>
 </body>
 </html>
