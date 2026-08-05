@@ -98,14 +98,7 @@
     </nav>
   </header>
 
-  <div class="hero">
-    <div style="margin-top:auto; margin-left:4vw; position:relative; display:inline-block;">
-      <a href="music2.html" class="hero-title" style="display:inline-block; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;" id="back-arrow">&lt;</a>
-    </div>
-    <div style="margin-top:auto; align-self:flex-end; margin-right:4vw;">
-      <a href="music4.html" id="fwd-arrow" class="hero-title" style="display:block; margin:0; color:var(--ink); text-decoration:none;">&gt;</a>
-    </div>
-  </div>
+  <div class="hero"></div>
 
   <div id="days-label" style="position:fixed; top:52px; right:28px; z-index:40; pointer-events:none;">
     <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07; text-align:right;">DAYS<br>OF 93.</div>
@@ -115,6 +108,11 @@
     <video autoplay loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/Iceland1993.mov" type="video/mp4">
     </video>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:28px 28px 60px; position:relative; z-index:20;">
+    <a href="music2.html" id="back-arrow" class="hero-title" style="display:block; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&lt;</a>
+    <a href="music4.html" id="fwd-arrow" class="hero-title" style="display:block; margin:0; color:var(--ink); text-decoration:none;">&gt;</a>
   </div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
