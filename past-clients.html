@@ -53,26 +53,13 @@
 
   .page-layout{
     position: relative; z-index:10;
-    display: flex; align-items: flex-start; gap: 5vw;
     padding: 22vh 28px 80px;
   }
   .page-inner{
-    flex: 0 0 auto;
     max-width: 480px;
   }
-  .page-image{
-    flex: 1;
-    position: sticky; top: 18vh;
-    display: flex; align-items: flex-start;
-  }
-  .page-image img{
-    max-width: 100%; max-height: 72vh;
-    object-fit: contain; display: block;
-  }
   @media (max-width:720px){
-    .page-layout{ flex-direction: column; padding: 18vh 18px 60px; gap: 40px; }
-    .page-image{ position: static; }
-    .page-image img{ max-height: none; }
+    .page-layout{ padding: 18vh 18px 60px; }
   }
 
   .page-label{
@@ -143,9 +130,6 @@
         <li>Herdel Film (Denmark)</li>
         <li>Rosa — Dansk Rock Samråd (Denmark)</li>
       </ul>
-    </div>
-    <div class="page-image">
-      <img src="Vector_image_2.png" alt="" />
     </div>
   </div>
 
