@@ -51,13 +51,28 @@
     nav a, .nav-logo{ font-size:10px; }
   }
 
-  .page-inner{
+  .page-layout{
     position: relative; z-index:10;
+    display: flex; align-items: flex-start; gap: 5vw;
     padding: 22vh 28px 80px;
-    max-width: 600px;
+  }
+  .page-inner{
+    flex: 0 0 auto;
+    max-width: 480px;
+  }
+  .page-image{
+    flex: 1;
+    position: sticky; top: 18vh;
+    display: flex; align-items: flex-start;
+  }
+  .page-image img{
+    max-width: 100%; max-height: 72vh;
+    object-fit: contain; display: block;
   }
   @media (max-width:720px){
-    .page-inner{ padding: 18vh 18px 60px; }
+    .page-layout{ flex-direction: column; padding: 18vh 18px 60px; gap: 40px; }
+    .page-image{ position: static; }
+    .page-image img{ max-height: none; }
   }
 
   .page-label{
@@ -96,37 +111,42 @@
     </nav>
   </header>
 
-  <div class="page-inner">
-    <div class="page-label">past clients</div>
-<ul class="client-list">
-      <li>Sony Music (UK)</li>
-      <li>Warner Music (US)</li>
-      <li>Bunim / Murray Productions (US)</li>
-      <li>Get Lifted Film Co. (US)</li>
-      <li>R&amp;S Records (Belgium)</li>
-      <li>King Street Sounds (US)</li>
-      <li>Syco (UK)</li>
-      <li>!K7 Records (Germany)</li>
-      <li>Sony (Japan)</li>
-      <li>Johnny's Entertainment (Japan)</li>
-      <li>E! Entertainment Television (US)</li>
-      <li>Royal Danish Theatre (Denmark)</li>
-      <li>EMI (Denmark)</li>
-      <li>Universal Music (Denmark)</li>
-      <li>Denmarks Radio / TV (Denmark)</li>
-      <li>TV2 (Denmark)</li>
-      <li>Republique Theater (Denmark)</li>
-      <li>Mercedes-Benz (Denmark)</li>
-      <li>Profile Pictures (Denmark)</li>
-      <li>Nordisk Film (Denmark)</li>
-      <li>Det Danske Filminstitut (Denmark)</li>
-      <li>Borgen (Denmark)</li>
-      <li>Betty Nansen Theater (Denmark)</li>
-      <li>Åben Dans (Denmark)</li>
-      <li>E-Types (Denmark)</li>
-      <li>Herdel Film (Denmark)</li>
-      <li>Rosa — Dansk Rock Samråd (Denmark)</li>
-    </ul>
+  <div class="page-layout">
+    <div class="page-inner">
+      <div class="page-label">past clients</div>
+      <ul class="client-list">
+        <li>Sony Music (UK)</li>
+        <li>Warner Music (US)</li>
+        <li>Bunim / Murray Productions (US)</li>
+        <li>Get Lifted Film Co. (US)</li>
+        <li>R&amp;S Records (Belgium)</li>
+        <li>King Street Sounds (US)</li>
+        <li>Syco (UK)</li>
+        <li>!K7 Records (Germany)</li>
+        <li>Sony (Japan)</li>
+        <li>Johnny's Entertainment (Japan)</li>
+        <li>E! Entertainment Television (US)</li>
+        <li>Royal Danish Theatre (Denmark)</li>
+        <li>EMI (Denmark)</li>
+        <li>Universal Music (Denmark)</li>
+        <li>Denmarks Radio / TV (Denmark)</li>
+        <li>TV2 (Denmark)</li>
+        <li>Republique Theater (Denmark)</li>
+        <li>Mercedes-Benz (Denmark)</li>
+        <li>Profile Pictures (Denmark)</li>
+        <li>Nordisk Film (Denmark)</li>
+        <li>Det Danske Filminstitut (Denmark)</li>
+        <li>Borgen (Denmark)</li>
+        <li>Betty Nansen Theater (Denmark)</li>
+        <li>Åben Dans (Denmark)</li>
+        <li>E-Types (Denmark)</li>
+        <li>Herdel Film (Denmark)</li>
+        <li>Rosa — Dansk Rock Samråd (Denmark)</li>
+      </ul>
+    </div>
+    <div class="page-image">
+      <img src="Vector_image_2.png" alt="" />
+    </div>
   </div>
 
   <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
