@@ -66,18 +66,26 @@
 
   .field{ position:fixed; inset:0; z-index:15; pointer-events:none; }
 
+  .full-video-wrap{
+    position: relative; z-index: 10;
+    margin-top: -38vh;
+  }
+  .full-video-wrap video{
+    width: 100%; display: block;
+  }
+
   .video-wrap{
     position: relative; z-index: 10;
     display: flex; justify-content: center; align-items: flex-start;
-    padding-top: 20px; padding-bottom: 80px;
-    margin-top: -38vh;
+    padding-top: 80px; padding-bottom: 80px;
   }
   .video-wrap video{
     width: 53vw;
     display: block;
   }
   @media (max-width:720px){
-    .video-wrap{ padding: 56px 18px 60px; margin-top: -38vh; }
+    .full-video-wrap{ margin-top: -20vh; }
+    .video-wrap{ padding: 56px 18px 60px; }
     .video-wrap video{ width: 88vw; }
   }
 
@@ -121,6 +129,12 @@
 
   <div id="days-label" style="position:fixed; top:52px; right:28px; z-index:40; pointer-events:none;">
     <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07; text-align:right;">DAYS<br>OF 93.</div>
+  </div>
+
+  <div class="full-video-wrap">
+    <video autoplay loop muted playsinline preload="auto">
+      <source src="https://daysof93-cdn.b-cdn.net/Iceland1993.mov" type="video/mp4">
+    </video>
   </div>
 
   <div class="video-wrap">
