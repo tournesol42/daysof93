@@ -221,7 +221,7 @@ loader.load('clients1.glb', gltf => {
   const box = new THREE.Box3().setFromObject(root1);
   const sz = box.getSize(new THREE.Vector3());
   const { h } = extents();
-  root1.scale.setScalar(h * 0.10 / Math.max(sz.x, sz.y, sz.z)); // 50% smaller again
+  root1.scale.setScalar(h * 0.025 / Math.max(sz.x, sz.y, sz.z));
   scene.add(root1);
   t0_1 = performance.now();
 });
@@ -230,6 +230,10 @@ loader.load('clients1.glb', gltf => {
 let root3 = null, t0_3 = null;
 let progress3 = 0, moveVel3 = 0.00015, moveTarget3 = 0.00015;
 let dir3 = 1, wasColliding3 = false;
+// 3D organic rotation
+let angVelX3 = 0, angTargetX3 = 0;
+let angVelY3 = 0.004, angTargetY3 = 0.004;
+let angVelZ3 = 0, angTargetZ3 = 0;
 const meshDatas3 = [];
 let spring3Ready = false;
 const impactDir3 = new THREE.Vector3();
@@ -250,7 +254,7 @@ loader.load('clients3.glb', gltf => {
   const sz = box.getSize(new THREE.Vector3());
   const maxSz = Math.max(sz.x, sz.y, sz.z);
   const { h } = extents();
-  root3.scale.setScalar(h * 0.38 * 0.65 / maxSz);
+  root3.scale.setScalar(h * 0.55 / maxSz);
   impulse3 = maxSz * 0.065; // ~6.5% of mesh local extent per collision
   scene.add(root3);
   root3.updateWorldMatrix(true, true);
@@ -288,7 +292,7 @@ loader.load('clients3.glb', gltf => {
 
   if (root3) {
     if (t0_3 === null) {
-      root3.position.set(w * 0.65, 0, h * 0.65);
+      root3.position.set(w * 0.40, 0, h * 0.40);
     } else {
       // expo accel/decel — quite slow to moderate fast
       if (Math.random() < 0.004) moveTarget3 = 0.0008 + Math.random() * 0.0012;
@@ -299,10 +303,21 @@ loader.load('clients3.glb', gltf => {
       if (progress3 >= 1) { progress3 = 1; dir3 = -1; }
       if (progress3 <= 0) { progress3 = 0; dir3 = 1; }
       const t = progress3;
-      root3.position.x = w * 0.65 + (0 - w * 0.65) * t;
-      root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
+      root3.position.x = w * 0.40 + (-w * 0.12 - w * 0.40) * t;
+      root3.position.z = h * 0.40 + (-h * 0.36 - h * 0.40) * t;
       root3.position.y = 0;
-      root3.rotation.y += 0.004;
+      // organic 3D rotation — occasional tumble kicks on all axes
+      if (Math.random() < 0.0015) {
+        angTargetX3 = (Math.random() - 0.5) * 0.07;
+        angTargetZ3 = (Math.random() - 0.5) * 0.07;
+        angTargetY3 = 0.008 + Math.random() * 0.025;
+      }
+      angVelX3 += (angTargetX3 - angVelX3) * 0.009; angTargetX3 += (0 - angTargetX3) * 0.003;
+      angVelY3 += (angTargetY3 - angVelY3) * 0.009; angTargetY3 += (0.004 - angTargetY3) * 0.003;
+      angVelZ3 += (angTargetZ3 - angVelZ3) * 0.009; angTargetZ3 += (0 - angTargetZ3) * 0.003;
+      root3.rotation.x += angVelX3;
+      root3.rotation.y += angVelY3;
+      root3.rotation.z += angVelZ3;
       // sphere collision → flip direction + trigger vertex distortion
       if (root1) {
         const b1 = new THREE.Box3().setFromObject(root1);
