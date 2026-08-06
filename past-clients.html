@@ -231,8 +231,12 @@ let root3 = null, t0_3 = null;
 let progress3 = 0, moveVel3 = 0.00015, moveTarget3 = 0.00015;
 let dir3 = 1, wasColliding3 = false;
 let baseScale3 = 0;
-let pulseActive3 = false, pulseStart3 = 0, nextPulse3 = 0;
-const PULSE_DUR3 = 900;
+const BASE3 = 0.65;       // resting at 65%
+const ATTACK3 = 260;      // ms: fast rise to 100%
+const RELEASE3 = 1500;    // ms: slow fall back to base
+let pulsePhase3 = 'idle'; // 'idle' | 'attack' | 'release'
+let pulseStart3 = 0, nextPulse3 = 0;
+let vibrateActive3 = false, vibrateStart3 = 0;
 
 loader.load('clients3.glb', gltf => {
   root3 = gltf.scene;
@@ -245,11 +249,11 @@ loader.load('clients3.glb', gltf => {
   const sz = box.getSize(new THREE.Vector3());
   const { h } = extents();
   baseScale3 = h * 0.38 / Math.max(sz.x, sz.y, sz.z);
-  root3.scale.setScalar(baseScale3 * 0.40); // rests at 40% (60% smaller than original)
+  root3.scale.setScalar(baseScale3 * BASE3);
   scene.add(root3);
   setTimeout(() => {
     t0_3 = performance.now();
-    nextPulse3 = t0_3 + 4000 + Math.random() * 1000;
+    nextPulse3 = t0_3 + 11000 + Math.random() * 4000; // rare: first pulse 11-15s after appearing
   }, 8000);
 });
 
@@ -287,21 +291,28 @@ loader.load('clients3.glb', gltf => {
       root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
       root3.position.y = 0;
       root3.rotation.y += 0.004;
-      // scale pulse: 40% base → 100% → 40% every 4-5s, sine ease
+      // pulse: fast attack → slow release, rare trigger, vibrate on landing
       const now3 = performance.now();
-      if (!pulseActive3 && now3 >= nextPulse3) {
-        pulseActive3 = true;
-        pulseStart3 = now3;
-      }
-      let scaleMult = 0.40;
-      if (pulseActive3) {
-        const pt = (now3 - pulseStart3) / PULSE_DUR3;
+      let scaleMult = BASE3;
+      if (pulsePhase3 === 'idle') {
+        if (now3 >= nextPulse3) { pulsePhase3 = 'attack'; pulseStart3 = now3; }
+      } else if (pulsePhase3 === 'attack') {
+        const pt = Math.min((now3 - pulseStart3) / ATTACK3, 1);
+        scaleMult = BASE3 + (1 - BASE3) * (1 - Math.pow(1 - pt, 2)); // ease-out
+        if (pt >= 1) { pulsePhase3 = 'release'; pulseStart3 = now3; }
+      } else if (pulsePhase3 === 'release') {
+        const pt = Math.min((now3 - pulseStart3) / RELEASE3, 1);
+        scaleMult = 1 - (1 - BASE3) * Math.pow(pt, 0.65); // gentle ease-in
         if (pt >= 1) {
-          pulseActive3 = false;
-          nextPulse3 = now3 + 4000 + Math.random() * 1000;
-        } else {
-          scaleMult = 0.40 + 0.60 * Math.sin(pt * Math.PI);
+          pulsePhase3 = 'idle';
+          nextPulse3 = now3 + 10000 + Math.random() * 5000; // rare: 10-15s until next
+          vibrateActive3 = true; vibrateStart3 = now3;
         }
+      }
+      if (vibrateActive3) {
+        const vt = now3 - vibrateStart3;
+        if (vt > 700) { vibrateActive3 = false; }
+        else { scaleMult += 0.035 * Math.exp(-vt / 110) * Math.sin(vt * 0.055); }
       }
       root3.scale.setScalar(baseScale3 * scaleMult);
       // sphere collision — uses actual world-space extents, much tighter than full box
