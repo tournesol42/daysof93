@@ -223,8 +223,10 @@ setTimeout(()=>{ var a=document.getElementById('fwd-arrow'); if(a) a.style.opaci
   if(!vid) return;
 
   if(window.innerWidth < 720){
-    // mobile: never autoplay, show button immediately
+    // mobile: show button, then muted play→pause to render the first frame
     if(btn) btn.style.display = 'block';
+    vid.muted = true;
+    vid.play().then(function(){ vid.pause(); vid.currentTime = 0; }).catch(function(){});
   } else {
     vid.muted = false;
     vid.play()

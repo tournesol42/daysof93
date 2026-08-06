@@ -729,9 +729,12 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       .catch(function(){ if(btn) btn.style.display = 'block'; });
   }
 
-  // Try autoplay — works on desktop and some Android browsers.
-  // If it succeeds, the play button fades out automatically.
-  startAudio();
+  // Desktop only: try autoplay. Mobile always requires a tap.
+  if(window.innerWidth >= 720){
+    startAudio();
+  } else {
+    if(btn) btn.style.display = 'block';
+  }
 
   // Play button: start audio AND ensure the alpha video is playing.
   // On slow connections the video may still be buffering — play() here
