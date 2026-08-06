@@ -183,8 +183,11 @@ const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: t
 renderer.setClearColor(0, 0);
 
 const scene = new THREE.Scene();
+// Camera directly above, looking straight down — gives a true flat 2D view
 const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-cam.position.z = 6;
+cam.position.set(0, 6, 0);
+cam.lookAt(0, 0, 0);
+cam.up.set(0, 0, -1);
 
 const onResize = () => {
   cam.aspect = innerWidth / innerHeight;
@@ -195,7 +198,7 @@ onResize();
 window.addEventListener('resize', onResize);
 
 function extents() {
-  const h = 2 * Math.tan(cam.fov * Math.PI / 360) * cam.position.z;
+  const h = 2 * Math.tan(cam.fov * Math.PI / 360) * 6;
   return { w: h * cam.aspect, h };
 }
 
@@ -222,11 +225,12 @@ new GLTFLoader().load('clients1.glb', gltf => {
   if (!root) return;
   const { w, h } = extents();
   const t = ((performance.now() - t0) % CYCLE) / CYCLE;
-  // start: above screen, slightly right → end: beyond bottom-left
+  // drift on XZ plane (camera looks down Y): start top-right, end bottom-left
   root.position.x = w * 0.30 + (-w * 0.72 - w * 0.30) * t;
-  root.position.y = h * 0.65 + (-h * 0.70 - h * 0.65) * t;
+  root.position.z = -h * 0.65 + (h * 0.70 + h * 0.65) * t;
+  root.position.y = 0;
+  // spin around Y only — appears as flat 2D rotation from above
   root.rotation.y += 0.004;
-  root.rotation.x += 0.001;
   renderer.render(scene, cam);
 })();
 </script>
