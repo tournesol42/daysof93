@@ -222,14 +222,19 @@ setTimeout(()=>{ var a=document.getElementById('fwd-arrow'); if(a) a.style.opaci
   var btn = document.getElementById('play-btn');
   if(!vid) return;
 
-  vid.muted = false;
-  vid.play()
-    .then(function(){ if(btn) btn.classList.add('gone'); })
-    .catch(function(){
-      vid.muted = true;
-      vid.play().catch(function(){});
-      if(btn) btn.style.display = 'block';
-    });
+  if(window.innerWidth < 720){
+    // mobile: never autoplay, show button immediately
+    if(btn) btn.style.display = 'block';
+  } else {
+    vid.muted = false;
+    vid.play()
+      .then(function(){ if(btn) btn.classList.add('gone'); })
+      .catch(function(){
+        vid.muted = true;
+        vid.play().catch(function(){});
+        if(btn) btn.style.display = 'block';
+      });
+  }
 
   if(btn){
     btn.addEventListener('click', function(){

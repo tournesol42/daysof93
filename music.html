@@ -487,6 +487,7 @@ function getVideoA(){
 }
 
 function autostartA(){
+  if(window.innerWidth < 720) return; // mobile: wait for user tap
   const v = getVideoA();
   if(!v) return;
   v.muted = true;
