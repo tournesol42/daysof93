@@ -226,17 +226,18 @@ loader.load('clients1.glb', gltf => {
   t0_1 = performance.now();
 });
 
-// --- clients3: safety orange, bottom-right → top-center, appears at 8s ---
+// --- clients3: safety orange, bottom-right → top-center, appears at 5s ---
 let root3 = null, t0_3 = null;
 let progress3 = 0, moveVel3 = 0.00015, moveTarget3 = 0.00015;
 let dir3 = 1, wasColliding3 = false;
-let baseScale3 = 0;
-const BASE3 = 0.65;       // resting at 65%
-const ATTACK3 = 260;      // ms: fast rise to 100%
-const RELEASE3 = 1500;    // ms: slow fall back to base
-let pulsePhase3 = 'idle'; // 'idle' | 'attack' | 'release'
-let pulseStart3 = 0, nextPulse3 = 0;
-let vibrateActive3 = false, vibrateStart3 = 0;
+const meshDatas3 = [];
+let spring3Ready = false;
+const impactDir3 = new THREE.Vector3();
+let applyImpact3 = false;
+let impulse3 = 0.08; // set relative to geometry size at load
+const SPRING3 = 0.016, DAMPING3 = 0.72;
+const _inv3 = new THREE.Matrix4();
+const _impL3 = new THREE.Vector3();
 
 loader.load('clients3.glb', gltf => {
   root3 = gltf.scene;
@@ -247,14 +248,25 @@ loader.load('clients3.glb', gltf => {
   });
   const box = new THREE.Box3().setFromObject(root3);
   const sz = box.getSize(new THREE.Vector3());
+  const maxSz = Math.max(sz.x, sz.y, sz.z);
   const { h } = extents();
-  baseScale3 = h * 0.38 / Math.max(sz.x, sz.y, sz.z);
-  root3.scale.setScalar(baseScale3 * BASE3);
+  root3.scale.setScalar(h * 0.38 * 0.65 / maxSz);
+  impulse3 = maxSz * 0.065; // ~6.5% of mesh local extent per collision
   scene.add(root3);
-  setTimeout(() => {
-    t0_3 = performance.now();
-    nextPulse3 = t0_3 + 11000 + Math.random() * 4000; // rare: first pulse 11-15s after appearing
-  }, 8000);
+  root3.updateWorldMatrix(true, true);
+  root3.traverse(c => {
+    if (!c.isMesh) return;
+    const geo = c.geometry;
+    const pos = geo.attributes.position;
+    pos.setUsage(THREE.DynamicDrawUsage);
+    meshDatas3.push({ mesh: c, geo, n: pos.count,
+      orig: new Float32Array(pos.array),
+      vx: new Float32Array(pos.count),
+      vy: new Float32Array(pos.count),
+      vz: new Float32Array(pos.count) });
+  });
+  spring3Ready = true;
+  setTimeout(() => { t0_3 = performance.now(); }, 5000);
 });
 
 (function frame() {
@@ -291,31 +303,7 @@ loader.load('clients3.glb', gltf => {
       root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
       root3.position.y = 0;
       root3.rotation.y += 0.004;
-      // pulse: fast attack → slow release, rare trigger, vibrate on landing
-      const now3 = performance.now();
-      let scaleMult = BASE3;
-      if (pulsePhase3 === 'idle') {
-        if (now3 >= nextPulse3) { pulsePhase3 = 'attack'; pulseStart3 = now3; }
-      } else if (pulsePhase3 === 'attack') {
-        const pt = Math.min((now3 - pulseStart3) / ATTACK3, 1);
-        scaleMult = BASE3 + (1 - BASE3) * (1 - Math.pow(1 - pt, 2)); // ease-out
-        if (pt >= 1) { pulsePhase3 = 'release'; pulseStart3 = now3; }
-      } else if (pulsePhase3 === 'release') {
-        const pt = Math.min((now3 - pulseStart3) / RELEASE3, 1);
-        scaleMult = 1 - (1 - BASE3) * Math.pow(pt, 0.65); // gentle ease-in
-        if (pt >= 1) {
-          pulsePhase3 = 'idle';
-          nextPulse3 = now3 + 10000 + Math.random() * 5000; // rare: 10-15s until next
-          vibrateActive3 = true; vibrateStart3 = now3;
-        }
-      }
-      if (vibrateActive3) {
-        const vt = now3 - vibrateStart3;
-        if (vt > 700) { vibrateActive3 = false; }
-        else { scaleMult += 0.035 * Math.exp(-vt / 110) * Math.sin(vt * 0.055); }
-      }
-      root3.scale.setScalar(baseScale3 * scaleMult);
-      // sphere collision — uses actual world-space extents, much tighter than full box
+      // sphere collision → flip direction + trigger vertex distortion
       if (root1) {
         const b1 = new THREE.Box3().setFromObject(root1);
         const b3 = new THREE.Box3().setFromObject(root3);
@@ -326,8 +314,44 @@ loader.load('clients3.glb', gltf => {
         const r1 = Math.max(s1.x, s1.z) * 0.35;
         const r3 = Math.max(s3.x, s3.z) * 0.35;
         const hit = c1.distanceTo(c3v) < (r1 + r3);
-        if (hit && !wasColliding3) dir3 *= -1;
+        if (hit && !wasColliding3) {
+          dir3 *= -1;
+          impactDir3.subVectors(c3v, c1).normalize(); // grey → orange
+          applyImpact3 = true;
+        }
         wasColliding3 = hit;
+      }
+      // vertex spring: distort on collision, spring back
+      if (spring3Ready) {
+        root3.updateWorldMatrix(true, true);
+        meshDatas3.forEach(md => {
+          const arr = md.geo.attributes.position.array;
+          _impL3.set(0, 0, 0);
+          if (applyImpact3) {
+            _inv3.copy(md.mesh.matrixWorld).invert();
+            _impL3.copy(impactDir3).transformDirection(_inv3);
+          }
+          let dirty = false;
+          for (let i = 0; i < md.n; i++) {
+            const ox = md.orig[i*3], oy = md.orig[i*3+1], oz = md.orig[i*3+2];
+            let cx = arr[i*3], cy = arr[i*3+1], cz = arr[i*3+2];
+            let dvx = md.vx[i], dvy = md.vy[i], dvz = md.vz[i];
+            if (applyImpact3) {
+              dvx += _impL3.x * impulse3 + (Math.random() - 0.5) * impulse3 * 0.4;
+              dvy += _impL3.y * impulse3 * 0.2 + (Math.random() - 0.5) * impulse3 * 0.1;
+              dvz += _impL3.z * impulse3 + (Math.random() - 0.5) * impulse3 * 0.4;
+            }
+            dvx += (ox - cx) * SPRING3; dvy += (oy - cy) * SPRING3; dvz += (oz - cz) * SPRING3;
+            dvx *= DAMPING3; dvy *= DAMPING3; dvz *= DAMPING3;
+            if (!applyImpact3 && Math.abs(ox-cx)<5e-5 && Math.abs(oy-cy)<5e-5 && Math.abs(oz-cz)<5e-5
+                              && Math.abs(dvx)<5e-5 && Math.abs(dvy)<5e-5 && Math.abs(dvz)<5e-5) continue;
+            arr[i*3] = cx+dvx; arr[i*3+1] = cy+dvy; arr[i*3+2] = cz+dvz;
+            md.vx[i] = dvx; md.vy[i] = dvy; md.vz[i] = dvz;
+            dirty = true;
+          }
+          if (dirty) md.geo.attributes.position.needsUpdate = true;
+        });
+        applyImpact3 = false;
       }
       const op = t < 0.06 ? t / 0.06 : t > 0.94 ? (1 - t) / 0.06 : 1;
       root3.traverse(c => { if (c.isMesh) c.material.opacity = op; });
