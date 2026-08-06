@@ -183,7 +183,6 @@ const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: t
 renderer.setClearColor(0, 0);
 
 const scene = new THREE.Scene();
-// Camera directly above, looking straight down — gives a true flat 2D view
 const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
 cam.position.set(0, 6, 0);
 cam.lookAt(0, 0, 0);
@@ -202,35 +201,76 @@ function extents() {
   return { w: h * cam.aspect, h };
 }
 
-let root = null, t0 = null;
-const CYCLE = 32000;
+const loader = new GLTFLoader();
 
-new GLTFLoader().load('clients1.glb', gltf => {
-  root = gltf.scene;
-  root.traverse(c => {
+// --- clients1: dark, top-right → bottom-left ---
+let root1 = null, t0_1 = null;
+const CYCLE1 = 32000;
+
+loader.load('clients1.glb', gltf => {
+  root1 = gltf.scene;
+  root1.traverse(c => {
     if (c.isMesh) c.material = new THREE.MeshBasicMaterial({
       color: 0x111111, wireframe: true, transparent: true, opacity: 0.45
     });
   });
-  const box = new THREE.Box3().setFromObject(root);
-  const sz  = box.getSize(new THREE.Vector3());
+  const box = new THREE.Box3().setFromObject(root1);
+  const sz = box.getSize(new THREE.Vector3());
   const { h } = extents();
-  root.scale.setScalar(h * 0.40 / Math.max(sz.x, sz.y, sz.z));
-  scene.add(root);
-  t0 = performance.now();
+  root1.scale.setScalar(h * 0.20 / Math.max(sz.x, sz.y, sz.z)); // 50% smaller
+  scene.add(root1);
+  t0_1 = performance.now();
+});
+
+// --- clients3: safety orange, bottom-right → top-center, appears at 8s ---
+let root3 = null, t0_3 = null;
+const CYCLE3 = 24000;
+
+loader.load('clients3.glb', gltf => {
+  root3 = gltf.scene;
+  root3.traverse(c => {
+    if (c.isMesh) c.material = new THREE.MeshBasicMaterial({
+      color: 0xFF6600, wireframe: true, transparent: true, opacity: 0
+    });
+  });
+  const box = new THREE.Box3().setFromObject(root3);
+  const sz = box.getSize(new THREE.Vector3());
+  const { h } = extents();
+  root3.scale.setScalar(h * 0.38 / Math.max(sz.x, sz.y, sz.z));
+  scene.add(root3);
+  // delay 8s before starting
+  setTimeout(() => { t0_3 = performance.now(); }, 8000);
 });
 
 (function frame() {
   requestAnimationFrame(frame);
-  if (!root) return;
   const { w, h } = extents();
-  const t = ((performance.now() - t0) % CYCLE) / CYCLE;
-  // drift on XZ plane (camera looks down Y): start top-right, end bottom-left
-  root.position.x = w * 0.30 + (-w * 0.72 - w * 0.30) * t;
-  root.position.z = -h * 0.65 + (h * 0.70 + h * 0.65) * t;
-  root.position.y = 0;
-  // spin around Y only — appears as flat 2D rotation from above
-  root.rotation.y += 0.004;
+
+  if (root1 && t0_1 !== null) {
+    const t = ((performance.now() - t0_1) % CYCLE1) / CYCLE1;
+    root1.position.x = w * 0.30 + (-w * 0.72 - w * 0.30) * t;
+    root1.position.z = -h * 0.65 + (h * 0.70 + h * 0.65) * t;
+    root1.position.y = 0;
+    root1.rotation.y += 0.004;
+  }
+
+  if (root3) {
+    if (t0_3 === null) {
+      // parked off-screen until timer fires
+      root3.position.set(w * 0.65, 0, h * 0.65);
+    } else {
+      const t = ((performance.now() - t0_3) % CYCLE3) / CYCLE3;
+      // bottom-right → top-center
+      root3.position.x = w * 0.65 + (0 - w * 0.65) * t;
+      root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
+      root3.position.y = 0;
+      root3.rotation.y += 0.004;
+      // fade in at start, fade out at end of each cycle
+      const op = t < 0.06 ? t / 0.06 : t > 0.94 ? (1 - t) / 0.06 : 1;
+      root3.traverse(c => { if (c.isMesh) c.material.opacity = op; });
+    }
+  }
+
   renderer.render(scene, cam);
 })();
 </script>
