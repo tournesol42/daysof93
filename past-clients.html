@@ -7,6 +7,7 @@
 <!-- build: v1-past-clients -->
 <script>console.log('d93: past-clients v1');</script>
 
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300..800&family=Jost:wght@200;300;400;600&display=swap" rel="stylesheet">
@@ -168,6 +169,66 @@ function drawField(){
 drawField();
 let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawField,150); });
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const cv = document.createElement('canvas');
+cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;';
+document.body.appendChild(cv);
+
+const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+renderer.setClearColor(0, 0);
+
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+cam.position.z = 6;
+
+const onResize = () => {
+  cam.aspect = innerWidth / innerHeight;
+  cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+onResize();
+window.addEventListener('resize', onResize);
+
+function extents() {
+  const h = 2 * Math.tan(cam.fov * Math.PI / 360) * cam.position.z;
+  return { w: h * cam.aspect, h };
+}
+
+let root = null, t0 = null;
+const CYCLE = 32000;
+
+new GLTFLoader().load('clients1.glb', gltf => {
+  root = gltf.scene;
+  root.traverse(c => {
+    if (c.isMesh) c.material = new THREE.MeshBasicMaterial({
+      color: 0x111111, wireframe: true, transparent: true, opacity: 0.45
+    });
+  });
+  const box = new THREE.Box3().setFromObject(root);
+  const sz  = box.getSize(new THREE.Vector3());
+  const { h } = extents();
+  root.scale.setScalar(h * 0.40 / Math.max(sz.x, sz.y, sz.z));
+  scene.add(root);
+  t0 = performance.now();
+});
+
+(function frame() {
+  requestAnimationFrame(frame);
+  if (!root) return;
+  const { w, h } = extents();
+  const t = ((performance.now() - t0) % CYCLE) / CYCLE;
+  // start: above screen, slightly right → end: beyond bottom-left
+  root.position.x = w * 0.30 + (-w * 0.72 - w * 0.30) * t;
+  root.position.y = h * 0.65 + (-h * 0.70 - h * 0.65) * t;
+  root.rotation.y += 0.004;
+  root.rotation.x += 0.001;
+  renderer.render(scene, cam);
+})();
 </script>
 </body>
 </html>
