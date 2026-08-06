@@ -71,7 +71,7 @@
   .client-list{ list-style:none; }
   .client-list li{
     font-family:'Jost', sans-serif;
-    font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+    font-size: clamp(1.05rem, 1.9vw, 1.45rem);
     font-weight:300; letter-spacing:0.01em; line-height:2.1;
     color:var(--ink); opacity:0.85;
   }
@@ -228,7 +228,7 @@ loader.load('clients1.glb', gltf => {
 
 // --- clients3: safety orange, bottom-right → top-center, appears at 8s ---
 let root3 = null, t0_3 = null;
-const CYCLE3 = 24000;
+let progress3 = 0, moveVel3 = 0.0003, moveTarget3 = 0.0003;
 
 loader.load('clients3.glb', gltf => {
   root3 = gltf.scene;
@@ -268,7 +268,13 @@ loader.load('clients3.glb', gltf => {
       // parked off-screen until timer fires
       root3.position.set(w * 0.65, 0, h * 0.65);
     } else {
-      const t = ((performance.now() - t0_3) % CYCLE3) / CYCLE3;
+      // organic movement speed — super slow to fast, laggy easing
+      if (Math.random() < 0.004) moveTarget3 = 0.003 + Math.random() * 0.007;
+      else if (Math.random() < 0.002) moveTarget3 = 0.00003 + Math.random() * 0.0001;
+      moveVel3 += (moveTarget3 - moveVel3) * 0.014;
+      moveTarget3 += (0.0003 - moveTarget3) * 0.003;
+      progress3 = (progress3 + moveVel3) % 1;
+      const t = progress3;
       // bottom-right → top-center
       root3.position.x = w * 0.65 + (0 - w * 0.65) * t;
       root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
