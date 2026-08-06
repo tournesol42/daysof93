@@ -203,6 +203,10 @@ function extents() {
 
 const loader = new GLTFLoader();
 
+// organic spin state for clients1
+let angVel1 = 0.003;
+let angTarget1 = 0.003;
+
 // --- clients1: dark, top-right → bottom-left ---
 let root1 = null, t0_1 = null;
 const CYCLE1 = 32000;
@@ -217,7 +221,7 @@ loader.load('clients1.glb', gltf => {
   const box = new THREE.Box3().setFromObject(root1);
   const sz = box.getSize(new THREE.Vector3());
   const { h } = extents();
-  root1.scale.setScalar(h * 0.20 / Math.max(sz.x, sz.y, sz.z)); // 50% smaller
+  root1.scale.setScalar(h * 0.10 / Math.max(sz.x, sz.y, sz.z)); // 50% smaller again
   scene.add(root1);
   t0_1 = performance.now();
 });
@@ -251,7 +255,12 @@ loader.load('clients3.glb', gltf => {
     root1.position.x = w * 0.30 + (-w * 0.72 - w * 0.30) * t;
     root1.position.z = -h * 0.65 + (h * 0.70 + h * 0.65) * t;
     root1.position.y = 0;
-    root1.rotation.y += 0.004;
+    // occasional random kick, laggy easing back — organic spin
+    if (Math.random() < 0.003) angTarget1 = 0.03 + Math.random() * 0.06;
+    else if (Math.random() < 0.001) angTarget1 = 0.001;
+    angVel1 += (angTarget1 - angVel1) * 0.012;
+    angTarget1 += (0.003 - angTarget1) * 0.004;
+    root1.rotation.y += angVel1;
   }
 
   if (root3) {
