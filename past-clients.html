@@ -228,7 +228,8 @@ loader.load('clients1.glb', gltf => {
 
 // --- clients3: safety orange, bottom-right → top-center, appears at 8s ---
 let root3 = null, t0_3 = null;
-let progress3 = 0, moveVel3 = 0.0003, moveTarget3 = 0.0003;
+let progress3 = 0, moveVel3 = 0.00015, moveTarget3 = 0.00015;
+let dir3 = 1, wasColliding3 = false;
 
 loader.load('clients3.glb', gltf => {
   root3 = gltf.scene;
@@ -268,18 +269,28 @@ loader.load('clients3.glb', gltf => {
       // parked off-screen until timer fires
       root3.position.set(w * 0.65, 0, h * 0.65);
     } else {
-      // organic movement speed — super slow to fast, laggy easing
-      if (Math.random() < 0.004) moveTarget3 = 0.003 + Math.random() * 0.007;
-      else if (Math.random() < 0.002) moveTarget3 = 0.00003 + Math.random() * 0.0001;
-      moveVel3 += (moveTarget3 - moveVel3) * 0.014;
-      moveTarget3 += (0.0003 - moveTarget3) * 0.003;
-      progress3 = (progress3 + moveVel3) % 1;
+      // expo accel/decel — quite slow to moderate fast
+      if (Math.random() < 0.004) moveTarget3 = 0.0008 + Math.random() * 0.0012;
+      else if (Math.random() < 0.002) moveTarget3 = 0.00003 + Math.random() * 0.00006;
+      moveVel3 += (moveTarget3 - moveVel3) * 0.006; // low factor = pronounced expo curve
+      moveTarget3 += (0.00015 - moveTarget3) * 0.002;
+      progress3 += moveVel3 * dir3;
+      if (progress3 >= 1) { progress3 = 1; dir3 = -1; }
+      if (progress3 <= 0) { progress3 = 0; dir3 = 1; }
       const t = progress3;
       // bottom-right → top-center
       root3.position.x = w * 0.65 + (0 - w * 0.65) * t;
       root3.position.z = h * 0.65 + (-h * 0.62 - h * 0.65) * t;
       root3.position.y = 0;
       root3.rotation.y += 0.004;
+      // collision with grey mesh → flip direction
+      if (root1) {
+        const b1 = new THREE.Box3().setFromObject(root1);
+        const b3 = new THREE.Box3().setFromObject(root3);
+        const hit = b1.intersectsBox(b3);
+        if (hit && !wasColliding3) dir3 *= -1;
+        wasColliding3 = hit;
+      }
       // fade in at start, fade out at end of each cycle
       const op = t < 0.06 ? t / 0.06 : t > 0.94 ? (1 - t) / 0.06 : 1;
       root3.traverse(c => { if (c.isMesh) c.material.opacity = op; });
