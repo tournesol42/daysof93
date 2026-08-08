@@ -405,6 +405,7 @@
 (function(){
   var boot = document.getElementById('c64-boot');
   var gone = false;
+  var pageLoadTime = Date.now();
 
   // 1993 date/time
   var now = new Date();
@@ -420,6 +421,13 @@
     if(gone) return; gone = true;
     boot.classList.add('fade-out');
     setTimeout(function(){ boot.style.display='none'; }, 950);
+    // fade in image graphic: 4s from page load, but always at least 2s after dismiss
+    var elapsed = Date.now() - pageLoadTime;
+    var delay = Math.max(4000 - elapsed, 2000);
+    setTimeout(function(){
+      var v = document.getElementById('bg-vector');
+      if(v) v.style.opacity = '1';
+    }, delay);
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });
@@ -626,9 +634,8 @@ function build(){ drawField(); drawField('about-field'); drawField('work-field')
 
 build();
 
-// fade in bg-vector + MUSIC, fade out hero-sub after 4s
+// fade out hero-sub after 4s
 setTimeout(function(){
-  var v=document.getElementById('bg-vector'); if(v) v.style.opacity='1';
   var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
 }, 4000);
 
