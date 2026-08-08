@@ -387,7 +387,7 @@
     transition: opacity 0.9s ease;
     pointer-events:all;
   }
-  #c64-boot .c64-sm{ font-size: clamp(11px, 1.5vw, 17px); line-height:1.8; }
+  #c64-boot .c64-sm{ font-size: clamp(13px, 1.8vw, 21px); line-height:1.8; }
   #c64-boot.fade-out{ opacity:0; pointer-events:none; }
   #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
   @keyframes c64blink{ 0%,100%{opacity:1} 50%{opacity:0} }
@@ -402,15 +402,7 @@
       <div>&nbsp;</div>
       <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
     </div>
-    <div>
-      <div class="c64-sm">**** COMMODORE 64 BASIC V2 ****</div>
-      <div class="c64-sm">&nbsp;</div>
-      <div class="c64-sm">64K RAM SYSTEM &nbsp;38911 BASIC BYTES FREE</div>
-      <div class="c64-sm">&nbsp;</div>
-      <div class="c64-sm">READY.</div>
-      <div class="c64-sm">&nbsp;</div>
-      <div class="c64-sm" id="c64-datetime"></div>
-    </div>
+    <div class="c64-sm">**** COMMODORE 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;38911 BASIC BYTES FREE&nbsp;&nbsp;&nbsp;READY.&nbsp;&nbsp;&nbsp;<span id="c64-datetime"></span></div>
   </div>
 </div>
 <script>
