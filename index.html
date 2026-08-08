@@ -421,9 +421,8 @@
     if(gone) return; gone = true;
     boot.classList.add('fade-out');
     setTimeout(function(){ boot.style.display='none'; }, 950);
-    // fade in image graphic: 4s from page load, but always at least 2s after dismiss
-    var elapsed = Date.now() - pageLoadTime;
-    var delay = Math.max(4000 - elapsed, 2000);
+    // fade in image graphic 4s after dismiss
+    var delay = 4000;
     setTimeout(function(){
       var v = document.getElementById('bg-vector');
       if(v) v.style.opacity = '1';
