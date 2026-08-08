@@ -108,7 +108,13 @@
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
     .hero-music{ position:fixed; bottom:90px; right:18px; margin:0; }
   }
-  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 2s ease; }
+  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 2s ease; transform-origin:center center; }
+  @keyframes bgvector-breathe{
+    0%  { transform:scale(1); }
+    50% { transform:scale(1.30); }
+    100%{ transform:scale(1); }
+  }
+  .bgvector-breathing{ animation:bgvector-breathe 10s cubic-bezier(0.45,0.05,0.55,0.95) infinite; }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
 #mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
   #redblack-video{
@@ -425,7 +431,7 @@
     var delay = 4000;
     setTimeout(function(){
       var v = document.getElementById('bg-vector');
-      if(v) v.style.opacity = '1';
+      if(v){ v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
     }, delay);
   }
   setTimeout(function(){
