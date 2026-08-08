@@ -361,9 +361,55 @@
     from { transform: translateY(-100vh); }
     to   { transform: translateY(0); }
   }
+  /* C64 boot overlay */
+  #c64-boot{
+    position:fixed; inset:0; z-index:99999;
+    background:#E85500;
+    display:flex; align-items:flex-start; justify-content:flex-start;
+    padding: clamp(28px,6vw,60px);
+    font-family:'VT323', monospace;
+    font-size: clamp(22px, 3.4vw, 34px);
+    color:#7B2200;
+    line-height:1.7; letter-spacing:0.04em;
+    transition: opacity 0.9s ease;
+    pointer-events:all;
+  }
+  #c64-boot.fade-out{ opacity:0; pointer-events:none; }
+  #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
+  @keyframes c64blink{ 0%,100%{opacity:1} 50%{opacity:0} }
 </style>
 </head>
 <body>
+
+<div id="c64-boot">
+  <div>
+    <div>**** COMMODORE 64 BASIC V2 ****</div>
+    <div>64K RAM SYSTEM &nbsp;38911 BASIC BYTES FREE</div>
+    <div>&nbsp;</div>
+    <div>READY.</div>
+    <div>&nbsp;</div>
+    <div>DAYS OF 93</div>
+    <div>&nbsp;</div>
+    <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
+  </div>
+</div>
+<script>
+(function(){
+  var boot = document.getElementById('c64-boot');
+  var gone = false;
+  function dismiss(){
+    if(gone) return; gone = true;
+    boot.classList.add('fade-out');
+    setTimeout(function(){ boot.style.display='none'; }, 950);
+  }
+  // wait 2s before accepting input
+  setTimeout(function(){
+    document.addEventListener('keydown', dismiss, { once:true });
+    document.addEventListener('mousemove', dismiss, { once:true });
+    document.addEventListener('touchstart', dismiss, { once:true, passive:true });
+  }, 2000);
+})();
+</script>
 
   <header>
     <nav>
