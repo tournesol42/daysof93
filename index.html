@@ -110,7 +110,7 @@
   }
   #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 2s ease; }
   .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
-#mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; opacity:0; transition:opacity 1.4s ease; }
+#mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
   #redblack-video{
     position:fixed; z-index:1; pointer-events:none;
     left:50%; top:48%; transform:translate(-50%,-50%);
@@ -384,18 +384,21 @@
 <body>
 
 <div id="c64-boot">
-  <div>
-    <div class="c64-sm">**** COMMODORE 64 BASIC V2 ****</div>
-    <div class="c64-sm">&nbsp;</div>
-    <div class="c64-sm">64K RAM SYSTEM &nbsp;38911 BASIC BYTES FREE</div>
-    <div class="c64-sm">&nbsp;</div>
-    <div class="c64-sm">READY.</div>
-    <div class="c64-sm">&nbsp;</div>
-    <div class="c64-sm" id="c64-datetime"></div>
-    <div>&nbsp;</div>
-    <div>DAYS OF 93</div>
-    <div>&nbsp;</div>
-    <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
+  <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+    <div>
+      <div>DAYS OF 93</div>
+      <div>&nbsp;</div>
+      <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
+    </div>
+    <div>
+      <div class="c64-sm">**** COMMODORE 64 BASIC V2 ****</div>
+      <div class="c64-sm">&nbsp;</div>
+      <div class="c64-sm">64K RAM SYSTEM &nbsp;38911 BASIC BYTES FREE</div>
+      <div class="c64-sm">&nbsp;</div>
+      <div class="c64-sm">READY.</div>
+      <div class="c64-sm">&nbsp;</div>
+      <div class="c64-sm" id="c64-datetime"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -424,11 +427,7 @@
     document.addEventListener('touchstart', dismiss, { once:true, passive:true });
   }, 2000);
 
-  // mesh canvas fades in after 4s
-  setTimeout(function(){
-    var mc = document.getElementById('mesh-canvas');
-    if(mc) mc.style.opacity = '1';
-  }, 4000);
+
 })();
 </script>
 
@@ -627,11 +626,11 @@ function build(){ drawField(); drawField('about-field'); drawField('work-field')
 
 build();
 
-// fade in bg-vector + MUSIC, fade out hero-sub after 3s
+// fade in bg-vector + MUSIC, fade out hero-sub after 4s
 setTimeout(function(){
   var v=document.getElementById('bg-vector'); if(v) v.style.opacity='1';
   var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
-}, 3000);
+}, 4000);
 
 // fade in MUSIC after 3s, then pulse
 setTimeout(function(){
