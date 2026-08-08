@@ -432,6 +432,10 @@
       var v = document.getElementById('bg-vector');
       if(v){ v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
 
+    }, 4000);
+
+    // grid darkening starts when image scale animation starts (4s JS + 4s CSS delay)
+    setTimeout(function(){
       var field = document.getElementById('field');
       if(field){
         var baseAlpha = 0.12, peakAlpha = 0.45, period = 18000;
@@ -444,7 +448,7 @@
           requestAnimationFrame(loop);
         })(performance.now());
       }
-    }, 4000);
+    }, 8000);
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });
