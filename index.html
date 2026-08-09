@@ -15,6 +15,7 @@
 <meta property="og:description" content="Film Composer Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://daysof93.com" />
+<meta name="theme-color" id="theme-color-meta" content="#E85500" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -422,16 +423,19 @@
 
   function dismiss(){
     if(gone) return; gone = true;
-    // 2 black frames → 1 white frame → fade out
+    var tc = document.getElementById('theme-color-meta');
+    // 3 black frames → 2 white frames → fade out
     boot.style.background = '#000';
+    if(tc) tc.content = '#000000';
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
         requestAnimationFrame(function(){
           boot.style.background = '#fff';
+          if(tc) tc.content = '#ffffff';
           requestAnimationFrame(function(){
             requestAnimationFrame(function(){
-              boot.style.background = '#E85500';
               boot.classList.add('fade-out');
+              if(tc) tc.content = '#ffffff';
               setTimeout(function(){ boot.style.display='none'; }, 950);
             });
           });
