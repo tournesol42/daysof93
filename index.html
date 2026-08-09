@@ -109,7 +109,7 @@
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
     .hero-music{ position:fixed; bottom:90px; right:18px; margin:0; }
   }
-  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 2s ease; transform-origin:center center; }
+  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
   @keyframes bgvector-breathe{
     0%  { transform:scale(1); }
     50% { transform:scale(1.30); }
@@ -410,6 +410,7 @@
   var boot = document.getElementById('c64-boot');
   var gone = false;
   var pageLoadTime = Date.now();
+  document.documentElement.style.background = '#E85500';
 
   // live 1993 clock
   var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -428,20 +429,23 @@
   function dismiss(){
     if(gone) return; gone = true;
     clearInterval(clockInterval);
-    var tc = document.getElementById('theme-color-meta');
     // 3 black frames → 2 white frames → fade out
     boot.style.background = '#000';
-    if(tc) tc.content = '#000000';
+    document.documentElement.style.background = '#000';
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
         requestAnimationFrame(function(){
           boot.style.background = '#fff';
-          if(tc) tc.content = '#ffffff';
+          document.documentElement.style.background = '#fff';
           requestAnimationFrame(function(){
             requestAnimationFrame(function(){
+              document.documentElement.style.background = '#fff';
+              boot.style.background = 'transparent';
               boot.classList.add('fade-out');
-              if(tc) tc.content = '#ffffff';
-              setTimeout(function(){ boot.style.display='none'; }, 950);
+              setTimeout(function(){
+                boot.style.display = 'none';
+                document.documentElement.style.background = '';
+              }, 950);
             });
           });
         });
@@ -677,10 +681,10 @@ function build(){ drawField(); drawField('about-field'); drawField('work-field')
 
 build();
 
-// fade out hero-sub after 4s
+// fade out hero-sub after 6s
 setTimeout(function(){
   var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
-}, 4000);
+}, 6000);
 
 // fade in MUSIC after 3s, then pulse
 setTimeout(function(){
