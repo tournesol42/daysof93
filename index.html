@@ -15,7 +15,7 @@
 <meta property="og:description" content="Film Composer Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://daysof93.com" />
-<meta name="theme-color" id="theme-color-meta" content="#E85500" />
+<meta name="theme-color" id="theme-color-meta" content="#ffffff" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -411,18 +411,23 @@
   var gone = false;
   var pageLoadTime = Date.now();
 
-  // 1993 date/time
-  var now = new Date();
+  // live 1993 clock
   var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  var dd = String(now.getDate()).padStart(2,'0');
-  var hh = String(now.getHours()).padStart(2,'0');
-  var mm = String(now.getMinutes()).padStart(2,'0');
-  var ss = String(now.getSeconds()).padStart(2,'0');
-  document.getElementById('c64-datetime').textContent =
-    dd + ' ' + months[now.getMonth()] + ' 1993  ' + hh + ':' + mm + ':' + ss;
+  function tickClock(){
+    var n = new Date();
+    var el = document.getElementById('c64-datetime');
+    if(el) el.textContent =
+      String(n.getDate()).padStart(2,'0') + ' ' + months[n.getMonth()] + ' 1993  ' +
+      String(n.getHours()).padStart(2,'0') + ':' +
+      String(n.getMinutes()).padStart(2,'0') + ':' +
+      String(n.getSeconds()).padStart(2,'0');
+  }
+  tickClock();
+  var clockInterval = setInterval(tickClock, 1000);
 
   function dismiss(){
     if(gone) return; gone = true;
+    clearInterval(clockInterval);
     var tc = document.getElementById('theme-color-meta');
     // 3 black frames → 2 white frames → fade out
     boot.style.background = '#000';
