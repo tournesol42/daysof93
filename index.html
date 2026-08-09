@@ -410,7 +410,6 @@
   var boot = document.getElementById('c64-boot');
   var gone = false;
   var pageLoadTime = Date.now();
-  document.documentElement.style.background = '#E85500';
 
   // live 1993 clock
   var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -431,21 +430,15 @@
     clearInterval(clockInterval);
     // 3 black frames → 2 white frames → fade out
     boot.style.background = '#000';
-    document.documentElement.style.background = '#000';
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
         requestAnimationFrame(function(){
           boot.style.background = '#fff';
-          document.documentElement.style.background = '#fff';
           requestAnimationFrame(function(){
             requestAnimationFrame(function(){
-              document.documentElement.style.background = '#fff';
               boot.style.background = 'transparent';
               boot.classList.add('fade-out');
-              setTimeout(function(){
-                boot.style.display = 'none';
-                document.documentElement.style.background = '';
-              }, 950);
+              setTimeout(function(){ boot.style.display = 'none'; }, 950);
             });
           });
         });
