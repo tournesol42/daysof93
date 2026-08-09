@@ -385,11 +385,9 @@
     font-size: clamp(24px, 3.4vw, 40px);
     color:#AAAAAA;
     line-height:2; letter-spacing:0.05em;
-    transition: opacity 0.9s ease;
     pointer-events:all;
   }
   #c64-boot .c64-sm{ font-size: clamp(13px, 1.8vw, 21px); line-height:1.8; }
-  #c64-boot.fade-out{ opacity:0; pointer-events:none; }
   #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
   @keyframes c64blink{ 0%,100%{opacity:1} 50%{opacity:0} }
 </style>
@@ -428,7 +426,7 @@
   function dismiss(){
     if(gone) return; gone = true;
     clearInterval(clockInterval);
-    // 3 black frames → 2 white frames → fade out
+    // 3 black frames → 2 white frames → instant hide
     boot.style.background = '#000';
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
@@ -436,9 +434,7 @@
           boot.style.background = '#fff';
           requestAnimationFrame(function(){
             requestAnimationFrame(function(){
-              boot.style.background = 'transparent';
-              boot.classList.add('fade-out');
-              setTimeout(function(){ boot.style.display = 'none'; }, 950);
+              boot.style.display = 'none';
             });
           });
         });
