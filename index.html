@@ -401,7 +401,7 @@
     <div>&nbsp;</div>
     <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
     <div>&nbsp;</div>
-    <div class="c64-sm">**** 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;38911 BASIC BYTES FREE&nbsp;&nbsp;&nbsp;READY.&nbsp;&nbsp;&nbsp;<span id="c64-datetime"></span></div>
+    <div class="c64-sm">**** ConSec 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;38911 BASIC BYTES FREE&nbsp;&nbsp;&nbsp;READY.&nbsp;&nbsp;&nbsp;<span id="c64-datetime"></span></div>
   </div>
 </div>
 <script>
@@ -426,11 +426,15 @@
     boot.style.background = '#000';
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
-        boot.style.background = '#fff';
         requestAnimationFrame(function(){
-          boot.style.background = '#E85500';
-          boot.classList.add('fade-out');
-          setTimeout(function(){ boot.style.display='none'; }, 950);
+          boot.style.background = '#fff';
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+              boot.style.background = '#E85500';
+              boot.classList.add('fade-out');
+              setTimeout(function(){ boot.style.display='none'; }, 950);
+            });
+          });
         });
       });
     });
