@@ -855,11 +855,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
   /* ---- AUDIO CAROUSEL ---- */
   var TRACKS  = ['/Common_frequencis_remix.mp3'];
-  var VOLUME  = 0.60;
+  var VOLUME  = 0.38; /* -4dB from 0.60 */
   var played  = new Set();
   var audioEl = null;
-  var audioPlaying  = false;
-  var audioUnlocked = false;
+  var audioPlaying   = false;
+  var audioScheduled = false;
+  var audioUnlocked  = false;
   var bottomWasActive = false;
 
   function nextTrack(){
@@ -868,7 +869,14 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
+  function scheduleAudio(){
+    if(audioPlaying || audioScheduled) return;
+    audioScheduled = true;
+    setTimeout(startAudio, 3000);
+  }
+
   function startAudio(){
+    audioScheduled = false;
     if(audioPlaying) return;
     var track = nextTrack();
     if(!track){ console.log('d93: all tracks played'); return; }
@@ -898,7 +906,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     audioUnlocked = true;
     console.log('d93: audio unlocked');
     // Already hovering bottom anchor when click fired
-    if(bottomWasActive && !audioPlaying) startAudio();
+    if(bottomWasActive && !audioPlaying) scheduleAudio();
   }
 
   document.addEventListener('click', initAudio);
@@ -1037,7 +1045,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var bottomActive = (activeA===bottomAnchorIdx);
     if(bottomActive && !bottomWasActive){
       console.log('d93: bottom anchor hit, unlocked='+audioUnlocked);
-      if(audioUnlocked && !audioPlaying) startAudio();
+      if(audioUnlocked && !audioPlaying) scheduleAudio();
     }
     bottomWasActive = bottomActive;
     /* ---- end audio trigger ---- */
