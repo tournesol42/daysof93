@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v2-music3 -->
-<script>console.log('d93: music3 v2');</script>
+<!-- build: v3-music3 -->
+<script>console.log('d93: music3 v3');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,17 +78,17 @@
     .full-video-wrap{ margin-top: -20vh; }
   }
 
-  #unmute-btn{
-    position:fixed; bottom:28px; left:28px; z-index:60;
-    background:none; border:none; padding:0; cursor:pointer;
-    font-family:'Jost','Helvetica Neue',sans-serif;
-    font-size:11px; letter-spacing:0.22em; font-weight:300;
-    text-transform:uppercase; color:var(--ink);
-    opacity:0.55; transition:opacity 0.35s ease;
+  #play-btn{
+    display:none;
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:none; border:none; padding:0; margin:0;
+    cursor:pointer; z-index:25;
     -webkit-tap-highlight-color:transparent;
+    width:72px; height:72px;
+    opacity:1; transition:opacity 0.35s ease;
   }
-  #unmute-btn:hover{ opacity:1; }
-  #unmute-btn.gone{ opacity:0; pointer-events:none; }
+  #play-btn.gone{ opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -117,12 +117,16 @@
   </div>
 
   <div class="full-video-wrap">
-    <video id="main-video" autoplay loop muted playsinline preload="auto">
+    <video loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/ICELAND1993V3.mov" type="video/mp4">
     </video>
+    <button id="play-btn" aria-label="Play">
+      <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="30" fill="rgba(0,0,0,0.18)" stroke="white" stroke-width="1.5"/>
+        <polygon points="29,20 29,52 56,36" fill="white"/>
+      </svg>
+    </button>
   </div>
-
-  <button id="unmute-btn" aria-label="Unmute">sound on</button>
 
   <div style="display:flex; justify-content:space-between; align-items:center; padding:28px 28px 60px; position:relative; z-index:20;">
     <a href="music2.html" id="back-arrow" class="hero-title" style="display:block; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&lt;</a>
@@ -192,14 +196,33 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawFiel
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
 
 (function(){
-  var btn   = document.getElementById('unmute-btn');
-  var video = document.getElementById('main-video');
-  if(!btn || !video) return;
-  btn.addEventListener('click', function(){
-    video.muted = false;
-    video.play().catch(function(){});
-    btn.classList.add('gone');
-  });
+  var vid = document.querySelector('.full-video-wrap video');
+  var btn = document.getElementById('play-btn');
+  if(!vid) return;
+
+  if(window.innerWidth < 720){
+    if(btn) btn.style.display = 'block';
+    vid.muted = true;
+    vid.play().then(function(){ vid.pause(); vid.currentTime = 0; }).catch(function(){});
+  } else {
+    vid.muted = false;
+    vid.play()
+      .then(function(){ if(btn) btn.classList.add('gone'); })
+      .catch(function(){
+        vid.muted = true;
+        vid.play().catch(function(){});
+        if(btn) btn.style.display = 'block';
+      });
+  }
+
+  if(btn){
+    btn.addEventListener('click', function(){
+      vid.muted = false;
+      vid.play()
+        .then(function(){ btn.classList.add('gone'); })
+        .catch(function(){});
+    }, { once: true });
+  }
 })();
 </script>
 </body>
