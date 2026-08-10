@@ -220,7 +220,10 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
       vid.muted = false;
       vid.play()
         .then(function(){ btn.classList.add('gone'); })
-        .catch(function(){});
+        .catch(function(){
+          vid.muted = true;
+          vid.play().then(function(){ btn.classList.add('gone'); }).catch(function(){});
+        });
     }, { once: true });
   }
 })();

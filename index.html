@@ -389,7 +389,6 @@
     color:#AAAAAA;
     line-height:2; letter-spacing:0.05em;
     pointer-events:all;
-    transition: opacity 1s ease;
   }
   #c64-boot .c64-sm{ font-size: clamp(13px, 1.8vw, 21px); line-height:1.8; }
   #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
@@ -430,8 +429,20 @@
   function dismiss(){
     if(gone) return; gone = true;
     clearInterval(clockInterval);
-    boot.style.opacity = '0';
-    setTimeout(function(){ boot.style.display = 'none'; }, 1000);
+    // 3 black frames → 2 white frames → instant hide
+    boot.style.background = '#000';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          boot.style.background = '#fff';
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+              boot.style.display = 'none';
+            });
+          });
+        });
+      });
+    });
     // fade in image + start grid animation 4s after dismiss
     setTimeout(function(){
       var v = document.getElementById('bg-vector');
