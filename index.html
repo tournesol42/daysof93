@@ -412,6 +412,9 @@
   var gone = false;
   var pageLoadTime = Date.now();
 
+  // skip C64 when arriving via a hash link (e.g. #about from music pages)
+  if(window.location.hash){ boot.style.display='none'; return; }
+
   // live 1993 clock
   var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   function tickClock(){
