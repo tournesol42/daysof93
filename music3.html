@@ -202,20 +202,10 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
   var btn = document.getElementById('play-btn');
   if(!vid) return;
 
-  if(window.innerWidth < 720){
-    if(btn) btn.style.display = 'block';
-    vid.muted = true;
-    vid.play().then(function(){ vid.pause(); vid.currentTime = 0; }).catch(function(){});
-  } else {
-    vid.muted = false;
-    vid.play()
-      .then(function(){ if(btn) btn.classList.add('gone'); })
-      .catch(function(){
-        vid.muted = true;
-        vid.play().catch(function(){});
-        if(btn) btn.style.display = 'block';
-      });
-  }
+  // same behaviour on desktop and mobile: show play button, render first frame muted
+  if(btn) btn.style.display = 'block';
+  vid.muted = true;
+  vid.play().then(function(){ vid.pause(); vid.currentTime = 0; }).catch(function(){});
 
   var _audioCtx = null;
   function setupGain(video){
