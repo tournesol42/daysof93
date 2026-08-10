@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v3-music3 -->
-<script>console.log('d93: music3 v3');</script>
+<!-- build: v4-music3 -->
+<script>console.log('d93: music3 v4');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,7 +110,7 @@
     </nav>
   </header>
 
-  <div class="hero"></div>
+  <div class="hero" style="pointer-events:none;"></div>
 
   <div id="days-label" style="position:fixed; top:52px; right:28px; z-index:40; pointer-events:none;">
     <div class="hero-title" style="font-size:clamp(4.5rem,13vw,16rem); font-weight:900; opacity:0.07; text-align:right;">DAYS<br>OF 93.</div>
@@ -127,6 +127,8 @@
       </svg>
     </button>
   </div>
+
+  <p style="font-family:'Jost','Helvetica Neue',sans-serif; font-size:11px; letter-spacing:0.14em; font-weight:300; text-transform:uppercase; color:var(--ink); opacity:0.55; padding:12px 28px 0; position:relative; z-index:20;">Reykjavik 1993. Modular synths, no grid, live orchestrals</p>
 
   <div style="display:flex; justify-content:space-between; align-items:center; padding:28px 28px 60px; position:relative; z-index:20;">
     <a href="music2.html" id="back-arrow" class="hero-title" style="display:block; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&lt;</a>
@@ -215,8 +217,22 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
       });
   }
 
+  var _audioCtx = null;
+  function setupGain(video){
+    if(_audioCtx) return;
+    try{
+      _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      var src = _audioCtx.createMediaElementSource(video);
+      var gain = _audioCtx.createGain();
+      gain.gain.value = 1.778; /* +5dB */
+      src.connect(gain);
+      gain.connect(_audioCtx.destination);
+    }catch(e){}
+  }
+
   if(btn){
     btn.addEventListener('click', function(){
+      setupGain(vid);
       vid.muted = false;
       vid.play()
         .then(function(){ btn.classList.add('gone'); })
@@ -225,6 +241,10 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
           vid.play().then(function(){ btn.classList.add('gone'); }).catch(function(){});
         });
     }, { once: true });
+  }
+
+  if(window.innerWidth >= 720){
+    vid.play().then(function(){ setupGain(vid); }).catch(function(){});
   }
 })();
 </script>
