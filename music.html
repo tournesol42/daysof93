@@ -219,7 +219,7 @@
   </div>
 
   <div class="alpha-wrap">
-    <video autoplay loop muted playsinline preload="auto">
+    <video loop muted playsinline preload="auto">
       <source src="https://daysof93-cdn.b-cdn.net/TD%20COLORS%20h264.mp4" type="video/mp4">
     </video>
     <button id="play-btn" aria-label="Play">
@@ -729,20 +729,24 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
       .catch(function(){ if(btn) btn.style.display = 'block'; });
   }
 
-  // Desktop only: try autoplay. Mobile always requires a tap.
+  var heroVid = document.querySelector('.alpha-wrap video');
+
   if(window.innerWidth >= 720){
+    // Desktop: start audio, start video
     startAudio();
+    if(heroVid){ heroVid.muted = true; heroVid.play().catch(function(){}); }
   } else {
+    // Mobile: show button, render first frame then pause
     if(btn) btn.style.display = 'block';
+    if(heroVid){
+      heroVid.muted = true;
+      heroVid.play().then(function(){ heroVid.pause(); heroVid.currentTime = 0; }).catch(function(){});
+    }
   }
 
-  // Play button: start audio AND ensure the alpha video is playing.
-  // On slow connections the video may still be buffering — play() here
-  // gives it an explicit push inside the user-gesture context.
   if(btn){
     btn.addEventListener('click', function(){
-      var vid = document.querySelector('.alpha-wrap video');
-      if(vid && vid.paused) vid.play().catch(function(){});
+      if(heroVid && heroVid.paused) heroVid.play().catch(function(){});
       startAudio();
       btn.classList.add('gone');
     }, { once: true });
