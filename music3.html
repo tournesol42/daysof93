@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v1-music3 -->
-<script>console.log('d93: music3 v1');</script>
+<!-- build: v2-music3 -->
+<script>console.log('d93: music3 v2');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,6 +77,18 @@
   @media (max-width:720px){
     .full-video-wrap{ margin-top: -20vh; }
   }
+
+  #unmute-btn{
+    position:fixed; bottom:28px; left:28px; z-index:60;
+    background:none; border:none; padding:0; cursor:pointer;
+    font-family:'Jost','Helvetica Neue',sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:var(--ink);
+    opacity:0.55; transition:opacity 0.35s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #unmute-btn:hover{ opacity:1; }
+  #unmute-btn.gone{ opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -105,10 +117,12 @@
   </div>
 
   <div class="full-video-wrap">
-    <video autoplay loop muted playsinline preload="auto">
-      <source src="https://daysof93-cdn.b-cdn.net/Iceland1993.mov" type="video/mp4">
+    <video id="main-video" autoplay loop muted playsinline preload="auto">
+      <source src="https://daysof93-cdn.b-cdn.net/ICELAND1993V3.mov" type="video/mp4">
     </video>
   </div>
+
+  <button id="unmute-btn" aria-label="Unmute">sound on</button>
 
   <div style="display:flex; justify-content:space-between; align-items:center; padding:28px 28px 60px; position:relative; z-index:20;">
     <a href="music2.html" id="back-arrow" class="hero-title" style="display:block; margin:0; opacity:0; transition:opacity 1.2s ease; color:var(--ink); text-decoration:none;">&lt;</a>
@@ -176,6 +190,17 @@ let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(drawField,150); });
 
 setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600);
+
+(function(){
+  var btn   = document.getElementById('unmute-btn');
+  var video = document.getElementById('main-video');
+  if(!btn || !video) return;
+  btn.addEventListener('click', function(){
+    video.muted = false;
+    video.play().catch(function(){});
+    btn.classList.add('gone');
+  });
+})();
 </script>
 </body>
 </html>
