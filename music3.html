@@ -207,30 +207,12 @@ setTimeout(()=>{ document.getElementById('back-arrow').style.opacity='1'; }, 600
   vid.muted = true;
   vid.play().then(function(){ vid.pause(); vid.currentTime = 0; }).catch(function(){});
 
-  var _audioCtx = null;
-  function setupGain(video){
-    if(_audioCtx) return;
-    try{
-      _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      _audioCtx.resume();
-      var src = _audioCtx.createMediaElementSource(video);
-      var gain = _audioCtx.createGain();
-      gain.gain.value = 1.778; /* +5dB */
-      src.connect(gain);
-      gain.connect(_audioCtx.destination);
-    }catch(e){}
-  }
-
   if(btn){
     btn.addEventListener('click', function(){
-      setupGain(vid);
       vid.muted = false;
       vid.play()
         .then(function(){ btn.classList.add('gone'); })
-        .catch(function(){
-          vid.muted = true;
-          vid.play().then(function(){ btn.classList.add('gone'); }).catch(function(){});
-        });
+        .catch(function(){});
     }, { once: true });
   }
 })();
