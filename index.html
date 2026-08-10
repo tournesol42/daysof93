@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v169-mesh-center-mobile -->
+<!-- build: v170-mesh-scale-mobile -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -563,7 +563,7 @@
     </div>
     <div class="overlay-inner">
       <p class="bio-title">DAYS<br>OF 93.</p>
-      <p class="bio-text">Human. Composing for film and television. Since the days when digital was an analog dream. Crafting organic electronic sounds.</p>
+      <p class="bio-text">Human. Danish Composer, Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream. Composing for film and television</p>
       <a href="#" class="overlay-close" id="about-close">close</a>
     </div>
   </div>
@@ -1109,7 +1109,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var center = box.getCenter(new THREE.Vector3());
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
-      root.scale.setScalar(3.15/Math.max(size.x,size.y,size.z));
+      root.scale.setScalar((window.innerWidth < 720 ? 2.0 : 3.15)/Math.max(size.x,size.y,size.z));
       root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0 : 0.3;
       root.traverse(function(child){
