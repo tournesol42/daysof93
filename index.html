@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v172-mesh-scale-restore -->
+<!-- build: v173-bgvector-delay-8s -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -446,14 +446,14 @@
         });
       });
     });
-    // fade in image + start grid animation 4s after dismiss
+    // fade in image + start grid animation 8s after dismiss
     setTimeout(function(){
       var v = document.getElementById('bg-vector');
       if(v){ v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
       var mc = document.getElementById('mesh-canvas');
       if(mc) mc.classList.add('mesh-breathing');
 
-    }, 4000);
+    }, 8000);
 
     // grid darkening starts when image scale animation starts (4s JS + 4s CSS delay)
     setTimeout(function(){
