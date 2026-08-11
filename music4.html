@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v49-music4 -->
-<script>console.log('d93: music4 v49');</script>
+<!-- build: v50-music4 -->
+<script>console.log('d93: music4 v50');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +49,7 @@
   /* slots 2-6 */
   #slot2{ width:64vw; height:70vh; margin-left:auto; margin-top:-22vh; z-index:2; pointer-events:all; }
   #slot3{ width:50vw; height:60vh; margin-left:7vw;  margin-top:-14vh; z-index:3; pointer-events:all; }
-  #slot4{ width:74vw; height:78vh; margin-left:auto; margin-top:-18vh; z-index:4; pointer-events:all; }
+  #slot4{ width:74vw; height:78vh; margin-left:auto; margin-top:0; z-index:4; pointer-events:all; }
   #slot5{ width:56vw; height:64vh; margin-left:18vw; margin-top:-20vh; z-index:5; pointer-events:all; }
   #slot6{ width:66vw; height:74vh; margin-left:auto; margin-top:-16vh; z-index:6; pointer-events:all; margin-bottom:12vh; }
 
@@ -91,15 +91,15 @@
   </video>
 </div>
 
-<!-- slot 3: LFO flicker with occasional fast bursts -->
-<div class="slot slot--lfo" id="slot3">
+<!-- slot 3: simple fade reveal -->
+<div class="slot slot--fade" id="slot3">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic3.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 4: random opacity pulse -->
-<div class="slot slot--pulse" id="slot4">
+<!-- slot 4: simple fade reveal -->
+<div class="slot slot--fade" id="slot4">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople3.webm" type="video/webm">
   </video>
@@ -204,6 +204,15 @@ function swapVideo(vid){
   }
   scheduleDim();
 })();
+
+/* ---- FADE: simple show/hide ---- */
+function makeFade(slot){
+  var vid=slot.querySelector('video');
+  return {
+    show:function(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='1'; },
+    hide:function(){ vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='0'; }
+  };
+}
 
 /* ---- PULSE: random slow opacity fades ---- */
 function makePulse(slot){
@@ -332,6 +341,7 @@ function makeJitter(slot){
 
 /* ---- wire up slots 2-6 ---- */
 var handlers={};
+document.querySelectorAll('.slot--fade').forEach(function(s){ handlers[s.id]=makeFade(s); });
 document.querySelectorAll('.slot--pulse').forEach(function(s){ handlers[s.id]=makePulse(s); });
 document.querySelectorAll('.slot--lfo').forEach(function(s){ handlers[s.id]=makeLFO(s); });
 document.querySelectorAll('.slot--jitter').forEach(function(s){ handlers[s.id]=makeJitter(s); });
