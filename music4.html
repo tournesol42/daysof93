@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v50-music4 -->
-<script>console.log('d93: music4 v50');</script>
+<!-- build: v51-music4 -->
+<script>console.log('d93: music4 v51');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,12 +46,12 @@
   #slot1{ width:100%; height:92vh; z-index:1; margin-top:100px; }
   #slot1 video{ opacity:1; }
 
-  /* slots 2-6 */
-  #slot2{ width:64vw; height:70vh; margin-left:auto; margin-top:-22vh; z-index:2; pointer-events:all; }
-  #slot3{ width:50vw; height:60vh; margin-left:7vw;  margin-top:-14vh; z-index:3; pointer-events:all; }
-  #slot4{ width:74vw; height:78vh; margin-left:auto; margin-top:0; z-index:4; pointer-events:all; }
-  #slot5{ width:56vw; height:64vh; margin-left:18vw; margin-top:-20vh; z-index:5; pointer-events:all; }
-  #slot6{ width:66vw; height:74vh; margin-left:auto; margin-top:-16vh; z-index:6; pointer-events:all; margin-bottom:12vh; }
+  /* slots 2-6: nearly full-width, gaps set randomly by JS */
+  #slot2{ width:96vw; height:70vh; margin-left:2vw; z-index:2; pointer-events:all; }
+  #slot3{ width:96vw; height:60vh; margin-left:2vw; z-index:3; pointer-events:all; }
+  #slot4{ width:96vw; height:78vh; margin-left:2vw; z-index:4; pointer-events:all; }
+  #slot5{ width:96vw; height:64vh; margin-left:2vw; z-index:5; pointer-events:all; }
+  #slot6{ width:96vw; height:74vh; margin-left:2vw; z-index:6; pointer-events:all; margin-bottom:12vh; }
 
   /* jitter slots: video slightly oversized so translate doesn't reveal edges */
   .slot--jitter video{
@@ -61,9 +61,7 @@
   }
 
   @media(max-width:720px){
-    #slot2,#slot3,#slot4,#slot5,#slot6{
-      width:90vw; margin-left:auto; margin-right:auto; margin-top:-8vh;
-    }
+    #slot2,#slot3,#slot4,#slot5,#slot6{ width:96vw; margin-left:2vw; }
   }
 </style>
 </head>
@@ -204,6 +202,12 @@ function swapVideo(vid){
   }
   scheduleDim();
 })();
+
+/* ---- random gaps between slots 2-6 ---- */
+['slot2','slot3','slot4','slot5','slot6'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el) el.style.marginTop=Math.round(6+Math.random()*16)+'px';
+});
 
 /* ---- FADE: simple show/hide ---- */
 function makeFade(slot){
