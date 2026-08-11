@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v48-music4 -->
-<script>console.log('d93: music4 v48');</script>
+<!-- build: v49-music4 -->
+<script>console.log('d93: music4 v49');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,68 +33,36 @@
     nav a{ font-size:10px; }
   }
 
-  /* perspective grid overlay, same as other pages */
   .field{ position:fixed; inset:0; z-index:15; pointer-events:none; }
 
-  /* slot: base */
-  .slot{
-    position:relative;
-    overflow:hidden;
-  }
+  .slot{ position:relative; overflow:hidden; }
   .slot video{
     position:absolute; inset:0;
     width:100%; height:100%; object-fit:cover;
     opacity:0; will-change:opacity;
   }
-  .slot canvas.gl-canvas{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    opacity:0; transition:opacity 0.6s ease;
-  }
 
-  /* slot 1: full-width base, always playing — pushed below fixed header */
-  #slot1{
-    width:100%; height:92vh;
-    z-index:1; margin-top:64px;
-  }
-  #slot1 video{ opacity:1; transition:none; }
+  /* slot 1: full-width, always on — pushed down from nav */
+  #slot1{ width:100%; height:92vh; z-index:1; margin-top:100px; }
+  #slot1 video{ opacity:1; }
 
-  /* slots 2-6: varying size, overlapping via negative margin-top */
-  #slot2{
-    width:64vw; height:70vh;
-    margin-left:auto; margin-top:-22vh;
-    z-index:2; cursor:none;
-    pointer-events:all;
-  }
-  #slot3{
-    width:50vw; height:60vh;
-    margin-left:7vw; margin-top:-14vh;
-    z-index:3; cursor:none;
-    pointer-events:all;
-  }
-  #slot4{
-    width:74vw; height:78vh;
-    margin-left:auto; margin-top:-18vh;
-    z-index:4; cursor:none;
-    pointer-events:all;
-  }
-  #slot5{
-    width:56vw; height:64vh;
-    margin-left:18vw; margin-top:-20vh;
-    z-index:5; cursor:none;
-    pointer-events:all;
-  }
-  #slot6{
-    width:66vw; height:74vh;
-    margin-left:auto; margin-top:-16vh;
-    z-index:6; cursor:none;
-    pointer-events:all;
-    margin-bottom:12vh;
+  /* slots 2-6 */
+  #slot2{ width:64vw; height:70vh; margin-left:auto; margin-top:-22vh; z-index:2; pointer-events:all; }
+  #slot3{ width:50vw; height:60vh; margin-left:7vw;  margin-top:-14vh; z-index:3; pointer-events:all; }
+  #slot4{ width:74vw; height:78vh; margin-left:auto; margin-top:-18vh; z-index:4; pointer-events:all; }
+  #slot5{ width:56vw; height:64vh; margin-left:18vw; margin-top:-20vh; z-index:5; pointer-events:all; }
+  #slot6{ width:66vw; height:74vh; margin-left:auto; margin-top:-16vh; z-index:6; pointer-events:all; margin-bottom:12vh; }
+
+  /* jitter slots: video slightly oversized so translate doesn't reveal edges */
+  .slot--jitter video{
+    width:calc(100% + 14px); height:calc(100% + 14px);
+    left:-7px; top:-7px; inset:unset;
+    will-change:transform;
   }
 
   @media(max-width:720px){
     #slot2,#slot3,#slot4,#slot5,#slot6{
-      width:90vw; margin-left:auto; margin-right:auto; margin-top:-10vh;
+      width:90vw; margin-left:auto; margin-right:auto; margin-top:-8vh;
     }
   }
 </style>
@@ -109,57 +77,54 @@
   </nav>
 </header>
 
-<!-- slot 1: full size, always playing, Botanic1 — fade mode (auto-visible) -->
+<!-- slot 1: full size, always playing, random dim -->
 <div class="slot" id="slot1">
   <video muted loop playsinline preload="auto">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic1.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 2: WebGL organic, right-aligned, Manypeople1 -->
-<div class="slot slot--webgl" id="slot2">
+<!-- slot 2: random opacity pulse -->
+<div class="slot slot--pulse" id="slot2">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople1.webm" type="video/webm">
   </video>
-  <canvas class="gl-canvas"></canvas>
 </div>
 
-<!-- slot 3: LFO flicker, left-aligned, Botanic3 -->
+<!-- slot 3: LFO flicker with occasional fast bursts -->
 <div class="slot slot--lfo" id="slot3">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic3.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 4: fade, right-aligned, Manypeople3 -->
-<div class="slot slot--fade" id="slot4">
+<!-- slot 4: random opacity pulse -->
+<div class="slot slot--pulse" id="slot4">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople3.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 5: WebGL organic, centre, Botanic5 -->
-<div class="slot slot--webgl" id="slot5">
+<!-- slot 5: jitter movement + random video every ~30s -->
+<div class="slot slot--jitter" id="slot5">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic5.webm" type="video/webm">
   </video>
-  <canvas class="gl-canvas"></canvas>
 </div>
 
-<!-- slot 6: LFO flicker, right-aligned, Manypeople7 -->
-<div class="slot slot--lfo" id="slot6">
+<!-- slot 6: jitter movement + random video every ~30s -->
+<div class="slot slot--jitter" id="slot6">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople7.webm" type="video/webm">
   </video>
 </div>
 
-<!-- perspective grid -->
 <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
 
 <script>
 (function(){
 'use strict';
-console.log('d93: music4 v48 init');
+console.log('d93: music4 v49 init');
 
 /* ---- perspective grid ---- */
 function daySeed(){ var d=new Date(); return d.getFullYear()*1000+dayOfYear(d); }
@@ -171,198 +136,221 @@ function drawField(){
   var w=window.innerWidth, h=window.innerHeight;
   svg.setAttribute('viewBox','0 0 '+w+' '+h);
   var camX=(seededRand(SEED+1)-0.5)*40, camTilt=(seededRand(SEED+2)-0.5)*0.02;
-  var vpX=w*0.5+camX, vpY=h*0.62, lines='';
+  var vpX=w*0.5+camX, vpY=h*0.62, ln='';
   for(var i=0;i<=18;i++){
     var t=i/18, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
-    lines+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="'+op+'"/>';
+    ln+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="'+op+'"/>';
   }
   for(var i=0;i<=16;i++){
     var x=(i/16)*w;
-    lines+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="0.18"/>';
+    ln+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="0.18"/>';
   }
   var ay=Math.sin(camTilt);
-  lines+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.48"/>';
-  lines+='<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.42"/>';
+  ln+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.48"/>';
+  ln+='<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.42"/>';
   var r=9;
-  lines+='<circle cx="'+vpX+'" cy="'+vpY+'" r="'+r+'" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.55"/>';
-  lines+='<line x1="'+(vpX-r-4)+'" y1="'+vpY+'" x2="'+(vpX+r+4)+'" y2="'+vpY+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
-  lines+='<line x1="'+vpX+'" y1="'+(vpY-r-4)+'" x2="'+vpX+'" y2="'+(vpY+r+4)+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
-  svg.innerHTML=lines;
+  ln+='<circle cx="'+vpX+'" cy="'+vpY+'" r="'+r+'" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.55"/>';
+  ln+='<line x1="'+(vpX-r-4)+'" y1="'+vpY+'" x2="'+(vpX+r+4)+'" y2="'+vpY+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+  ln+='<line x1="'+vpX+'" y1="'+(vpY-r-4)+'" x2="'+vpX+'" y2="'+(vpY+r+4)+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+  svg.innerHTML=ln;
 }
 drawField();
 var _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(drawField,150); });
 
-/* ---- slot 1: always on ---- */
-(function(){ var v=document.querySelector('#slot1 video'); if(v) v.play().catch(function(){}); console.log('d93: slot1 auto-play'); })();
-
-/* ---- WebGL ---- */
-var VS=['attribute vec2 aPos;','varying vec2 vUV;','void main(){','  vUV=vec2(aPos.x*0.5+0.5,0.5-aPos.y*0.5);','  gl_Position=vec4(aPos,0.0,1.0);}'].join('\n');
-var FS=['precision mediump float;','uniform sampler2D uVideo;','uniform float uTime;','varying vec2 vUV;','void main(){',
-  '  vec4 c=texture2D(uVideo,vUV);','  float t=uTime*0.001;',
-  '  float w1=sin(vUV.x*3.8+t*0.7)*0.5+0.5;',
-  '  float w2=sin(vUV.y*2.6+t*0.55+1.57)*0.5+0.5;',
-  '  float w3=sin((vUV.x-vUV.y)*2.2+t*0.35)*0.5+0.5;',
-  '  float alpha=smoothstep(0.05,0.55,(w1+w2*0.8+w3*0.5)/2.3);',
-  '  gl_FragColor=vec4(c.rgb,alpha);}'].join('\n');
-
-function mkShader(gl,type,src){
-  var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
-  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){ console.error('d93: shader',gl.getShaderInfoLog(s)); return null; }
-  return s;
+/* ---- video pool for random swap ---- */
+var CDN='https://daysof93-cdn.b-cdn.net/Cutups_various/';
+var POOL=[
+  'Botanic1.webm','Botanic2.webm','Botanic3.webm','Botanic4.webm',
+  'Botanic5.webm','Botanic6.webm','Botanic7.webm',
+  'Manypeople1.webm','Manypeople2.webm','Manypeople3.webm',
+  'Manypeople4.webm','manypeople5.webm','Manypeople7.webm'
+];
+function pickOther(currentSrc){
+  var others=POOL.filter(function(f){ return currentSrc.indexOf(f)===-1; });
+  return others[Math.floor(Math.random()*others.length)];
 }
-function buildGL(canvas){
-  var gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false});
-  if(!gl){ console.warn('d93: no webgl'); return null; }
-  var vs=mkShader(gl,gl.VERTEX_SHADER,VS), fs=mkShader(gl,gl.FRAGMENT_SHADER,FS);
-  if(!vs||!fs) return null;
-  var prog=gl.createProgram();
-  gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
-  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ console.error('d93: link',gl.getProgramInfoLog(prog)); return null; }
-  gl.useProgram(prog);
-  var buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-  var ap=gl.getAttribLocation(prog,'aPos');
-  gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
-  var tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  gl.uniform1i(gl.getUniformLocation(prog,'uVideo'),0);
-  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.clearColor(0,0,0,0);
-  return {gl:gl,tex:tex,uTime:gl.getUniformLocation(prog,'uTime')};
+function swapVideo(vid){
+  var newFile=pickOther(vid.src||'');
+  console.log('d93: video swap →',newFile);
+  vid.style.transition='opacity 0.35s ease'; vid.style.opacity='0';
+  setTimeout(function(){
+    vid.src=CDN+newFile; vid.load();
+    vid.addEventListener('canplay',function h(){ vid.removeEventListener('canplay',h); vid.play().catch(function(){}); vid.style.opacity='1'; },{once:true});
+  },350);
 }
-function renderGL(state,vid,raf){
-  var gl=state.gl, canvas=gl.canvas;
-  var w=canvas.parentElement.clientWidth, h=canvas.parentElement.clientHeight;
-  if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; gl.viewport(0,0,w,h); }
-  if(vid.readyState>=2){
-    gl.bindTexture(gl.TEXTURE_2D,state.tex);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(state.uTime,performance.now());
-    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+
+/* ---- slot 1: auto-play + random dim to 40-50% ---- */
+(function(){
+  var vid=document.querySelector('#slot1 video');
+  if(!vid) return;
+  vid.play().catch(function(){ console.warn('d93: slot1 play blocked'); });
+  console.log('d93: slot1 auto-play');
+
+  function scheduleDim(){
+    var wait=12000+Math.random()*15000;
+    setTimeout(function(){
+      var target=(0.40+Math.random()*0.10).toFixed(2);
+      var dimMs=1200+Math.random()*1000;
+      var holdMs=1800+Math.random()*3000;
+      var upMs=1500+Math.random()*800;
+      vid.style.transition='opacity '+dimMs+'ms ease-in-out';
+      vid.style.opacity=target;
+      setTimeout(function(){
+        vid.style.transition='opacity '+upMs+'ms ease-in-out';
+        vid.style.opacity='1';
+        setTimeout(scheduleDim,upMs+400);
+      },dimMs+holdMs);
+    },wait);
   }
-  if(raf.on) raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); });
-}
+  scheduleDim();
+})();
 
-/* ---- reveal mode factories — each returns { show, hide } ---- */
-function makeFade(slot){
+/* ---- PULSE: random slow opacity fades ---- */
+function makePulse(slot){
   var vid=slot.querySelector('video');
-  return {
-    show:function(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='1'; },
-    hide:function(){ vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='0'; }
-  };
-}
+  var showing=false, timer=null;
 
-function makeWebGL(slot){
-  var vid=slot.querySelector('video');
-  var canvas=slot.querySelector('canvas.gl-canvas');
-  var state=canvas?buildGL(canvas):null;
-  var raf={on:false,id:null};
-  if(!state) return makeFade(slot);
+  function pulse(){
+    if(!showing) return;
+    var op=(0.45+Math.random()*0.55).toFixed(2);
+    var ms=700+Math.random()*1800;
+    vid.style.transition='opacity '+ms+'ms ease-in-out';
+    vid.style.opacity=op;
+    timer=setTimeout(pulse, ms+Math.random()*400);
+  }
+
   return {
     show:function(){
+      showing=true;
       vid.play().catch(function(){});
-      canvas.style.opacity='1';
-      if(!raf.on){ raf.on=true; raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); }); }
+      vid.style.transition='opacity 0.8s ease-in-out'; vid.style.opacity='1';
+      clearTimeout(timer); timer=setTimeout(pulse,1000);
     },
     hide:function(){
-      canvas.style.opacity='0'; raf.on=false;
-      if(raf.id){ cancelAnimationFrame(raf.id); raf.id=null; }
+      showing=false; clearTimeout(timer);
+      vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='0';
     }
   };
 }
 
+/* ---- LFO: 10Hz flicker → glow-die; 30% chance of fast burst ---- */
 function makeLFO(slot){
   var vid=slot.querySelector('video');
-  var anim=null;
-  var inView=false;
-  var restartTimer=null;
+  var anim=null, inView=false, restartTimer=null;
 
   function startFlicker(){
     if(anim) anim.cancel();
     clearTimeout(restartTimer);
     vid.play().catch(function(){});
-    vid.style.transition=''; vid.style.opacity='1'; vid.style.filter='brightness(1)';
-    console.log('d93: lfo start',slot.id);
-    var t0=performance.now(), rafId=null, dead=false;
 
+    var fast=Math.random()<0.30;
+    var dur=fast?320:1000;
+    var hz=fast?35:95;          /* ms per square-wave half-cycle */
+    var peak=fast?1.25:1.5;
+
+    vid.style.transition=''; vid.style.opacity='1'; vid.style.filter='brightness(1)';
+    console.log('d93: lfo start',slot.id,fast?'FAST':'');
+
+    var t0=performance.now(), rafId=null, dead=false;
     function tick(now){
       if(dead) return;
       var el=now-t0;
-      if(el<1000){
-        vid.style.filter='brightness('+(Math.floor(el/100)%2===0?1:0)+')';
+      if(el<dur){
+        vid.style.filter='brightness('+(Math.floor(el/hz)%2===0?1:0)+')';
         rafId=requestAnimationFrame(tick);
       } else {
         var g0=performance.now();
-        (function glow(now2){
+        (function glow(n){
           if(dead) return;
-          var p=Math.min((now2-g0)/200,1);
-          /* brightness peaks at 1.5 — visible but not overblown */
-          vid.style.filter='brightness('+(1+p*0.5).toFixed(2)+')';
+          var p=Math.min((n-g0)/200,1);
+          vid.style.filter='brightness('+(1+p*(peak-1)).toFixed(2)+')';
           if(p<1){ rafId=requestAnimationFrame(glow); }
           else {
-            vid.style.filter='brightness(1.5)';
+            vid.style.filter='brightness('+peak+')';
             vid.style.transition='opacity 500ms ease';
             vid.style.opacity='0';
             setTimeout(function(){
               if(dead) return;
               vid.style.transition=''; vid.style.filter=''; anim=null;
-              console.log('d93: lfo done',slot.id);
-              /* auto-restart after pause if slot still in view */
-              if(inView) restartTimer=setTimeout(startFlicker,1800);
+              if(inView) restartTimer=setTimeout(startFlicker,fast?600:1800);
             },520);
           }
         })(performance.now());
       }
     }
     rafId=requestAnimationFrame(tick);
-    anim={cancel:function(){
-      dead=true; if(rafId) cancelAnimationFrame(rafId);
-      vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null;
-    }};
+    anim={cancel:function(){ dead=true; if(rafId) cancelAnimationFrame(rafId); vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null; }};
   }
 
   return {
     show:function(){ inView=true; if(!anim) startFlicker(); },
+    hide:function(){ inView=false; clearTimeout(restartTimer); if(anim) anim.cancel(); }
+  };
+}
+
+/* ---- JITTER: fast low-amplitude position flutter + random video swap ---- */
+function makeJitter(slot){
+  var vid=slot.querySelector('video');
+  var showing=false, jTimer=null, swapTimer=null;
+
+  function doJitter(){
+    if(!showing){ vid.style.transform='translate(0,0)'; return; }
+    if(Math.random()<0.18){
+      vid.style.transform='translate(0,0)';
+    } else {
+      var x=((Math.random()-0.5)*2*3).toFixed(1);
+      var y=((Math.random()-0.5)*2*3).toFixed(1);
+      vid.style.transform='translate('+x+'px,'+y+'px)';
+    }
+    jTimer=setTimeout(doJitter,25+Math.random()*90);
+  }
+
+  function scheduleSwap(){
+    swapTimer=setTimeout(function(){
+      if(!showing) return;
+      swapVideo(vid);
+      scheduleSwap();
+    },28000+Math.random()*8000);
+  }
+
+  return {
+    show:function(){
+      showing=true;
+      vid.play().catch(function(){});
+      vid.style.transition='opacity 0.5s ease'; vid.style.opacity='1';
+      doJitter();
+      scheduleSwap();
+    },
     hide:function(){
-      inView=false; clearTimeout(restartTimer);
-      if(anim) anim.cancel();
+      showing=false;
+      clearTimeout(jTimer); clearTimeout(swapTimer);
+      vid.style.transform='translate(0,0)';
+      vid.style.transition='opacity 0.5s ease'; vid.style.opacity='0';
     }
   };
 }
 
-/* ---- wire up slots 2-6 with scroll + hover ---- */
+/* ---- wire up slots 2-6 ---- */
 var handlers={};
-document.querySelectorAll('.slot--fade').forEach(function(s){ handlers[s.id]=makeFade(s); });
-document.querySelectorAll('.slot--webgl').forEach(function(s){ handlers[s.id]=makeWebGL(s); });
+document.querySelectorAll('.slot--pulse').forEach(function(s){ handlers[s.id]=makePulse(s); });
 document.querySelectorAll('.slot--lfo').forEach(function(s){ handlers[s.id]=makeLFO(s); });
+document.querySelectorAll('.slot--jitter').forEach(function(s){ handlers[s.id]=makeJitter(s); });
 
-/* scroll trigger via IntersectionObserver (20% of slot visible → show) */
+/* scroll: IntersectionObserver @ 20% */
 var io=new IntersectionObserver(function(entries){
   entries.forEach(function(e){
     var h=handlers[e.target.id]; if(!h) return;
-    if(e.isIntersecting){ h.show(); console.log('d93: scroll-in',e.target.id); }
+    if(e.isIntersecting){ h.show(); console.log('d93: in-view',e.target.id); }
     else { h.hide(); }
   });
 },{threshold:0.20});
+Object.keys(handlers).forEach(function(id){ var el=document.getElementById(id); if(el) io.observe(el); });
 
-Object.keys(handlers).forEach(function(id){
-  var el=document.getElementById(id);
-  if(el) io.observe(el);
-});
-
-/* hover also triggers (mouseenter while in view keeps it showing on approach) */
+/* hover also triggers */
 Object.keys(handlers).forEach(function(id){
   var el=document.getElementById(id); if(!el) return;
-  var h=handlers[id];
-  el.addEventListener('mouseenter',function(){ h.show(); });
-  el.addEventListener('mouseleave',function(){
-    /* only hide on mouse-leave if slot is not in intersection observer's "in" state */
-    /* we track this via the IO — re-hide will be a no-op if IO already hid */
-  });
-  el.addEventListener('click',function(){ h.show(); });
+  el.addEventListener('mouseenter',function(){ handlers[id].show(); });
+  el.addEventListener('click',function(){ handlers[id].show(); });
 });
 
 console.log('d93: music4 slots ready');
