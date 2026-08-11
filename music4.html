@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v46-music4 -->
-<script>console.log('d93: music4 v46');</script>
+<!-- build: v47-music4 -->
+<script>console.log('d93: music4 v47');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
   body{ font-family:'Jost','Helvetica Neue',sans-serif; -webkit-font-smoothing:antialiased; }
 
   header{
-    position:fixed; top:0; left:0; right:0; z-index:100;
+    position:fixed; top:0; left:0; right:0; z-index:200;
     padding:20px 28px; display:flex; align-items:center; justify-content:flex-end;
   }
   nav{ display:flex; gap:28px; align-items:center; }
@@ -33,9 +33,13 @@
     nav a{ font-size:10px; }
   }
 
+  /* perspective grid overlay, same as other pages */
+  .field{ position:fixed; inset:0; z-index:15; pointer-events:none; }
+
+  /* slot: base */
   .slot{
-    position:relative; width:100%; overflow:hidden;
-    pointer-events:none;
+    position:relative;
+    overflow:hidden;
   }
   .slot video{
     position:absolute; inset:0;
@@ -47,13 +51,51 @@
     width:100%; height:100%;
     opacity:0; transition:opacity 0.6s ease;
   }
-  .trigger{
-    position:absolute; top:0; bottom:0;
-    pointer-events:all; cursor:none;
+
+  /* slot 1: full-width base, always playing */
+  #slot1{
+    width:100%; height:92vh;
+    z-index:1;
   }
+  #slot1 video{ opacity:1; transition:none; }
+
+  /* slots 2-6: varying size, overlapping via negative margin-top */
+  #slot2{
+    width:64vw; height:70vh;
+    margin-left:auto; margin-top:-22vh;
+    z-index:2; cursor:none;
+    pointer-events:all;
+  }
+  #slot3{
+    width:50vw; height:60vh;
+    margin-left:7vw; margin-top:-14vh;
+    z-index:3; cursor:none;
+    pointer-events:all;
+  }
+  #slot4{
+    width:74vw; height:78vh;
+    margin-left:auto; margin-top:-18vh;
+    z-index:4; cursor:none;
+    pointer-events:all;
+  }
+  #slot5{
+    width:56vw; height:64vh;
+    margin-left:18vw; margin-top:-20vh;
+    z-index:5; cursor:none;
+    pointer-events:all;
+  }
+  #slot6{
+    width:66vw; height:74vh;
+    margin-left:auto; margin-top:-16vh;
+    z-index:6; cursor:none;
+    pointer-events:all;
+    margin-bottom:12vh;
+  }
+
   @media(max-width:720px){
-    .slot{ pointer-events:all; }
-    .trigger{ display:none; }
+    #slot2,#slot3,#slot4,#slot5,#slot6{
+      width:90vw; margin-left:auto; margin-right:auto; margin-top:-10vh;
+    }
   }
 </style>
 </head>
@@ -67,272 +109,236 @@
   </nav>
 </header>
 
-<!-- slot 1: fade — left third — Botanic1 -->
-<div class="slot slot--fade" style="height:95vh;" id="slot1">
-  <div class="trigger" style="left:0;width:33%;"></div>
-  <video muted loop playsinline preload="none">
+<!-- slot 1: full size, always playing, Botanic1 — fade mode (auto-visible) -->
+<div class="slot" id="slot1">
+  <video muted loop playsinline preload="auto">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic1.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 2: webgl — right half — Manypeople1 -->
-<div class="slot slot--webgl" style="height:100vh;" id="slot2">
-  <div class="trigger" style="left:50%;width:50%;"></div>
+<!-- slot 2: WebGL organic, right-aligned, Manypeople1 -->
+<div class="slot slot--webgl" id="slot2">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople1.webm" type="video/webm">
   </video>
   <canvas class="gl-canvas"></canvas>
 </div>
 
-<!-- slot 3: lfo — centre band — Botanic3 -->
-<div class="slot slot--lfo" style="height:90vh;" id="slot3">
-  <div class="trigger" style="left:25%;width:50%;"></div>
+<!-- slot 3: LFO flicker, left-aligned, Botanic3 -->
+<div class="slot slot--lfo" id="slot3">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic3.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 4: fade — right band — Manypeople3 -->
-<div class="slot slot--fade" style="height:100vh;" id="slot4">
-  <div class="trigger" style="left:58%;width:42%;"></div>
+<!-- slot 4: fade, right-aligned, Manypeople3 -->
+<div class="slot slot--fade" id="slot4">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople3.webm" type="video/webm">
   </video>
 </div>
 
-<!-- slot 5: webgl — left half — Botanic5 -->
-<div class="slot slot--webgl" style="height:95vh;" id="slot5">
-  <div class="trigger" style="left:0;width:50%;"></div>
+<!-- slot 5: WebGL organic, centre, Botanic5 -->
+<div class="slot slot--webgl" id="slot5">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Botanic5.webm" type="video/webm">
   </video>
   <canvas class="gl-canvas"></canvas>
 </div>
 
-<!-- slot 6: lfo — centre wide — Manypeople7 -->
-<div class="slot slot--lfo" style="height:100vh;" id="slot6">
-  <div class="trigger" style="left:20%;width:60%;"></div>
+<!-- slot 6: LFO flicker, right-aligned, Manypeople7 -->
+<div class="slot slot--lfo" id="slot6">
   <video muted loop playsinline preload="none">
     <source src="https://daysof93-cdn.b-cdn.net/Cutups_various/Manypeople7.webm" type="video/webm">
   </video>
 </div>
 
+<!-- perspective grid -->
+<svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
+
 <script>
 (function(){
 'use strict';
-console.log('d93: music4 init');
+console.log('d93: music4 v47 init');
+
+/* ---- perspective grid (same seed logic as other pages) ---- */
+function daySeed(){ var d=new Date(); return d.getFullYear()*1000+dayOfYear(d); }
+function dayOfYear(d){ var s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+function seededRand(seed){ var x=Math.sin(seed)*10000; return x-Math.floor(x); }
+var SEED = daySeed();
+
+function drawField(){
+  var svg = document.getElementById('field');
+  var w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  var camX = (seededRand(SEED+1)-0.5)*40;
+  var camTilt = (seededRand(SEED+2)-0.5)*0.02;
+  var vpX = w*0.5+camX, vpY = h*0.62;
+  var lines = '';
+  var bands = 18;
+  for(var i=0;i<=bands;i++){
+    var t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
+    lines+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="'+op+'"/>';
+  }
+  var cols=16;
+  for(var i=0;i<=cols;i++){
+    var x=(i/cols)*w;
+    lines+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="0.18"/>';
+  }
+  var ay=Math.sin(camTilt);
+  lines+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.48"/>';
+  lines+='<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.42"/>';
+  var r=9;
+  lines+='<circle cx="'+vpX+'" cy="'+vpY+'" r="'+r+'" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.55"/>';
+  lines+='<line x1="'+(vpX-r-4)+'" y1="'+vpY+'" x2="'+(vpX+r+4)+'" y2="'+vpY+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+  lines+='<line x1="'+vpX+'" y1="'+(vpY-r-4)+'" x2="'+vpX+'" y2="'+(vpY+r+4)+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+  svg.innerHTML = lines;
+}
+drawField();
+var _rt;
+window.addEventListener('resize', function(){ clearTimeout(_rt); _rt=setTimeout(drawField,150); });
+
+/* ---- slot 1: auto-play (always on) ---- */
+(function(){
+  var vid = document.querySelector('#slot1 video');
+  if(!vid) return;
+  vid.play().catch(function(){});
+  console.log('d93: slot1 auto-play');
+})();
 
 /* ---- WebGL shaders ---- */
-var VS = [
-  'attribute vec2 aPos;',
-  'varying vec2 vUV;',
-  'void main(){',
-  '  vUV = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);',
-  '  gl_Position = vec4(aPos, 0.0, 1.0);',
-  '}'
+var VS=[
+  'attribute vec2 aPos;','varying vec2 vUV;','void main(){',
+  '  vUV=vec2(aPos.x*0.5+0.5,0.5-aPos.y*0.5);',
+  '  gl_Position=vec4(aPos,0.0,1.0);','}'
 ].join('\n');
 
-var FS = [
-  'precision mediump float;',
-  'uniform sampler2D uVideo;',
-  'uniform float uTime;',
-  'varying vec2 vUV;',
-  'void main(){',
-  '  vec4 c = texture2D(uVideo, vUV);',
-  '  float t = uTime * 0.001;',
-  '  float w1 = sin(vUV.x * 3.8 + t * 0.7) * 0.5 + 0.5;',
-  '  float w2 = sin(vUV.y * 2.6 + t * 0.55 + 1.57) * 0.5 + 0.5;',
-  '  float w3 = sin((vUV.x - vUV.y) * 2.2 + t * 0.35) * 0.5 + 0.5;',
-  '  float alpha = smoothstep(0.15, 0.65, (w1 + w2 * 0.8 + w3 * 0.5) / 2.3);',
-  '  gl_FragColor = vec4(c.rgb, alpha);',
-  '}'
+var FS=[
+  'precision mediump float;','uniform sampler2D uVideo;','uniform float uTime;',
+  'varying vec2 vUV;','void main(){',
+  '  vec4 c=texture2D(uVideo,vUV);','  float t=uTime*0.001;',
+  '  float w1=sin(vUV.x*3.8+t*0.7)*0.5+0.5;',
+  '  float w2=sin(vUV.y*2.6+t*0.55+1.57)*0.5+0.5;',
+  '  float w3=sin((vUV.x-vUV.y)*2.2+t*0.35)*0.5+0.5;',
+  '  float alpha=smoothstep(0.15,0.65,(w1+w2*0.8+w3*0.5)/2.3);',
+  '  gl_FragColor=vec4(c.rgb,alpha);','}'
 ].join('\n');
 
-function mkShader(gl, type, src){
-  var s = gl.createShader(type);
-  gl.shaderSource(s, src);
-  gl.compileShader(s);
-  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-    console.error('d93: shader', gl.getShaderInfoLog(s));
-    return null;
-  }
+function mkShader(gl,type,src){
+  var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){ console.error('d93: shader',gl.getShaderInfoLog(s)); return null; }
   return s;
 }
-
 function buildGL(canvas){
-  var gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:false});
+  var gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false});
   if(!gl){ console.warn('d93: no webgl'); return null; }
-
-  var vs = mkShader(gl, gl.VERTEX_SHADER, VS);
-  var fs = mkShader(gl, gl.FRAGMENT_SHADER, FS);
-  if(!vs || !fs) return null;
-
-  var prog = gl.createProgram();
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
-    console.error('d93: link', gl.getProgramInfoLog(prog)); return null;
-  }
+  var vs=mkShader(gl,gl.VERTEX_SHADER,VS), fs=mkShader(gl,gl.FRAGMENT_SHADER,FS);
+  if(!vs||!fs) return null;
+  var prog=gl.createProgram();
+  gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ console.error('d93: link',gl.getProgramInfoLog(prog)); return null; }
   gl.useProgram(prog);
-
-  var buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-  var aPos = gl.getAttribLocation(prog, 'aPos');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-  var tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-  gl.uniform1i(gl.getUniformLocation(prog, 'uVideo'), 0);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  var buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  var ap=gl.getAttribLocation(prog,'aPos');
+  gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
+  var tex=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.uniform1i(gl.getUniformLocation(prog,'uVideo'),0);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
   gl.clearColor(0,0,0,0);
-
-  return { gl:gl, tex:tex, uTime:gl.getUniformLocation(prog, 'uTime') };
+  return {gl:gl,tex:tex,uTime:gl.getUniformLocation(prog,'uTime')};
 }
-
-function renderGL(state, vid, raf){
-  var gl = state.gl, canvas = gl.canvas;
-  var w = canvas.parentElement.clientWidth;
-  var h = canvas.parentElement.clientHeight;
-  if(canvas.width !== w || canvas.height !== h){
-    canvas.width = w; canvas.height = h;
-    gl.viewport(0, 0, w, h);
-  }
-  if(vid.readyState >= 2){
-    gl.bindTexture(gl.TEXTURE_2D, state.tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+function renderGL(state,vid,raf){
+  var gl=state.gl, canvas=gl.canvas;
+  var w=canvas.parentElement.clientWidth, h=canvas.parentElement.clientHeight;
+  if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; gl.viewport(0,0,w,h); }
+  if(vid.readyState>=2){
+    gl.bindTexture(gl.TEXTURE_2D,state.tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(state.uTime, performance.now());
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.uniform1f(state.uTime,performance.now());
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   }
-  if(raf.on) raf.id = requestAnimationFrame(function(){ renderGL(state, vid, raf); });
+  if(raf.on) raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); });
 }
 
-/* ---- mobile detection (no UA sniff — CSS computed style) ---- */
-function isMobile(trigger){
-  return !trigger || window.getComputedStyle(trigger).display === 'none';
-}
-
-/* ---- FADE slot ---- */
+/* ---- FADE ---- */
 function setupFade(slot){
-  var vid = slot.querySelector('video');
-  var zone = slot.querySelector('.trigger');
-
-  function show(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.6s ease-in-out'; vid.style.opacity='1'; }
+  var vid=slot.querySelector('video');
+  function show(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.6s ease-in-out'; vid.style.opacity='1'; console.log('d93: fade show',slot.id); }
   function hide(){ vid.style.transition='opacity 0.6s ease-in-out'; vid.style.opacity='0'; }
-
-  if(zone){
-    zone.addEventListener('mouseenter', show);
-    zone.addEventListener('mouseleave', hide);
-  }
-  slot.addEventListener('click', function(){
-    if(isMobile(zone)){ vid.style.opacity==='1' ? hide() : show(); }
-  });
+  slot.addEventListener('mouseenter',show);
+  slot.addEventListener('mouseleave',hide);
+  slot.addEventListener('click',function(){ vid.style.opacity==='1'?hide():show(); });
 }
 
-/* ---- WEBGL slot ---- */
+/* ---- WEBGL ---- */
 function setupWebGL(slot){
-  var vid = slot.querySelector('video');
-  var zone = slot.querySelector('.trigger');
-  var canvas = slot.querySelector('canvas.gl-canvas');
-  var state = canvas ? buildGL(canvas) : null;
-  var raf = {on:false, id:null};
-
-  if(!state){
-    console.warn('d93: webgl fallback fade', slot.id);
-    setupFade(slot); return;
-  }
-
+  var vid=slot.querySelector('video');
+  var canvas=slot.querySelector('canvas.gl-canvas');
+  var state=canvas?buildGL(canvas):null;
+  var raf={on:false,id:null};
+  if(!state){ setupFade(slot); return; }
   function show(){
     vid.play().catch(function(){});
-    canvas.style.opacity = '1';
-    if(!raf.on){ raf.on = true; raf.id = requestAnimationFrame(function(){ renderGL(state, vid, raf); }); }
-    console.log('d93: webgl show', slot.id);
+    canvas.style.opacity='1';
+    if(!raf.on){ raf.on=true; raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); }); }
+    console.log('d93: webgl show',slot.id);
   }
   function hide(){
-    canvas.style.opacity = '0';
-    raf.on = false;
-    if(raf.id){ cancelAnimationFrame(raf.id); raf.id = null; }
-    console.log('d93: webgl hide', slot.id);
+    canvas.style.opacity='0'; raf.on=false;
+    if(raf.id){ cancelAnimationFrame(raf.id); raf.id=null; }
   }
-
-  if(zone){
-    zone.addEventListener('mouseenter', show);
-    zone.addEventListener('mouseleave', hide);
-  }
-  slot.addEventListener('click', function(){
-    if(isMobile(zone)){ raf.on ? hide() : show(); }
-  });
+  slot.addEventListener('mouseenter',show);
+  slot.addEventListener('mouseleave',hide);
+  slot.addEventListener('click',function(){ raf.on?hide():show(); });
 }
 
-/* ---- LFO flicker + glow-die slot ---- */
+/* ---- LFO flicker + glow-die ---- */
 function setupLFO(slot){
-  var vid = slot.querySelector('video');
-  var zone = slot.querySelector('.trigger');
-  var anim = null;
-
+  var vid=slot.querySelector('video');
+  var anim=null;
   function startFlicker(){
     if(anim) anim.cancel();
     vid.play().catch(function(){});
-    vid.style.transition = '';
-    vid.style.opacity = '1';
-    vid.style.filter = 'brightness(1)';
-    console.log('d93: lfo start', slot.id);
-
-    var t0 = performance.now();
-    var rafId = null;
-    var dead = false;
-
+    vid.style.transition=''; vid.style.opacity='1'; vid.style.filter='brightness(1)';
+    console.log('d93: lfo start',slot.id);
+    var t0=performance.now(), rafId=null, dead=false;
     function tick(now){
       if(dead) return;
-      var el = now - t0;
-      if(el < 1000){
-        vid.style.filter = 'brightness(' + (Math.floor(el / 100) % 2 === 0 ? 1 : 0) + ')';
-        rafId = requestAnimationFrame(tick);
+      var el=now-t0;
+      if(el<1000){
+        vid.style.filter='brightness('+(Math.floor(el/100)%2===0?1:0)+')';
+        rafId=requestAnimationFrame(tick);
       } else {
-        var g0 = performance.now();
+        var g0=performance.now();
         (function glow(now2){
           if(dead) return;
-          var p = Math.min((now2 - g0) / 200, 1);
-          vid.style.filter = 'brightness(' + (1 + p * 1.5).toFixed(2) + ')';
-          if(p < 1){ rafId = requestAnimationFrame(glow); }
+          var p=Math.min((now2-g0)/200,1);
+          vid.style.filter='brightness('+(1+p*1.5).toFixed(2)+')';
+          if(p<1){ rafId=requestAnimationFrame(glow); }
           else {
-            vid.style.filter = 'brightness(2.5)';
-            vid.style.transition = 'opacity 400ms ease';
-            vid.style.opacity = '0';
-            setTimeout(function(){
-              if(!dead){ vid.style.transition=''; vid.style.filter=''; anim=null; console.log('d93: lfo done', slot.id); }
-            }, 420);
+            vid.style.filter='brightness(2.5)';
+            vid.style.transition='opacity 400ms ease';
+            vid.style.opacity='0';
+            setTimeout(function(){ if(!dead){ vid.style.transition=''; vid.style.filter=''; anim=null; console.log('d93: lfo done',slot.id); } },420);
           }
         })(performance.now());
       }
     }
-    rafId = requestAnimationFrame(tick);
-
-    anim = { cancel: function(){
-      dead = true;
-      if(rafId) cancelAnimationFrame(rafId);
-      vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null;
-    }};
+    rafId=requestAnimationFrame(tick);
+    anim={cancel:function(){ dead=true; if(rafId) cancelAnimationFrame(rafId); vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null; }};
   }
-
   function stopFlicker(){ if(anim) anim.cancel(); }
-
-  if(zone){
-    zone.addEventListener('mouseenter', startFlicker);
-    zone.addEventListener('mouseleave', stopFlicker);
-  }
-  slot.addEventListener('click', function(){
-    if(isMobile(zone)) startFlicker();
-  });
+  slot.addEventListener('mouseenter',startFlicker);
+  slot.addEventListener('mouseleave',stopFlicker);
+  slot.addEventListener('click',startFlicker);
 }
 
 /* ---- init ---- */
