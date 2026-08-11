@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v51-music4 -->
-<script>console.log('d93: music4 v51');</script>
+<!-- build: v52-music4 -->
+<script>console.log('d93: music4 v52');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,10 +203,15 @@ function swapVideo(vid){
   scheduleDim();
 })();
 
-/* ---- random gaps between slots 2-6 ---- */
+/* ---- random size + position + gaps for slots 2-6 ---- */
 ['slot2','slot3','slot4','slot5','slot6'].forEach(function(id){
-  var el=document.getElementById(id);
-  if(el) el.style.marginTop=Math.round(6+Math.random()*16)+'px';
+  var el=document.getElementById(id); if(!el) return;
+  var w=Math.round(84+Math.random()*13);   /* 84-97vw */
+  var ml=Math.round(1+Math.random()*4);    /* 1-5vw left inset */
+  if(ml+w>99) w=99-ml;                     /* never overflow right edge */
+  el.style.width=w+'vw';
+  el.style.marginLeft=ml+'vw';
+  el.style.marginTop=Math.round(6+Math.random()*16)+'px';
 });
 
 /* ---- FADE: simple show/hide ---- */
