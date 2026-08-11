@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v47-music4 -->
-<script>console.log('d93: music4 v47');</script>
+<!-- build: v48-music4 -->
+<script>console.log('d93: music4 v48');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,10 +52,10 @@
     opacity:0; transition:opacity 0.6s ease;
   }
 
-  /* slot 1: full-width base, always playing */
+  /* slot 1: full-width base, always playing — pushed below fixed header */
   #slot1{
     width:100%; height:92vh;
-    z-index:1;
+    z-index:1; margin-top:64px;
   }
   #slot1 video{ opacity:1; transition:none; }
 
@@ -159,30 +159,25 @@
 <script>
 (function(){
 'use strict';
-console.log('d93: music4 v47 init');
+console.log('d93: music4 v48 init');
 
-/* ---- perspective grid (same seed logic as other pages) ---- */
+/* ---- perspective grid ---- */
 function daySeed(){ var d=new Date(); return d.getFullYear()*1000+dayOfYear(d); }
 function dayOfYear(d){ var s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
 function seededRand(seed){ var x=Math.sin(seed)*10000; return x-Math.floor(x); }
-var SEED = daySeed();
-
+var SEED=daySeed();
 function drawField(){
-  var svg = document.getElementById('field');
-  var w = window.innerWidth, h = window.innerHeight;
+  var svg=document.getElementById('field');
+  var w=window.innerWidth, h=window.innerHeight;
   svg.setAttribute('viewBox','0 0 '+w+' '+h);
-  var camX = (seededRand(SEED+1)-0.5)*40;
-  var camTilt = (seededRand(SEED+2)-0.5)*0.02;
-  var vpX = w*0.5+camX, vpY = h*0.62;
-  var lines = '';
-  var bands = 18;
-  for(var i=0;i<=bands;i++){
-    var t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
+  var camX=(seededRand(SEED+1)-0.5)*40, camTilt=(seededRand(SEED+2)-0.5)*0.02;
+  var vpX=w*0.5+camX, vpY=h*0.62, lines='';
+  for(var i=0;i<=18;i++){
+    var t=i/18, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
     lines+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="'+op+'"/>';
   }
-  var cols=16;
-  for(var i=0;i<=cols;i++){
-    var x=(i/cols)*w;
+  for(var i=0;i<=16;i++){
+    var x=(i/16)*w;
     lines+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="0.18"/>';
   }
   var ay=Math.sin(camTilt);
@@ -192,37 +187,23 @@ function drawField(){
   lines+='<circle cx="'+vpX+'" cy="'+vpY+'" r="'+r+'" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.55"/>';
   lines+='<line x1="'+(vpX-r-4)+'" y1="'+vpY+'" x2="'+(vpX+r+4)+'" y2="'+vpY+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
   lines+='<line x1="'+vpX+'" y1="'+(vpY-r-4)+'" x2="'+vpX+'" y2="'+(vpY+r+4)+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
-  svg.innerHTML = lines;
+  svg.innerHTML=lines;
 }
 drawField();
-var _rt;
-window.addEventListener('resize', function(){ clearTimeout(_rt); _rt=setTimeout(drawField,150); });
+var _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(drawField,150); });
 
-/* ---- slot 1: auto-play (always on) ---- */
-(function(){
-  var vid = document.querySelector('#slot1 video');
-  if(!vid) return;
-  vid.play().catch(function(){});
-  console.log('d93: slot1 auto-play');
-})();
+/* ---- slot 1: always on ---- */
+(function(){ var v=document.querySelector('#slot1 video'); if(v) v.play().catch(function(){}); console.log('d93: slot1 auto-play'); })();
 
-/* ---- WebGL shaders ---- */
-var VS=[
-  'attribute vec2 aPos;','varying vec2 vUV;','void main(){',
-  '  vUV=vec2(aPos.x*0.5+0.5,0.5-aPos.y*0.5);',
-  '  gl_Position=vec4(aPos,0.0,1.0);','}'
-].join('\n');
-
-var FS=[
-  'precision mediump float;','uniform sampler2D uVideo;','uniform float uTime;',
-  'varying vec2 vUV;','void main(){',
+/* ---- WebGL ---- */
+var VS=['attribute vec2 aPos;','varying vec2 vUV;','void main(){','  vUV=vec2(aPos.x*0.5+0.5,0.5-aPos.y*0.5);','  gl_Position=vec4(aPos,0.0,1.0);}'].join('\n');
+var FS=['precision mediump float;','uniform sampler2D uVideo;','uniform float uTime;','varying vec2 vUV;','void main(){',
   '  vec4 c=texture2D(uVideo,vUV);','  float t=uTime*0.001;',
   '  float w1=sin(vUV.x*3.8+t*0.7)*0.5+0.5;',
   '  float w2=sin(vUV.y*2.6+t*0.55+1.57)*0.5+0.5;',
   '  float w3=sin((vUV.x-vUV.y)*2.2+t*0.35)*0.5+0.5;',
-  '  float alpha=smoothstep(0.15,0.65,(w1+w2*0.8+w3*0.5)/2.3);',
-  '  gl_FragColor=vec4(c.rgb,alpha);','}'
-].join('\n');
+  '  float alpha=smoothstep(0.05,0.55,(w1+w2*0.8+w3*0.5)/2.3);',
+  '  gl_FragColor=vec4(c.rgb,alpha);}'].join('\n');
 
 function mkShader(gl,type,src){
   var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
@@ -238,20 +219,17 @@ function buildGL(canvas){
   gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
   if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ console.error('d93: link',gl.getProgramInfoLog(prog)); return null; }
   gl.useProgram(prog);
-  var buf=gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  var buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   var ap=gl.getAttribLocation(prog,'aPos');
   gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
-  var tex=gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D,tex);
+  var tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.uniform1i(gl.getUniformLocation(prog,'uVideo'),0);
-  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-  gl.clearColor(0,0,0,0);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.clearColor(0,0,0,0);
   return {gl:gl,tex:tex,uTime:gl.getUniformLocation(prog,'uTime')};
 }
 function renderGL(state,vid,raf){
@@ -268,48 +246,48 @@ function renderGL(state,vid,raf){
   if(raf.on) raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); });
 }
 
-/* ---- FADE ---- */
-function setupFade(slot){
+/* ---- reveal mode factories — each returns { show, hide } ---- */
+function makeFade(slot){
   var vid=slot.querySelector('video');
-  function show(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.6s ease-in-out'; vid.style.opacity='1'; console.log('d93: fade show',slot.id); }
-  function hide(){ vid.style.transition='opacity 0.6s ease-in-out'; vid.style.opacity='0'; }
-  slot.addEventListener('mouseenter',show);
-  slot.addEventListener('mouseleave',hide);
-  slot.addEventListener('click',function(){ vid.style.opacity==='1'?hide():show(); });
+  return {
+    show:function(){ vid.play().catch(function(){}); vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='1'; },
+    hide:function(){ vid.style.transition='opacity 0.7s ease-in-out'; vid.style.opacity='0'; }
+  };
 }
 
-/* ---- WEBGL ---- */
-function setupWebGL(slot){
+function makeWebGL(slot){
   var vid=slot.querySelector('video');
   var canvas=slot.querySelector('canvas.gl-canvas');
   var state=canvas?buildGL(canvas):null;
   var raf={on:false,id:null};
-  if(!state){ setupFade(slot); return; }
-  function show(){
-    vid.play().catch(function(){});
-    canvas.style.opacity='1';
-    if(!raf.on){ raf.on=true; raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); }); }
-    console.log('d93: webgl show',slot.id);
-  }
-  function hide(){
-    canvas.style.opacity='0'; raf.on=false;
-    if(raf.id){ cancelAnimationFrame(raf.id); raf.id=null; }
-  }
-  slot.addEventListener('mouseenter',show);
-  slot.addEventListener('mouseleave',hide);
-  slot.addEventListener('click',function(){ raf.on?hide():show(); });
+  if(!state) return makeFade(slot);
+  return {
+    show:function(){
+      vid.play().catch(function(){});
+      canvas.style.opacity='1';
+      if(!raf.on){ raf.on=true; raf.id=requestAnimationFrame(function(){ renderGL(state,vid,raf); }); }
+    },
+    hide:function(){
+      canvas.style.opacity='0'; raf.on=false;
+      if(raf.id){ cancelAnimationFrame(raf.id); raf.id=null; }
+    }
+  };
 }
 
-/* ---- LFO flicker + glow-die ---- */
-function setupLFO(slot){
+function makeLFO(slot){
   var vid=slot.querySelector('video');
   var anim=null;
+  var inView=false;
+  var restartTimer=null;
+
   function startFlicker(){
     if(anim) anim.cancel();
+    clearTimeout(restartTimer);
     vid.play().catch(function(){});
     vid.style.transition=''; vid.style.opacity='1'; vid.style.filter='brightness(1)';
     console.log('d93: lfo start',slot.id);
     var t0=performance.now(), rafId=null, dead=false;
+
     function tick(now){
       if(dead) return;
       var el=now-t0;
@@ -321,32 +299,73 @@ function setupLFO(slot){
         (function glow(now2){
           if(dead) return;
           var p=Math.min((now2-g0)/200,1);
-          vid.style.filter='brightness('+(1+p*1.5).toFixed(2)+')';
+          /* brightness peaks at 1.5 — visible but not overblown */
+          vid.style.filter='brightness('+(1+p*0.5).toFixed(2)+')';
           if(p<1){ rafId=requestAnimationFrame(glow); }
           else {
-            vid.style.filter='brightness(2.5)';
-            vid.style.transition='opacity 400ms ease';
+            vid.style.filter='brightness(1.5)';
+            vid.style.transition='opacity 500ms ease';
             vid.style.opacity='0';
-            setTimeout(function(){ if(!dead){ vid.style.transition=''; vid.style.filter=''; anim=null; console.log('d93: lfo done',slot.id); } },420);
+            setTimeout(function(){
+              if(dead) return;
+              vid.style.transition=''; vid.style.filter=''; anim=null;
+              console.log('d93: lfo done',slot.id);
+              /* auto-restart after pause if slot still in view */
+              if(inView) restartTimer=setTimeout(startFlicker,1800);
+            },520);
           }
         })(performance.now());
       }
     }
     rafId=requestAnimationFrame(tick);
-    anim={cancel:function(){ dead=true; if(rafId) cancelAnimationFrame(rafId); vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null; }};
+    anim={cancel:function(){
+      dead=true; if(rafId) cancelAnimationFrame(rafId);
+      vid.style.transition=''; vid.style.filter=''; vid.style.opacity='0'; anim=null;
+    }};
   }
-  function stopFlicker(){ if(anim) anim.cancel(); }
-  slot.addEventListener('mouseenter',startFlicker);
-  slot.addEventListener('mouseleave',stopFlicker);
-  slot.addEventListener('click',startFlicker);
+
+  return {
+    show:function(){ inView=true; if(!anim) startFlicker(); },
+    hide:function(){
+      inView=false; clearTimeout(restartTimer);
+      if(anim) anim.cancel();
+    }
+  };
 }
 
-/* ---- init ---- */
-document.querySelectorAll('.slot--fade').forEach(setupFade);
-document.querySelectorAll('.slot--webgl').forEach(setupWebGL);
-document.querySelectorAll('.slot--lfo').forEach(setupLFO);
-console.log('d93: music4 slots ready');
+/* ---- wire up slots 2-6 with scroll + hover ---- */
+var handlers={};
+document.querySelectorAll('.slot--fade').forEach(function(s){ handlers[s.id]=makeFade(s); });
+document.querySelectorAll('.slot--webgl').forEach(function(s){ handlers[s.id]=makeWebGL(s); });
+document.querySelectorAll('.slot--lfo').forEach(function(s){ handlers[s.id]=makeLFO(s); });
 
+/* scroll trigger via IntersectionObserver (20% of slot visible → show) */
+var io=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    var h=handlers[e.target.id]; if(!h) return;
+    if(e.isIntersecting){ h.show(); console.log('d93: scroll-in',e.target.id); }
+    else { h.hide(); }
+  });
+},{threshold:0.20});
+
+Object.keys(handlers).forEach(function(id){
+  var el=document.getElementById(id);
+  if(el) io.observe(el);
+});
+
+/* hover also triggers (mouseenter while in view keeps it showing on approach) */
+Object.keys(handlers).forEach(function(id){
+  var el=document.getElementById(id); if(!el) return;
+  var h=handlers[id];
+  el.addEventListener('mouseenter',function(){ h.show(); });
+  el.addEventListener('mouseleave',function(){
+    /* only hide on mouse-leave if slot is not in intersection observer's "in" state */
+    /* we track this via the IO — re-hide will be a no-op if IO already hid */
+  });
+  el.addEventListener('click',function(){ h.show(); });
+});
+
+console.log('d93: music4 slots ready');
 })();
 </script>
 </body>
