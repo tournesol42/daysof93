@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v59-music4 -->
-<script>console.log('d93: music4 v59');</script>
+<!-- build: v60-music4 -->
+<script>console.log('d93: music4 v60');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -352,7 +352,7 @@ function makeJitter(slot){
 
 /* ---- AUDIO ---- */
 /* on window so GC never drops them; both loop forever once started */
-window._d93drone = new Audio('COLLAGEdrone.mp3'); window._d93drone.loop=true; window._d93drone.volume=0.316;
+window._d93drone = new Audio('COLLAGEdrone.mp3'); window._d93drone.loop=true; window._d93drone.volume=0.1; /* -20dB */
 window._d93serge = new Audio('COLLAGEserge.mp3'); window._d93serge.loop=true; window._d93serge.volume=0.316;
 (function(){
   var drone=window._d93drone, serge=window._d93serge;
