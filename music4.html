@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v57-music4 -->
-<script>console.log('d93: music4 v57');</script>
+<!-- build: v58-music4 -->
+<script>console.log('d93: music4 v58');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -351,58 +351,42 @@ function makeJitter(slot){
 }
 
 /* ---- AUDIO ---- */
-/* kept on window so GC never collects them */
-window._d93drone = new Audio('COLLAGEdrone.mp3'); window._d93drone.loop=true; window._d93drone.volume=0;
-window._d93serge = new Audio('COLLAGEserge.mp3'); window._d93serge.loop=true; window._d93serge.volume=0;
+/* on window so GC never drops them; both loop forever once started */
+window._d93drone = new Audio('COLLAGEdrone.mp3'); window._d93drone.loop=true; window._d93drone.volume=0.316;
+window._d93serge = new Audio('COLLAGEserge.mp3'); window._d93serge.loop=true; window._d93serge.volume=0.316;
 (function(){
-  var VOL=0.316, FADE=2000; /* -10 dB */
   var drone=window._d93drone, serge=window._d93serge;
-  var current=null, unlocked=false, droneStart=0;
+  var unlocked=false, sergeStarted=false;
 
-  function rampTo(audio, target, ms, cb){
-    var from=audio.volume, t0=performance.now();
-    (function tick(now){
-      var p=Math.min((now-t0)/ms,1);
-      audio.volume=from+(target-from)*p;
-      if(p<1){ requestAnimationFrame(tick); } else if(cb){ cb(); }
-    })(performance.now());
-  }
-
-  function playDrone(){
-    if(current==='drone') return; current='drone'; droneStart=Date.now();
+  function startDrone(){
     drone.play().catch(function(){});
-    rampTo(drone,VOL,FADE);
-    if(serge.volume>0) rampTo(serge,0,FADE,function(){ serge.pause(); });
   }
-
-  function playSerge(){
-    if(current==='serge') return;
-    /* don't switch before drone has played at least 12s */
-    if(Date.now()-droneStart < 12000) return;
-    current='serge';
+  function startSerge(){
+    if(sergeStarted) return; sergeStarted=true;
     serge.play().catch(function(){});
-    rampTo(serge,VOL,FADE);
-    if(drone.volume>0) rampTo(drone,0,FADE,function(){ drone.pause(); });
+  }
+  function unlock(){
+    if(unlocked) return; unlocked=true; startDrone();
   }
 
-  function unlock(){ if(unlocked) return; unlocked=true; playDrone(); }
-
-  /* resume drone if anything pauses it unexpectedly */
-  drone.addEventListener('pause',function(){
-    if(current==='drone'){ setTimeout(function(){ if(current==='drone') drone.play().catch(function(){}); },200); }
+  /* keep drone alive — resume if browser pauses it */
+  drone.addEventListener('pause', function(){
+    setTimeout(function(){ drone.play().catch(function(){}); }, 100);
   });
 
-  /* try autoplay; fall back to first tap/click */
-  drone.play().then(function(){ unlocked=true; current='drone'; droneStart=Date.now(); rampTo(drone,VOL,FADE); })
-              .catch(function(){ document.addEventListener('click',unlock,{once:true}); document.addEventListener('touchstart',unlock,{once:true}); });
+  /* try autoplay on load */
+  drone.play().then(function(){ unlocked=true; })
+              .catch(function(){
+                document.addEventListener('click',    unlock, {once:true});
+                document.addEventListener('touchstart',unlock, {once:true});
+              });
 
-  /* switch to serge when slot 2 is well into view */
+  /* serge starts when zone 2 enters view — never stops after that */
   var s2=document.getElementById('slot2');
   if(s2){
     new IntersectionObserver(function(entries){
-      if(!entries[0].isIntersecting) return;
-      if(unlocked) playSerge();
-    },{threshold:0.15}).observe(s2);
+      if(entries[0].isIntersecting && unlocked) startSerge();
+    },{threshold:0.10}).observe(s2);
   }
 })();
 
