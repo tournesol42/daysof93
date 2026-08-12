@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v54-music4 -->
-<script>console.log('d93: music4 v54');</script>
+<!-- build: v55-music4 -->
+<script>console.log('d93: music4 v55');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -349,6 +349,51 @@ function makeJitter(slot){
     }
   };
 }
+
+/* ---- AUDIO ---- */
+(function(){
+  var VOL=0.65, FADE=2000;
+  var drone=new Audio('COLLAGEdrone.mp3'); drone.loop=true; drone.volume=0;
+  var serge=new Audio('COLLAGEserge.mp3'); serge.loop=true; serge.volume=0;
+  var current=null, unlocked=false;
+
+  function rampTo(audio, target, ms, cb){
+    var from=audio.volume, t0=performance.now();
+    (function tick(now){
+      var p=Math.min((now-t0)/ms,1);
+      audio.volume=from+(target-from)*p;
+      if(p<1){ requestAnimationFrame(tick); } else if(cb){ cb(); }
+    })(performance.now());
+  }
+
+  function playDrone(){
+    if(current==='drone') return; current='drone';
+    drone.play().catch(function(){});
+    rampTo(drone,VOL,FADE);
+    if(serge.volume>0) rampTo(serge,0,FADE,function(){ serge.pause(); });
+  }
+
+  function playSerge(){
+    if(current==='serge') return; current='serge';
+    serge.play().catch(function(){});
+    rampTo(serge,VOL,FADE);
+    if(drone.volume>0) rampTo(drone,0,FADE,function(){ drone.pause(); });
+  }
+
+  function unlock(){ if(unlocked) return; unlocked=true; playDrone(); }
+
+  /* try autoplay; fall back to first tap/click */
+  drone.play().then(function(){ unlocked=true; current='drone'; rampTo(drone,VOL,FADE); })
+              .catch(function(){ document.addEventListener('click',unlock,{once:true}); document.addEventListener('touchstart',unlock,{once:true}); });
+
+  /* switch to serge when slot 2 reaches 30% in view */
+  var s2=document.getElementById('slot2');
+  if(s2){
+    new IntersectionObserver(function(entries){
+      if(entries[0].isIntersecting){ if(unlocked) playSerge(); else { document.removeEventListener('click',unlock); document.addEventListener('click',function(){ unlocked=true; playSerge(); },{once:true}); } }
+    },{threshold:0.30}).observe(s2);
+  }
+})();
 
 /* ---- wire up slots 2-6 ---- */
 var handlers={};
