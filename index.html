@@ -935,10 +935,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   });
   /* ---- END AUDIO ---- */
 
-  window.addEventListener('mousemove', function(e){
-    _m2d.x = (e.clientX/window.innerWidth)*2-1;
-    _m2d.y = -(e.clientY/window.innerHeight)*2+1;
-  });
+  setTimeout(function(){
+    window.addEventListener('mousemove', function(e){
+      _m2d.x = (e.clientX/window.innerWidth)*2-1;
+      _m2d.y = -(e.clientY/window.innerHeight)*2+1;
+    });
+  }, 8000);
 
   function setupSpring(root){
     root.updateMatrixWorld(true);
