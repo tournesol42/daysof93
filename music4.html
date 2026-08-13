@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v62-music4 -->
-<script>console.log('d93: music4 v62');</script>
+<!-- build: v63-music4 -->
+<script>console.log('d93: music4 v63');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,33 +350,42 @@ function makeJitter(slot){
   };
 }
 
-/* ---- AUDIO: starts at zone 2, loops forever ---- */
-window._d93loop = new Audio('MUSICPAGE4LOOP.mp3');
-window._d93loop.loop = true;
-window._d93loop.volume = 0.316; /* -10dB */
+/* ---- AUDIO: starts at zone 1, loops forever, -15dB ---- */
+/* src set only when playing — keeps 10MB off the initial page load */
+window._d93loop = new Audio();
+window._d93loop.loop    = true;
+window._d93loop.preload = 'none';
+window._d93loop.volume  = 0.178; /* -15dB */
 (function(){
-  var track = window._d93loop, started = false, unlocked = false;
+  var track = window._d93loop, started = false;
+
+  /* loop fallback — some mobile browsers ignore loop on large files */
+  track.addEventListener('ended', function(){
+    track.currentTime = 0;
+    track.play().catch(function(){});
+  });
 
   function start(){
     if(started) return; started = true;
+    track.src = 'MUSICPAGE4LOOP.mp3';
+    track.load();
     track.play().catch(function(){});
   }
-  function unlock(){ if(unlocked) return; unlocked = true; start(); }
 
-  /* zone 2 IO — fires on first pixel, never stops after */
-  var s2 = document.getElementById('slot2');
-  if(s2){
-    new IntersectionObserver(function(entries){
-      if(!entries[0].isIntersecting) return;
-      if(unlocked){ start(); }
-      else { document.addEventListener('click', unlock, {once:true}); document.addEventListener('touchstart', unlock, {once:true}); }
-    }, {threshold:0}).observe(s2);
-  }
-
-  /* prime on first user interaction so play() won't be blocked */
-  function prime(){ track.play().then(function(){ track.pause(); track.currentTime=0; unlocked=true; }).catch(function(){}); }
-  document.addEventListener('click',     prime, {once:true});
-  document.addEventListener('touchstart',prime, {once:true});
+  /* try autoplay immediately (zone 1 = page load) */
+  track.src = 'MUSICPAGE4LOOP.mp3';
+  track.play().then(function(){ started = true; })
+              .catch(function(){
+                /* blocked — start on first interaction */
+                track.src = ''; /* clear so no background download */
+                function unlock(){
+                  document.removeEventListener('click',     unlock);
+                  document.removeEventListener('touchstart',unlock);
+                  start();
+                }
+                document.addEventListener('click',     unlock, {once:true});
+                document.addEventListener('touchstart',unlock, {once:true});
+              });
 })();
 
 /* ---- wire up slots 2-6 ---- */
