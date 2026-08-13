@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v61-music4 -->
-<script>console.log('d93: music4 v61');</script>
+<!-- build: v62-music4 -->
+<script>console.log('d93: music4 v62');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,6 +350,34 @@ function makeJitter(slot){
   };
 }
 
+/* ---- AUDIO: starts at zone 2, loops forever ---- */
+window._d93loop = new Audio('MUSICPAGE4LOOP.mp3');
+window._d93loop.loop = true;
+window._d93loop.volume = 0.316; /* -10dB */
+(function(){
+  var track = window._d93loop, started = false, unlocked = false;
+
+  function start(){
+    if(started) return; started = true;
+    track.play().catch(function(){});
+  }
+  function unlock(){ if(unlocked) return; unlocked = true; start(); }
+
+  /* zone 2 IO — fires on first pixel, never stops after */
+  var s2 = document.getElementById('slot2');
+  if(s2){
+    new IntersectionObserver(function(entries){
+      if(!entries[0].isIntersecting) return;
+      if(unlocked){ start(); }
+      else { document.addEventListener('click', unlock, {once:true}); document.addEventListener('touchstart', unlock, {once:true}); }
+    }, {threshold:0}).observe(s2);
+  }
+
+  /* prime on first user interaction so play() won't be blocked */
+  function prime(){ track.play().then(function(){ track.pause(); track.currentTime=0; unlocked=true; }).catch(function(){}); }
+  document.addEventListener('click',     prime, {once:true});
+  document.addEventListener('touchstart',prime, {once:true});
+})();
 
 /* ---- wire up slots 2-6 ---- */
 var handlers={};
