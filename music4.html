@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v60-music4 -->
-<script>console.log('d93: music4 v60');</script>
+<!-- build: v61-music4 -->
+<script>console.log('d93: music4 v61');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,60 +350,6 @@ function makeJitter(slot){
   };
 }
 
-/* ---- AUDIO ---- */
-/* on window so GC never drops them; both loop forever once started */
-window._d93drone = new Audio('COLLAGEdrone.mp3'); window._d93drone.loop=true; window._d93drone.volume=0.1; /* -20dB */
-window._d93serge = new Audio('COLLAGEserge.mp3'); window._d93serge.loop=true; window._d93serge.volume=0.316;
-(function(){
-  var drone=window._d93drone, serge=window._d93serge;
-  var unlocked=false, sergeStarted=false, sergeReady=false;
-
-  function startSerge(){
-    if(sergeStarted) return; sergeStarted=true;
-    console.log('d93: startSerge');
-    serge.currentTime=0;
-    serge.play().catch(function(e){ console.warn('d93: serge blocked',e); });
-  }
-
-  function primeSerge(){
-    /* play+pause to unlock serge in the browser's autoplay context */
-    serge.play().then(function(){
-      serge.pause(); serge.currentTime=0; sergeReady=true;
-      console.log('d93: serge primed');
-    }).catch(function(){ sergeReady=false; });
-  }
-
-  function unlock(){
-    if(unlocked) return; unlocked=true;
-    drone.play().catch(function(){});
-    primeSerge();
-  }
-
-  /* keep drone alive */
-  drone.addEventListener('pause', function(){
-    setTimeout(function(){ drone.play().catch(function(){}); }, 100);
-  });
-
-  /* try autoplay on load */
-  drone.play().then(function(){
-    unlocked=true;
-    console.log('d93: drone autoplayed');
-    primeSerge();
-  }).catch(function(){
-    document.addEventListener('click',     unlock, {once:true});
-    document.addEventListener('touchstart',unlock, {once:true});
-  });
-
-  /* serge starts when zone 2 enters view — never stops after that */
-  var s2=document.getElementById('slot2');
-  if(s2){
-    new IntersectionObserver(function(entries){
-      if(!entries[0].isIntersecting) return;
-      console.log('d93: slot2 in view, unlocked='+unlocked+' ready='+sergeReady);
-      if(unlocked){ startSerge(); }
-    },{threshold:0}).observe(s2);
-  }
-})();
 
 /* ---- wire up slots 2-6 ---- */
 var handlers={};
