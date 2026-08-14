@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v63-music4 -->
-<script>console.log('d93: music4 v63');</script>
+<!-- build: v64-music4 -->
+<script>console.log('d93: music4 v64');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -359,11 +359,19 @@ window._d93loop.volume  = 0.178; /* -15dB */
 (function(){
   var track = window._d93loop, started = false;
 
-  /* loop fallback — some mobile browsers ignore loop on large files */
-  track.addEventListener('ended', function(){
-    track.currentTime = 0;
-    track.play().catch(function(){});
+  /* iOS Safari blocks play() from ended event (not a user gesture).
+     Instead, reset currentTime 0.3s before the end so the track
+     never actually reaches 'ended' — loop=true then works reliably. */
+  track.addEventListener('timeupdate', function(){
+    if(track.duration > 0 && (track.duration - track.currentTime) < 0.3){
+      track.currentTime = 0;
+    }
   });
+
+  /* watchdog: resume if paused unexpectedly */
+  setInterval(function(){
+    if(started && track.paused){ track.play().catch(function(){}); }
+  }, 3000);
 
   function start(){
     if(started) return; started = true;
@@ -376,15 +384,9 @@ window._d93loop.volume  = 0.178; /* -15dB */
   track.src = 'MUSICPAGE4LOOP.mp3';
   track.play().then(function(){ started = true; })
               .catch(function(){
-                /* blocked — start on first interaction */
-                track.src = ''; /* clear so no background download */
-                function unlock(){
-                  document.removeEventListener('click',     unlock);
-                  document.removeEventListener('touchstart',unlock);
-                  start();
-                }
-                document.addEventListener('click',     unlock, {once:true});
-                document.addEventListener('touchstart',unlock, {once:true});
+                track.src = ''; /* clear so no background download while waiting */
+                document.addEventListener('click',     start, {once:true});
+                document.addEventListener('touchstart',start, {once:true});
               });
 })();
 
