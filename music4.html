@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v65-music4 -->
-<script>console.log('d93: music4 v65');</script>
+<!-- build: v66-music4 -->
+<script>console.log('d93: music4 v66');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -375,13 +375,13 @@ window._d93loop.volume  = 0.178; /* -15dB */
 
   function start(){
     if(started) return; started = true;
-    track.src = 'MUSICPAGE4LOOP.mp3';
+    track.src = 'https://daysof93-cdn.b-cdn.net/MUSICPAGE4LOOPV2.mp3';
     track.load();
     track.play().catch(function(){});
   }
 
   /* try autoplay immediately (zone 1 = page load) */
-  track.src = 'MUSICPAGE4LOOP.mp3';
+  track.src = 'https://daysof93-cdn.b-cdn.net/MUSICPAGE4LOOPV2.mp3';
   track.play().then(function(){ started = true; })
               .catch(function(){
                 track.src = ''; /* clear so no background download while waiting */
