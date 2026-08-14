@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93 — music</title>
-<!-- build: v66-music4 -->
-<script>console.log('d93: music4 v66');</script>
+<!-- build: v67-music4 -->
+<script>console.log('d93: music4 v67');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -368,9 +368,21 @@ window._d93loop.volume  = 0.178; /* -15dB */
     }
   });
 
-  /* watchdog: resume if paused unexpectedly */
+  /* pause when screen locks / tab hides; resume when visible again */
+  var hiddenByVisibility = false;
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){
+      if(started && !track.paused){ track.pause(); hiddenByVisibility = true; }
+    } else {
+      if(hiddenByVisibility){ track.play().catch(function(){}); hiddenByVisibility = false; }
+    }
+  });
+
+  /* watchdog: resume only if visible and paused unexpectedly */
   setInterval(function(){
-    if(started && track.paused){ track.play().catch(function(){}); }
+    if(started && !document.hidden && track.paused && !hiddenByVisibility){
+      track.play().catch(function(){});
+    }
   }, 3000);
 
   function start(){
