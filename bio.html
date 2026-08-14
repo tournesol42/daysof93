@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tommy Gee — Bio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400&display=swap" rel="stylesheet">
+
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:#fff; min-height:100%; }
+  body{ font-family:'Jost','Helvetica Neue',sans-serif; -webkit-font-smoothing:antialiased; }
+
+  .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  .bio-wrap{
+    position:relative; z-index:10;
+    max-width:640px;
+    margin:0 auto;
+    padding:100px 28px 120px;
+  }
+
+  .bio-name{
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:#000; opacity:0.5;
+    margin-bottom:48px;
+  }
+
+  .bio-body p{
+    font-size:15px; line-height:1.75; font-weight:300;
+    color:#000; opacity:0.85;
+    margin-bottom:1.6em;
+  }
+  .bio-body p:last-child{ margin-bottom:0; }
+
+  .bio-back{
+    display:inline-block;
+    margin-top:60px;
+    font-size:10px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:#000; opacity:0.4;
+    text-decoration:none;
+  }
+  .bio-back:hover{ opacity:0.9; }
+
+  @media(max-width:720px){
+    .bio-wrap{ padding:80px 20px 100px; }
+    .bio-body p{ font-size:14px; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
+
+<div class="bio-wrap">
+  <p class="bio-name">Tommy Gee — Composer / Sound Designer / Music Producer</p>
+
+  <div class="bio-body">
+    <p>Tommy Gee is a Scandinavian award-winning composer and music producer with a genre-spanning career that moves fluidly between experimental sound design and global commercial success. With over 40 diamond, platinum, and gold certifications and more than 10 million records sold, his music has reached number one in 32 countries, including the USA and UK.</p>
+
+    <p>Largely self-taught and instinct-driven, Tommy built an international electronica career with over 30 releases on labels such as R&S Records (Belgium), Sony Techno Japan, and influential UK indie imprints. That early period laid the foundation for a unique voice that blends the precision of machine logic with human emotion.</p>
+
+    <p>In the 2010s, he shifted focus to international songwriting and production, collaborating with artists such as Nile Rodgers, One Direction, Fifth Harmony, and Wolfgang Gartner. His work during this era earned widespread acclaim and commercial success. Concurrently, Tommy scored theatrical productions for The Royal Danish Theater, Republique, and Edison, including the Reumert-winning <em>Om et øjeblik</em> and the Robert-winning animated film <em>2 Venner</em>.</p>
+
+    <p>Recently, Tommy has returned to composing for screen, bringing with him decades of sonic exploration. His score for the Danish National TV documentary series <em>Efterretningstjenesten</em> marked a new chapter, blending modular synthesis, granular sample manipulation, and handcrafted sound design — often developed in dialogue with his custom-built musical systems. While deeply rooted in electronic sound, his work now frequently incorporates live acoustic recordings and orchestral collaborations with a trusted team of international players. Collaboration with the director is central to how he shapes each score.</p>
+
+    <p>Tommy rejects the uniformity of algorithm-driven music libraries. Instead, he crafts sound worlds that are personal, textural, and deeply attuned to story and image. His recent work includes composing for Grammy-nominated artist Ingrid Andress and scoring for international productions such as <em>Citizen Rose</em> (E! Network, USA), <em>Breaking Away</em> (Get Lifted Films / John Legend) featuring Brazilian superstar Anitta, and projects for Mercedes-Benz, SYCO, Warner Music, Universal Music, and more.</p>
+
+    <p>Tommy Gee continues to explore the intersection between emotion, technology, and narrative — offering filmmakers a singular sonic voice shaped by decades of creative experience working with people and machines.</p>
+  </div>
+
+  <a href="music4.html" class="bio-back">&larr; back</a>
+</div>
+
+<script>
+(function(){
+  function daySeed(){ var d=new Date(); return d.getFullYear()*1000+dayOfYear(d); }
+  function dayOfYear(d){ var s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+  function seededRand(seed){ var x=Math.sin(seed)*10000; return x-Math.floor(x); }
+  var SEED=daySeed();
+
+  function drawField(){
+    var svg=document.getElementById('field');
+    var w=window.innerWidth, h=window.innerHeight;
+    svg.setAttribute('viewBox','0 0 '+w+' '+h);
+    var camX=(seededRand(SEED+1)-0.5)*40, camTilt=(seededRand(SEED+2)-0.5)*0.02;
+    var vpX=w*0.5+camX, vpY=h*0.62, ln='';
+    for(var i=0;i<=18;i++){
+      var t=i/18, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
+      ln+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="'+op+'"/>';
+    }
+    for(var i=0;i<=16;i++){
+      var x=(i/16)*w;
+      ln+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.13)" stroke-width="1.2" opacity="0.18"/>';
+    }
+    var ay=Math.sin(camTilt);
+    ln+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.48"/>';
+    ln+='<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="rgba(0,0,0,0.30)" stroke-width="1.2" opacity="0.42"/>';
+    var r=9;
+    ln+='<circle cx="'+vpX+'" cy="'+vpY+'" r="'+r+'" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.55"/>';
+    ln+='<line x1="'+(vpX-r-4)+'" y1="'+vpY+'" x2="'+(vpX+r+4)+'" y2="'+vpY+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+    ln+='<line x1="'+vpX+'" y1="'+(vpY-r-4)+'" x2="'+vpX+'" y2="'+(vpY+r+4)+'" stroke="#000" stroke-width="1.2" opacity="0.55"/>';
+    svg.innerHTML=ln;
+  }
+  drawField();
+  var _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(drawField,150); });
+})();
+</script>
+</body>
+</html>
