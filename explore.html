@@ -415,18 +415,26 @@ function initAudioEls() {
   console.log('d93: audio elements created', NUM_SHORT, 'short', NUM_LONG, 'long');
 }
 
-// First user gesture: activate keepAlive + all pool elements.
-// keepAlive loops silently forever → session stays alive between short sounds.
+// Activate keepAlive + all pool elements.
+// Called on page load (succeeds on Chrome desktop) and on first gesture (iOS fallback).
+// If all play() calls fail, resets unlocking so the gesture handler can retry.
 function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
   var all = [keepAlive].concat(shortEls, longEls);
   var pending = all.length;
-  function onDone() {
+  var succeeded = 0;
+  function onDone(ok) {
+    if (ok) succeeded++;
     if (--pending === 0) {
-      audioReady = true;
-      console.log('d93: audio unlocked');
-      if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+      if (succeeded === all.length) {
+        audioReady = true;
+        console.log('d93: audio unlocked');
+        if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+      } else {
+        // Autoplay blocked (iOS) — reset so gesture handler can retry
+        unlocking = false;
+      }
     }
   }
   all.forEach(function(a) {
@@ -436,12 +444,12 @@ function unlockAudio() {
       p.then(function() {
         if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
         a.volume = (a === keepAlive) ? 0 : getVol();
-        onDone();
-      }).catch(function() { a.volume = (a === keepAlive) ? 0 : getVol(); onDone(); });
+        onDone(true);
+      }).catch(function() { a.volume = (a === keepAlive) ? 0 : getVol(); onDone(false); });
     } else {
       if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
       a.volume = (a === keepAlive) ? 0 : getVol();
-      onDone();
+      onDone(true);
     }
   });
 }
@@ -556,6 +564,9 @@ async function loadImages() {
 startAnim();
 loadImages();
 initAudioEls();
+// Try autoplay immediately — works on Chrome desktop (media engagement).
+// On iOS the attempt fails and unlocking resets, so the gesture handler retries.
+setTimeout(unlockAudio, 300);
 </script>
 </body>
 </html>
