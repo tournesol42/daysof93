@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v1 -->
+<!-- build: explore-v2-audio -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -51,6 +51,17 @@ const CFG = {
   cutterColor:    '#ffffff',
   cutterSpeed:    0,
   cutterRenewal:  40,
+};
+
+// ── Audio configuration ───────────────────────────────────────────────────────
+const AUDIO_CFG = {
+  shortPoolCount:  21,
+  longPoolCount:   10,
+  shortPoly:       false,  // true = up to shortPolyVoices simultaneous
+  longPoly:        false,  // true = up to longPolyVoices simultaneous
+  shortPolyVoices: 4,
+  longPolyVoices:  4,
+  masterVol:       1.0,
 };
 
 // ── Image paths — put 60 files in explore/ named 001.jpg … 060.jpg ──────────
@@ -293,6 +304,7 @@ function enterSilence(ts) {
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
+  audioTriggerLong();
 }
 
 function drawSilenceOverlay(c, W, H, elapsed) {
@@ -345,6 +357,138 @@ function drawFrame(elapsed) {
   if (cutterActive) drawCuts(ctx, CW, CH);
 }
 
+// ── Audio system ──────────────────────────────────────────────────────────────
+
+// Volume: read same localStorage keys as rest of site
+(function () {
+  const s = parseFloat(localStorage.getItem('d93vol'));
+  let vol   = isNaN(s) ? 0.3162 : Math.max(0, Math.min(1, s));
+  let muted = localStorage.getItem('d93mute') === '1';
+  window._d93vol = function () { return muted ? 0 : vol; };
+})();
+
+let audioCtx     = null;
+let shortBuffers = [];
+let longBuffers  = [];
+let shortVoices  = [];
+let longVoices   = [];
+let audioReady   = false;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    console.log('d93: AudioContext created, state:', audioCtx.state);
+  }
+  return audioCtx;
+}
+
+// Unlock on first user gesture (iOS requirement)
+['touchstart', 'mousedown', 'keydown'].forEach(type => {
+  document.addEventListener(type, function unlock() {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => console.log('d93: AudioContext resumed'));
+    }
+    document.removeEventListener(type, unlock);
+  }, { once: true });
+});
+
+async function preloadAudio() {
+  const ctx = getAudioCtx();
+
+  const shortUrls = Array.from({ length: AUDIO_CFG.shortPoolCount }, (_, i) =>
+    `https://daysof93-cdn.b-cdn.net/pool%20short/short_${String(i + 1).padStart(2, '0')}.wav`
+  );
+  const longUrls = Array.from({ length: AUDIO_CFG.longPoolCount }, (_, i) =>
+    `https://daysof93-cdn.b-cdn.net/pool%20long/long_${String(i + 1).padStart(2, '0')}.wav`
+  );
+
+  async function fetchBuf(url) {
+    try {
+      const res = await fetch(url);
+      const ab  = await res.arrayBuffer();
+      return await ctx.decodeAudioData(ab);
+    } catch (e) {
+      console.warn('d93: audio load failed', url, e.message);
+      return null;
+    }
+  }
+
+  const [shorts, longs] = await Promise.all([
+    Promise.all(shortUrls.map(fetchBuf)),
+    Promise.all(longUrls.map(fetchBuf)),
+  ]);
+
+  shortBuffers = shorts.filter(Boolean);
+  longBuffers  = longs.filter(Boolean);
+  audioReady   = true;
+  console.log(`d93: audio ready — ${shortBuffers.length} short, ${longBuffers.length} long`);
+}
+
+function makeVoice(buf) {
+  const ctx  = getAudioCtx();
+  const src  = ctx.createBufferSource();
+  const gain = ctx.createGain();
+  src.buffer      = buf;
+  gain.gain.value = window._d93vol() * AUDIO_CFG.masterVol;
+  src.connect(gain);
+  gain.connect(ctx.destination);
+  return { src, gain };
+}
+
+function audioTriggerShort() {
+  if (!audioReady || !shortBuffers.length) return;
+  if (audioCtx && audioCtx.state === 'suspended') return;
+
+  const buf   = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
+  const voice = makeVoice(buf);
+
+  if (!AUDIO_CFG.shortPoly) {
+    shortVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
+    shortVoices = [];
+  } else if (shortVoices.length >= AUDIO_CFG.shortPolyVoices) {
+    try { shortVoices.shift().src.stop(); } catch (e) {}
+  }
+
+  voice.src.onended = () => { shortVoices = shortVoices.filter(v => v !== voice); };
+  voice.src.start();
+  shortVoices.push(voice);
+  console.log('d93: short trigger, voices:', shortVoices.length);
+}
+
+function audioTriggerLong() {
+  if (!audioReady || !longBuffers.length) return;
+  if (audioCtx && audioCtx.state === 'suspended') return;
+
+  const buf   = longBuffers[Math.floor(Math.random() * longBuffers.length)];
+  const voice = makeVoice(buf);
+
+  if (!AUDIO_CFG.longPoly) {
+    longVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
+    longVoices = [];
+  } else if (longVoices.length >= AUDIO_CFG.longPolyVoices) {
+    try { longVoices.shift().src.stop(); } catch (e) {}
+  }
+
+  voice.src.onended = () => { longVoices = longVoices.filter(v => v !== voice); };
+  voice.src.start();
+  longVoices.push(voice);
+  console.log('d93: long trigger, voices:', longVoices.length);
+}
+
+function audioStopLong() {
+  if (!audioCtx || !longVoices.length) return;
+  const fadeS = CFG.silenceFade / 1000;
+  const now   = audioCtx.currentTime;
+  longVoices.forEach(v => {
+    v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+    v.gain.gain.linearRampToValueAtTime(0, now + fadeS);
+    v.src.stop(now + fadeS);
+  });
+  longVoices = [];
+  console.log('d93: long fade out over', CFG.silenceFade, 'ms');
+}
+
 // ── State machine ─────────────────────────────────────────────────────────────
 function enterHold(ts) {
   engineState   = 'HOLD';
@@ -353,9 +497,12 @@ function enterHold(ts) {
 }
 
 function doAdvance(ts) {
+  const fromSilence = engineState === 'SILENCE';
   // TRANS = NONE: skip straight to next frame
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
+  audioTriggerShort();
+  if (fromSilence) audioStopLong();
 }
 
 function advanceFromHold(ts) {
@@ -422,6 +569,7 @@ async function loadImages() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 startAnim();
 loadImages();
+preloadAudio();
 </script>
 </body>
 </html>
