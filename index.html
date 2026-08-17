@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v177-explore-large-right -->
+<!-- build: v178-explore-flash-orange-white -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -402,20 +402,23 @@
     bottom: 20px;
     right: 28px;
     font-family: 'Jost', 'Helvetica Neue', sans-serif;
-    font-size: clamp(3.6rem, 10.4vw, 12.8rem);
+    font-size: clamp(2.16rem, 6.24vw, 7.68rem);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: -0.02em;
     line-height: 0.88;
     text-decoration: none;
-    color: #888;
+    color: #E85500;
     z-index: 49;
-    animation: explore-flash 1.4s step-end infinite;
+    animation: explore-flash 1.6s linear infinite;
   }
   #explore-btn.visible { display: block; }
   @keyframes explore-flash {
-    0%, 100% { color: #888; }
-    50%       { color: #E85500; }
+    0%   { color: #E85500; }
+    42%  { color: #E85500; }
+    50%  { color: #ffffff; }
+    92%  { color: #ffffff; }
+    100% { color: #E85500; }
   }
 </style>
 </head>
