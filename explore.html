@@ -392,15 +392,22 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-// Unlock on first user gesture (iOS requirement)
+// Unlock on first user gesture — iOS requires a sound to start synchronously
+// inside the gesture handler, not just a resume() promise
+function unlockAudio() {
+  const ctx = getAudioCtx();
+  const silBuf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const silSrc = ctx.createBufferSource();
+  silSrc.buffer = silBuf;
+  silSrc.connect(ctx.destination);
+  silSrc.start(0);
+  ctx.resume().then(() => {
+    console.log('d93: AudioContext resumed');
+    if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+  });
+}
 ['touchstart', 'mousedown', 'keydown'].forEach(type => {
-  document.addEventListener(type, function unlock() {
-    const ctx = getAudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(() => console.log('d93: AudioContext resumed'));
-    }
-    document.removeEventListener(type, unlock);
-  }, { once: true });
+  document.addEventListener(type, unlockAudio, { once: true });
 });
 
 async function preloadAudio() {
@@ -417,7 +424,7 @@ async function preloadAudio() {
     try {
       const res = await fetch(url);
       const ab  = await res.arrayBuffer();
-      return await ctx.decodeAudioData(ab);
+      return await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
     } catch (e) {
       console.warn('d93: audio load failed', url, e.message);
       return null;
