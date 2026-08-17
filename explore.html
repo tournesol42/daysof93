@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v2-audio -->
+<!-- build: explore-v3-keepalive -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -371,12 +371,23 @@ function drawFrame(elapsed) {
   window._d93vol = function() { return muted ? 0 : vol; };
 })();
 
-var shortEls   = [];   // 4 <audio> elements with fixed short-pool sources
-var longEls    = [];   // 3 <audio> elements with fixed long-pool sources
-var shortIdx   = 0;    // index of currently active short element
-var longIdx    = 0;    // index of currently active long element
+var shortEls   = [];
+var longEls    = [];
+var shortIdx   = 0;
+var longIdx    = 0;
 var audioReady = false;
 var unlocking  = false;
+
+// Loops silently to keep the iOS audio session alive between triggers.
+// Without this, play() on short-pool elements fails intermittently because
+// iOS suspends the session in the silence gap between sounds.
+var keepAlive = (function() {
+  var el = document.createElement('audio');
+  el.src = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_01.wav';
+  el.loop = true; el.volume = 0;
+  document.body.appendChild(el);
+  return el;
+}());
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
@@ -404,11 +415,12 @@ function initAudioEls() {
   console.log('d93: audio elements created', NUM_SHORT, 'short', NUM_LONG, 'long');
 }
 
-// First user gesture: activate all 7 elements inside the handler.
+// First user gesture: activate keepAlive + all pool elements.
+// keepAlive loops silently forever → session stays alive between short sounds.
 function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
-  var all = shortEls.concat(longEls);
+  var all = [keepAlive].concat(shortEls, longEls);
   var pending = all.length;
   function onDone() {
     if (--pending === 0) {
@@ -421,10 +433,15 @@ function unlockAudio() {
     a.volume = 0;
     var p = a.play();
     if (p && typeof p.then === 'function') {
-      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); onDone(); })
-       .catch(function() { a.volume = getVol(); onDone(); });
+      p.then(function() {
+        if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
+        a.volume = (a === keepAlive) ? 0 : getVol();
+        onDone();
+      }).catch(function() { a.volume = (a === keepAlive) ? 0 : getVol(); onDone(); });
     } else {
-      a.pause(); a.currentTime = 0; a.volume = getVol(); onDone();
+      if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
+      a.volume = (a === keepAlive) ? 0 : getVol();
+      onDone();
     }
   });
 }
@@ -433,16 +450,15 @@ function unlockAudio() {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
-// Round-robin through the fixed pool — no src changes.
-// 4ms settle delay between currentTime reset and play() — same fix as a
-// Eurorack trigger delay: give the element time to reset before retriggering.
+// Round-robin through the fixed pool — no src changes, no delay.
+// keepAlive keeps the iOS session live so play() never hits the idle-session gate.
 function audioTriggerShort() {
   if (!audioReady || !shortEls.length) return;
   shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0;
   shortIdx = (shortIdx + 1) % shortEls.length;
   var a = shortEls[shortIdx];
   a.volume = getVol(); a.currentTime = 0;
-  setTimeout(function() { a.play().catch(function() {}); }, 4);
+  a.play().catch(function() {});
 }
 
 function audioTriggerLong() {
@@ -451,7 +467,7 @@ function audioTriggerLong() {
   longIdx = (longIdx + 1) % longEls.length;
   var a = longEls[longIdx];
   a.volume = getVol(); a.currentTime = 0;
-  setTimeout(function() { a.play().catch(function() {}); }, 4);
+  a.play().catch(function() {});
 }
 
 function audioStopLong() {
