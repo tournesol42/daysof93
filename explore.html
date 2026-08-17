@@ -304,6 +304,16 @@ function enterSilence(ts) {
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
+  // Stop any short sounds still playing before silence begins
+  if (audioCtx) {
+    const now = audioCtx.currentTime;
+    shortVoices.forEach(v => {
+      v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+      v.gain.gain.linearRampToValueAtTime(0, now + 0.04);
+      v.src.stop(now + 0.04);
+    });
+    shortVoices = [];
+  }
   audioTriggerLong();
 }
 
