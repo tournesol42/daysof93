@@ -562,6 +562,7 @@ function loadMeshGlbs() {
 function getAudioEnergy() { return 0; } // placeholder — audio reactivity removed
 
 function scaleMeshGroup(grp) {
+  grp.scale.set(1, 1, 1); // reset before measuring so scale doesn't compound across SILENCE cycles
   const box = new THREE.Box3().setFromObject(grp);
   const sz  = new THREE.Vector3();
   box.getSize(sz);
