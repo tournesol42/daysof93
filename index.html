@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v180-explore-black-repositioned -->
+<!-- build: v181-global-vol-control -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -893,7 +893,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
   /* ---- AUDIO CAROUSEL ---- */
   var TRACKS  = ['/Common_frequencis_remix.mp3'];
-  var VOLUME  = 0.12; /* -14dB from 0.60 */
+  var VOLUME  = 1.0;
   var played  = new Set();
   var audioEl = null;
   var audioPlaying   = false;
@@ -929,7 +929,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var t0 = performance.now();
     (function fade(){
       var pct = Math.min((performance.now()-t0)/2500, 1);
-      audioEl.volume = pct * VOLUME;
+      audioEl.volume = pct * (window._d93vol ? window._d93vol() : VOLUME);
       if(pct<1) requestAnimationFrame(fade);
     })();
   }
@@ -1213,7 +1213,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     var src=gCtx.createBufferSource();
     src.buffer=buf;
     var gain=gCtx.createGain();
-    gain.gain.value=0.55;
+    gain.gain.value=window._d93vol ? window._d93vol() : 1;
     src.connect(gain);
     gain.connect(gCtx.destination);
     src.start(0);
@@ -1413,6 +1413,42 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 setTimeout(function() {
   document.getElementById('explore-btn').classList.add('visible');
 }, 20000);
+</script>
+
+<!-- global volume control -->
+<div id="d93-vol-ctrl" style="position:fixed;bottom:18px;left:18px;z-index:9998;display:flex;flex-direction:column;align-items:center;gap:5px;opacity:0.45;transition:opacity .25s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.45">
+  <input type="range" id="d93-vol-sl" min="0" max="1" step="0.01" style="width:68px;accent-color:#E85500;cursor:pointer">
+  <button id="d93-mute-btn" style="font-family:'B612 Mono',monospace;font-size:8px;letter-spacing:.15em;background:none;border:1px solid #E85500;color:#E85500;padding:2px 8px;cursor:pointer;text-transform:uppercase">ON</button>
+</div>
+<script>
+(function(){
+  var DFLT=0.3162;
+  var s=parseFloat(localStorage.getItem('d93vol'));
+  var vol=isNaN(s)?DFLT:Math.max(0,Math.min(1,s));
+  var muted=localStorage.getItem('d93mute')==='1';
+  var sl=document.getElementById('d93-vol-sl');
+  var btn=document.getElementById('d93-mute-btn');
+  sl.value=vol;
+  btn.textContent=muted?'OFF':'ON';
+  window._d93vol=function(){ return muted?0:vol; };
+  function applyAll(){
+    var v=muted?0:vol;
+    document.querySelectorAll('audio,video').forEach(function(el){ el.volume=v; });
+  }
+  document.addEventListener('play',applyAll,true);
+  sl.addEventListener('input',function(){
+    vol=parseFloat(this.value);
+    localStorage.setItem('d93vol',vol);
+    applyAll();
+  });
+  btn.addEventListener('click',function(){
+    muted=!muted;
+    localStorage.setItem('d93mute',muted?'1':'0');
+    btn.textContent=muted?'OFF':'ON';
+    applyAll();
+  });
+  applyAll();
+})();
 </script>
 
 </body>
