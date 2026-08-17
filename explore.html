@@ -387,24 +387,38 @@ let longVoices   = [];
 let audioReady   = false;
 
 // Phase 1 — fetch raw bytes immediately on page load, no AudioContext needed
-async function preloadRaw() {
-  const shortUrls = Array.from({ length: AUDIO_CFG.shortPoolCount }, (_, i) =>
-    `https://daysof93-cdn.b-cdn.net/pool%20short/short_${String(i + 1).padStart(2, '0')}.wav`
-  );
-  const longUrls = Array.from({ length: AUDIO_CFG.longPoolCount }, (_, i) =>
-    `https://daysof93-cdn.b-cdn.net/pool%20long/long_${String(i + 1).padStart(2, '0')}.wav`
-  );
-  async function fetchRaw(url) {
-    try { return await (await fetch(url)).arrayBuffer(); }
-    catch (e) { console.warn('d93: fetch failed', url, e.message); return null; }
-  }
-  const [s, l] = await Promise.all([
-    Promise.all(shortUrls.map(fetchRaw)),
-    Promise.all(longUrls.map(fetchRaw)),
-  ]);
-  rawShort = s.filter(Boolean);
-  rawLong  = l.filter(Boolean);
-  console.log(`d93: raw fetched — ${rawShort.length} short, ${rawLong.length} long`);
+// Uses XHR (more reliable than fetch on older iOS Safari)
+let rawPromise = null;
+
+function fetchRawXHR(url) {
+  return new Promise(function(resolve) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response) resolve(xhr.response);
+      else { console.warn('d93: XHR failed', url, xhr.status); resolve(null); }
+    };
+    xhr.onerror = function() { console.warn('d93: XHR error', url); resolve(null); };
+    xhr.send();
+  });
+}
+
+function preloadRaw() {
+  var shortUrls = Array.from({ length: AUDIO_CFG.shortPoolCount }, function(_, i) {
+    return 'https://daysof93-cdn.b-cdn.net/pool%20short/short_' + String(i + 1).padStart(2, '0') + '.wav';
+  });
+  var longUrls = Array.from({ length: AUDIO_CFG.longPoolCount }, function(_, i) {
+    return 'https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(i + 1).padStart(2, '0') + '.wav';
+  });
+  return Promise.all([
+    Promise.all(shortUrls.map(fetchRawXHR)),
+    Promise.all(longUrls.map(fetchRawXHR)),
+  ]).then(function(results) {
+    rawShort = results[0].filter(Boolean);
+    rawLong  = results[1].filter(Boolean);
+    console.log('d93: raw fetched — ' + rawShort.length + ' short, ' + rawLong.length + ' long');
+  });
 }
 
 // Phase 2 — called on first user gesture: create AudioContext, unlock, decode
@@ -423,7 +437,16 @@ async function unlockAudio() {
   silSrc.connect(audioCtx.destination);
   silSrc.start(0);
   await audioCtx.resume();
-  console.log('d93: AudioContext running');
+  console.log('d93: AudioContext state:', audioCtx.state);
+
+  // Wait for raw fetch to finish (may still be in progress if user taps early)
+  await rawPromise;
+
+  if (!rawShort.length && !rawLong.length) {
+    console.warn('d93: no audio data fetched, aborting unlock');
+    unlocking = false;
+    return;
+  }
 
   // Decode pre-fetched ArrayBuffers (slice() because decodeAudioData detaches)
   async function decode(ab) {
@@ -437,7 +460,7 @@ async function unlockAudio() {
   shortBuffers = shorts.filter(Boolean);
   longBuffers  = longs.filter(Boolean);
   audioReady   = true;
-  console.log(`d93: audio ready — ${shortBuffers.length} short, ${longBuffers.length} long`);
+  console.log('d93: audio ready — ' + shortBuffers.length + ' short, ' + longBuffers.length + ' long');
 
   if (isPlaying && engineState === 'HOLD') audioTriggerShort();
 }
@@ -581,7 +604,7 @@ async function loadImages() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 startAnim();
 loadImages();
-preloadRaw();
+rawPromise = preloadRaw();
 </script>
 </body>
 </html>
