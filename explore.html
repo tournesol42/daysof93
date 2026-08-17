@@ -433,14 +433,16 @@ function unlockAudio() {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
-// Round-robin through the fixed pool — no src changes
+// Round-robin through the fixed pool — no src changes.
+// 4ms settle delay between currentTime reset and play() — same fix as a
+// Eurorack trigger delay: give the element time to reset before retriggering.
 function audioTriggerShort() {
   if (!audioReady || !shortEls.length) return;
   shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0;
   shortIdx = (shortIdx + 1) % shortEls.length;
   var a = shortEls[shortIdx];
   a.volume = getVol(); a.currentTime = 0;
-  a.play().catch(function() {});
+  setTimeout(function() { a.play().catch(function() {}); }, 4);
 }
 
 function audioTriggerLong() {
@@ -449,7 +451,7 @@ function audioTriggerLong() {
   longIdx = (longIdx + 1) % longEls.length;
   var a = longEls[longIdx];
   a.volume = getVol(); a.currentTime = 0;
-  a.play().catch(function() {});
+  setTimeout(function() { a.play().catch(function() {}); }, 4);
 }
 
 function audioStopLong() {
