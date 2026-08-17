@@ -378,95 +378,94 @@ function drawFrame(elapsed) {
 })();
 
 let audioCtx     = null;
-let shortBuffers = [];
+let rawShort     = [];   // ArrayBuffers fetched before any gesture
+let rawLong      = [];
+let shortBuffers = [];   // decoded AudioBuffers, ready after gesture
 let longBuffers  = [];
 let shortVoices  = [];
 let longVoices   = [];
 let audioReady   = false;
 
-function getAudioCtx() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    console.log('d93: AudioContext created, state:', audioCtx.state);
-  }
-  return audioCtx;
-}
-
-// Unlock on first user gesture — iOS requires a sound to start synchronously
-// inside the gesture handler, not just a resume() promise
-function unlockAudio() {
-  const ctx = getAudioCtx();
-  const silBuf = ctx.createBuffer(1, 1, ctx.sampleRate);
-  const silSrc = ctx.createBufferSource();
-  silSrc.buffer = silBuf;
-  silSrc.connect(ctx.destination);
-  silSrc.start(0);
-  ctx.resume().then(() => {
-    console.log('d93: AudioContext resumed');
-    if (isPlaying && engineState === 'HOLD') audioTriggerShort();
-  });
-}
-['touchstart', 'mousedown', 'keydown'].forEach(type => {
-  document.addEventListener(type, unlockAudio, { once: true });
-});
-
-async function preloadAudio() {
-  const ctx = getAudioCtx();
-
+// Phase 1 — fetch raw bytes immediately on page load, no AudioContext needed
+async function preloadRaw() {
   const shortUrls = Array.from({ length: AUDIO_CFG.shortPoolCount }, (_, i) =>
     `https://daysof93-cdn.b-cdn.net/pool%20short/short_${String(i + 1).padStart(2, '0')}.wav`
   );
   const longUrls = Array.from({ length: AUDIO_CFG.longPoolCount }, (_, i) =>
     `https://daysof93-cdn.b-cdn.net/pool%20long/long_${String(i + 1).padStart(2, '0')}.wav`
   );
-
-  async function fetchBuf(url) {
-    try {
-      const res = await fetch(url);
-      const ab  = await res.arrayBuffer();
-      return await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
-    } catch (e) {
-      console.warn('d93: audio load failed', url, e.message);
-      return null;
-    }
+  async function fetchRaw(url) {
+    try { return await (await fetch(url)).arrayBuffer(); }
+    catch (e) { console.warn('d93: fetch failed', url, e.message); return null; }
   }
-
-  const [shorts, longs] = await Promise.all([
-    Promise.all(shortUrls.map(fetchBuf)),
-    Promise.all(longUrls.map(fetchBuf)),
+  const [s, l] = await Promise.all([
+    Promise.all(shortUrls.map(fetchRaw)),
+    Promise.all(longUrls.map(fetchRaw)),
   ]);
+  rawShort = s.filter(Boolean);
+  rawLong  = l.filter(Boolean);
+  console.log(`d93: raw fetched — ${rawShort.length} short, ${rawLong.length} long`);
+}
 
+// Phase 2 — called on first user gesture: create AudioContext, unlock, decode
+let unlocking = false;
+async function unlockAudio() {
+  if (audioReady || unlocking) return;
+  unlocking = true;
+
+  const AC = window.AudioContext || window.webkitAudioContext;
+  audioCtx  = new AC();
+
+  // iOS requires playing a sound synchronously inside the gesture handler
+  const silBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const silSrc = audioCtx.createBufferSource();
+  silSrc.buffer = silBuf;
+  silSrc.connect(audioCtx.destination);
+  silSrc.start(0);
+  await audioCtx.resume();
+  console.log('d93: AudioContext running');
+
+  // Decode pre-fetched ArrayBuffers (slice() because decodeAudioData detaches)
+  async function decode(ab) {
+    try { return await new Promise((res, rej) => audioCtx.decodeAudioData(ab.slice(0), res, rej)); }
+    catch (e) { console.warn('d93: decode failed', e.message); return null; }
+  }
+  const [shorts, longs] = await Promise.all([
+    Promise.all(rawShort.map(decode)),
+    Promise.all(rawLong.map(decode)),
+  ]);
   shortBuffers = shorts.filter(Boolean);
   longBuffers  = longs.filter(Boolean);
   audioReady   = true;
   console.log(`d93: audio ready — ${shortBuffers.length} short, ${longBuffers.length} long`);
+
+  if (isPlaying && engineState === 'HOLD') audioTriggerShort();
 }
 
+['touchstart', 'mousedown', 'keydown'].forEach(type => {
+  document.addEventListener(type, unlockAudio, { once: true });
+});
+
 function makeVoice(buf) {
-  const ctx  = getAudioCtx();
-  const src  = ctx.createBufferSource();
-  const gain = ctx.createGain();
+  const src  = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
   src.buffer      = buf;
   gain.gain.value = window._d93vol() * AUDIO_CFG.masterVol;
   src.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(audioCtx.destination);
   return { src, gain };
 }
 
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length) return;
-  if (audioCtx && audioCtx.state === 'suspended') return;
-
   const buf   = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
   const voice = makeVoice(buf);
-
   if (!AUDIO_CFG.shortPoly) {
     shortVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
     shortVoices = [];
   } else if (shortVoices.length >= AUDIO_CFG.shortPolyVoices) {
     try { shortVoices.shift().src.stop(); } catch (e) {}
   }
-
   voice.src.onended = () => { shortVoices = shortVoices.filter(v => v !== voice); };
   voice.src.start();
   shortVoices.push(voice);
@@ -475,18 +474,14 @@ function audioTriggerShort() {
 
 function audioTriggerLong() {
   if (!audioReady || !longBuffers.length) return;
-  if (audioCtx && audioCtx.state === 'suspended') return;
-
   const buf   = longBuffers[Math.floor(Math.random() * longBuffers.length)];
   const voice = makeVoice(buf);
-
   if (!AUDIO_CFG.longPoly) {
     longVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
     longVoices = [];
   } else if (longVoices.length >= AUDIO_CFG.longPolyVoices) {
     try { longVoices.shift().src.stop(); } catch (e) {}
   }
-
   voice.src.onended = () => { longVoices = longVoices.filter(v => v !== voice); };
   voice.src.start();
   longVoices.push(voice);
@@ -586,7 +581,7 @@ async function loadImages() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 startAnim();
 loadImages();
-preloadAudio();
+preloadRaw();
 </script>
 </body>
 </html>
