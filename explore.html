@@ -304,16 +304,8 @@ function enterSilence(ts) {
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
-  // Stop any short sounds still playing before silence begins
-  if (audioCtx) {
-    const now = audioCtx.currentTime;
-    shortVoices.forEach(v => {
-      v.gain.gain.setValueAtTime(v.gain.gain.value, now);
-      v.gain.gain.linearRampToValueAtTime(0, now + 0.04);
-      v.src.stop(now + 0.04);
-    });
-    shortVoices = [];
-  }
+  // Stop any short sound still playing before silence begins
+  if (activeShort) { activeShort.pause(); activeShort.currentTime = 0; activeShort = null; }
   audioTriggerLong();
 }
 
@@ -368,161 +360,102 @@ function drawFrame(elapsed) {
 }
 
 // ── Audio system ──────────────────────────────────────────────────────────────
+// Uses plain <audio> elements — iOS Safari compatible, no decodeAudioData needed
 
-// Volume: read same localStorage keys as rest of site
 (function () {
-  const s = parseFloat(localStorage.getItem('d93vol'));
-  let vol   = isNaN(s) ? 0.3162 : Math.max(0, Math.min(1, s));
-  let muted = localStorage.getItem('d93mute') === '1';
+  var s = parseFloat(localStorage.getItem('d93vol'));
+  var vol   = isNaN(s) ? 0.3162 : Math.max(0, Math.min(1, s));
+  var muted = localStorage.getItem('d93mute') === '1';
   window._d93vol = function () { return muted ? 0 : vol; };
 })();
 
-let audioCtx     = null;
-let rawShort     = [];   // ArrayBuffers fetched before any gesture
-let rawLong      = [];
-let shortBuffers = [];   // decoded AudioBuffers, ready after gesture
-let longBuffers  = [];
-let shortVoices  = [];
-let longVoices   = [];
-let audioReady   = false;
+var shortAudios = [];   // HTMLAudioElement pool
+var longAudios  = [];
+var activeShort = null; // currently playing short element
+var activeLong  = null; // currently playing long element
+var audioReady  = false;
+var unlocking   = false;
 
-// Phase 1 — fetch raw bytes immediately on page load, no AudioContext needed
-// Uses XHR (more reliable than fetch on older iOS Safari)
-let rawPromise = null;
+function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
-function fetchRawXHR(url) {
-  return new Promise(function(resolve) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 && xhr.response) resolve(xhr.response);
-      else { console.warn('d93: XHR failed', url, xhr.status); resolve(null); }
-    };
-    xhr.onerror = function() { console.warn('d93: XHR error', url); resolve(null); };
-    xhr.send();
-  });
+// Create <audio> elements on page load — browser buffers in background
+function initAudioEls() {
+  for (var i = 1; i <= AUDIO_CFG.shortPoolCount; i++) {
+    var a = document.createElement('audio');
+    a.preload = 'auto';
+    a.src = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_' + String(i).padStart(2, '0') + '.wav';
+    document.body.appendChild(a);
+    shortAudios.push(a);
+  }
+  for (var j = 1; j <= AUDIO_CFG.longPoolCount; j++) {
+    var b = document.createElement('audio');
+    b.preload = 'auto';
+    b.src = 'https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(j).padStart(2, '0') + '.wav';
+    document.body.appendChild(b);
+    longAudios.push(b);
+  }
+  console.log('d93: audio elements ready — ' + shortAudios.length + ' short, ' + longAudios.length + ' long');
 }
 
-function preloadRaw() {
-  var shortUrls = Array.from({ length: AUDIO_CFG.shortPoolCount }, function(_, i) {
-    return 'https://daysof93-cdn.b-cdn.net/pool%20short/short_' + String(i + 1).padStart(2, '0') + '.wav';
-  });
-  var longUrls = Array.from({ length: AUDIO_CFG.longPoolCount }, function(_, i) {
-    return 'https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(i + 1).padStart(2, '0') + '.wav';
-  });
-  return Promise.all([
-    Promise.all(shortUrls.map(fetchRawXHR)),
-    Promise.all(longUrls.map(fetchRawXHR)),
-  ]).then(function(results) {
-    rawShort = results[0].filter(Boolean);
-    rawLong  = results[1].filter(Boolean);
-    console.log('d93: raw fetched — ' + rawShort.length + ' short, ' + rawLong.length + ' long');
-  });
-}
-
-// Phase 2 — called on first user gesture: create AudioContext, unlock, decode
-let unlocking = false;
-async function unlockAudio() {
+// On first user gesture: play+pause every element to activate it in iOS Safari.
+// After this, .play() works from anywhere (not just gesture handlers).
+function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
-
-  const AC = window.AudioContext || window.webkitAudioContext;
-  audioCtx  = new AC();
-
-  // iOS requires playing a sound synchronously inside the gesture handler
-  const silBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-  const silSrc = audioCtx.createBufferSource();
-  silSrc.buffer = silBuf;
-  silSrc.connect(audioCtx.destination);
-  silSrc.start(0);
-  await audioCtx.resume();
-  console.log('d93: AudioContext state:', audioCtx.state);
-
-  // Wait for raw fetch to finish (may still be in progress if user taps early)
-  await rawPromise;
-
-  if (!rawShort.length && !rawLong.length) {
-    console.warn('d93: no audio data fetched, aborting unlock');
-    unlocking = false;
-    return;
+  var all = shortAudios.concat(longAudios);
+  var pending = all.length;
+  if (!pending) { audioReady = true; return; }
+  function onDone() {
+    pending--;
+    if (pending === 0) {
+      audioReady = true;
+      console.log('d93: audio unlocked');
+      if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+    }
   }
-
-  // Decode pre-fetched ArrayBuffers (slice() because decodeAudioData detaches)
-  async function decode(ab) {
-    try { return await new Promise((res, rej) => audioCtx.decodeAudioData(ab.slice(0), res, rej)); }
-    catch (e) { console.warn('d93: decode failed', e.message); return null; }
-  }
-  const [shorts, longs] = await Promise.all([
-    Promise.all(rawShort.map(decode)),
-    Promise.all(rawLong.map(decode)),
-  ]);
-  shortBuffers = shorts.filter(Boolean);
-  longBuffers  = longs.filter(Boolean);
-  audioReady   = true;
-  console.log('d93: audio ready — ' + shortBuffers.length + ' short, ' + longBuffers.length + ' long');
-
-  if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+  all.forEach(function(a) {
+    a.volume = 0;
+    var p = a.play();
+    if (p && typeof p.then === 'function') {
+      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); onDone(); })
+       .catch(function() { a.volume = getVol(); onDone(); });
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = getVol(); onDone();
+    }
+  });
 }
 
-['touchstart', 'mousedown', 'keydown'].forEach(type => {
+['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
-function makeVoice(buf) {
-  const src  = audioCtx.createBufferSource();
-  const gain = audioCtx.createGain();
-  src.buffer      = buf;
-  gain.gain.value = window._d93vol() * AUDIO_CFG.masterVol;
-  src.connect(gain);
-  gain.connect(audioCtx.destination);
-  return { src, gain };
-}
-
 function audioTriggerShort() {
-  if (!audioReady || !shortBuffers.length) return;
-  const buf   = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
-  const voice = makeVoice(buf);
-  if (!AUDIO_CFG.shortPoly) {
-    shortVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
-    shortVoices = [];
-  } else if (shortVoices.length >= AUDIO_CFG.shortPolyVoices) {
-    try { shortVoices.shift().src.stop(); } catch (e) {}
-  }
-  voice.src.onended = () => { shortVoices = shortVoices.filter(v => v !== voice); };
-  voice.src.start();
-  shortVoices.push(voice);
-  console.log('d93: short trigger, voices:', shortVoices.length);
+  if (!audioReady || !shortAudios.length) return;
+  if (activeShort) { activeShort.pause(); activeShort.currentTime = 0; activeShort = null; }
+  var a = shortAudios[Math.floor(Math.random() * shortAudios.length)];
+  a.volume = getVol();
+  a.currentTime = 0;
+  a.play().catch(function() {});
+  activeShort = a;
 }
 
 function audioTriggerLong() {
-  if (!audioReady || !longBuffers.length) return;
-  const buf   = longBuffers[Math.floor(Math.random() * longBuffers.length)];
-  const voice = makeVoice(buf);
-  if (!AUDIO_CFG.longPoly) {
-    longVoices.forEach(v => { try { v.src.stop(); } catch (e) {} });
-    longVoices = [];
-  } else if (longVoices.length >= AUDIO_CFG.longPolyVoices) {
-    try { longVoices.shift().src.stop(); } catch (e) {}
-  }
-  voice.src.onended = () => { longVoices = longVoices.filter(v => v !== voice); };
-  voice.src.start();
-  longVoices.push(voice);
-  console.log('d93: long trigger, voices:', longVoices.length);
+  if (!audioReady || !longAudios.length) return;
+  if (activeLong) { activeLong.pause(); activeLong.currentTime = 0; activeLong = null; }
+  var a = longAudios[Math.floor(Math.random() * longAudios.length)];
+  a.volume = getVol();
+  a.currentTime = 0;
+  a.play().catch(function() {});
+  activeLong = a;
 }
 
 function audioStopLong() {
-  if (!audioCtx || !longVoices.length) return;
-  const fadeS = CFG.silenceFade / 1000;
-  const now   = audioCtx.currentTime;
-  longVoices.forEach(v => {
-    v.gain.gain.setValueAtTime(v.gain.gain.value, now);
-    v.gain.gain.linearRampToValueAtTime(0, now + fadeS);
-    v.src.stop(now + fadeS);
-  });
-  longVoices = [];
-  console.log('d93: long fade out over', CFG.silenceFade, 'ms');
+  if (!activeLong) return;
+  activeLong.pause();
+  activeLong.currentTime = 0;
+  activeLong = null;
 }
+
 
 // ── State machine ─────────────────────────────────────────────────────────────
 function enterHold(ts) {
@@ -604,7 +537,7 @@ async function loadImages() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 startAnim();
 loadImages();
-rawPromise = preloadRaw();
+initAudioEls();
 </script>
 </body>
 </html>
