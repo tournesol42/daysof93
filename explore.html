@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v3-keepalive -->
+<!-- build: explore-v4-mesh-overlay -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -17,13 +17,23 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   opacity: 0; transition: opacity 1.5s ease;
 }
 #back:hover { color: #E85500; }
+#mesh-cv {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  opacity: 0; display: none;
+  z-index: 10;
+}
 </style>
 </head>
 <body>
 
 <a href="index.html" id="back">← back</a>
 <canvas id="cv"></canvas>
+<canvas id="mesh-cv"></canvas>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 // ── Preset configuration (matches production screenshot) ─────────────────────
 const CFG = {
@@ -57,11 +67,22 @@ const CFG = {
 const AUDIO_CFG = {
   shortPoolCount:  21,
   longPoolCount:   10,
-  shortPoly:       false,  // true = up to shortPolyVoices simultaneous
-  longPoly:        false,  // true = up to longPolyVoices simultaneous
+  shortPoly:       false,
+  longPoly:        false,
   shortPolyVoices: 4,
   longPolyVoices:  4,
   masterVol:       1.0,
+};
+
+// ── Mesh overlay configuration ────────────────────────────────────────────────
+const MESH_CFG = {
+  meshOverlapDurMin: 2000,
+  meshOverlapDurMax: 3000,
+  meshFadeIn:        300,
+  meshFadeOut:       500,
+  meshCountMin:      2,
+  meshCountMax:      3,
+  meshColor:         '#FF6600',
 };
 
 // ── Image paths — put 60 files in explore/ named 001.jpg … 060.jpg ──────────
@@ -83,6 +104,7 @@ sizeCanvas();
 window.addEventListener('resize', () => {
   sizeCanvas();
   if (cutterActive) spawnCuts(CFG.cutterAmount);
+  updateMeshCamera();
 });
 
 // ── Engine state ─────────────────────────────────────────────────────────────
@@ -129,7 +151,7 @@ function computeHoldMs() {
 function computeNext(current) {
   const total = images.length;
   if (!total) return 0;
-  return Math.floor(Math.random() * total); // always RANDOM
+  return Math.floor(Math.random() * total);
 }
 
 // ── Cutter ────────────────────────────────────────────────────────────────────
@@ -304,9 +326,10 @@ function enterSilence(ts) {
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
-  // Stop any short sound still playing before silence begins
   if (shortEls.length) { shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0; }
   audioTriggerLong();
+  initMeshAudio();
+  enterMeshOverlay();
 }
 
 function drawSilenceOverlay(c, W, H, elapsed) {
@@ -333,7 +356,6 @@ function drawImageCovered(c, img, W, H) {
 }
 
 function drawTransitionFrame(c, out, inc, progress, W, H) {
-  // TRANS is always NONE in this config — kept for completeness
   drawImageCovered(c, images[out], W, H);
   c.globalAlpha = progress;
   drawImageCovered(c, images[inc], W, H);
@@ -360,10 +382,6 @@ function drawFrame(elapsed) {
 }
 
 // ── Audio system ──────────────────────────────────────────────────────────────
-// Fixed-source <audio> elements — no src changes after creation.
-// On iOS Safari, changing src on an element right before play() can fail;
-// fixed sources + small pool (7 elements) is the most reliable pattern.
-
 (function() {
   var s = parseFloat(localStorage.getItem('d93vol'));
   var vol   = isNaN(s) ? 0.3162 : Math.max(0, Math.min(1, s));
@@ -378,9 +396,6 @@ var longIdx    = 0;
 var audioReady = false;
 var unlocking  = false;
 
-// Loops silently to keep the iOS audio session alive between triggers.
-// Without this, play() on short-pool elements fails intermittently because
-// iOS suspends the session in the silence gap between sounds.
 var keepAlive = (function() {
   var el = document.createElement('audio');
   el.src = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_01.wav';
@@ -396,7 +411,6 @@ function initAudioEls() {
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
   var lBase = 'https://daysof93-cdn.b-cdn.net/pool%20long/long_';
 
-  // Build URL arrays and shuffle so every session gets different files
   var sAll = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
     return sBase + String(i+1).padStart(2,'0') + '.wav';
   }).sort(function() { return Math.random()-0.5; });
@@ -415,9 +429,6 @@ function initAudioEls() {
   console.log('d93: audio elements created', NUM_SHORT, 'short', NUM_LONG, 'long');
 }
 
-// Activate keepAlive + all pool elements.
-// Called on page load (succeeds on Chrome desktop) and on first gesture (iOS fallback).
-// If all play() calls fail, resets unlocking so the gesture handler can retry.
 function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
@@ -432,7 +443,6 @@ function unlockAudio() {
         console.log('d93: audio unlocked');
         if (isPlaying && engineState === 'HOLD') audioTriggerShort();
       } else {
-        // Autoplay blocked (iOS) — reset so gesture handler can retry
         unlocking = false;
       }
     }
@@ -458,8 +468,6 @@ function unlockAudio() {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
-// Round-robin through the fixed pool — no src changes, no delay.
-// keepAlive keeps the iOS session live so play() never hits the idle-session gate.
 function audioTriggerShort() {
   if (!audioReady || !shortEls.length) return;
   shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0;
@@ -483,6 +491,255 @@ function audioStopLong() {
   longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
 }
 
+// ── Mesh overlay (Three.js) ───────────────────────────────────────────────────
+const meshCv = document.getElementById('mesh-cv');
+let meshRenderer   = null;
+let meshScene      = null;
+let meshCamera     = null;
+let meshGlbs       = [];   // loaded THREE.Group, one per GLB file
+let activeMeshes   = [];   // physics state objects
+let meshAnimActive = false;
+let meshRafId      = null;
+let meshFadeTimer  = null;
+
+// WebAudio analyser for audio reactivity
+let meshACtx     = null;
+let meshAnalyser = null;
+let meshAnaData  = null;
+
+function initThree() {
+  if (typeof THREE === 'undefined') { console.log('d93: Three.js not found'); return; }
+  meshCv.width  = window.innerWidth;
+  meshCv.height = window.innerHeight;
+  meshRenderer = new THREE.WebGLRenderer({ canvas: meshCv, alpha: true, antialias: true });
+  meshRenderer.setSize(window.innerWidth, window.innerHeight);
+  meshRenderer.setClearColor(0x000000, 0);
+  meshScene = new THREE.Scene();
+  const W = window.innerWidth, H = window.innerHeight;
+  meshCamera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+  meshCamera.position.z = 100;
+  console.log('d93: Three.js init');
+}
+
+function updateMeshCamera() {
+  if (!meshCamera || !meshRenderer) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  meshCamera.left   = -W/2; meshCamera.right  =  W/2;
+  meshCamera.top    =  H/2; meshCamera.bottom = -H/2;
+  meshCamera.updateProjectionMatrix();
+  meshRenderer.setSize(W, H);
+}
+
+function loadMeshGlbs() {
+  if (typeof THREE === 'undefined' || !THREE.GLTFLoader) {
+    console.log('d93: GLTFLoader unavailable'); return;
+  }
+  const mat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(MESH_CFG.meshColor),
+    depthTest: false,
+    side: THREE.DoubleSide
+  });
+  const loader = new THREE.GLTFLoader();
+  for (let i = 1; i <= 5; i++) {
+    (function(idx) {
+      loader.load('Explore_mesh' + idx + '.glb', function(gltf) {
+        const grp = gltf.scene;
+        grp.traverse(function(child) {
+          if (child.isMesh) { child.material = mat; child.renderOrder = 999; }
+        });
+        grp.visible = false;
+        meshScene.add(grp);
+        meshGlbs.push(grp);
+        console.log('d93: mesh loaded', idx, '(' + meshGlbs.length + '/5)');
+      }, undefined, function(err) {
+        console.log('d93: mesh load error', idx, err && (err.message || err));
+      });
+    }(i));
+  }
+}
+
+function initMeshAudio() {
+  if (meshACtx || !longEls.length) return;
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.connect(ctx.destination);
+    var anaData = new Uint8Array(analyser.frequencyBinCount);
+    longEls.forEach(function(el) {
+      var src = ctx.createMediaElementSource(el);
+      src.connect(analyser);
+    });
+    meshACtx     = ctx;
+    meshAnalyser = analyser;
+    meshAnaData  = anaData;
+    console.log('d93: mesh audio analyser ready');
+  } catch(e) {
+    console.log('d93: mesh audio unavailable', e && (e.message || e));
+  }
+}
+
+function getAudioEnergy() {
+  if (!meshAnalyser || !meshAnaData) return 0;
+  if (meshACtx && meshACtx.state === 'suspended') meshACtx.resume();
+  meshAnalyser.getByteFrequencyData(meshAnaData);
+  var sum = 0;
+  for (var i = 0; i < meshAnaData.length; i++) sum += meshAnaData[i];
+  return (sum / meshAnaData.length) / 255; // 0..1
+}
+
+function scaleMeshGroup(grp) {
+  const box = new THREE.Box3().setFromObject(grp);
+  const sz  = new THREE.Vector3();
+  box.getSize(sz);
+  const maxDim = Math.max(sz.x, sz.y, sz.z);
+  if (maxDim > 0) {
+    const target = Math.min(window.innerWidth, window.innerHeight) * 0.25;
+    const s = target / maxDim;
+    grp.scale.set(s, s, s);
+  }
+}
+
+function enterMeshOverlay() {
+  if (!meshRenderer || !meshScene) return;
+  if (!meshGlbs.length) { console.log('d93: no GLBs loaded yet'); return; }
+
+  if (meshFadeTimer) { clearTimeout(meshFadeTimer); meshFadeTimer = null; }
+  meshGlbs.forEach(function(g) { g.visible = false; });
+  activeMeshes = [];
+
+  // Pick 2–3 random meshes without repeats
+  const count = MESH_CFG.meshCountMin +
+    Math.floor(Math.random() * (MESH_CFG.meshCountMax - MESH_CFG.meshCountMin + 1));
+  const pool   = meshGlbs.slice();
+  const chosen = [];
+  for (let i = 0; i < count && pool.length; i++) {
+    chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+
+  const W = window.innerWidth, H = window.innerHeight;
+  chosen.forEach(function(grp) {
+    scaleMeshGroup(grp);
+    const userScale = 0.4 + Math.random() * 0.8; // 0.4–1.2
+    grp.scale.multiplyScalar(userScale);
+
+    const margin = 80;
+    grp.position.set(
+      (Math.random() - 0.5) * (W - margin * 2),
+      (Math.random() - 0.5) * (H - margin * 2),
+      0
+    );
+    grp.rotation.set(
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2
+    );
+    grp.visible = true;
+
+    const spd = 0.3 + Math.random() * 0.7;
+    const ang = Math.random() * Math.PI * 2;
+    activeMeshes.push({
+      mesh:         grp,
+      vel:          { x: Math.cos(ang) * spd, y: Math.sin(ang) * spd },
+      angVel:       {
+        x: (Math.random() < 0.5 ? 1 : -1) * (0.002 + Math.random() * 0.018),
+        y: (Math.random() < 0.5 ? 1 : -1) * (0.002 + Math.random() * 0.018),
+        z: (Math.random() < 0.5 ? 1 : -1) * (0.002 + Math.random() * 0.018)
+      },
+      drag:         0.992,
+      gravity:      0.0015,
+      mass:         0.8 + Math.random() * 0.6,
+      impulseTimer: 40 + Math.floor(Math.random() * 81),
+      impulseCount: 0
+    });
+  });
+
+  // Fade in
+  meshCv.style.display    = 'block';
+  meshCv.style.transition = 'none';
+  meshCv.style.opacity    = '0';
+  requestAnimationFrame(function() {
+    meshCv.style.transition = 'opacity ' + MESH_CFG.meshFadeIn + 'ms ease';
+    requestAnimationFrame(function() { meshCv.style.opacity = '1'; });
+  });
+
+  meshAnimActive = true;
+  if (!meshRafId) meshLoop();
+  console.log('d93: mesh overlay SILENCE enter,', activeMeshes.length, 'meshes');
+}
+
+function exitMeshOverlay() {
+  const dur = MESH_CFG.meshOverlapDurMin +
+    Math.random() * (MESH_CFG.meshOverlapDurMax - MESH_CFG.meshOverlapDurMin);
+  console.log('d93: mesh overlay SILENCE exit, overlap', Math.round(dur), 'ms');
+
+  meshFadeTimer = setTimeout(function() {
+    meshCv.style.transition = 'opacity ' + MESH_CFG.meshFadeOut + 'ms ease';
+    meshCv.style.opacity    = '0';
+    meshFadeTimer = setTimeout(function() {
+      meshAnimActive = false;
+      meshCv.style.display = 'none';
+      meshGlbs.forEach(function(g) { g.visible = false; });
+      activeMeshes  = [];
+      meshFadeTimer = null;
+      console.log('d93: mesh overlay hidden');
+    }, MESH_CFG.meshFadeOut);
+  }, dur);
+}
+
+function meshLoop() {
+  if (!meshAnimActive) { meshRafId = null; return; }
+  meshRafId = requestAnimationFrame(meshLoop);
+
+  const W     = window.innerWidth;
+  const H     = window.innerHeight;
+  const halfW = W / 2, halfH = H / 2;
+  const margin = 80;
+  const energy = getAudioEnergy();       // 0..1
+  const eMult  = 1 + energy * 3;        // 1× baseline → 4× at peak
+
+  activeMeshes.forEach(function(s) {
+    // Gravity + drag
+    s.vel.y -= s.gravity * s.mass;
+    s.vel.x *= s.drag;
+    s.vel.y *= s.drag;
+
+    // Audio: high energy → random velocity kick
+    if (energy > 0.4) {
+      const kick = energy * 0.4;
+      s.vel.x += (Math.random() - 0.5) * kick;
+      s.vel.y += (Math.random() - 0.5) * kick;
+    }
+
+    // Move + rotate
+    s.mesh.position.x += s.vel.x * eMult;
+    s.mesh.position.y += s.vel.y;
+    const aBoost = 1 + energy * 2;
+    s.mesh.rotation.x += s.angVel.x * aBoost;
+    s.mesh.rotation.y += s.angVel.y * aBoost;
+    s.mesh.rotation.z += s.angVel.z * aBoost;
+
+    // Soft bounce off viewport edges
+    if (s.mesh.position.x >  halfW - margin) { s.mesh.position.x =  halfW - margin; s.vel.x *= -0.6; }
+    if (s.mesh.position.x < -(halfW - margin)) { s.mesh.position.x = -(halfW - margin); s.vel.x *= -0.6; }
+    if (s.mesh.position.y >  halfH - margin) { s.mesh.position.y =  halfH - margin; s.vel.y *= -0.6; }
+    if (s.mesh.position.y < -(halfH - margin)) { s.mesh.position.y = -(halfH - margin); s.vel.y *= -0.6; }
+
+    // Random impulse every 40–120 frames
+    s.impulseCount++;
+    if (s.impulseCount >= s.impulseTimer) {
+      const ia = Math.random() * Math.PI * 2;
+      const is = 0.5 + Math.random() * 1.5;
+      s.vel.x += Math.cos(ia) * is;
+      s.vel.y += Math.sin(ia) * is;
+      s.impulseCount = 0;
+      s.impulseTimer = 40 + Math.floor(Math.random() * 81);
+    }
+  });
+
+  meshRenderer.render(meshScene, meshCamera);
+}
+
 // ── State machine ─────────────────────────────────────────────────────────────
 function enterHold(ts) {
   engineState   = 'HOLD';
@@ -492,11 +749,13 @@ function enterHold(ts) {
 
 function doAdvance(ts) {
   const fromSilence = engineState === 'SILENCE';
-  // TRANS = NONE: skip straight to next frame
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
   audioTriggerShort();
-  if (fromSilence) audioStopLong();
+  if (fromSilence) {
+    audioStopLong();
+    exitMeshOverlay();
+  }
 }
 
 function advanceFromHold(ts) {
@@ -556,7 +815,6 @@ async function loadImages() {
   cutterActive = true;
   spawnCuts(CFG.cutterAmount);
 
-  // Fade in back button once images are rolling
   setTimeout(() => { document.getElementById('back').style.opacity = '1'; }, 2000);
 }
 
@@ -564,9 +822,9 @@ async function loadImages() {
 startAnim();
 loadImages();
 initAudioEls();
-// Try autoplay immediately — works on Chrome desktop (media engagement).
-// On iOS the attempt fails and unlocking resets, so the gesture handler retries.
 setTimeout(unlockAudio, 300);
+initThree();
+loadMeshGlbs();
 </script>
 </body>
 </html>
