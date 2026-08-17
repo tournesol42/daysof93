@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v4-mesh-overlay -->
+<!-- build: explore-v5-mesh-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -328,7 +328,6 @@ function enterSilence(ts) {
   stateStartTs = ts;
   if (shortEls.length) { shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0; }
   audioTriggerLong();
-  initMeshAudio();
   enterMeshOverlay();
 }
 
@@ -502,23 +501,25 @@ let meshAnimActive = false;
 let meshRafId      = null;
 let meshFadeTimer  = null;
 
-// WebAudio analyser for audio reactivity
-let meshACtx     = null;
-let meshAnalyser = null;
-let meshAnaData  = null;
+// (audio reactivity removed — createMediaElementSource breaks long audio routing)
 
 function initThree() {
   if (typeof THREE === 'undefined') { console.log('d93: Three.js not found'); return; }
-  meshCv.width  = window.innerWidth;
-  meshCv.height = window.innerHeight;
-  meshRenderer = new THREE.WebGLRenderer({ canvas: meshCv, alpha: true, antialias: true });
-  meshRenderer.setSize(window.innerWidth, window.innerHeight);
-  meshRenderer.setClearColor(0x000000, 0);
-  meshScene = new THREE.Scene();
-  const W = window.innerWidth, H = window.innerHeight;
-  meshCamera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
-  meshCamera.position.z = 100;
-  console.log('d93: Three.js init');
+  try {
+    meshCv.width  = window.innerWidth;
+    meshCv.height = window.innerHeight;
+    meshRenderer = new THREE.WebGLRenderer({ canvas: meshCv, alpha: true, antialias: true });
+    meshRenderer.setSize(window.innerWidth, window.innerHeight);
+    meshRenderer.setClearColor(0x000000, 0);
+    meshScene = new THREE.Scene();
+    const W = window.innerWidth, H = window.innerHeight;
+    meshCamera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+    meshCamera.position.z = 100;
+    console.log('d93: Three.js init');
+  } catch(e) {
+    console.log('d93: Three.js init failed', e && (e.message || e));
+    meshRenderer = null;
+  }
 }
 
 function updateMeshCamera() {
@@ -558,35 +559,7 @@ function loadMeshGlbs() {
   }
 }
 
-function initMeshAudio() {
-  if (meshACtx || !longEls.length) return;
-  try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.connect(ctx.destination);
-    var anaData = new Uint8Array(analyser.frequencyBinCount);
-    longEls.forEach(function(el) {
-      var src = ctx.createMediaElementSource(el);
-      src.connect(analyser);
-    });
-    meshACtx     = ctx;
-    meshAnalyser = analyser;
-    meshAnaData  = anaData;
-    console.log('d93: mesh audio analyser ready');
-  } catch(e) {
-    console.log('d93: mesh audio unavailable', e && (e.message || e));
-  }
-}
-
-function getAudioEnergy() {
-  if (!meshAnalyser || !meshAnaData) return 0;
-  if (meshACtx && meshACtx.state === 'suspended') meshACtx.resume();
-  meshAnalyser.getByteFrequencyData(meshAnaData);
-  var sum = 0;
-  for (var i = 0; i < meshAnaData.length; i++) sum += meshAnaData[i];
-  return (sum / meshAnaData.length) / 255; // 0..1
-}
+function getAudioEnergy() { return 0; } // placeholder — audio reactivity removed
 
 function scaleMeshGroup(grp) {
   const box = new THREE.Box3().setFromObject(grp);
