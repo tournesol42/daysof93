@@ -305,7 +305,7 @@ function enterSilence(ts) {
   engineState  = 'SILENCE';
   stateStartTs = ts;
   // Stop any short sound still playing before silence begins
-  shortAudio.pause(); shortAudio.currentTime = 0;
+  if (shortEls.length) { shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0; }
   audioTriggerLong();
 }
 
@@ -360,9 +360,9 @@ function drawFrame(elapsed) {
 }
 
 // ── Audio system ──────────────────────────────────────────────────────────────
-// Two <audio> elements (one short pool, one long pool) + dynamic src.
-// Activating many elements simultaneously is unreliable on iOS Safari;
-// this is the proven pattern: activate 2, swap src on every trigger.
+// Fixed-source <audio> elements — no src changes after creation.
+// On iOS Safari, changing src on an element right before play() can fail;
+// fixed sources + small pool (7 elements) is the most reliable pattern.
 
 (function() {
   var s = parseFloat(localStorage.getItem('d93vol'));
@@ -371,75 +371,91 @@ function drawFrame(elapsed) {
   window._d93vol = function() { return muted ? 0 : vol; };
 })();
 
-var shortAudio = document.createElement('audio');
-var longAudio  = document.createElement('audio');
-document.body.appendChild(shortAudio);
-document.body.appendChild(longAudio);
-
-var shortUrls  = [];
-var longUrls   = [];
+var shortEls   = [];   // 4 <audio> elements with fixed short-pool sources
+var longEls    = [];   // 3 <audio> elements with fixed long-pool sources
+var shortIdx   = 0;    // index of currently active short element
+var longIdx    = 0;    // index of currently active long element
 var audioReady = false;
 var unlocking  = false;
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
 function initAudioEls() {
-  for (var i = 1; i <= AUDIO_CFG.shortPoolCount; i++)
-    shortUrls.push('https://daysof93-cdn.b-cdn.net/pool%20short/short_' + String(i).padStart(2,'0') + '.wav');
-  for (var j = 1; j <= AUDIO_CFG.longPoolCount; j++)
-    longUrls.push('https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(j).padStart(2,'0') + '.wav');
+  var NUM_SHORT = 4, NUM_LONG = 3;
+  var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
+  var lBase = 'https://daysof93-cdn.b-cdn.net/pool%20long/long_';
+
+  // Build URL arrays and shuffle so every session gets different files
+  var sAll = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
+    return sBase + String(i+1).padStart(2,'0') + '.wav';
+  }).sort(function() { return Math.random()-0.5; });
+  var lAll = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
+    return lBase + String(i+1).padStart(2,'0') + '.wav';
+  }).sort(function() { return Math.random()-0.5; });
+
+  for (var i = 0; i < NUM_SHORT; i++) {
+    var a = document.createElement('audio');
+    a.preload = 'auto'; a.src = sAll[i]; document.body.appendChild(a); shortEls.push(a);
+  }
+  for (var j = 0; j < NUM_LONG; j++) {
+    var b = document.createElement('audio');
+    b.preload = 'auto'; b.src = lAll[j]; document.body.appendChild(b); longEls.push(b);
+  }
+  console.log('d93: audio elements created', NUM_SHORT, 'short', NUM_LONG, 'long');
 }
 
-// First user gesture: activate both elements inside the handler.
-// After this, .play() with any src works from anywhere on iOS Safari.
+// First user gesture: activate all 7 elements inside the handler.
 function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
-  shortAudio.src    = shortUrls[0];
-  longAudio.src     = longUrls[0];
-  shortAudio.volume = 0;
-  longAudio.volume  = 0;
-  var done = 0;
+  var all = shortEls.concat(longEls);
+  var pending = all.length;
   function onDone() {
-    done++;
-    if (done < 2) return;
-    shortAudio.pause(); shortAudio.currentTime = 0; shortAudio.volume = getVol();
-    longAudio.pause();  longAudio.currentTime  = 0; longAudio.volume  = getVol();
-    audioReady = true;
-    console.log('d93: audio unlocked');
-    if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+    if (--pending === 0) {
+      audioReady = true;
+      console.log('d93: audio unlocked');
+      if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+    }
   }
-  var ps = shortAudio.play();
-  var pl = longAudio.play();
-  if (ps && ps.then) ps.then(onDone).catch(onDone); else onDone();
-  if (pl && pl.then) pl.then(onDone).catch(onDone); else onDone();
+  all.forEach(function(a) {
+    a.volume = 0;
+    var p = a.play();
+    if (p && typeof p.then === 'function') {
+      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); onDone(); })
+       .catch(function() { a.volume = getVol(); onDone(); });
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = getVol(); onDone();
+    }
+  });
 }
 
 ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
+// Round-robin through the fixed pool — no src changes
 function audioTriggerShort() {
-  if (!audioReady || !shortUrls.length) return;
-  shortAudio.src = shortUrls[Math.floor(Math.random() * shortUrls.length)];
-  shortAudio.volume = getVol();
-  shortAudio.currentTime = 0;
-  shortAudio.play().catch(function() {});
+  if (!audioReady || !shortEls.length) return;
+  shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0;
+  shortIdx = (shortIdx + 1) % shortEls.length;
+  var a = shortEls[shortIdx];
+  a.volume = getVol(); a.currentTime = 0;
+  a.play().catch(function() {});
 }
 
 function audioTriggerLong() {
-  if (!audioReady || !longUrls.length) return;
-  longAudio.src = longUrls[Math.floor(Math.random() * longUrls.length)];
-  longAudio.volume = getVol();
-  longAudio.currentTime = 0;
-  longAudio.play().catch(function() {});
+  if (!audioReady || !longEls.length) return;
+  longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
+  longIdx = (longIdx + 1) % longEls.length;
+  var a = longEls[longIdx];
+  a.volume = getVol(); a.currentTime = 0;
+  a.play().catch(function() {});
 }
 
 function audioStopLong() {
-  longAudio.pause();
-  longAudio.currentTime = 0;
+  if (!longEls.length) return;
+  longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
 }
-
 
 // ── State machine ─────────────────────────────────────────────────────────────
 function enterHold(ts) {
