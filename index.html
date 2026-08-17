@@ -46,7 +46,7 @@
   }
   header{
     position: fixed; top:0; left:0; right:0; z-index:50;
-    padding: 20px 28px; display:flex; align-items:center; justify-content:flex-end;
+    padding: 20px 52px; display:flex; align-items:center; justify-content:flex-end;
   }
   .nav-logo{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
@@ -399,22 +399,22 @@
   #explore-btn {
     display: none;
     position: fixed;
-    bottom: 110px;
-    right: 55px;
+    bottom: 150px;
+    right: 90px;
     width: 28px;
     height: 28px;
     border-radius: 50%;
     background: #E85500;
     text-decoration: none;
     z-index: 51;
-    animation: dot-pulse 2s ease-in-out infinite;
-    animation-delay: 2s;
   }
   #explore-btn.visible { display: block; }
-  @keyframes dot-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.15; }
-  }
+  #explore-btn.phase2 { animation: dot-slow 2s ease-in-out infinite; }
+  #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
+  #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
+  @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
+  @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
 </style>
 </head>
 <body>
@@ -1419,7 +1419,19 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
 <script>
 setTimeout(function() {
-  document.getElementById('explore-btn').classList.add('visible');
+  var dot = document.getElementById('explore-btn');
+  dot.classList.add('visible');
+  // Phase 2: slow opacity pulse after 2s solid
+  setTimeout(function() { dot.classList.add('phase2'); }, 2000);
+  // Phase 3: grow to 2× + fast pulse after ~3.5s of slow pulse
+  setTimeout(function() {
+    dot.classList.remove('phase2');
+    dot.classList.add('phase3-grow');
+    setTimeout(function() {
+      dot.classList.remove('phase3-grow');
+      dot.classList.add('phase3-pulse');
+    }, 500);
+  }, 5500);
 }, 20000);
 </script>
 
