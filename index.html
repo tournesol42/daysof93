@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v175-volume-down-5db-more -->
+<!-- build: v176-explore-button -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -394,6 +394,27 @@
   #c64-boot .c64-sm{ font-size: clamp(13px, 1.8vw, 21px); line-height:1.8; }
   #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
   @keyframes c64blink{ 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Explore button */
+  #explore-btn {
+    display: none;
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'B612 Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-decoration: none;
+    color: #888;
+    z-index: 49;
+    animation: explore-flash 1.4s step-end infinite;
+  }
+  #explore-btn.visible { display: block; }
+  @keyframes explore-flash {
+    0%, 100% { color: #888; }
+    50%       { color: #E85500; }
+  }
 </style>
 </head>
 <body>
@@ -1383,6 +1404,13 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   }
   requestAnimationFrame(tick);
 })();
+</script>
+
+<a href="explore.html" id="explore-btn">EXPLORE</a>
+<script>
+setTimeout(function() {
+  document.getElementById('explore-btn').classList.add('visible');
+}, 20000);
 </script>
 
 </body>

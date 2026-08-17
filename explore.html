@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>days of 93 — explore</title>
+<!-- build: explore-v1 -->
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+#wrap {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+canvas { display: block; }
+#back {
+  position: fixed; top: 20px; left: 24px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: #444; text-decoration: none; z-index: 100;
+  opacity: 0; transition: opacity 1.5s ease;
+}
+#back:hover { color: #E85500; }
+</style>
+</head>
+<body>
+
+<a href="index.html" id="back">← back</a>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<script>
+// ── Preset configuration (matches production screenshot) ─────────────────────
+const CFG = {
+  holdMode:       'RANGE',
+  holdFixed:      120,
+  holdMin:        32,
+  holdMax:        120,
+  holdCurve:      'BOTH',
+  transType:      'NONE',
+  // Silence: ~16% probability, white flash
+  silenceProb:    0.159,
+  silenceDurMin:  4800,
+  silenceDurMax:  5000,
+  silenceFade:    450,
+  silenceInColor: '#ffffff',
+  silenceOutColor:'#ffffff',
+  silenceOpacity: 1.0,
+  // Cutter: thin white static clusters
+  cutterAmount:   8,
+  cutterCluster:  3,
+  cutterSpread:   60,
+  cutterWideness: 1,
+  cutterOrganics: 35,
+  cutterSkew:     4,
+  cutterColor:    '#ffffff',
+  cutterSpeed:    0,
+  cutterRenewal:  40,
+};
+
+// ── Image paths — put 60 files in explore/ named 001.jpg … 060.jpg ──────────
+const IMAGE_SRCS = Array.from({length: 60}, (_, i) =>
+  `explore/${String(i + 1).padStart(3, '0')}.jpg`
+);
+
+// ── Canvas ───────────────────────────────────────────────────────────────────
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let CW, CH;
+
+function sizeCanvas() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const w = Math.round(vh * 9 / 16);
+  if (w <= vw) { cv.width = w;  cv.height = vh; }
+  else          { cv.width = vw; cv.height = Math.round(vw * 16 / 9); }
+  CW = cv.width; CH = cv.height;
+}
+sizeCanvas();
+window.addEventListener('resize', () => {
+  sizeCanvas();
+  if (cutterActive) spawnCuts(CFG.cutterAmount);
+});
+
+// ── Engine state ─────────────────────────────────────────────────────────────
+let images        = [];
+let currentIndex  = 0;
+let outgoingIndex = 0;
+let incomingIndex = 0;
+let shuffleQueue  = [];
+
+let engineState    = 'IDLE';
+let stateStartTs   = 0;
+let currentHoldMs  = 0;
+let currentTransMs = 0;
+let isPlaying      = false;
+let rafId          = null;
+let lastTs         = 0;
+
+let silFadeMs  = CFG.silenceFade;
+let silHoldMs  = 0;
+let silOpacity = CFG.silenceOpacity;
+
+let cutterActive = false;
+let cuts = [];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function applyDistribution(curve, lo, hi) {
+  const r = Math.random();
+  switch (curve) {
+    case 'EXP':  return lo + (hi - lo) * Math.pow(r, 3);
+    case 'LOG':  return lo + (hi - lo) * (1 - Math.pow(1 - r, 3));
+    case 'BOTH': return Math.random() < 0.5
+      ? lo + (hi - lo) * Math.pow(Math.random(), 4)
+      : hi - (hi - lo) * Math.pow(Math.random(), 4);
+    default: return lo + r * (hi - lo);
+  }
+}
+
+function computeHoldMs() {
+  if (CFG.holdMode === 'FIXED') return CFG.holdFixed;
+  const lo = CFG.holdMin, hi = CFG.holdMax;
+  return Math.max(lo, applyDistribution(CFG.holdCurve, lo, hi));
+}
+
+function computeNext(current) {
+  const total = images.length;
+  if (!total) return 0;
+  return Math.floor(Math.random() * total); // always RANDOM
+}
+
+// ── Cutter ────────────────────────────────────────────────────────────────────
+function cutColorHex(val) {
+  const v = Math.round(255 - 255 * (val / 100));
+  const h = v.toString(16).padStart(2, '0');
+  return `#${h}${h}${h}`;
+}
+
+function rebakeCorners(cut) {
+  const org = CFG.cutterOrganics / 100;
+  cut.orgCorners = Array.from({length: 4}, () => org * 10 * (Math.random() - 0.5));
+}
+
+function spawnCut() {
+  const spreadPct   = CFG.cutterSpread / 100;
+  const widenessPct = CFG.cutterWideness / 100;
+  const organicsPct = CFG.cutterOrganics / 100;
+  const speedVal    = CFG.cutterSpeed;
+  const renewalPct  = CFG.cutterRenewal / 100;
+  const skewPct     = CFG.cutterSkew / 100;
+
+  const axis     = Math.random() < 0.5 ? 'H' : 'V';
+  const crossLen = axis === 'H' ? CH : CW;
+
+  const halfSpread = 0.2 + 0.3 * spreadPct;
+  const pos = crossLen * (0.5 - halfSpread) + Math.random() * crossLen * halfSpread * 2;
+
+  const isWide = Math.random() < widenessPct * 0.8 + 0.1;
+  const width  = isWide
+    ? 8 + Math.pow(Math.random(), Math.max(0.01, 1 - widenessPct * 0.7)) * 52
+    : 1 + Math.random() * 3;
+
+  const speedPct = speedVal / 100;
+  const speed    = Math.random() < speedPct ? (Math.random() * 2 - 1) * speedVal * 3 : 0;
+
+  const orgCorners = Array.from({length: 4}, () => organicsPct * 10 * (Math.random() - 0.5));
+
+  const maxAge = renewalPct === 0
+    ? Infinity
+    : (2000 + Math.random() * 6000) * (1 - renewalPct * 0.85);
+
+  const skew = (Math.random() * 2 - 1) * skewPct * Math.max(CW, CH) * 0.5;
+
+  return { axis, pos, width, speed, skew, orgCorners, age: 0, maxAge, fadingOut: false, fadeOutStart: 0 };
+}
+
+function spawnCuts(n) {
+  cuts = [];
+  const strength   = CFG.cutterCluster;
+  const organicsPct = CFG.cutterOrganics / 100;
+  const skewPct    = CFG.cutterSkew / 100;
+  const speedVal   = CFG.cutterSpeed;
+  const renewalPct = CFG.cutterRenewal / 100;
+  const spreadPct  = CFG.cutterSpread / 100;
+
+  if (strength === 0 || n === 0) {
+    for (let i = 0; i < n; i++) cuts.push(spawnCut());
+  } else {
+    const numZones = Math.max(1, Math.round(1 + Math.random() * strength * 0.7));
+    let placed = 0;
+
+    for (let z = 0; z < numZones && placed < n; z++) {
+      const axis     = Math.random() < 0.5 ? 'H' : 'V';
+      const crossLen = axis === 'H' ? CH : CW;
+      const halfSpread = 0.2 + 0.3 * spreadPct;
+      let pos = crossLen * (0.5 - halfSpread) + Math.random() * crossLen * halfSpread * 2;
+
+      const density   = Math.pow(Math.random(), 0.4);
+      const numStrips = Math.round(2 + density * strength * 4);
+
+      for (let i = 0; i < numStrips && placed < n; i++) {
+        if (pos >= crossLen) break;
+        const r = Math.random();
+        let thick;
+        if      (r < 0.60) thick = 1  + Math.floor(Math.random() * 3);
+        else if (r < 0.85) thick = 4  + Math.floor(Math.random() * 6);
+        else               thick = 10 + Math.floor(Math.random() * 14);
+        const ct = Math.min(thick, crossLen - pos);
+        if (ct < 1) break;
+
+        const speedPct   = speedVal / 100;
+        const speed      = Math.random() < speedPct ? (Math.random() * 2 - 1) * speedVal * 3 : 0;
+        const skew       = (Math.random() * 2 - 1) * skewPct * Math.max(CW, CH) * 0.5;
+        const orgCorners = Array.from({length: 4}, () => organicsPct * 10 * (Math.random() - 0.5));
+        const maxAge     = renewalPct === 0
+          ? Infinity
+          : (2000 + Math.random() * 6000) * (1 - renewalPct * 0.85);
+
+        cuts.push({ axis, pos, width: ct, speed, skew, orgCorners, age: 0, maxAge, fadingOut: false, fadeOutStart: 0 });
+        pos += ct;
+        placed++;
+      }
+    }
+    while (placed < n) { cuts.push(spawnCut()); placed++; }
+  }
+}
+
+function updateCuts(dt) {
+  const target   = CFG.cutterAmount;
+  const toRemove = [];
+
+  cuts.forEach((cut, idx) => {
+    cut.age += dt * 1000;
+
+    if (cut.speed !== 0) {
+      cut.pos += cut.speed * dt;
+      const crossLen = cut.axis === 'H' ? CH : CW;
+      if (cut.speed > 0 && cut.pos > crossLen) {
+        cut.pos = -cut.width; rebakeCorners(cut);
+        cut.age = 0; cut.fadingOut = false;
+      } else if (cut.speed < 0 && cut.pos + cut.width < 0) {
+        cut.pos = crossLen; rebakeCorners(cut);
+        cut.age = 0; cut.fadingOut = false;
+      }
+    }
+
+    if (!cut.fadingOut && isFinite(cut.maxAge) && cut.age >= cut.maxAge) {
+      cut.fadingOut = true; cut.fadeOutStart = cut.age;
+    }
+    if (cut.fadingOut && (cut.age - cut.fadeOutStart) >= 200) toRemove.push(idx);
+  });
+
+  for (let i = toRemove.length - 1; i >= 0; i--) {
+    cuts.splice(toRemove[i], 1);
+    if (cuts.length < target) cuts.push(spawnCut());
+  }
+  while (cuts.length < target) cuts.push(spawnCut());
+}
+
+function drawSingleCut(c, cut, W, H, scale) {
+  const pos = cut.pos * scale;
+  const w   = cut.width * scale;
+  const sk  = cut.skew * scale;
+  const oc  = cut.orgCorners.map(v => v * scale);
+
+  c.beginPath();
+  if (cut.axis === 'H') {
+    c.moveTo(0, pos + oc[0]);
+    c.lineTo(W, pos + sk + oc[1]);
+    c.lineTo(W, pos + w + sk + oc[2]);
+    c.lineTo(0, pos + w + oc[3]);
+  } else {
+    c.moveTo(pos + oc[0],    0);
+    c.lineTo(pos + sk + oc[3], H);
+    c.lineTo(pos + w + sk + oc[2], H);
+    c.lineTo(pos + w + oc[1], 0);
+  }
+  c.closePath();
+  c.fill();
+}
+
+function drawCuts(c, W, H) {
+  if (!cuts.length) return;
+  c.fillStyle = CFG.cutterColor;
+  cuts.forEach(cut => {
+    const alpha = cut.fadingOut
+      ? Math.max(0, 1 - (cut.age - cut.fadeOutStart) / 200)
+      : Math.min(1, cut.age / 200);
+    if (alpha <= 0) return;
+    c.globalAlpha = alpha;
+    drawSingleCut(c, cut, W, H, 1);
+  });
+  c.globalAlpha = 1;
+}
+
+// ── Silence ───────────────────────────────────────────────────────────────────
+function enterSilence(ts) {
+  const totalMs = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
+  silFadeMs  = CFG.silenceFade;
+  silHoldMs  = Math.max(0, totalMs - silFadeMs * 2);
+  silOpacity = CFG.silenceOpacity;
+  engineState  = 'SILENCE';
+  stateStartTs = ts;
+}
+
+function drawSilenceOverlay(c, W, H, elapsed) {
+  const p1End = silFadeMs;
+  const p2End = silFadeMs + silHoldMs;
+  const p3End = silFadeMs + silHoldMs + silFadeMs;
+  let alpha = 0, color = CFG.silenceInColor;
+  if      (elapsed < p1End) { alpha = silOpacity * (elapsed / silFadeMs); color = CFG.silenceInColor; }
+  else if (elapsed < p2End) { alpha = silOpacity; color = CFG.silenceInColor; }
+  else if (elapsed < p3End) { alpha = silOpacity * (1 - (elapsed - p2End) / silFadeMs); color = CFG.silenceOutColor; }
+  else return;
+  c.fillStyle = color;
+  c.globalAlpha = Math.max(0, Math.min(1, alpha));
+  c.fillRect(0, 0, W, H);
+  c.globalAlpha = 1;
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function drawImageCovered(c, img, W, H) {
+  if (!img || !img.complete || !img.naturalWidth) return;
+  const sc = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+  const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+  c.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+}
+
+function drawTransitionFrame(c, out, inc, progress, W, H) {
+  // TRANS is always NONE in this config — kept for completeness
+  drawImageCovered(c, images[out], W, H);
+  c.globalAlpha = progress;
+  drawImageCovered(c, images[inc], W, H);
+  c.globalAlpha = 1;
+}
+
+function drawFrame(elapsed) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, CW, CH);
+
+  if (!images.length) return;
+
+  if (!isPlaying || engineState === 'HOLD') {
+    drawImageCovered(ctx, images[currentIndex], CW, CH);
+  } else if (engineState === 'TRANSITION') {
+    const progress = Math.min(elapsed / currentTransMs, 1);
+    drawTransitionFrame(ctx, outgoingIndex, incomingIndex, progress, CW, CH);
+  } else if (engineState === 'SILENCE') {
+    drawImageCovered(ctx, images[currentIndex], CW, CH);
+    drawSilenceOverlay(ctx, CW, CH, elapsed);
+  }
+
+  if (cutterActive) drawCuts(ctx, CW, CH);
+}
+
+// ── State machine ─────────────────────────────────────────────────────────────
+function enterHold(ts) {
+  engineState   = 'HOLD';
+  stateStartTs  = ts;
+  currentHoldMs = computeHoldMs();
+}
+
+function doAdvance(ts) {
+  // TRANS = NONE: skip straight to next frame
+  currentIndex = computeNext(currentIndex);
+  enterHold(ts);
+}
+
+function advanceFromHold(ts) {
+  if (Math.random() < CFG.silenceProb) enterSilence(ts);
+  else                                  doAdvance(ts);
+}
+
+// ── Frame loop ────────────────────────────────────────────────────────────────
+function frame(ts) {
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  rafId  = requestAnimationFrame(frame);
+
+  if (cutterActive) updateCuts(dt);
+
+  if (isPlaying && images.length) {
+    const elapsed = ts - stateStartTs;
+    if (engineState === 'HOLD' && elapsed >= currentHoldMs) {
+      advanceFromHold(ts);
+    } else if (engineState === 'SILENCE' && elapsed >= silFadeMs + silHoldMs + silFadeMs) {
+      doAdvance(ts);
+    }
+  }
+
+  drawFrame(ts - stateStartTs);
+}
+
+function startAnim() {
+  if (rafId) cancelAnimationFrame(rafId);
+  lastTs = performance.now();
+  rafId  = requestAnimationFrame(frame);
+}
+
+// ── Image loading ─────────────────────────────────────────────────────────────
+async function loadImages() {
+  const loaded = [];
+  await Promise.all(IMAGE_SRCS.map(src => new Promise(resolve => {
+    const img = new Image();
+    img._filename = src.split('/').pop();
+    img.onload  = () => { loaded.push(img); resolve(); };
+    img.onerror = () => resolve();
+    img.src     = src;
+  })));
+
+  if (!loaded.length) return;
+
+  images = loaded.sort((a, b) =>
+    (a._filename || '').localeCompare(b._filename || '', undefined, {numeric: true, sensitivity: 'base'})
+  );
+
+  currentIndex = Math.floor(Math.random() * images.length);
+  isPlaying    = true;
+  engineState  = 'HOLD';
+  stateStartTs = performance.now();
+  currentHoldMs = computeHoldMs();
+
+  cutterActive = true;
+  spawnCuts(CFG.cutterAmount);
+
+  // Fade in back button once images are rolling
+  setTimeout(() => { document.getElementById('back').style.opacity = '1'; }, 2000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+startAnim();
+loadImages();
+</script>
+</body>
+</html>
