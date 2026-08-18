@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v4-webaudio-short -->
+<!-- build: explore-v5-xhrdecode-iosfix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -398,46 +398,64 @@ function unlockAudio() {
 
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  } catch(e) { unlocking = false; return; }
+  } catch(e) { console.log('d93: AudioContext failed', e); unlocking = false; return; }
 
+  // Resume must be called synchronously within gesture context
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  // Long <audio> unlock must also be synchronous within gesture context
+  longEls.forEach(function(a) {
+    a.volume = 0;
+    var p = a.play();
+    if (p && p.then) {
+      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
+       .catch(function() { a.volume = getVol(); });
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = getVol();
+    }
+  });
+
+  // XHR + callback-style decodeAudioData — avoids fetch() CORS mode issues on iOS
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
   var sAll  = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
     return sBase + String(i+1).padStart(2,'0') + '.wav';
   }).sort(function() { return Math.random()-0.5; });
-  var urls = sAll.slice(0, 8); // decode 8 short files into buffers
+  var urls = sAll.slice(0, 8);
 
-  var resume = audioCtx.state === 'suspended' ? audioCtx.resume() : Promise.resolve();
-
-  resume.then(function() {
-    // Unlock long <audio> elements while context is active
-    longEls.forEach(function(a) {
-      a.volume = 0;
-      a.play().then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
-               .catch(function() { a.volume = getVol(); });
+  function xhrDecode(url) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          audioCtx.decodeAudioData(xhr.response, resolve, reject);
+        } else {
+          reject(new Error('HTTP ' + xhr.status + ' ' + url));
+        }
+      };
+      xhr.onerror = function() { reject(new Error('XHR error ' + url)); };
+      xhr.send();
     });
-    // Fetch + decode short pool into AudioBuffers
-    return Promise.all(urls.map(function(url) {
-      return fetch(url)
-        .then(function(r) { return r.arrayBuffer(); })
-        .then(function(buf) { return audioCtx.decodeAudioData(buf); });
-    }));
-  }).then(function(buffers) {
+  }
+
+  Promise.all(urls.map(xhrDecode)).then(function(buffers) {
     shortBuffers = buffers;
     audioReady   = true;
     console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
     if (isPlaying && engineState === 'HOLD') audioTriggerShort();
   }).catch(function(err) {
     console.log('d93: audio unlock failed', err);
-    unlocking = false; // allow gesture retry
+    ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
+      document.addEventListener(type, unlockAudio, { once: true });
+    });
+    unlocking = false;
   });
 }
 
 ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
   document.addEventListener(type, unlockAudio, { once: true });
 });
-
-// Chrome desktop: attempt autoplay unlock on load
-setTimeout(unlockAudio, 300);
 
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
