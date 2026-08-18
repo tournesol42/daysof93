@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v22-hints -->
+<!-- build: explore-v23-rect-hint -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -57,7 +57,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 #explore-home {
   position: fixed; bottom: 28px; right: 28px;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase;
   color: #ffffff; text-decoration: none;
   opacity: 0; z-index: 100; pointer-events: none;
   text-shadow: 0 0 12px rgba(255,255,255,0.6);
@@ -67,20 +67,26 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   animation: home-pulse 1.8s ease-in-out infinite;
 }
 @keyframes home-pulse { 0%,100%{opacity:1} 50%{opacity:0.12} }
-#geo-tri-hint {
+#geo-rect-hint {
   position: absolute;
-  right: 6vw;
-  top: calc(15vh + 244px);
-  width: 270px;
+  left: 24vw;
+  top: calc(18vh + 330px);
+  width: 160px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: #aaaaaa;
+  font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: #ffffff;
   opacity: 0; transition: opacity 2s ease;
   pointer-events: none; z-index: 21;
+  text-shadow: 0 0 14px rgba(255,255,255,0.9);
+  animation: none;
 }
+#geo-rect-hint.active {
+  animation: hint-flash 1.1s ease-in-out infinite;
+}
+@keyframes hint-flash { 0%,100%{opacity:0.9} 50%{opacity:0.1} }
 @media (max-width: 720px) {
-  #geo-tri-hint { right: 5vw; top: calc(18vh + 114px); width: 120px; }
+  #geo-rect-hint { left: 5vw; top: calc(22vh + 154px); width: 80px; }
 }
 </style>
 </head>
@@ -815,7 +821,7 @@ initAudioEls();
 setTimeout(unlockAudio, 300);
 </script>
 
-<div id="geo-tri-hint">&#8597; drag</div>
+<div id="geo-rect-hint">&#8597; touch</div>
 <div id="geo-overlay">
   <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
     <rect x="4" y="4" width="152" height="312" fill="transparent" stroke="#FF6B00" stroke-width="8"/>
@@ -864,15 +870,13 @@ setTimeout(unlockAudio, 300);
   waitForPlaying(function() {
     setTimeout(function() {
       rectEl.style.opacity = '1';
+      var hint = document.getElementById('geo-rect-hint');
+      if (hint) { hint.style.opacity = '0.9'; hint.classList.add('active'); }
       setTimeout(function() {
         rectEl.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
       }, 2200); // after fade-in completes
       setTimeout(function() { shape1MacroActive = true; }, 15000);
-      setTimeout(function() {
-        triEl.style.opacity = '1';
-        var hint = document.getElementById('geo-tri-hint');
-        if (hint) hint.style.opacity = '0.55';
-      }, 10000);
+      setTimeout(function() { triEl.style.opacity = '1'; }, 10000);
     }, 5000);
   });
 
@@ -894,6 +898,10 @@ setTimeout(unlockAudio, 300);
     // Shape 1
     var wasRect = shape1Active;
     shape1Active = r1vis && inRect(mx, my, rb);
+    if (shape1Active && !wasRect) {
+      var hint = document.getElementById('geo-rect-hint');
+      if (hint) { hint.classList.remove('active'); hint.style.opacity = '0'; }
+    }
     if (shape1Active && audioCtx && shortFilter) {
       if (!shapesFloating) shapesFloating = true;
       shape1Fading = false;
@@ -913,10 +921,6 @@ setTimeout(unlockAudio, 300);
     // Shape 2
     var wasTri = shape2Active;
     shape2Active = r2vis && inTriangle(mx, my, tb);
-    if (shape2Active && !wasTri) {
-      var hint = document.getElementById('geo-tri-hint');
-      if (hint) hint.style.opacity = '0';
-    }
     if (shape2Active) {
       shape2FadeStart = null;
       var yFrac2 = Math.max(0, Math.min(1, (my - tb.top) / tb.height));
