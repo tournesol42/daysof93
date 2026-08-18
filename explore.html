@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v34-pixel-pitch -->
+<!-- build: explore-v35-converge -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -560,6 +560,11 @@ var lfoTarget        = 2000;
 var lfoTimer         = 0;
 var shapesFloating   = false;
 var shapeFloatT      = 0;
+var shapesConverging  = false;
+var convergeProgress  = 0;
+var convergeDriftRect = {x:0, y:0};
+var convergeDriftTri  = {x:0, y:0};
+var convergeDriftCirc = {x:0, y:0};
 var shape1Active     = false;
 var shape1Fading     = false;
 var shape1MacroActive = false;
@@ -815,16 +820,29 @@ function frame(ts) {
 
   if (shapesFloating && window.d93GeoEls) {
     shapeFloatT += dt;
+
+    if (shapesConverging && convergeProgress < 1) {
+      convergeProgress = Math.min(convergeProgress + dt * 0.05, 1);
+    }
+    var cp = convergeProgress;
+    var ec = cp * cp * (3 - 2 * cp);
+
     var gels = window.d93GeoEls;
+
+    var rfx = Math.sin(shapeFloatT*0.41)*5 + Math.sin(shapeFloatT*0.79)*2 + convergeDriftRect.x * ec;
+    var rfy = Math.sin(shapeFloatT*0.53+1.2)*4 + Math.sin(shapeFloatT*0.67)*2 + convergeDriftRect.y * ec;
     if (gels.rect) gels.rect.style.transform =
-      'translate(' + (Math.sin(shapeFloatT*0.41)*5 + Math.sin(shapeFloatT*0.79)*2).toFixed(1) + 'px,' +
-      (Math.sin(shapeFloatT*0.53+1.2)*4 + Math.sin(shapeFloatT*0.67)*2).toFixed(1) + 'px)';
+      'translate(' + rfx.toFixed(1) + 'px,' + rfy.toFixed(1) + 'px)';
+
+    var tfx = Math.sin(shapeFloatT*0.37+2.1)*5 + Math.sin(shapeFloatT*0.61)*2 + convergeDriftTri.x * ec;
+    var tfy = Math.sin(shapeFloatT*0.59+0.7)*4 + Math.sin(shapeFloatT*0.83)*2 + convergeDriftTri.y * ec;
     if (gels.tri) gels.tri.style.transform =
-      'translate(' + (Math.sin(shapeFloatT*0.37+2.1)*5 + Math.sin(shapeFloatT*0.61)*2).toFixed(1) + 'px,' +
-      (Math.sin(shapeFloatT*0.59+0.7)*4 + Math.sin(shapeFloatT*0.83)*2).toFixed(1) + 'px)';
+      'translate(' + tfx.toFixed(1) + 'px,' + tfy.toFixed(1) + 'px)';
+
+    var cfx = Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2 + convergeDriftCirc.x * ec;
+    var cfy = Math.sin(shapeFloatT*0.47+2.5)*4 + Math.sin(shapeFloatT*0.57)*2 + convergeDriftCirc.y * ec;
     if (gels.circ) gels.circ.style.transform =
-      'translate(' + (Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2).toFixed(1) + 'px,' +
-      (Math.sin(shapeFloatT*0.47+2.5)*4 + Math.sin(shapeFloatT*0.57)*2).toFixed(1) + 'px)';
+      'translate(' + cfx.toFixed(1) + 'px,' + cfy.toFixed(1) + 'px)';
   }
 
   if (cutterActive) updateCuts(dt);
@@ -839,6 +857,29 @@ function frame(ts) {
   }
 
   drawFrame(ts - stateStartTs);
+}
+
+function startConverge() {
+  if (shapesConverging || !window.d93GeoEls) return;
+  var gels = window.d93GeoEls;
+  var rb = gels.rect.getBoundingClientRect();
+  var tb = gels.tri.getBoundingClientRect();
+  var cb = gels.circ.getBoundingClientRect();
+  var cx = window.innerWidth  * 0.5;
+  var cy = window.innerHeight * 0.5;
+  convergeDriftRect = {
+    x: (cx - (rb.left + rb.width  * 0.5)) * 0.75,
+    y: (cy - (rb.top  + rb.height * 0.5)) * 0.75
+  };
+  convergeDriftTri = {
+    x: (cx - (tb.left + tb.width  * 0.5)) * 0.82,
+    y: (cy - (tb.top  + tb.height * 0.5)) * 0.82
+  };
+  convergeDriftCirc = {
+    x: (cx - (cb.left + cb.width  * 0.5)) * 0.90,
+    y: (cy - (cb.top  + cb.height * 0.5)) * 0.90
+  };
+  shapesConverging = true;
 }
 
 function startAnim() {
@@ -964,6 +1005,9 @@ setTimeout(unlockAudio, 300);
         circEl.style.opacity = '1';
         var ch = document.getElementById('geo-circ-hint');
         if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
+        setTimeout(function() {
+          if (typeof startConverge === 'function') startConverge();
+        }, 10000);
       }, 5000);
     }
   }
