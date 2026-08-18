@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v12-musiclayer -->
+<!-- build: explore-v13-shapes -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -28,6 +28,22 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   -webkit-tap-highlight-color: transparent;
 }
 #play-btn.gone { opacity: 0; pointer-events: none; }
+#geo-overlay { position:fixed; inset:0; pointer-events:none; z-index:20; }
+#geo-rect {
+  position:absolute; left:6vw; top:18vh;
+  width:160px; height:320px;
+  opacity:0; transition:opacity 2s ease; pointer-events:none;
+}
+#geo-tri {
+  position:absolute; right:6vw; top:15vh;
+  width:270px; height:234px;
+  opacity:0; transition:opacity 2s ease; pointer-events:none;
+}
+#geo-circ {
+  position:absolute; left:calc(50% - 155px); top:calc(50% - 155px);
+  width:310px; height:310px;
+  opacity:0; transition:opacity 2s ease; pointer-events:none;
+}
 </style>
 </head>
 <body>
@@ -153,8 +169,8 @@ function computeHoldMs() {
     clusterRemaining = Math.round(randBetween(runMin, runMax));
   }
   clusterRemaining--;
-  if (clusterMode === 'FAST') return randBetween(CFG.holdMin, CFG.holdMax);
-  else                        return randBetween(CFG.holdSlowMin, CFG.holdSlowMax);
+  if (clusterMode === 'FAST') return randBetween(CFG.holdMin, CFG.holdMax) * tempoScale;
+  else                        return randBetween(CFG.holdSlowMin, CFG.holdSlowMax) * tempoScale;
 }
 
 function computeNext(current) {
@@ -387,6 +403,14 @@ function drawFrame(elapsed) {
     drawSilenceOverlay(ctx, CW, CH, elapsed);
   }
 
+  if (brightnessOverlay > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = brightnessOverlay;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.restore();
+  }
+
   if (cutterActive) drawCuts(ctx, CW, CH);
 }
 
@@ -414,6 +438,24 @@ var longIdx      = 0;
 var audioReady   = false;
 var unlocking    = false;
 
+var shortFilter      = null;
+var tempoScale       = 1.0;
+var brightnessOverlay = 0;
+var audioSpike       = 0;
+var lfoFreq          = 2000;
+var lfoTarget        = 2000;
+var lfoTimer         = 0;
+var shape1Active     = false;
+var shape1Fading     = false;
+var shape2Active     = false;
+var shape2ExitCount  = 0;
+var shape2BrightFrom = 1.0;
+var shape2FadeStart  = null;
+var shape3Active     = false;
+var mouseBrightness  = 1.0;
+var tempoTweenStart  = null;
+var tempoTweenFrom   = 1.0;
+
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
 function initAudioEls() {
@@ -435,6 +477,12 @@ function unlockAudio() {
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   } catch(e) { console.log('d93: AudioContext failed', e); unlocking = false; return; }
+
+  shortFilter = audioCtx.createBiquadFilter();
+  shortFilter.type = 'lowpass';
+  shortFilter.frequency.value = 20000;
+  shortFilter.Q.value = 0.5;
+  shortFilter.connect(audioCtx.destination);
 
   // Resume must be called synchronously within gesture context
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -502,10 +550,11 @@ function audioTriggerShort() {
   var gain = audioCtx.createGain();
   gain.gain.value = getVol();
   src.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(shortFilter || audioCtx.destination);
   src.start(0);
   currentShortSrc = src;
   src.onended = function() { if (currentShortSrc === src) currentShortSrc = null; };
+  audioSpike = 1.0;
 }
 
 function audioTriggerLong() {
@@ -577,6 +626,37 @@ function frame(ts) {
   lastTs = ts;
   rafId  = requestAnimationFrame(frame);
 
+  // LFO for shape 1 (runs when mouse not inside rect)
+  if (audioCtx && shortFilter && !shape1Active && !shape1Fading) {
+    lfoTimer -= dt;
+    if (lfoTimer <= 0) {
+      lfoTarget = 300 + Math.random() * 5000;
+      lfoTimer  = 3 + Math.random() * 7;
+    }
+    lfoFreq += (lfoTarget - lfoFreq) * 0.006;
+    shortFilter.frequency.setValueAtTime(lfoFreq, audioCtx.currentTime);
+  }
+
+  // Audio spike decay (shape 2)
+  audioSpike = audioSpike > 0.005 ? audioSpike * 0.78 : 0;
+
+  // Shape 2 brightness calculation
+  var targetBright = shape2Active ? mouseBrightness : 1.0;
+  if (shape2FadeStart !== null) {
+    var fp = Math.min((ts - shape2FadeStart) / 6000, 1);
+    targetBright = shape2BrightFrom + (1 - shape2BrightFrom) * fp;
+    if (fp >= 1) shape2FadeStart = null;
+  }
+  var effectiveBright = Math.min(1, targetBright + audioSpike * (1 - targetBright));
+  brightnessOverlay = 1 - effectiveBright;
+
+  // Shape 3 tempo tween back to normal
+  if (tempoTweenStart !== null) {
+    var tp = Math.min((ts - tempoTweenStart) / 1000, 1);
+    tempoScale = tempoTweenFrom + (1 - tempoTweenFrom) * tp;
+    if (tp >= 1) { tempoScale = 1.0; tempoTweenStart = null; }
+  }
+
   if (cutterActive) updateCuts(dt);
 
   if (isPlaying && images.length) {
@@ -618,7 +698,8 @@ async function loadImages() {
 
   if (window.innerWidth >= 720) {
     // Desktop: start immediately
-    isPlaying     = true;
+    isPlaying          = true;
+    window.d93Playing  = true;
     engineState   = 'HOLD';
     stateStartTs  = performance.now();
     currentHoldMs = computeHoldMs();
@@ -640,7 +721,8 @@ async function loadImages() {
     btn.classList.add('gone');
     setTimeout(function() { btn.style.display = 'none'; }, 400);
     // Start image sequencer
-    isPlaying     = true;
+    isPlaying         = true;
+    window.d93Playing = true;
     engineState   = 'HOLD';
     stateStartTs  = performance.now();
     currentHoldMs = computeHoldMs();
@@ -658,6 +740,126 @@ initAudioEls();
 // Try autoplay immediately — works on Chrome desktop (media engagement).
 // On iOS the attempt fails and unlocking resets, so the gesture handler retries.
 setTimeout(unlockAudio, 300);
+</script>
+
+<div id="geo-overlay">
+  <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="158" height="318" fill="transparent" stroke="#FF6B00" stroke-width="1.5"/>
+  </svg>
+  <svg id="geo-tri" viewBox="0 0 270 234" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="135,1 1,233 269,233" fill="transparent" stroke="#888888" stroke-width="1.5"/>
+  </svg>
+  <svg id="geo-circ" viewBox="0 0 310 310" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="155" cy="155" r="153" fill="transparent" stroke="#ffffff" stroke-width="3.5"/>
+  </svg>
+</div>
+
+<script>
+(function() {
+  var rectEl = document.getElementById('geo-rect');
+  var triEl  = document.getElementById('geo-tri');
+  var circEl = document.getElementById('geo-circ');
+  if (!rectEl || !triEl || !circEl) return;
+
+  function inRect(mx, my, b) {
+    return mx >= b.left && mx <= b.right && my >= b.top && my <= b.bottom;
+  }
+  function inTriangle(mx, my, b) {
+    var ax = b.left + b.width*0.5, ay = b.top;
+    var bx = b.left,               by = b.bottom;
+    var cx = b.right,              cy = b.bottom;
+    var d1 = (mx-bx)*(ay-by)-(ax-bx)*(my-by);
+    var d2 = (mx-cx)*(by-cy)-(bx-cx)*(my-cy);
+    var d3 = (mx-ax)*(cy-ay)-(cx-ax)*(my-ay);
+    return !((d1<0||d2<0||d3<0) && (d1>0||d2>0||d3>0));
+  }
+  function inCircle(mx, my, b) {
+    var cx = b.left+b.width*0.5, cy = b.top+b.height*0.5, r = b.width*0.5;
+    var dx = mx-cx, dy = my-cy;
+    return dx*dx+dy*dy <= r*r;
+  }
+
+  // Shape 1 appears 5s after playback starts, shape 2 10s after that
+  function waitForPlaying(cb) {
+    if (window.d93Playing) { cb(); return; }
+    var iv = setInterval(function() {
+      if (window.d93Playing) { clearInterval(iv); cb(); }
+    }, 300);
+  }
+  waitForPlaying(function() {
+    setTimeout(function() {
+      rectEl.style.opacity = '1';
+      setTimeout(function() { triEl.style.opacity = '1'; }, 10000);
+    }, 5000);
+  });
+
+  // Shape 3 appears 5s after shape 2 has been entered+left 3 times
+  function checkShape3() {
+    if (shape2ExitCount >= 3 && circEl.style.opacity !== '1') {
+      setTimeout(function() { circEl.style.opacity = '1'; }, 5000);
+    }
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    var mx = e.clientX, my = e.clientY;
+    var rb = rectEl.getBoundingClientRect();
+    var tb = triEl.getBoundingClientRect();
+    var cb = circEl.getBoundingClientRect();
+    var r1vis = parseFloat(rectEl.style.opacity) > 0.5;
+    var r2vis = parseFloat(triEl.style.opacity)  > 0.5;
+    var r3vis = parseFloat(circEl.style.opacity) > 0.5;
+
+    // ── Shape 1: rectangle ──
+    var wasRect = shape1Active;
+    shape1Active = r1vis && inRect(mx, my, rb);
+
+    if (shape1Active && audioCtx && shortFilter) {
+      shape1Fading = false;
+      var yFrac = Math.max(0, Math.min(1, (my - rb.top) / rb.height));
+      var freq  = 200 * Math.pow(100, 1 - yFrac); // 200Hz bottom, 20kHz top
+      shortFilter.frequency.cancelScheduledValues(audioCtx.currentTime);
+      shortFilter.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    } else if (wasRect && !shape1Active && audioCtx && shortFilter) {
+      shape1Fading = true;
+      var now = audioCtx.currentTime;
+      shortFilter.frequency.cancelScheduledValues(now);
+      shortFilter.frequency.setValueAtTime(shortFilter.frequency.value, now);
+      shortFilter.frequency.exponentialRampToValueAtTime(20000, now + 15);
+      setTimeout(function() { shape1Fading = false; }, 15000);
+    }
+
+    // ── Shape 2: triangle ──
+    var wasTri = shape2Active;
+    shape2Active = r2vis && inTriangle(mx, my, tb);
+
+    if (shape2Active) {
+      shape2FadeStart = null;
+      var yFrac2 = Math.max(0, Math.min(1, (my - tb.top) / tb.height));
+      mouseBrightness = 1 - yFrac2; // top=bright, bottom=dark
+    } else if (wasTri && !shape2Active) {
+      shape2ExitCount++;
+      shape2BrightFrom = mouseBrightness;
+      shape2FadeStart  = performance.now();
+      checkShape3();
+    }
+
+    // ── Shape 3: circle ──
+    var wasCirc = shape3Active;
+    shape3Active = r3vis && inCircle(mx, my, cb);
+
+    if (shape3Active) {
+      tempoTweenStart = null;
+      var ccx = cb.left+cb.width*0.5, ccy = cb.top+cb.height*0.5;
+      var r   = cb.width*0.5;
+      var dx  = mx-ccx, dy = my-ccy;
+      var dist = Math.min(1, Math.sqrt(dx*dx+dy*dy) / r);
+      tempoScale = 1 + dist * 5; // center=1× normal, edge=6× slower
+    } else if (wasCirc && !shape3Active) {
+      tempoTweenFrom  = tempoScale;
+      tempoTweenStart = performance.now();
+    }
+  });
+})();
 </script>
 </body>
 </html>
