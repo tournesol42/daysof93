@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v6-playbtn -->
+<!-- build: explore-v7-silencecooldown -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -52,7 +52,8 @@ const CFG = {
   holdCurve:      'BOTH',
   transType:      'NONE',
   // Silence: ~16% probability, white flash
-  silenceProb:    0.159,
+  silenceProb:      0.159,
+  silenceCooldownMs:45000,   // minimum ms between silences (~45s)
   silenceDurMin:  4800,
   silenceDurMax:  5000,
   silenceFade:    450,
@@ -110,6 +111,7 @@ let outgoingIndex = 0;
 let incomingIndex = 0;
 let shuffleQueue  = [];
 
+var lastSilenceTs = -Infinity;
 let engineState    = 'IDLE';
 let stateStartTs   = 0;
 let currentHoldMs  = 0;
@@ -316,14 +318,13 @@ function drawCuts(c, W, H) {
 
 // ── Silence ───────────────────────────────────────────────────────────────────
 function enterSilence(ts) {
+  lastSilenceTs = ts;
   const totalMs = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
   silFadeMs  = CFG.silenceFade;
   silHoldMs  = Math.max(0, totalMs - silFadeMs * 2);
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
-  // Stop any short sound still playing before silence begins
-  if (shortEls.length) { shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0; }
   audioTriggerLong();
 }
 
@@ -519,8 +520,9 @@ function doAdvance(ts) {
 }
 
 function advanceFromHold(ts) {
-  if (Math.random() < CFG.silenceProb) enterSilence(ts);
-  else                                  doAdvance(ts);
+  var cooldownOk = (ts - lastSilenceTs) >= CFG.silenceCooldownMs;
+  if (cooldownOk && Math.random() < CFG.silenceProb) enterSilence(ts);
+  else doAdvance(ts);
 }
 
 // ── Frame loop ────────────────────────────────────────────────────────────────
