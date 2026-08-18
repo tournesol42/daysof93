@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v35-converge -->
+<!-- build: explore-v36-93-shapes -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -23,9 +23,10 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 }
 #geo-overlay { position:fixed; inset:0; pointer-events:none; z-index:20; }
 #geo-rect {
-  position:absolute; left:24vw; top:18vh;
-  width:160px; height:320px;
-  opacity:0; transition:opacity 2s ease; pointer-events:none;
+  position: absolute;
+  left: 5vw; top: 52vh;
+  width: 310px; height: 310px;
+  opacity: 0; transition: opacity 2s ease; pointer-events: none;
 }
 #geo-tri {
   position:absolute; right:6vw; top:15vh;
@@ -38,7 +39,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   opacity:0; transition:opacity 2s ease; pointer-events:none;
 }
 @media (max-width: 720px) {
-  #geo-rect  { width: 72px;  height: 144px; left: 5vw; top: 22vh; }
+  #geo-rect { width: 140px; height: 140px; left: 5vw; top: 55vh; }
   #geo-tri   { width: 120px; height: 104px; right: 5vw; top: 18vh; }
   #geo-circ  { width: 140px; height: 140px;
                left: calc(50% - 70px); top: calc(50% - 70px); }
@@ -58,8 +59,8 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 @keyframes home-pulse { 0%,100%{opacity:1} 50%{opacity:0.12} }
 #geo-rect-hint {
   position: absolute;
-  left: 24vw;
-  top: calc(18vh + 338px);
+  left: 5vw;
+  top: calc(52vh + 320px);
   width: 160px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
@@ -77,10 +78,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 }
 @keyframes hint-flash { 0%,100%{opacity:1} 50%{opacity:0} }
 @media (max-width: 720px) {
-  #geo-rect-hint {
-    left: 5vw; top: calc(22vh + 162px);
-    width: 80px; font-size: 12px;
-  }
+  #geo-rect-hint { left: 5vw; top: calc(55vh + 150px); width: 100px; }
 }
 #geo-tri-hint, #geo-circ-hint {
   position: absolute;
@@ -824,25 +822,64 @@ function frame(ts) {
     if (shapesConverging && convergeProgress < 1) {
       convergeProgress = Math.min(convergeProgress + dt * 0.05, 1);
     }
-    var cp = convergeProgress;
-    var ec = cp * cp * (3 - 2 * cp);
+    var cp  = convergeProgress;
+    var ec  = cp * cp * (3 - 2 * cp); // smoothstep
 
     var gels = window.d93GeoEls;
 
+    // Circle 2 (orange, rect) → 3 lower bowl
     var rfx = Math.sin(shapeFloatT*0.41)*5 + Math.sin(shapeFloatT*0.79)*2 + convergeDriftRect.x * ec;
     var rfy = Math.sin(shapeFloatT*0.53+1.2)*4 + Math.sin(shapeFloatT*0.67)*2 + convergeDriftRect.y * ec;
     if (gels.rect) gels.rect.style.transform =
       'translate(' + rfx.toFixed(1) + 'px,' + rfy.toFixed(1) + 'px)';
 
+    // Triangle → 3 upper, rotates -90° as it moves
+    var triRot = ec * (-90);
     var tfx = Math.sin(shapeFloatT*0.37+2.1)*5 + Math.sin(shapeFloatT*0.61)*2 + convergeDriftTri.x * ec;
     var tfy = Math.sin(shapeFloatT*0.59+0.7)*4 + Math.sin(shapeFloatT*0.83)*2 + convergeDriftTri.y * ec;
     if (gels.tri) gels.tri.style.transform =
-      'translate(' + tfx.toFixed(1) + 'px,' + tfy.toFixed(1) + 'px)';
+      'translate(' + tfx.toFixed(1) + 'px,' + tfy.toFixed(1) + 'px) rotate(' + triRot.toFixed(1) + 'deg)';
 
+    // Circle 1 (dark grey, circ) → 9 bowl
     var cfx = Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2 + convergeDriftCirc.x * ec;
     var cfy = Math.sin(shapeFloatT*0.47+2.5)*4 + Math.sin(shapeFloatT*0.57)*2 + convergeDriftCirc.y * ec;
     if (gels.circ) gels.circ.style.transform =
       'translate(' + cfx.toFixed(1) + 'px,' + cfy.toFixed(1) + 'px)';
+
+    // Helper lines: fade in after 30% convergence, update positions
+    var helpers = document.getElementById('geo-helpers');
+    if (helpers && ec > 0.3) {
+      helpers.style.opacity = String(Math.min(1, (ec - 0.3) / 0.4));
+
+      var cb2 = gels.circ.getBoundingClientRect();
+      var rb2 = gels.rect.getBoundingClientRect();
+      var tb2 = gels.tri.getBoundingClientRect();
+
+      // 9 tail: from bottom-right of Circle 1 downward
+      var tailX  = cb2.left + cb2.width * 0.72;
+      var tailY1 = cb2.top  + cb2.height * 0.85;
+      var tailY2 = cb2.top  + cb2.height * 0.85 + 160 * Math.min(1, window.innerWidth / 1440);
+      var tailEl = document.getElementById('helper-tail');
+      if (tailEl) {
+        tailEl.setAttribute('x1', tailX.toFixed(1));
+        tailEl.setAttribute('y1', tailY1.toFixed(1));
+        tailEl.setAttribute('x2', tailX.toFixed(1));
+        tailEl.setAttribute('y2', tailY2.toFixed(1));
+      }
+
+      // 3 connector: from triangle bottom vertex to top of Circle 2
+      var connX1 = tb2.left + tb2.width  * 0.5;
+      var connY1 = tb2.top  + tb2.height * 0.85;
+      var connX2 = rb2.left + rb2.width  * 0.5;
+      var connY2 = rb2.top  + rb2.height * 0.08;
+      var connEl = document.getElementById('helper-conn');
+      if (connEl) {
+        connEl.setAttribute('x1', connX1.toFixed(1));
+        connEl.setAttribute('y1', connY1.toFixed(1));
+        connEl.setAttribute('x2', connX2.toFixed(1));
+        connEl.setAttribute('y2', connY2.toFixed(1));
+      }
+    }
   }
 
   if (cutterActive) updateCuts(dt);
@@ -867,17 +904,22 @@ function startConverge() {
   var cb = gels.circ.getBoundingClientRect();
   var cx = window.innerWidth  * 0.5;
   var cy = window.innerHeight * 0.5;
+  var sc = Math.min(1, window.innerWidth / 1440);
+
+  // Circle 2 (orange) → lower-right: 3 bowl
   convergeDriftRect = {
-    x: (cx - (rb.left + rb.width  * 0.5)) * 0.75,
-    y: (cy - (rb.top  + rb.height * 0.5)) * 0.75
+    x: (cx + 200 * sc) - (rb.left + rb.width  * 0.5),
+    y: (cy + 120 * sc) - (rb.top  + rb.height * 0.5)
   };
+  // Triangle → upper-right: 3 top (will also rotate -90°)
   convergeDriftTri = {
-    x: (cx - (tb.left + tb.width  * 0.5)) * 0.82,
-    y: (cy - (tb.top  + tb.height * 0.5)) * 0.82
+    x: (cx + 110 * sc) - (tb.left + tb.width  * 0.5),
+    y: (cy - 110 * sc) - (tb.top  + tb.height * 0.5)
   };
+  // Circle 1 (dark grey) → upper-left: 9 bowl
   convergeDriftCirc = {
-    x: (cx - (cb.left + cb.width  * 0.5)) * 0.90,
-    y: (cy - (cb.top  + cb.height * 0.5)) * 0.90
+    x: (cx - 190 * sc) - (cb.left + cb.width  * 0.5),
+    y: (cy - 40  * sc) - (cb.top  + cb.height * 0.5)
   };
   shapesConverging = true;
 }
@@ -937,11 +979,21 @@ setTimeout(unlockAudio, 300);
 <div id="geo-tri-hint">⬆ drag ⬇</div>
 <div id="geo-circ-hint">← edge →</div>
 <div id="geo-overlay">
-  <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4" y="4" width="152" height="312" fill="transparent" stroke="#FF6B00" stroke-width="8"/>
+  <svg id="geo-rect" viewBox="0 0 310 310" xmlns="http://www.w3.org/2000/svg">
+    <!-- Thick arc: 300° (bottom, left, right) -->
+    <path d="M 229,27 A 148,148 0 1,1 81,27"
+      fill="transparent" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
+    <!-- Thin arc: 60° (top, where connector meets) -->
+    <path d="M 81,27 A 148,148 0 0,1 229,27"
+      fill="transparent" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <svg id="geo-tri" viewBox="0 0 270 234" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="135,8 8,226 262,226" fill="transparent" stroke="#cccccc" stroke-width="16"/>
+    <!-- Right edge: apex→bottom-right (THICK) -->
+    <line x1="135" y1="1" x2="269" y2="233" stroke="#cccccc" stroke-width="16" stroke-linecap="round"/>
+    <!-- Bottom edge: bottom-left→bottom-right (THICK) -->
+    <line x1="1" y1="233" x2="269" y2="233" stroke="#cccccc" stroke-width="16" stroke-linecap="round"/>
+    <!-- Left edge: apex→bottom-left (THIN) -->
+    <line x1="135" y1="1" x2="1" y2="233" stroke="#cccccc" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <svg id="geo-circ" viewBox="0 0 310 310" xmlns="http://www.w3.org/2000/svg">
     <circle cx="155" cy="155" r="140" fill="transparent" stroke="#555555" stroke-width="28"/>
@@ -1022,7 +1074,7 @@ setTimeout(unlockAudio, 300);
 
     // Shape 1
     var wasRect = shape1Active;
-    shape1Active = r1vis && inRect(mx, my, rb);
+    shape1Active = r1vis && inCircle(mx, my, rb);
     if (shape1Active && !wasRect) {
       var hint = document.getElementById('geo-rect-hint');
       if (hint) { hint.classList.remove('active'); hint.style.opacity = '0'; }
@@ -1117,5 +1169,12 @@ setTimeout(function() {
   if (h) h.classList.add('visible');
 }, 3000);
 </script>
+<svg id="geo-helpers" xmlns="http://www.w3.org/2000/svg"
+  style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:19;opacity:0;transition:opacity 3s ease;">
+  <line id="helper-tail" x1="0" y1="0" x2="0" y2="0"
+    stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <line id="helper-conn" x1="0" y1="0" x2="0" y2="0"
+    stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
 </body>
 </html>
