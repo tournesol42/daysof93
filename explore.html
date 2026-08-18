@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v9-mono-timesilence -->
+<!-- build: explore-v10-cluster -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -45,11 +45,17 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 <script>
 // ── Preset configuration (matches production screenshot) ─────────────────────
 const CFG = {
-  holdMode:       'RANGE',
+  holdMode:       'CLUSTER',
   holdFixed:      120,
-  holdMin:        32,
-  holdMax:        120,
+  holdMin:        10,
+  holdMax:        50,
+  holdSlowMin:    70,
+  holdSlowMax:    150,
   holdCurve:      'BOTH',
+  clusterFastMin: 4,
+  clusterFastMax: 12,
+  clusterSlowMin: 3,
+  clusterSlowMax: 8,
   transType:      'NONE',
   // Silence: ~16% probability, white flash
   silenceIntervalMin: 3000,
@@ -113,6 +119,8 @@ let shuffleQueue  = [];
 
 var lastSilenceEndTs  = -Infinity;
 var nextSilenceMs     = 3000 + Math.random() * 5000;
+var clusterMode      = 'FAST';
+var clusterRemaining = 0;
 let engineState    = 'IDLE';
 let stateStartTs   = 0;
 let currentHoldMs  = 0;
@@ -129,22 +137,20 @@ let cutterActive = false;
 let cuts = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function applyDistribution(curve, lo, hi) {
-  const r = Math.random();
-  switch (curve) {
-    case 'EXP':  return lo + (hi - lo) * Math.pow(r, 3);
-    case 'LOG':  return lo + (hi - lo) * (1 - Math.pow(1 - r, 3));
-    case 'BOTH': return Math.random() < 0.5
-      ? lo + (hi - lo) * Math.pow(Math.random(), 4)
-      : hi - (hi - lo) * Math.pow(Math.random(), 4);
-    default: return lo + r * (hi - lo);
-  }
+function randBetween(lo, hi) {
+  return lo + Math.random() * (hi - lo);
 }
 
 function computeHoldMs() {
-  if (CFG.holdMode === 'FIXED') return CFG.holdFixed;
-  const lo = CFG.holdMin, hi = CFG.holdMax;
-  return Math.max(lo, applyDistribution(CFG.holdCurve, lo, hi));
+  if (clusterRemaining <= 0) {
+    clusterMode = (clusterMode === 'FAST') ? 'SLOW' : 'FAST';
+    var runMin = (clusterMode === 'FAST') ? CFG.clusterFastMin : CFG.clusterSlowMin;
+    var runMax = (clusterMode === 'FAST') ? CFG.clusterFastMax : CFG.clusterSlowMax;
+    clusterRemaining = Math.round(randBetween(runMin, runMax));
+  }
+  clusterRemaining--;
+  if (clusterMode === 'FAST') return randBetween(CFG.holdMin, CFG.holdMax);
+  else                        return randBetween(CFG.holdSlowMin, CFG.holdSlowMax);
 }
 
 function computeNext(current) {
