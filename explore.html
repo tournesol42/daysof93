@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v3-keepalive -->
+<!-- build: explore-v4-webaudio-short -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -359,10 +359,9 @@ function drawFrame(elapsed) {
   if (cutterActive) drawCuts(ctx, CW, CH);
 }
 
-// ── Audio system ──────────────────────────────────────────────────────────────
-// Fixed-source <audio> elements — no src changes after creation.
-// On iOS Safari, changing src on an element right before play() can fail;
-// fixed sources + small pool (7 elements) is the most reliable pattern.
+// ── Audio ─────────────────────────────────────────────────────────────────────
+// Short sounds: Web Audio API (AudioContext + BufferSource, iOS-reliable)
+// Long sounds:  <audio> elements (sustained, already work on iOS)
 
 (function() {
   var s = parseFloat(localStorage.getItem('d93vol'));
@@ -371,86 +370,65 @@ function drawFrame(elapsed) {
   window._d93vol = function() { return muted ? 0 : vol; };
 })();
 
-var shortEls   = [];
-var longEls    = [];
-var shortIdx   = 0;
-var longIdx    = 0;
-var audioReady = false;
-var unlocking  = false;
-
-// Loops silently to keep the iOS audio session alive between triggers.
-// Without this, play() on short-pool elements fails intermittently because
-// iOS suspends the session in the silence gap between sounds.
-var keepAlive = (function() {
-  var el = document.createElement('audio');
-  el.src = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_01.wav';
-  el.loop = true; el.volume = 0;
-  document.body.appendChild(el);
-  return el;
-}());
+var audioCtx     = null;
+var shortBuffers = [];   // decoded AudioBuffers for short pool
+var shortIdx     = 0;
+var longEls      = [];
+var longIdx      = 0;
+var audioReady   = false;
+var unlocking    = false;
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
 function initAudioEls() {
-  var NUM_SHORT = 4, NUM_LONG = 3;
-  var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
   var lBase = 'https://daysof93-cdn.b-cdn.net/pool%20long/long_';
-
-  // Build URL arrays and shuffle so every session gets different files
-  var sAll = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
-    return sBase + String(i+1).padStart(2,'0') + '.wav';
-  }).sort(function() { return Math.random()-0.5; });
-  var lAll = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
+  var lAll  = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
     return lBase + String(i+1).padStart(2,'0') + '.wav';
   }).sort(function() { return Math.random()-0.5; });
-
-  for (var i = 0; i < NUM_SHORT; i++) {
-    var a = document.createElement('audio');
-    a.preload = 'auto'; a.src = sAll[i]; document.body.appendChild(a); shortEls.push(a);
-  }
-  for (var j = 0; j < NUM_LONG; j++) {
+  for (var j = 0; j < 3; j++) {
     var b = document.createElement('audio');
     b.preload = 'auto'; b.src = lAll[j]; document.body.appendChild(b); longEls.push(b);
   }
-  console.log('d93: audio elements created', NUM_SHORT, 'short', NUM_LONG, 'long');
+  console.log('d93: long audio elements created');
 }
 
-// Activate keepAlive + all pool elements.
-// Called on page load (succeeds on Chrome desktop) and on first gesture (iOS fallback).
-// If all play() calls fail, resets unlocking so the gesture handler can retry.
 function unlockAudio() {
   if (audioReady || unlocking) return;
   unlocking = true;
-  var all = [keepAlive].concat(shortEls, longEls);
-  var pending = all.length;
-  var succeeded = 0;
-  function onDone(ok) {
-    if (ok) succeeded++;
-    if (--pending === 0) {
-      if (succeeded === all.length) {
-        audioReady = true;
-        console.log('d93: audio unlocked');
-        if (isPlaying && engineState === 'HOLD') audioTriggerShort();
-      } else {
-        // Autoplay blocked (iOS) — reset so gesture handler can retry
-        unlocking = false;
-      }
-    }
-  }
-  all.forEach(function(a) {
-    a.volume = 0;
-    var p = a.play();
-    if (p && typeof p.then === 'function') {
-      p.then(function() {
-        if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
-        a.volume = (a === keepAlive) ? 0 : getVol();
-        onDone(true);
-      }).catch(function() { a.volume = (a === keepAlive) ? 0 : getVol(); onDone(false); });
-    } else {
-      if (a !== keepAlive) { a.pause(); a.currentTime = 0; }
-      a.volume = (a === keepAlive) ? 0 : getVol();
-      onDone(true);
-    }
+
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) { unlocking = false; return; }
+
+  var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
+  var sAll  = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
+    return sBase + String(i+1).padStart(2,'0') + '.wav';
+  }).sort(function() { return Math.random()-0.5; });
+  var urls = sAll.slice(0, 8); // decode 8 short files into buffers
+
+  var resume = audioCtx.state === 'suspended' ? audioCtx.resume() : Promise.resolve();
+
+  resume.then(function() {
+    // Unlock long <audio> elements while context is active
+    longEls.forEach(function(a) {
+      a.volume = 0;
+      a.play().then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
+               .catch(function() { a.volume = getVol(); });
+    });
+    // Fetch + decode short pool into AudioBuffers
+    return Promise.all(urls.map(function(url) {
+      return fetch(url)
+        .then(function(r) { return r.arrayBuffer(); })
+        .then(function(buf) { return audioCtx.decodeAudioData(buf); });
+    }));
+  }).then(function(buffers) {
+    shortBuffers = buffers;
+    audioReady   = true;
+    console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
+    if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+  }).catch(function(err) {
+    console.log('d93: audio unlock failed', err);
+    unlocking = false; // allow gesture retry
   });
 }
 
@@ -458,15 +436,20 @@ function unlockAudio() {
   document.addEventListener(type, unlockAudio, { once: true });
 });
 
-// Round-robin through the fixed pool — no src changes, no delay.
-// keepAlive keeps the iOS session live so play() never hits the idle-session gate.
+// Chrome desktop: attempt autoplay unlock on load
+setTimeout(unlockAudio, 300);
+
 function audioTriggerShort() {
-  if (!audioReady || !shortEls.length) return;
-  shortEls[shortIdx].pause(); shortEls[shortIdx].currentTime = 0;
-  shortIdx = (shortIdx + 1) % shortEls.length;
-  var a = shortEls[shortIdx];
-  a.volume = getVol(); a.currentTime = 0;
-  a.play().catch(function() {});
+  if (!audioReady || !shortBuffers.length || !audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  var src  = audioCtx.createBufferSource();
+  src.buffer = shortBuffers[shortIdx];
+  var gain = audioCtx.createGain();
+  gain.gain.value = getVol();
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start(0);
+  shortIdx = (shortIdx + 1) % shortBuffers.length;
 }
 
 function audioTriggerLong() {
