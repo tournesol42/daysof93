@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v190-c64-revert -->
+<!-- build: v191-c64-to-explore -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -468,45 +468,20 @@
   tickClock();
   var clockInterval = setInterval(tickClock, 1000);
 
-  function dismiss(){
-    if(gone) return; gone = true;
+  function dismiss() {
+    if (gone) return; gone = true;
     clearInterval(clockInterval);
-    // 3 black frames → 2 white frames → instant hide
     boot.style.background = '#000';
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          boot.style.background = '#fff';
-          requestAnimationFrame(function(){
-            requestAnimationFrame(function(){
-              boot.style.display = 'none';
-            });
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        boot.style.background = '#fff';
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            window.location.href = 'explore.html';
           });
         });
       });
     });
-    // fade in image + start grid animation 8s after dismiss
-    setTimeout(function(){
-      var v = document.getElementById('bg-vector');
-      if(v){ v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
-      var mc = document.getElementById('mesh-canvas');
-      if(mc) mc.classList.add('mesh-breathing');
-    }, 8000);
-    // grid darkening
-    setTimeout(function(){
-      var field = document.getElementById('field');
-      if(field){
-        var baseAlpha = 0.12, peakAlpha = 0.45, period = 18000;
-        var t0 = performance.now();
-        (function loop(now){
-          var t = ((now - t0) % period) / period;
-          var s = (1 - Math.cos(t * Math.PI * 2)) / 2;
-          var a = (baseAlpha + s * (peakAlpha - baseAlpha)).toFixed(4);
-          field.style.setProperty('--line', 'rgba(0,0,0,' + a + ')');
-          requestAnimationFrame(loop);
-        })(performance.now());
-      }
-    }, 8000);
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });
