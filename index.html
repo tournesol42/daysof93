@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v188-c64-to-explore -->
+<!-- build: v189-skip-c64 -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -444,6 +444,15 @@
 
   // skip C64 when arriving via a hash link (e.g. #about from music pages)
   if(window.location.hash){ boot.style.display='none'; return; }
+
+  // skip C64 when returning from explore
+  if (location.search.indexOf('from=explore') !== -1) {
+    boot.style.display = 'none';
+    document.querySelectorAll('.plane, #field, #mesh-canvas, #glitch-canvas, #bg-vector').forEach(function(el) {
+      el.style.opacity = '';
+    });
+    return;
+  }
 
   // live 1993 clock
   var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
