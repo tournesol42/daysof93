@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v33-pixel-spike-tempo -->
+<!-- build: explore-v34-pixel-pitch -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -572,10 +572,12 @@ var mouseBrightness  = 1.0;
 var tempoTweenStart  = null;
 var tempoTweenFrom   = 1.0;
 var triEffectStrength = 0;
-var pixelSpikeVal   = 0;
-var pixelSpikeTimer = 0;
-var pixelCanvas = null;
-var pixelCtx    = null;
+var pixelSpikeVal     = 0;
+var pixelSpikeTimer   = 0;
+var effectivePixel    = 0;
+var pixelCanvas       = null;
+var pixelCtx          = null;
+var shortPitchRate    = 1.0;
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
@@ -668,6 +670,7 @@ function audioTriggerShort() {
   if (currentShortSrc) { try { currentShortSrc.stop(); } catch(e) {} currentShortSrc = null; }
   var src  = audioCtx.createBufferSource();
   src.buffer = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
+  src.playbackRate.value = shortPitchRate;
   var gain = audioCtx.createGain();
   gain.gain.value = getVol();
   src.connect(gain);
@@ -801,7 +804,7 @@ function frame(ts) {
     pixelSpikeVal   = 0;
     pixelSpikeTimer = 0;
   }
-  var effectivePixel = Math.max(triEffectStrength, pixelSpikeVal);
+  effectivePixel = Math.max(triEffectStrength, pixelSpikeVal);
 
   // Shape 3 tempo tween back to normal
   if (tempoTweenStart !== null) {
@@ -1032,13 +1035,17 @@ setTimeout(unlockAudio, 300);
       var upness = -(dy / (r || 1));
       upness = Math.max(-1, Math.min(1, upness));
       if (upness > 0) {
-        tempoScale = 1 - upness * dist * 0.5;
+        tempoScale     = 1 - upness * dist * 0.5;
+        shortPitchRate = 1.0;
       } else {
-        tempoScale = 1 + (-upness) * dist * 5;
+        var slowness   = (-upness) * dist;
+        tempoScale     = 1 + slowness * 5;
+        shortPitchRate = 1.0 - slowness * 0.5;
       }
     } else if (wasCirc && !shape3Active) {
       tempoTweenFrom  = tempoScale;
       tempoTweenStart = performance.now();
+      shortPitchRate  = 1.0;
     }
   }
 
