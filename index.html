@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v186-dot-spring -->
+<!-- build: v187-dot-entry-kick -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1449,38 +1449,25 @@ setTimeout(function() {
   if (!dot) return;
 
   var x = 0, y = 0, vx = 0, vy = 0;
-  var hovering  = false;
   var animating = false;
-  var lastImpulse = 0;
 
-  var SPRING   = 0.06;   // pull-back strength
-  var DAMPING  = 0.68;   // lower = bouncier/more elastic
-  var IMPULSE  = 22;     // kick strength
-  var INTERVAL = 110;    // ms between random kicks
+  var SPRING  = 0.06;
+  var DAMPING = 0.68;
+  var IMPULSE = 22;
 
-  function frame(ts) {
+  function frame() {
     vx += -x * SPRING;
     vy += -y * SPRING;
     vx *= DAMPING;
     vy *= DAMPING;
-
-    if (hovering && ts - lastImpulse > INTERVAL) {
-      var angle    = Math.random() * Math.PI * 2;
-      var strength = IMPULSE * (0.4 + Math.random() * 0.6);
-      vx += Math.cos(angle) * strength;
-      vy += Math.sin(angle) * strength;
-      lastImpulse = ts;
-    }
-
-    x += vx;
-    y += vy;
+    x  += vx;
+    y  += vy;
 
     dot.style.marginLeft = x.toFixed(2) + 'px';
     dot.style.marginTop  = y.toFixed(2) + 'px';
 
-    var settled = !hovering
-      && Math.abs(x)  < 0.3 && Math.abs(y)  < 0.3
-      && Math.abs(vx) < 0.3 && Math.abs(vy) < 0.3;
+    var settled = Math.abs(x)  < 0.2 && Math.abs(y)  < 0.2
+               && Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2;
 
     if (settled) {
       animating = false;
@@ -1492,10 +1479,12 @@ setTimeout(function() {
   }
 
   dot.addEventListener('mouseenter', function() {
-    hovering = true;
+    var angle    = Math.random() * Math.PI * 2;
+    var strength = IMPULSE * (0.6 + Math.random() * 0.4);
+    vx += Math.cos(angle) * strength;
+    vy += Math.sin(angle) * strength;
     if (!animating) { animating = true; requestAnimationFrame(frame); }
   });
-  dot.addEventListener('mouseleave', function() { hovering = false; });
 })();
 </script>
 
