@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v19-homelink -->
+<!-- build: explore-v22-hints -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -57,15 +57,31 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 #explore-home {
   position: fixed; bottom: 28px; right: 28px;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
   color: #ffffff; text-decoration: none;
   opacity: 0; z-index: 100; pointer-events: none;
+  text-shadow: 0 0 12px rgba(255,255,255,0.6);
 }
 #explore-home.visible {
   pointer-events: auto;
   animation: home-pulse 1.8s ease-in-out infinite;
 }
-@keyframes home-pulse { 0%,100%{opacity:1} 50%{opacity:0.08} }
+@keyframes home-pulse { 0%,100%{opacity:1} 50%{opacity:0.12} }
+#geo-tri-hint {
+  position: absolute;
+  right: 6vw;
+  top: calc(15vh + 244px);
+  width: 270px;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: #aaaaaa;
+  opacity: 0; transition: opacity 2s ease;
+  pointer-events: none; z-index: 21;
+}
+@media (max-width: 720px) {
+  #geo-tri-hint { right: 5vw; top: calc(18vh + 114px); width: 120px; }
+}
 </style>
 </head>
 <body>
@@ -755,6 +771,7 @@ async function loadImages() {
     // Desktop: start immediately
     isPlaying          = true;
     window.d93Playing  = true;
+    lastSilenceEndTs   = performance.now();
     engineState   = 'HOLD';
     stateStartTs  = performance.now();
     currentHoldMs = computeHoldMs();
@@ -778,6 +795,7 @@ async function loadImages() {
     // Start image sequencer
     isPlaying         = true;
     window.d93Playing = true;
+    lastSilenceEndTs  = performance.now();
     engineState   = 'HOLD';
     stateStartTs  = performance.now();
     currentHoldMs = computeHoldMs();
@@ -797,6 +815,7 @@ initAudioEls();
 setTimeout(unlockAudio, 300);
 </script>
 
+<div id="geo-tri-hint">&#8597; drag</div>
 <div id="geo-overlay">
   <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
     <rect x="4" y="4" width="152" height="312" fill="transparent" stroke="#FF6B00" stroke-width="8"/>
@@ -849,7 +868,11 @@ setTimeout(unlockAudio, 300);
         rectEl.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
       }, 2200); // after fade-in completes
       setTimeout(function() { shape1MacroActive = true; }, 15000);
-      setTimeout(function() { triEl.style.opacity = '1'; }, 10000);
+      setTimeout(function() {
+        triEl.style.opacity = '1';
+        var hint = document.getElementById('geo-tri-hint');
+        if (hint) hint.style.opacity = '0.55';
+      }, 10000);
     }, 5000);
   });
 
@@ -890,6 +913,10 @@ setTimeout(unlockAudio, 300);
     // Shape 2
     var wasTri = shape2Active;
     shape2Active = r2vis && inTriangle(mx, my, tb);
+    if (shape2Active && !wasTri) {
+      var hint = document.getElementById('geo-tri-hint');
+      if (hint) hint.style.opacity = '0';
+    }
     if (shape2Active) {
       shape2FadeStart = null;
       var yFrac2 = Math.max(0, Math.min(1, (my - tb.top) / tb.height));
@@ -934,7 +961,7 @@ setTimeout(unlockAudio, 300);
 })();
 </script>
 
-<a href="index.html" id="explore-home">&#8592; index</a>
+<a href="index.html" id="explore-home">&#8592; menu</a>
 <script>
 setTimeout(function() {
   var h = document.getElementById('explore-home');
