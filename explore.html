@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v26-click-dismiss -->
+<!-- build: explore-v27-dismiss-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -28,6 +28,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   transition: opacity 0.8s ease;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 #e64-cursor {
   display: inline-block;
@@ -124,8 +125,11 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   }
 
   setTimeout(function() {
+    // Direct on boot element — more reliable than document bubbling
+    boot.addEventListener('click',      dismiss, { once: true });
+    boot.addEventListener('touchstart', dismiss, { once: true, passive: true });
+    // Keyboard stays on document
     document.addEventListener('keydown', dismiss, { once: true });
-    document.addEventListener('click',   dismiss, { once: true });
   }, 800);
 })();
 </script>
