@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v16-touch-brightness -->
+<!-- build: explore-v17-macro-fade -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -655,7 +655,8 @@ function frame(ts) {
   // Shape 2 brightness calculation
   var targetBright = shape2Active ? mouseBrightness : 1.0;
   if (shape2FadeStart !== null) {
-    var fp = Math.min((ts - shape2FadeStart) / 6000, 1);
+    var fadeDur = shape1MacroActive ? 1500 : 6000;
+    var fp = Math.min((ts - shape2FadeStart) / fadeDur, 1);
     targetBright = shape2BrightFrom + (1 - shape2BrightFrom) * fp;
     if (fp >= 1) shape2FadeStart = null;
   }
@@ -669,6 +670,12 @@ function frame(ts) {
     effectiveBright *= Math.max(0.12, fNorm);
   }
   brightnessOverlay = 1 - effectiveBright;
+
+  if (shape1MacroActive && window.d93GeoEls) {
+    var shapeOpacity = Math.max(0.08, effectiveBright);
+    if (window.d93GeoEls.tri)  window.d93GeoEls.tri.style.opacity  = String(shapeOpacity);
+    if (window.d93GeoEls.circ) window.d93GeoEls.circ.style.opacity = String(shapeOpacity);
+  }
 
   // Shape 3 tempo tween back to normal
   if (tempoTweenStart !== null) {
@@ -779,6 +786,7 @@ setTimeout(unlockAudio, 300);
   var rectEl = document.getElementById('geo-rect');
   var triEl  = document.getElementById('geo-tri');
   var circEl = document.getElementById('geo-circ');
+  window.d93GeoEls = { rect: rectEl, tri: triEl, circ: circEl };
   if (!rectEl || !triEl || !circEl) return;
 
   function inRect(mx, my, b) {
