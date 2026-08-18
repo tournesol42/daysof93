@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v24-menu-link -->
+<!-- build: explore-v25-c64-overlay -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -17,17 +17,21 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   opacity: 0; transition: opacity 1.5s ease;
 }
 #back:hover { color: #E85500; }
-#play-btn {
-  display: none;
-  position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: none; border: none; padding: 0; margin: 0;
-  cursor: pointer; z-index: 100;
-  width: 72px; height: 72px;
-  opacity: 1; transition: opacity 0.35s ease;
-  -webkit-tap-highlight-color: transparent;
+#e64-boot {
+  position: fixed; inset: 0; z-index: 999;
+  background: #FF6B00;
+  font-family: 'Courier New', Courier, monospace;
+  color: #a0d0ff;
+  font-size: clamp(11px, 2.2vw, 15px);
+  line-height: 1.9; letter-spacing: 0.06em;
+  padding: 6vw;
+  transition: opacity 0.8s ease;
 }
-#play-btn.gone { opacity: 0; pointer-events: none; }
+#e64-cursor {
+  display: inline-block;
+  animation: e64-blink 1s step-end infinite;
+}
+@keyframes e64-blink { 0%,100%{opacity:1} 50%{opacity:0} }
 @keyframes geo-rect-pulse {
   0%,100% { opacity: 1; }
   50%     { opacity: 0.1; }
@@ -91,16 +95,42 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 </style>
 </head>
 <body>
+<div id="e64-boot">
+  **** DAYS OF 93 — EXPLORE ****<br><br>
+  64K RAM SYSTEM &nbsp; 38911 BASIC BYTES FREE<br><br>
+  READY.<br><br>
+  PRESS ANY KEY TO CONTINUE.<span id="e64-cursor">&#x2588;</span>
+</div>
+<script>
+(function() {
+  var boot = document.getElementById('e64-boot');
+  var gone = false;
+
+  function dismiss(e) {
+    if (gone) return;
+    // mousemove: ignore tiny jitter on load
+    if (e && e.type === 'mousemove' && !gone._moved) {
+      gone._moved = true; return;
+    }
+    gone = true;
+    // Gesture context: unlock audio immediately
+    if (typeof unlockAudio === 'function') unlockAudio();
+    c64Dismissed = true;
+    if (typeof startEngine === 'function') startEngine();
+    boot.style.opacity = '0';
+    setTimeout(function() { boot.style.display = 'none'; }, 900);
+  }
+
+  setTimeout(function() {
+    document.addEventListener('keydown',    dismiss, { once: true });
+    document.addEventListener('mousedown',  dismiss, { once: true });
+    document.addEventListener('touchstart', dismiss, { once: true, passive: true });
+  }, 800);
+})();
+</script>
 
 <a href="index.html" id="back">← back</a>
 <canvas id="cv"></canvas>
-
-<button id="play-btn" aria-label="Play">
-  <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="36" cy="36" r="30" fill="rgba(0,0,0,0.18)" stroke="white" stroke-width="1.5"/>
-    <polygon points="29,20 29,52 56,36" fill="white"/>
-  </svg>
-</button>
 
 <script>
 // ── Preset configuration (matches production screenshot) ─────────────────────
@@ -190,6 +220,7 @@ let stateStartTs   = 0;
 let currentHoldMs  = 0;
 let currentTransMs = 0;
 let isPlaying      = false;
+var c64Dismissed   = false;
 let rafId          = null;
 let lastTs         = 0;
 
@@ -754,6 +785,22 @@ function startAnim() {
   rafId  = requestAnimationFrame(frame);
 }
 
+function startEngine() {
+  if (isPlaying) return;
+  isPlaying         = true;
+  window.d93Playing = true;
+  lastSilenceEndTs  = performance.now();
+  engineState       = 'HOLD';
+  stateStartTs      = performance.now();
+  currentHoldMs     = computeHoldMs();
+  cutterActive      = true;
+  spawnCuts(CFG.cutterAmount);
+  setTimeout(function() {
+    var b = document.getElementById('back');
+    if (b) b.style.opacity = '1';
+  }, 2000);
+}
+
 // ── Image loading ─────────────────────────────────────────────────────────────
 async function loadImages() {
   const loaded = [];
@@ -772,53 +819,12 @@ async function loadImages() {
   );
 
   currentIndex = Math.floor(Math.random() * images.length);
-
-  if (window.innerWidth >= 720) {
-    // Desktop: start immediately
-    isPlaying          = true;
-    window.d93Playing  = true;
-    lastSilenceEndTs   = performance.now();
-    engineState   = 'HOLD';
-    stateStartTs  = performance.now();
-    currentHoldMs = computeHoldMs();
-    cutterActive  = true;
-    spawnCuts(CFG.cutterAmount);
-    setTimeout(() => { document.getElementById('back').style.opacity = '1'; }, 2000);
-  } else {
-    // Mobile: show play button, hold until pressed
-    var btn = document.getElementById('play-btn');
-    if (btn) btn.style.display = 'block';
-  }
+  if (c64Dismissed) startEngine();
 }
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-(function() {
-  var btn = document.getElementById('play-btn');
-  if (!btn) return;
-  btn.addEventListener('click', function() {
-    btn.classList.add('gone');
-    setTimeout(function() { btn.style.display = 'none'; }, 400);
-    // Start image sequencer
-    isPlaying         = true;
-    window.d93Playing = true;
-    lastSilenceEndTs  = performance.now();
-    engineState   = 'HOLD';
-    stateStartTs  = performance.now();
-    currentHoldMs = computeHoldMs();
-    cutterActive  = true;
-    spawnCuts(CFG.cutterAmount);
-    setTimeout(function() { document.getElementById('back').style.opacity = '1'; }, 2000);
-    // unlockAudio already fired on touchstart of this tap — call again as guard
-    unlockAudio();
-  }, { once: true });
-})();
 
 startAnim();
 loadImages();
 initAudioEls();
-// Try autoplay immediately — works on Chrome desktop (media engagement).
-// On iOS the attempt fails and unlocking resets, so the gesture handler retries.
-setTimeout(unlockAudio, 300);
 </script>
 
 <div id="geo-rect-hint">&#8597; touch</div>
