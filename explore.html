@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v36-93-shapes -->
+<!-- build: explore-v37-93-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -868,10 +868,10 @@ function frame(ts) {
       }
 
       // 3 connector: from triangle bottom vertex to top of Circle 2
-      var connX1 = tb2.left + tb2.width  * 0.5;
-      var connY1 = tb2.top  + tb2.height * 0.85;
-      var connX2 = rb2.left + rb2.width  * 0.5;
-      var connY2 = rb2.top  + rb2.height * 0.08;
+      var connX1 = tb2.right  - tb2.width  * 0.08;
+      var connY1 = tb2.bottom - tb2.height * 0.05;
+      var connX2 = rb2.left   + rb2.width  * 0.5;
+      var connY2 = rb2.top    + rb2.height * 0.06;
       var connEl = document.getElementById('helper-conn');
       if (connEl) {
         connEl.setAttribute('x1', connX1.toFixed(1));
@@ -906,17 +906,17 @@ function startConverge() {
   var cy = window.innerHeight * 0.5;
   var sc = Math.min(1, window.innerWidth / 1440);
 
-  // Circle 2 (orange) → lower-right: 3 bowl
+  // Circle 2 (orange) → 3 lower bowl — shift slightly lower
   convergeDriftRect = {
     x: (cx + 200 * sc) - (rb.left + rb.width  * 0.5),
-    y: (cy + 120 * sc) - (rb.top  + rb.height * 0.5)
+    y: (cy + 150 * sc) - (rb.top  + rb.height * 0.5)
   };
-  // Triangle → upper-right: 3 top (will also rotate -90°)
+  // Triangle → 3 upper — push much higher, align X so rotated vertex sits above circle
   convergeDriftTri = {
-    x: (cx + 110 * sc) - (tb.left + tb.width  * 0.5),
-    y: (cy - 110 * sc) - (tb.top  + tb.height * 0.5)
+    x: (cx + 84  * sc) - (tb.left + tb.width  * 0.5),
+    y: (cy - 210 * sc) - (tb.top  + tb.height * 0.5)
   };
-  // Circle 1 (dark grey) → upper-left: 9 bowl
+  // Circle 1 (dark grey) → 9 bowl — unchanged
   convergeDriftCirc = {
     x: (cx - 190 * sc) - (cb.left + cb.width  * 0.5),
     y: (cy - 40  * sc) - (cb.top  + cb.height * 0.5)
