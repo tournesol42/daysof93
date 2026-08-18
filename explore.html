@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v29-no-playbtn -->
+<!-- build: explore-v30-silenceblack -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -164,6 +164,8 @@ let shuffleQueue  = [];
 
 var lastSilenceEndTs  = -Infinity;
 var nextSilenceMs     = 3000 + Math.random() * 5000;
+var silTotalMs   = 5000;
+var silenceBlack = 0;
 var clusterMode      = 'FAST';
 var clusterRemaining = 0;
 let engineState    = 'IDLE';
@@ -371,6 +373,8 @@ function drawCuts(c, W, H) {
 // ── Silence ───────────────────────────────────────────────────────────────────
 function enterSilence(ts) {
   const totalMs = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
+  silTotalMs   = totalMs;
+  silenceBlack = 0;
   silFadeMs  = CFG.silenceFade;
   silHoldMs  = Math.max(0, totalMs - silFadeMs * 2);
   silOpacity = CFG.silenceOpacity;
@@ -435,6 +439,26 @@ function drawFrame(elapsed) {
     ctx.save();
     ctx.globalAlpha = brightnessOverlay;
     ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.restore();
+  }
+
+  // Silence blackout — quartic crash to black in final 65% of silence window
+  if (engineState === 'SILENCE') {
+    var sp = Math.min(elapsed / silTotalMs, 1);
+    if (sp >= 0.30) {
+      var t = (sp - 0.30) / (0.95 - 0.30);
+      silenceBlack = Math.pow(Math.min(t, 1), 4);
+    } else {
+      silenceBlack = 0;
+    }
+  } else {
+    silenceBlack = silenceBlack > 0.005 ? silenceBlack * 0.88 : 0;
+  }
+  if (silenceBlack > 0.005) {
+    ctx.save();
+    ctx.globalAlpha = silenceBlack;
+    ctx.fillStyle   = '#000';
     ctx.fillRect(0, 0, CW, CH);
     ctx.restore();
   }
