@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v8-silencefix-randompick -->
+<!-- build: explore-v9-mono-timesilence -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -52,8 +52,8 @@ const CFG = {
   holdCurve:      'BOTH',
   transType:      'NONE',
   // Silence: ~16% probability, white flash
-  silenceProb:      0.003,
-  silenceCooldownMs:15000,   // minimum ms between silences (~15s)
+  silenceIntervalMin: 3000,
+  silenceIntervalMax: 8000,
   silenceDurMin:  4800,
   silenceDurMax:  5000,
   silenceFade:    450,
@@ -111,7 +111,8 @@ let outgoingIndex = 0;
 let incomingIndex = 0;
 let shuffleQueue  = [];
 
-var lastSilenceTs = -Infinity;
+var lastSilenceEndTs  = -Infinity;
+var nextSilenceMs     = 3000 + Math.random() * 5000;
 let engineState    = 'IDLE';
 let stateStartTs   = 0;
 let currentHoldMs  = 0;
@@ -318,7 +319,6 @@ function drawCuts(c, W, H) {
 
 // ── Silence ───────────────────────────────────────────────────────────────────
 function enterSilence(ts) {
-  lastSilenceTs = ts;
   const totalMs = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
   silFadeMs  = CFG.silenceFade;
   silHoldMs  = Math.max(0, totalMs - silFadeMs * 2);
@@ -389,8 +389,9 @@ function drawFrame(elapsed) {
   window._d93vol = function() { return muted ? 0 : vol; };
 })();
 
-var audioCtx     = null;
-var shortBuffers = [];   // decoded AudioBuffers for short pool
+var audioCtx       = null;
+var shortBuffers   = [];   // decoded AudioBuffers for short pool
+var currentShortSrc = null;
 
 var longEls      = [];
 var longIdx      = 0;
@@ -479,6 +480,7 @@ function unlockAudio() {
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (currentShortSrc) { try { currentShortSrc.stop(); } catch(e) {} currentShortSrc = null; }
   var src  = audioCtx.createBufferSource();
   src.buffer = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
   var gain = audioCtx.createGain();
@@ -486,6 +488,8 @@ function audioTriggerShort() {
   src.connect(gain);
   gain.connect(audioCtx.destination);
   src.start(0);
+  currentShortSrc = src;
+  src.onended = function() { if (currentShortSrc === src) currentShortSrc = null; };
 }
 
 function audioTriggerLong() {
@@ -516,11 +520,14 @@ function doAdvance(ts) {
   enterHold(ts);
   audioTriggerShort();
   if (fromSilence) audioStopLong();
+  if (fromSilence) {
+    lastSilenceEndTs = ts;
+    nextSilenceMs = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
+  }
 }
 
 function advanceFromHold(ts) {
-  var cooldownOk = (ts - lastSilenceTs) >= CFG.silenceCooldownMs;
-  if (cooldownOk && Math.random() < CFG.silenceProb) enterSilence(ts);
+  if ((ts - lastSilenceEndTs) >= nextSilenceMs) enterSilence(ts);
   else doAdvance(ts);
 }
 
