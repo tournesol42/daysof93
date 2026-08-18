@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v32-pixel-hints -->
+<!-- build: explore-v33-pixel-spike-tempo -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -501,9 +501,9 @@ function drawFrame(elapsed) {
     ctx.restore();
   }
 
-  if (triEffectStrength > 0.01 && pixelCanvas && engineState !== 'SILENCE') {
-    var blockSize = Math.max(2, Math.round(2 + triEffectStrength * 7));
-    var colorBits = Math.max(2, Math.round(8 - triEffectStrength * 5));
+  if (effectivePixel > 0.01 && pixelCanvas && engineState !== 'SILENCE') {
+    var blockSize = Math.max(2, Math.round(2 + effectivePixel * 30));
+    var colorBits = Math.max(1, Math.round(8 - effectivePixel * 7));
     var sw = Math.ceil(CW / blockSize);
     var sh = Math.ceil(CH / blockSize);
     pixelCanvas.width  = sw;
@@ -572,6 +572,8 @@ var mouseBrightness  = 1.0;
 var tempoTweenStart  = null;
 var tempoTweenFrom   = 1.0;
 var triEffectStrength = 0;
+var pixelSpikeVal   = 0;
+var pixelSpikeTimer = 0;
 var pixelCanvas = null;
 var pixelCtx    = null;
 
@@ -787,6 +789,19 @@ function frame(ts) {
   // triEffect decay
   if (!shape2Active && triEffectStrength > 0.005) triEffectStrength *= 0.90;
   else if (!shape2Active) triEffectStrength = 0;
+
+  if (shape2Active) {
+    pixelSpikeTimer -= dt;
+    if (pixelSpikeTimer <= 0) {
+      pixelSpikeVal   = 0.7 + Math.random() * 0.3;
+      pixelSpikeTimer = 1.5 + Math.random() * 3.5;
+    }
+    pixelSpikeVal *= 0.82;
+  } else {
+    pixelSpikeVal   = 0;
+    pixelSpikeTimer = 0;
+  }
+  var effectivePixel = Math.max(triEffectStrength, pixelSpikeVal);
 
   // Shape 3 tempo tween back to normal
   if (tempoTweenStart !== null) {
@@ -1009,11 +1024,18 @@ setTimeout(unlockAudio, 300);
         if (ch) { ch.classList.remove('active'); ch.style.opacity = '0'; }
       }
       tempoTweenStart = null;
-      var ccx = cb.left + cb.width*0.5, ccy = cb.top + cb.height*0.5;
-      var r   = cb.width * 0.5;
-      var dx  = mx - ccx, dy = my - ccy;
+      var ccx  = cb.left + cb.width*0.5;
+      var ccy  = cb.top  + cb.height*0.5;
+      var r    = cb.width * 0.5;
+      var dx   = mx - ccx, dy = my - ccy;
       var dist = Math.min(1, Math.sqrt(dx*dx + dy*dy) / r);
-      tempoScale = 1 + dist * 5;
+      var upness = -(dy / (r || 1));
+      upness = Math.max(-1, Math.min(1, upness));
+      if (upness > 0) {
+        tempoScale = 1 - upness * dist * 0.5;
+      } else {
+        tempoScale = 1 + (-upness) * dist * 5;
+      }
     } else if (wasCirc && !shape3Active) {
       tempoTweenFrom  = tempoScale;
       tempoTweenStart = performance.now();
