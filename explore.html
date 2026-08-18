@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v31-steepblack-hint -->
+<!-- build: explore-v32-pixel-hints -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -81,6 +81,35 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
     left: 5vw; top: calc(22vh + 162px);
     width: 80px; font-size: 12px;
   }
+}
+#geo-tri-hint, #geo-circ-hint {
+  position: absolute;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #ffffff;
+  opacity: 0; transition: opacity 2s ease;
+  pointer-events: none; z-index: 21;
+  text-shadow:
+    0 0 10px rgba(255,255,255,1),
+    0 0 28px rgba(255,255,255,0.9),
+    0 0 55px rgba(255,255,255,0.6);
+}
+#geo-tri-hint {
+  right: 6vw;
+  top: calc(15vh + 244px);
+  width: 270px; text-align: center;
+}
+#geo-tri-hint.active, #geo-circ-hint.active {
+  animation: hint-flash 0.75s ease-in-out infinite;
+}
+#geo-circ-hint {
+  left: calc(50% - 155px);
+  top: calc(50% + 160px);
+  width: 310px; text-align: center;
+}
+@media (max-width: 720px) {
+  #geo-tri-hint  { right: 5vw; top: calc(18vh + 114px); width: 120px; font-size: 12px; }
+  #geo-circ-hint { left: calc(50% - 70px); top: calc(50% + 75px); width: 140px; font-size: 12px; }
 }
 </style>
 </head>
@@ -471,6 +500,31 @@ function drawFrame(elapsed) {
     ctx.fillRect(0, 0, CW, CH);
     ctx.restore();
   }
+
+  if (triEffectStrength > 0.01 && pixelCanvas && engineState !== 'SILENCE') {
+    var blockSize = Math.max(2, Math.round(2 + triEffectStrength * 7));
+    var colorBits = Math.max(2, Math.round(8 - triEffectStrength * 5));
+    var sw = Math.ceil(CW / blockSize);
+    var sh = Math.ceil(CH / blockSize);
+    pixelCanvas.width  = sw;
+    pixelCanvas.height = sh;
+    pixelCtx.drawImage(cv, 0, 0, sw, sh);
+    if (colorBits < 7) {
+      var id = pixelCtx.getImageData(0, 0, sw, sh);
+      var d  = id.data;
+      var step = 256 / Math.pow(2, colorBits);
+      for (var i = 0; i < d.length; i += 4) {
+        d[i]   = Math.floor(d[i]   / step) * step;
+        d[i+1] = Math.floor(d[i+1] / step) * step;
+        d[i+2] = Math.floor(d[i+2] / step) * step;
+      }
+      pixelCtx.putImageData(id, 0, 0);
+    }
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(pixelCanvas, 0, 0, CW, CH);
+    ctx.restore();
+  }
 }
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
@@ -517,6 +571,9 @@ var shape3Active     = false;
 var mouseBrightness  = 1.0;
 var tempoTweenStart  = null;
 var tempoTweenFrom   = 1.0;
+var triEffectStrength = 0;
+var pixelCanvas = null;
+var pixelCtx    = null;
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
@@ -727,6 +784,10 @@ function frame(ts) {
     if (window.d93GeoEls.circ) window.d93GeoEls.circ.style.opacity = String(shapeOpacity);
   }
 
+  // triEffect decay
+  if (!shape2Active && triEffectStrength > 0.005) triEffectStrength *= 0.90;
+  else if (!shape2Active) triEffectStrength = 0;
+
   // Shape 3 tempo tween back to normal
   if (tempoTweenStart !== null) {
     var tp = Math.min((ts - tempoTweenStart) / 1000, 1);
@@ -806,12 +867,16 @@ async function loadImages() {
 }
 
 startAnim();
+pixelCanvas = document.createElement('canvas');
+pixelCtx    = pixelCanvas.getContext('2d');
 loadImages();
 initAudioEls();
 setTimeout(unlockAudio, 300);
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
+<div id="geo-tri-hint">⬆ drag ⬇</div>
+<div id="geo-circ-hint">← edge →</div>
 <div id="geo-overlay">
   <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
     <rect x="4" y="4" width="152" height="312" fill="transparent" stroke="#FF6B00" stroke-width="8"/>
@@ -866,14 +931,22 @@ setTimeout(unlockAudio, 300);
         rectEl.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
       }, 2200); // after fade-in completes
       setTimeout(function() { shape1MacroActive = true; }, 15000);
-      setTimeout(function() { triEl.style.opacity = '1'; }, 10000);
+      setTimeout(function() {
+        triEl.style.opacity = '1';
+        var th = document.getElementById('geo-tri-hint');
+        if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
+      }, 10000);
     }, 5000);
   });
 
   // Shape 3 appears 5s after shape 2 has been entered+left 3 times
   function checkShape3() {
     if (shape2ExitCount >= 3 && circEl.style.opacity !== '1') {
-      setTimeout(function() { circEl.style.opacity = '1'; }, 5000);
+      setTimeout(function() {
+        circEl.style.opacity = '1';
+        var ch = document.getElementById('geo-circ-hint');
+        if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
+      }, 5000);
     }
   }
 
@@ -912,9 +985,14 @@ setTimeout(unlockAudio, 300);
     var wasTri = shape2Active;
     shape2Active = r2vis && inTriangle(mx, my, tb);
     if (shape2Active) {
+      if (!wasTri) {
+        var th = document.getElementById('geo-tri-hint');
+        if (th) { th.classList.remove('active'); th.style.opacity = '0'; }
+      }
       shape2FadeStart = null;
       var yFrac2 = Math.max(0, Math.min(1, (my - tb.top) / tb.height));
-      mouseBrightness = 1 - yFrac2;
+      var t2 = yFrac2 < 0.25 ? 0 : Math.pow((yFrac2 - 0.25) / 0.75, 2);
+      triEffectStrength = t2;
     } else if (wasTri && !shape2Active) {
       shape2ExitCount++;
       shape2BrightFrom = mouseBrightness;
@@ -926,6 +1004,10 @@ setTimeout(unlockAudio, 300);
     var wasCirc = shape3Active;
     shape3Active = r3vis && inCircle(mx, my, cb);
     if (shape3Active) {
+      if (!wasCirc) {
+        var ch = document.getElementById('geo-circ-hint');
+        if (ch) { ch.classList.remove('active'); ch.style.opacity = '0'; }
+      }
       tempoTweenStart = null;
       var ccx = cb.left + cb.width*0.5, ccy = cb.top + cb.height*0.5;
       var r   = cb.width * 0.5;
