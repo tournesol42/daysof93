@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v7-silencecooldown -->
+<!-- build: explore-v8-silencefix-randompick -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -52,8 +52,8 @@ const CFG = {
   holdCurve:      'BOTH',
   transType:      'NONE',
   // Silence: ~16% probability, white flash
-  silenceProb:      0.159,
-  silenceCooldownMs:45000,   // minimum ms between silences (~45s)
+  silenceProb:      0.003,
+  silenceCooldownMs:15000,   // minimum ms between silences (~15s)
   silenceDurMin:  4800,
   silenceDurMax:  5000,
   silenceFade:    450,
@@ -391,7 +391,7 @@ function drawFrame(elapsed) {
 
 var audioCtx     = null;
 var shortBuffers = [];   // decoded AudioBuffers for short pool
-var shortIdx     = 0;
+
 var longEls      = [];
 var longIdx      = 0;
 var audioReady   = false;
@@ -439,7 +439,7 @@ function unlockAudio() {
   var sAll  = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
     return sBase + String(i+1).padStart(2,'0') + '.wav';
   }).sort(function() { return Math.random()-0.5; });
-  var urls = sAll.slice(0, 8);
+  var urls = sAll.slice(0, 21);
 
   function xhrDecode(url) {
     return new Promise(function(resolve, reject) {
@@ -480,13 +480,12 @@ function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
   var src  = audioCtx.createBufferSource();
-  src.buffer = shortBuffers[shortIdx];
+  src.buffer = shortBuffers[Math.floor(Math.random() * shortBuffers.length)];
   var gain = audioCtx.createGain();
   gain.gain.value = getVol();
   src.connect(gain);
   gain.connect(audioCtx.destination);
   src.start(0);
-  shortIdx = (shortIdx + 1) % shortBuffers.length;
 }
 
 function audioTriggerLong() {
