@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v30-silenceblack -->
+<!-- build: explore-v31-steepblack-hint -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -59,23 +59,28 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 #geo-rect-hint {
   position: absolute;
   left: 24vw;
-  top: calc(18vh + 330px);
+  top: calc(18vh + 338px);
   width: 160px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase;
   color: #ffffff;
   opacity: 0; transition: opacity 2s ease;
   pointer-events: none; z-index: 21;
-  text-shadow: 0 0 14px rgba(255,255,255,0.9);
-  animation: none;
+  text-shadow:
+    0 0 10px rgba(255,255,255,1),
+    0 0 28px rgba(255,255,255,0.9),
+    0 0 55px rgba(255,255,255,0.6);
 }
 #geo-rect-hint.active {
-  animation: hint-flash 1.1s ease-in-out infinite;
+  animation: hint-flash 0.75s ease-in-out infinite;
 }
-@keyframes hint-flash { 0%,100%{opacity:0.9} 50%{opacity:0.1} }
+@keyframes hint-flash { 0%,100%{opacity:1} 50%{opacity:0} }
 @media (max-width: 720px) {
-  #geo-rect-hint { left: 5vw; top: calc(22vh + 154px); width: 80px; }
+  #geo-rect-hint {
+    left: 5vw; top: calc(22vh + 162px);
+    width: 80px; font-size: 12px;
+  }
 }
 </style>
 </head>
@@ -390,7 +395,11 @@ function drawSilenceOverlay(c, W, H, elapsed) {
   const p2End = silFadeMs + silHoldMs;
   const p3End = silFadeMs + silHoldMs + silFadeMs;
   let alpha = 0, color = CFG.silenceInColor;
-  if      (elapsed < p1End) { alpha = silOpacity * (elapsed / silFadeMs); color = CFG.silenceInColor; }
+  if      (elapsed < p1End) {
+    var t = elapsed / silFadeMs;
+    alpha = silOpacity * Math.pow(t, 8);
+    color = CFG.silenceInColor;
+  }
   else if (elapsed < p2End) { alpha = silOpacity; color = CFG.silenceInColor; }
   else if (elapsed < p3End) { alpha = silOpacity * (1 - (elapsed - p2End) / silFadeMs); color = CFG.silenceOutColor; }
   else return;
@@ -448,7 +457,7 @@ function drawFrame(elapsed) {
     var sp = Math.min(elapsed / silTotalMs, 1);
     if (sp >= 0.30) {
       var t = (sp - 0.30) / (0.95 - 0.30);
-      silenceBlack = Math.pow(Math.min(t, 1), 4);
+      silenceBlack = Math.pow(Math.min(t, 1), 12);
     } else {
       silenceBlack = 0;
     }
@@ -802,7 +811,7 @@ initAudioEls();
 setTimeout(unlockAudio, 300);
 </script>
 
-<div id="geo-rect-hint">&#8597; touch</div>
+<div id="geo-rect-hint">⬆ touch ⬇</div>
 <div id="geo-overlay">
   <svg id="geo-rect" viewBox="0 0 160 320" xmlns="http://www.w3.org/2000/svg">
     <rect x="4" y="4" width="152" height="312" fill="transparent" stroke="#FF6B00" stroke-width="8"/>
