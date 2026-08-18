@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v183-explore-zfix-vol-topright -->
+<!-- build: v184-dot-wobble-vwvh -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -399,14 +399,22 @@
   #explore-btn {
     display: none;
     position: fixed;
-    bottom: 380px;
-    right: 252px;
+    left: calc(31.8vw - 14px);
+    top: calc(50vh + 7.22vw - 14px);
+    right: auto;
+    bottom: auto;
     width: 28px;
     height: 28px;
     border-radius: 50%;
     background: #E85500;
     text-decoration: none;
     z-index: 51;
+  }
+  @media (min-width: 720px) {
+    #explore-btn {
+      left: calc(50vw - 12.87vh - 14px);
+      top: calc(55.1vh - 14px);
+    }
   }
   #explore-btn.visible { display: block; }
   #explore-btn.phase2 { animation: dot-slow 2s ease-in-out infinite; }
@@ -1432,7 +1440,44 @@ setTimeout(function() {
       dot.classList.add('phase3-pulse');
     }, 500);
   }, 5500);
-}, 3000);
+}, 20000);
+</script>
+
+<script>
+(function() {
+  var dot = document.getElementById('explore-btn');
+  if (!dot) return;
+  var wobbling = false;
+  var animating = false;
+  var t = 0, mx = 0, my = 0;
+
+  function frame() {
+    if (wobbling) {
+      t += 0.04;
+      mx = Math.sin(t * 1.3) * 5 + Math.sin(t * 2.7) * 2;
+      my = Math.sin(t * 1.7 + 1.0) * 4 + Math.sin(t * 2.1 + 0.5) * 2;
+    } else {
+      mx *= 0.82;
+      my *= 0.82;
+    }
+    dot.style.marginLeft = mx.toFixed(2) + 'px';
+    dot.style.marginTop  = my.toFixed(2) + 'px';
+    var done = !wobbling && Math.abs(mx) < 0.1 && Math.abs(my) < 0.1;
+    if (done) {
+      animating = false;
+      dot.style.marginLeft = '';
+      dot.style.marginTop  = '';
+    } else {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  dot.addEventListener('mouseenter', function() {
+    wobbling = true;
+    if (!animating) { animating = true; requestAnimationFrame(frame); }
+  });
+  dot.addEventListener('mouseleave', function() { wobbling = false; });
+})();
 </script>
 
 <script>
