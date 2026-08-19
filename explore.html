@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v43-93-orange -->
+<!-- build: explore-v44-convergence-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -791,6 +791,7 @@ function frame(ts) {
     var shapeOpacity = Math.max(0.08, effectiveBright);
     if (window.d93GeoEls.tri)  window.d93GeoEls.tri.style.opacity  = String(shapeOpacity);
     if (window.d93GeoEls.circ) window.d93GeoEls.circ.style.opacity = String(shapeOpacity);
+    if (window.d93GeoEls.rect) window.d93GeoEls.rect.style.opacity = String(shapeOpacity);
   }
 
   // triEffect decay
@@ -854,8 +855,7 @@ function frame(ts) {
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
     if (helpers && ec > 0.3) {
-      var helperOpacity = parseFloat(gels.circ.style.opacity || '1');
-      helpers.style.opacity = String(Math.min(helperOpacity, (ec - 0.3) / 0.4));
+      helpers.style.opacity = String(Math.min(1, (ec - 0.3) / 0.4));
 
       var cb2 = gels.circ.getBoundingClientRect();
       var rb2 = gels.rect.getBoundingClientRect();
@@ -916,6 +916,7 @@ function startConverge() {
     y: (cy - 110 * sc) - (cb.top  + cb.height * 0.5)
   };
   shapesConverging = true;
+  shapesFloating   = true;
 }
 
 function startAnim() {
