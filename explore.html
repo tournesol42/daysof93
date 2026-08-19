@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v48-music-menu -->
+<!-- build: explore-v49-converge-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -153,6 +153,19 @@ const CFG = {
   cutterColor:    '#ffffff',
   cutterSpeed:    0,
   cutterRenewal:  40,
+  // Convergence targets — all positions as viewport fractions (0–1)
+  convergeTargets: {
+    desktop: {
+      circ9X: 0.30, circ9Y: 0.40,
+      circ3X: 0.62, circ3Y: 0.60,
+      triOffX: -0.107, triOffY: -0.257
+    },
+    mobile: {
+      circ9X: 0.24, circ9Y: 0.40,
+      circ3X: 0.74, circ3Y: 0.62,
+      triOffX: -0.055, triOffY: -0.174
+    }
+  },
 };
 
 // ── Audio configuration ───────────────────────────────────────────────────────
@@ -870,6 +883,12 @@ function frame(ts) {
       var triOpacity = shapesConverging ? Math.min(1, 0.3 + ec * 0.7) : 0.3;
       gels.tri.style.opacity = triOpacity.toFixed(3);
     }
+    // Force rect (3 bowl) and circ (9 bowl) to full opacity during convergence
+    if (shapesConverging) {
+      var lockOpacity = Math.min(1, ec * 2).toFixed(3); // reaches 1 at ec=0.5
+      if (gels.rect) gels.rect.style.opacity = lockOpacity;
+      if (gels.circ) gels.circ.style.opacity = lockOpacity;
+    }
 
     // Circle 1 (dark grey, circ) → 9 bowl
     var cfx = Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2 + convergeDriftCirc.x * ec;
@@ -925,17 +944,13 @@ function startConverge() {
   var vh = window.innerHeight;
   var mobile = vw < 720;
 
-  var circ9X, circ9Y, triX, triY, circ3X, circ3Y;
-
-  if (mobile) {
-    circ3X = vw * 0.74;  circ3Y = vh * 0.62;
-    triX   = circ3X - 52; triY   = circ3Y - 63 - 60;
-    circ9X = vw * 0.24;  circ9Y = vh * 0.40;
-  } else {
-    circ3X = vw * 0.62;  circ3Y = vh * 0.60;
-    triX   = circ3X - 117; triY  = circ3Y - 148 - 135;
-    circ9X = vw * 0.30;  circ9Y = vh * 0.40;
-  }
+  var ct     = CFG.convergeTargets[mobile ? 'mobile' : 'desktop'];
+  var circ3X = vw * ct.circ3X;
+  var circ3Y = vh * ct.circ3Y;
+  var circ9X = vw * ct.circ9X;
+  var circ9Y = vh * ct.circ9Y;
+  var triX   = circ3X + vw * ct.triOffX;
+  var triY   = circ3Y + vh * ct.triOffY;
 
   convergeDriftRect = {
     x: circ3X - (rb.left + rb.width  * 0.5),
