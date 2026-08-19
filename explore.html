@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v58-c64-gate -->
+<!-- build: explore-v59-c64-button -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -110,7 +110,9 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   #geo-circ-hint { left: calc(50% - 70px); top: calc(50% + 75px); width: 140px; font-size: 12px; }
 }
 #e64-boot {
-  position: fixed; inset: 0; z-index: 999;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 9999;
   background: #FF6B00;
   font-family: 'Courier New', Courier, monospace;
   color: #a0d0ff;
@@ -120,6 +122,8 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   opacity: 1;
   transition: opacity 0.8s ease;
   cursor: pointer;
+  border: none;
+  text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
 #e64-cursor {
@@ -130,33 +134,6 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 </style>
 </head>
 <body>
-<div id="e64-boot">
-  **** DAYS OF 93 — EXPLORE ****<br><br>
-  64K RAM SYSTEM &nbsp; 38911 BASIC BYTES FREE<br><br>
-  READY.<br><br>
-  PRESS ANY KEY TO CONTINUE.<span id="e64-cursor">&#x2588;</span>
-</div>
-<script>
-(function() {
-  var boot = document.getElementById('e64-boot');
-  var gone = false;
-
-  function dismiss() {
-    if (gone) return; gone = true;
-    c64Dismissed = true;
-    if (typeof unlockAudio === 'function') unlockAudio();
-    if (typeof startEngine === 'function') startEngine();
-    boot.style.opacity = '0';
-    setTimeout(function() { boot.style.display = 'none'; }, 900);
-  }
-
-  setTimeout(function() {
-    boot.addEventListener('click',      dismiss, { once: true });
-    boot.addEventListener('touchstart', dismiss, { once: true, passive: true });
-    document.addEventListener('keydown', dismiss, { once: true });
-  }, 800);
-})();
-</script>
 <a href="index.html" id="back">← back</a>
 <canvas id="cv"></canvas>
 
@@ -1243,5 +1220,29 @@ setTimeout(function() {
   <line id="helper-tail" x1="0" y1="0" x2="0" y2="0"
     stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
 </svg>
+<button id="e64-boot">
+  **** DAYS OF 93 — EXPLORE ****<br><br>
+  64K RAM SYSTEM &nbsp; 38911 BASIC BYTES FREE<br><br>
+  READY.<br><br>
+  PRESS ANY KEY TO CONTINUE.<span id="e64-cursor">&#x2588;</span>
+</button>
+<script>
+(function() {
+  var boot = document.getElementById('e64-boot');
+  var gone = false;
+  function dismiss() {
+    if (gone) return; gone = true;
+    c64Dismissed = true;
+    if (typeof unlockAudio === 'function') unlockAudio();
+    if (typeof startEngine === 'function') startEngine();
+    boot.style.opacity = '0';
+    setTimeout(function() { boot.style.display = 'none'; }, 900);
+  }
+  setTimeout(function() {
+    boot.addEventListener('click',   dismiss, { once: true });
+    document.addEventListener('keydown', dismiss, { once: true });
+  }, 800);
+})();
+</script>
 </body>
 </html>
