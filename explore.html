@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v37-93-fix -->
+<!-- build: explore-v38-93-refined -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -856,28 +856,16 @@ function frame(ts) {
       var tb2 = gels.tri.getBoundingClientRect();
 
       // 9 tail: from bottom-right of Circle 1 downward
-      var tailX  = cb2.left + cb2.width * 0.72;
-      var tailY1 = cb2.top  + cb2.height * 0.85;
-      var tailY2 = cb2.top  + cb2.height * 0.85 + 160 * Math.min(1, window.innerWidth / 1440);
+      var sc2    = Math.min(1.2, window.innerWidth / 1100);
+      var tailX  = cb2.left + cb2.width  * 0.5 + 130;
+      var tailY1 = cb2.top  + cb2.height * 0.5 + 75;
+      var tailY2 = tailY1 + 230 * sc2;
       var tailEl = document.getElementById('helper-tail');
       if (tailEl) {
         tailEl.setAttribute('x1', tailX.toFixed(1));
         tailEl.setAttribute('y1', tailY1.toFixed(1));
         tailEl.setAttribute('x2', tailX.toFixed(1));
         tailEl.setAttribute('y2', tailY2.toFixed(1));
-      }
-
-      // 3 connector: from triangle bottom vertex to top of Circle 2
-      var connX1 = tb2.right  - tb2.width  * 0.08;
-      var connY1 = tb2.bottom - tb2.height * 0.05;
-      var connX2 = rb2.left   + rb2.width  * 0.5;
-      var connY2 = rb2.top    + rb2.height * 0.06;
-      var connEl = document.getElementById('helper-conn');
-      if (connEl) {
-        connEl.setAttribute('x1', connX1.toFixed(1));
-        connEl.setAttribute('y1', connY1.toFixed(1));
-        connEl.setAttribute('x2', connX2.toFixed(1));
-        connEl.setAttribute('y2', connY2.toFixed(1));
       }
     }
   }
@@ -914,7 +902,7 @@ function startConverge() {
   // Triangle → 3 upper — push much higher, align X so rotated vertex sits above circle
   convergeDriftTri = {
     x: (cx + 84  * sc) - (tb.left + tb.width  * 0.5),
-    y: (cy - 210 * sc) - (tb.top  + tb.height * 0.5)
+    y: (cy - 139 * sc) - (tb.top  + tb.height * 0.5)
   };
   // Circle 1 (dark grey) → 9 bowl — unchanged
   convergeDriftCirc = {
@@ -988,12 +976,14 @@ setTimeout(unlockAudio, 300);
       fill="transparent" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <svg id="geo-tri" viewBox="0 0 270 234" xmlns="http://www.w3.org/2000/svg">
-    <!-- Right edge: apex→bottom-right (THICK) -->
-    <line x1="135" y1="1" x2="269" y2="233" stroke="#cccccc" stroke-width="16" stroke-linecap="round"/>
-    <!-- Bottom edge: bottom-left→bottom-right (THICK) -->
-    <line x1="1" y1="233" x2="269" y2="233" stroke="#cccccc" stroke-width="16" stroke-linecap="round"/>
-    <!-- Left edge: apex→bottom-left (THIN) -->
-    <line x1="135" y1="1" x2="1" y2="233" stroke="#cccccc" stroke-width="3" stroke-linecap="round"/>
+    <!-- Right edge: apex→bottom-right (THICK, orange) -->
+    <line x1="135" y1="1" x2="269" y2="233" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
+    <!-- Bottom edge: bottom-left→bottom-right (THICK, orange) -->
+    <line x1="1" y1="233" x2="269" y2="233" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
+    <!-- Left edge thin part: apex→65% down (THIN, orange) -->
+    <line x1="135" y1="1" x2="48" y2="152" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
+    <!-- Left edge thick part: 65%→bottom-left, connects to orange circle (THICK, orange) -->
+    <line x1="48" y1="152" x2="1" y2="233" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
   </svg>
   <svg id="geo-circ" viewBox="0 0 310 310" xmlns="http://www.w3.org/2000/svg">
     <circle cx="155" cy="155" r="140" fill="transparent" stroke="#555555" stroke-width="28"/>
@@ -1172,9 +1162,7 @@ setTimeout(function() {
 <svg id="geo-helpers" xmlns="http://www.w3.org/2000/svg"
   style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:19;opacity:0;transition:opacity 3s ease;">
   <line id="helper-tail" x1="0" y1="0" x2="0" y2="0"
-    stroke="white" stroke-width="3" stroke-linecap="round"/>
-  <line id="helper-conn" x1="0" y1="0" x2="0" y2="0"
-    stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    stroke="#555555" stroke-width="28" stroke-linecap="round"/>
 </svg>
 </body>
 </html>
