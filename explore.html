@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v52-audio-rewrite -->
+<!-- build: explore-v53-music-resume-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -641,9 +641,8 @@ function unlockAudio() {
   shortFilter.Q.value = 0.5;
   shortFilter.connect(audioCtx.destination);
 
-  // Resume and init music synchronously within this gesture context
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  initMusic();
+  // Resume context first; defer initMusic until context is actually running
+  audioCtx.resume().then(function() { initMusic(); }).catch(function() { initMusic(); });
 
   // Pre-unlock long <audio> elements
   longEls.forEach(function(a) {
