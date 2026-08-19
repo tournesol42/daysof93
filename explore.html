@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v40-93-tuning -->
+<!-- build: explore-v41-93-polish -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -563,6 +563,7 @@ var convergeProgress  = 0;
 var convergeDriftRect = {x:0, y:0};
 var convergeDriftTri  = {x:0, y:0};
 var convergeDriftCirc = {x:0, y:0};
+var shape1Touched     = false;
 var shape1Active     = false;
 var shape1Fading     = false;
 var shape1MacroActive = false;
@@ -754,7 +755,7 @@ function frame(ts) {
   rafId  = requestAnimationFrame(frame);
 
   // LFO for shape 1 (runs when mouse not inside rect)
-  if (audioCtx && shortFilter && !shape1Active && !shape1Fading) {
+  if (audioCtx && shortFilter && shape1Touched && !shape1Active && !shape1Fading) {
     lfoTimer -= dt;
     if (lfoTimer <= 0) {
       lfoTarget = 300 + Math.random() * 5000;
@@ -862,9 +863,9 @@ function frame(ts) {
 
       // 9 tail: from bottom-right of Circle 1 downward
       var sc2    = Math.min(1.2, window.innerWidth / 1100);
-      var tailX  = cb2.left + cb2.width  * 0.5 + 130;
-      var tailY1 = cb2.top  + cb2.height * 0.5 + 48;
-      var tailY2 = tailY1 + 230 * sc2;
+      var tailX  = cb2.left + cb2.width  * 0.5 + 138;
+      var tailY1 = cb2.top  + cb2.height * 0.5 + 52;
+      var tailY2 = tailY1 + 290 * sc2;
       var tailEl = document.getElementById('helper-tail');
       if (tailEl) {
         tailEl.setAttribute('x1', tailX.toFixed(1));
@@ -912,7 +913,7 @@ function startConverge() {
   // Circle 1 (dark grey) → 9 bowl — unchanged
   convergeDriftCirc = {
     x: (cx - 190 * sc) - (cb.left + cb.width  * 0.5),
-    y: (cy - 40  * sc) - (cb.top  + cb.height * 0.5)
+    y: (cy - 110 * sc) - (cb.top  + cb.height * 0.5)
   };
   shapesConverging = true;
 }
@@ -1054,7 +1055,7 @@ setTimeout(unlockAudio, 300);
         if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
         setTimeout(function() {
           if (typeof startConverge === 'function') startConverge();
-        }, 1000);
+        }, 0);
       }, 5000);
     }
   }
@@ -1071,6 +1072,7 @@ setTimeout(unlockAudio, 300);
     var wasRect = shape1Active;
     shape1Active = r1vis && inCircle(mx, my, rb);
     if (shape1Active && !wasRect) {
+      shape1Touched = true;
       var hint = document.getElementById('geo-rect-hint');
       if (hint) { hint.classList.remove('active'); hint.style.opacity = '0'; }
     }
