@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v39-93-arcs -->
+<!-- build: explore-v40-93-tuning -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -820,7 +820,7 @@ function frame(ts) {
     shapeFloatT += dt;
 
     if (shapesConverging && convergeProgress < 1) {
-      convergeProgress = Math.min(convergeProgress + dt * 0.05, 1);
+      convergeProgress = Math.min(convergeProgress + dt * 0.18, 1); // ~5.5s to complete
     }
     var cp  = convergeProgress;
     var ec  = cp * cp * (3 - 2 * cp); // smoothstep
@@ -853,7 +853,8 @@ function frame(ts) {
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
     if (helpers && ec > 0.3) {
-      helpers.style.opacity = String(Math.min(1, (ec - 0.3) / 0.4));
+      var helperOpacity = parseFloat(gels.circ.style.opacity || '1');
+      helpers.style.opacity = String(Math.min(helperOpacity, (ec - 0.3) / 0.4));
 
       var cb2 = gels.circ.getBoundingClientRect();
       var rb2 = gels.rect.getBoundingClientRect();
@@ -905,8 +906,8 @@ function startConverge() {
   };
   // Triangle → 3 upper — push much higher, align X so rotated vertex sits above circle
   convergeDriftTri = {
-    x: (cx + 84  * sc) - (tb.left + tb.width  * 0.5),
-    y: (cy - 139 * sc) - (tb.top  + tb.height * 0.5)
+    x: (cx + 147 * sc) - (tb.left + tb.width  * 0.5),
+    y: (cy - 118 * sc) - (tb.top  + tb.height * 0.5)
   };
   // Circle 1 (dark grey) → 9 bowl — unchanged
   convergeDriftCirc = {
@@ -1053,7 +1054,7 @@ setTimeout(unlockAudio, 300);
         if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
         setTimeout(function() {
           if (typeof startConverge === 'function') startConverge();
-        }, 3000);
+        }, 1000);
       }, 5000);
     }
   }
