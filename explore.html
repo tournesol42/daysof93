@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v49-converge-fix -->
+<!-- build: explore-v50-audio-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -162,8 +162,8 @@ const CFG = {
     },
     mobile: {
       circ9X: 0.24, circ9Y: 0.40,
-      circ3X: 0.74, circ3Y: 0.62,
-      triOffX: -0.055, triOffY: -0.174
+      circ3X: 0.62, circ3Y: 0.62,
+      triOffX: -0.070, triOffY: -0.145
     }
   },
 };
@@ -1016,7 +1016,6 @@ pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
 loadImages();
 initAudioEls();
-setTimeout(unlockAudio, 300);
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
