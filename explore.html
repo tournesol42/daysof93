@@ -599,7 +599,14 @@ function initAudioEls() {
 }
 
 function unlockAudio() {
-  if (audioReady || unlocking) return;
+  if (audioReady) {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+      if (musicEl) musicEl.play().catch(function(){});
+    }
+    return;
+  }
+  if (unlocking) return;
   unlocking = true;
 
   try {
