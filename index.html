@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v191-c64-to-explore -->
+<!-- build: v192-c64-click-dismiss -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -485,7 +485,7 @@
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });
-    document.addEventListener('mousemove', dismiss, { once:true });
+    document.addEventListener('click', dismiss, { once:true });
     document.addEventListener('touchstart', dismiss, { once:true, passive:true });
   }, 2000);
 
