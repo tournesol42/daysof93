@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v196-c64-portfolio -->
+<!-- build: v197-c64-to-explore -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -477,17 +477,11 @@
         boot.style.background = '#fff';
         requestAnimationFrame(function() {
           requestAnimationFrame(function() {
-            boot.style.display = 'none';
+            window.location.href = 'explore.html';
           });
         });
       });
     });
-    setTimeout(function() {
-      var v = document.getElementById('bg-vector');
-      if (v) { v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
-      var mc = document.getElementById('mesh-canvas');
-      if (mc) mc.classList.add('mesh-breathing');
-    }, 8000);
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });
