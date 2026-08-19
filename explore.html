@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v51-audio-resume -->
+<!-- build: explore-v52-audio-rewrite -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -611,15 +611,24 @@ function initAudioEls() {
   console.log('d93: long audio elements created');
 }
 
+function registerAudioListeners() {
+  ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
+    document.addEventListener(type, unlockAudio, { once: true, passive: true });
+  });
+}
+
 function unlockAudio() {
-  if (unlocking) return;
+  // Already loaded — nudge context/music if needed, then re-arm for future gestures
   if (audioReady) {
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-      if (musicEl) musicEl.play().catch(function(e) { console.log('d93: music retry', e); });
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (musicEl && musicEl.paused) {
+      musicEl.play().catch(function(e) { console.log('d93: music retry', e); });
     }
+    registerAudioListeners();
     return;
   }
+  // Loading in progress — skip
+  if (unlocking) return;
   unlocking = true;
 
   try {
@@ -632,23 +641,21 @@ function unlockAudio() {
   shortFilter.Q.value = 0.5;
   shortFilter.connect(audioCtx.destination);
 
-  // Resume must be called synchronously within gesture context
+  // Resume and init music synchronously within this gesture context
   if (audioCtx.state === 'suspended') audioCtx.resume();
   initMusic();
 
-  // Long <audio> unlock must also be synchronous within gesture context
+  // Pre-unlock long <audio> elements
   longEls.forEach(function(a) {
     a.volume = 0;
     var p = a.play();
     if (p && p.then) {
       p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
        .catch(function() { a.volume = getVol(); });
-    } else {
-      a.pause(); a.currentTime = 0; a.volume = getVol();
-    }
+    } else { a.pause(); a.currentTime = 0; a.volume = getVol(); }
   });
 
-  // XHR + callback-style decodeAudioData — avoids fetch() CORS mode issues on iOS
+  // Load short buffers via XHR
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
   var sAll  = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
     return sBase + String(i+1).padStart(2,'0') + '.wav';
@@ -663,9 +670,7 @@ function unlockAudio() {
       xhr.onload = function() {
         if (xhr.status === 200) {
           audioCtx.decodeAudioData(xhr.response, resolve, reject);
-        } else {
-          reject(new Error('HTTP ' + xhr.status + ' ' + url));
-        }
+        } else { reject(new Error('HTTP ' + xhr.status + ' ' + url)); }
       };
       xhr.onerror = function() { reject(new Error('XHR error ' + url)); };
       xhr.send();
@@ -675,20 +680,22 @@ function unlockAudio() {
   Promise.all(urls.map(xhrDecode)).then(function(buffers) {
     shortBuffers = buffers;
     audioReady   = true;
+    unlocking    = false; // Allow gesture retries for music from here on
     console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
     if (isPlaying && engineState === 'HOLD') audioTriggerShort();
+    // If musicEl.play() failed silently (suspended context at unlock time), retry now
+    if (musicEl && musicEl.paused && audioCtx && audioCtx.state === 'running') {
+      musicEl.play().catch(function(e) { console.log('d93: music retry post-load', e); });
+    }
+    registerAudioListeners(); // Re-arm for future nudges (backgrounding etc.)
   }).catch(function(err) {
     console.log('d93: audio unlock failed', err);
-    ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
-      document.addEventListener(type, unlockAudio, { once: true });
-    });
     unlocking = false;
+    registerAudioListeners();
   });
 }
 
-['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
-  document.addEventListener(type, unlockAudio, { once: true });
-});
+registerAudioListeners();
 
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
