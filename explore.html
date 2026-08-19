@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v57-c64-overlay -->
+<!-- build: explore-v58-c64-gate -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -143,7 +143,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 
   function dismiss() {
     if (gone) return; gone = true;
-    // Unlock audio synchronously within this gesture
+    c64Dismissed = true;
     if (typeof unlockAudio === 'function') unlockAudio();
     if (typeof startEngine === 'function') startEngine();
     boot.style.opacity = '0';
@@ -606,6 +606,7 @@ var longEls      = [];
 var longIdx      = 0;
 var audioReady   = false;
 var unlocking    = false;
+var c64Dismissed = false;
 
 var shortFilter      = null;
 var tempoScale       = 1.0;
@@ -1067,7 +1068,7 @@ async function loadImages() {
   );
 
   currentIndex = Math.floor(Math.random() * images.length);
-  startEngine();
+  if (c64Dismissed) startEngine();
 }
 
 startAnim();
