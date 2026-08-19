@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v50-audio-fix -->
+<!-- build: explore-v51-audio-resume -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -612,7 +612,14 @@ function initAudioEls() {
 }
 
 function unlockAudio() {
-  if (audioReady || unlocking) return;
+  if (unlocking) return;
+  if (audioReady) {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+      if (musicEl) musicEl.play().catch(function(e) { console.log('d93: music retry', e); });
+    }
+    return;
+  }
   unlocking = true;
 
   try {
