@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v45-allshapes -->
+<!-- build: explore-v46-convergence-geometry -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -822,7 +822,7 @@ function frame(ts) {
     shapeFloatT += dt;
 
     if (shapesConverging && convergeProgress < 1) {
-      convergeProgress = Math.min(convergeProgress + dt * 0.18, 1); // ~5.5s to complete
+      convergeProgress = Math.min(convergeProgress + dt * 0.07, 1); // ~14s to full
     }
     var cp  = convergeProgress;
     var ec  = cp * cp * (3 - 2 * cp); // smoothstep
@@ -896,27 +896,33 @@ function startConverge() {
   var rb = gels.rect.getBoundingClientRect();
   var tb = gels.tri.getBoundingClientRect();
   var cb = gels.circ.getBoundingClientRect();
-  var cx = window.innerWidth  * 0.5;
-  var cy = window.innerHeight * 0.5;
-  var sc = window.innerWidth < 720
-    ? window.innerWidth / 600    // mobile: gives ~0.65 on iPhone
-    : window.innerWidth / 1440;  // desktop
-  sc = Math.min(1.2, sc);
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var mobile = vw < 720;
 
-  // Circle 2 (orange) → 3 lower bowl — shift slightly lower
+  var circ9X, circ9Y, triX, triY, circ3X, circ3Y;
+
+  if (mobile) {
+    circ3X = vw * 0.74;  circ3Y = vh * 0.62;
+    triX   = circ3X - 52; triY   = circ3Y - 63 - 60;
+    circ9X = vw * 0.24;  circ9Y = vh * 0.40;
+  } else {
+    circ3X = vw * 0.62;  circ3Y = vh * 0.60;
+    triX   = circ3X - 117; triY  = circ3Y - 148 - 135;
+    circ9X = vw * 0.30;  circ9Y = vh * 0.40;
+  }
+
   convergeDriftRect = {
-    x: (cx + 200 * sc) - (rb.left + rb.width  * 0.5),
-    y: (cy + 150 * sc) - (rb.top  + rb.height * 0.5)
+    x: circ3X - (rb.left + rb.width  * 0.5),
+    y: circ3Y - (rb.top  + rb.height * 0.5)
   };
-  // Triangle → 3 upper — push much higher, align X so rotated vertex sits above circle
   convergeDriftTri = {
-    x: (cx + 147 * sc) - (tb.left + tb.width  * 0.5),
-    y: (cy - 118 * sc) - (tb.top  + tb.height * 0.5)
+    x: triX - (tb.left + tb.width  * 0.5),
+    y: triY - (tb.top  + tb.height * 0.5)
   };
-  // Circle 1 (dark grey) → 9 bowl — unchanged
   convergeDriftCirc = {
-    x: (cx - 190 * sc) - (cb.left + cb.width  * 0.5),
-    y: (cy - 110 * sc) - (cb.top  + cb.height * 0.5)
+    x: circ9X - (cb.left + cb.width  * 0.5),
+    y: circ9Y - (cb.top  + cb.height * 0.5)
   };
   shapesConverging = true;
   shapesFloating   = true;
@@ -1057,10 +1063,7 @@ setTimeout(unlockAudio, 300);
       // Macro activates 15s after appearance
       setTimeout(function() { shape1MacroActive = true; }, 15000);
 
-      // Convergence starts 2s after shapes appear
-      setTimeout(function() {
-        if (typeof startConverge === 'function') startConverge();
-      }, 2000);
+      if (typeof startConverge === 'function') startConverge();
 
     }, 5000);
   });
