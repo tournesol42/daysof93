@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v60-restore-v47 -->
+<!-- build: explore-v47-shapes-music -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -47,7 +47,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 #explore-home {
   position: fixed; bottom: 28px; right: 28px;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 32px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase;
   color: #ffffff; text-decoration: none;
   opacity: 0; z-index: 100; pointer-events: none;
   text-shadow: 0 0 12px rgba(255,255,255,0.6);
@@ -153,19 +153,6 @@ const CFG = {
   cutterColor:    '#ffffff',
   cutterSpeed:    0,
   cutterRenewal:  40,
-  // Convergence targets — all positions as viewport fractions (0–1)
-  convergeTargets: {
-    desktop: {
-      circ9X: 0.30, circ9Y: 0.40,
-      circ3X: 0.62, circ3Y: 0.60,
-      triOffX: -0.107, triOffY: -0.257
-    },
-    mobile: {
-      circ9X: 0.24, circ9Y: 0.40,
-      circ3X: 0.62, circ3Y: 0.62,
-      triOffX: -0.070, triOffY: -0.145
-    }
-  },
 };
 
 // ── Audio configuration ───────────────────────────────────────────────────────
@@ -611,24 +598,8 @@ function initAudioEls() {
   console.log('d93: long audio elements created');
 }
 
-function registerAudioListeners() {
-  ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
-    document.addEventListener(type, unlockAudio, { once: true, passive: true });
-  });
-}
-
 function unlockAudio() {
-  // Already loaded — nudge context/music if needed, then re-arm for future gestures
-  if (audioReady) {
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    if (musicEl && musicEl.paused) {
-      musicEl.play().catch(function(e) { console.log('d93: music retry', e); });
-    }
-    registerAudioListeners();
-    return;
-  }
-  // Loading in progress — skip
-  if (unlocking) return;
+  if (audioReady || unlocking) return;
   unlocking = true;
 
   try {
@@ -641,20 +612,22 @@ function unlockAudio() {
   shortFilter.Q.value = 0.5;
   shortFilter.connect(audioCtx.destination);
 
+  // Resume must be called synchronously within gesture context
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  initMusic();
 
-  // Pre-unlock long <audio> elements
+  // Long <audio> unlock must also be synchronous within gesture context
   longEls.forEach(function(a) {
     a.volume = 0;
     var p = a.play();
     if (p && p.then) {
       p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
        .catch(function() { a.volume = getVol(); });
-    } else { a.pause(); a.currentTime = 0; a.volume = getVol(); }
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = getVol();
+    }
   });
 
-  // Load short buffers via XHR
+  // XHR + callback-style decodeAudioData — avoids fetch() CORS mode issues on iOS
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
   var sAll  = Array.from({length: AUDIO_CFG.shortPoolCount}, function(_, i) {
     return sBase + String(i+1).padStart(2,'0') + '.wav';
@@ -669,7 +642,9 @@ function unlockAudio() {
       xhr.onload = function() {
         if (xhr.status === 200) {
           audioCtx.decodeAudioData(xhr.response, resolve, reject);
-        } else { reject(new Error('HTTP ' + xhr.status + ' ' + url)); }
+        } else {
+          reject(new Error('HTTP ' + xhr.status + ' ' + url));
+        }
       };
       xhr.onerror = function() { reject(new Error('XHR error ' + url)); };
       xhr.send();
@@ -679,22 +654,21 @@ function unlockAudio() {
   Promise.all(urls.map(xhrDecode)).then(function(buffers) {
     shortBuffers = buffers;
     audioReady   = true;
-    unlocking    = false; // Allow gesture retries for music from here on
     console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
+    if (typeof initMusic === 'function') initMusic();
     if (isPlaying && engineState === 'HOLD') audioTriggerShort();
-    // If musicEl.play() failed silently (suspended context at unlock time), retry now
-    if (musicEl && musicEl.paused && audioCtx && audioCtx.state === 'running') {
-      musicEl.play().catch(function(e) { console.log('d93: music retry post-load', e); });
-    }
-    registerAudioListeners(); // Re-arm for future nudges (backgrounding etc.)
   }).catch(function(err) {
     console.log('d93: audio unlock failed', err);
+    ['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
+      document.addEventListener(type, unlockAudio, { once: true });
+    });
     unlocking = false;
-    registerAudioListeners();
   });
 }
 
-registerAudioListeners();
+['touchstart', 'mousedown', 'keydown'].forEach(function(type) {
+  document.addEventListener(type, unlockAudio, { once: true });
+});
 
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
@@ -774,7 +748,7 @@ function doAdvance(ts) {
         if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
         if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
         if (typeof startConverge === 'function') startConverge();
-      }, 8000);
+      }, 500);
       setTimeout(function() {
         var rect = window.d93GeoEls.rect;
         if (rect) rect.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
@@ -896,12 +870,6 @@ function frame(ts) {
       var triOpacity = shapesConverging ? Math.min(1, 0.3 + ec * 0.7) : 0.3;
       gels.tri.style.opacity = triOpacity.toFixed(3);
     }
-    // Force rect (3 bowl) and circ (9 bowl) to full opacity during convergence
-    if (shapesConverging) {
-      var lockOpacity = Math.min(1, ec * 2).toFixed(3); // reaches 1 at ec=0.5
-      if (gels.rect) gels.rect.style.opacity = lockOpacity;
-      if (gels.circ) gels.circ.style.opacity = lockOpacity;
-    }
 
     // Circle 1 (dark grey, circ) → 9 bowl
     var cfx = Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2 + convergeDriftCirc.x * ec;
@@ -957,13 +925,17 @@ function startConverge() {
   var vh = window.innerHeight;
   var mobile = vw < 720;
 
-  var ct     = CFG.convergeTargets[mobile ? 'mobile' : 'desktop'];
-  var circ3X = vw * ct.circ3X;
-  var circ3Y = vh * ct.circ3Y;
-  var circ9X = vw * ct.circ9X;
-  var circ9Y = vh * ct.circ9Y;
-  var triX   = circ3X + vw * ct.triOffX;
-  var triY   = circ3Y + vh * ct.triOffY;
+  var circ9X, circ9Y, triX, triY, circ3X, circ3Y;
+
+  if (mobile) {
+    circ3X = vw * 0.74;  circ3Y = vh * 0.62;
+    triX   = circ3X - 52; triY   = circ3Y - 63 - 60;
+    circ9X = vw * 0.24;  circ9Y = vh * 0.40;
+  } else {
+    circ3X = vw * 0.62;  circ3Y = vh * 0.60;
+    triX   = circ3X - 117; triY  = circ3Y - 148 - 135;
+    circ9X = vw * 0.30;  circ9Y = vh * 0.40;
+  }
 
   convergeDriftRect = {
     x: circ3X - (rb.left + rb.width  * 0.5),
@@ -1024,12 +996,12 @@ async function loadImages() {
   startEngine();
 }
 
-setTimeout(unlockAudio, 300);
 startAnim();
 pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
 loadImages();
 initAudioEls();
+setTimeout(unlockAudio, 300);
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
