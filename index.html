@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v192-c64-click-dismiss -->
+<!-- build: v193-c64-direct-nav -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -471,17 +471,7 @@
   function dismiss() {
     if (gone) return; gone = true;
     clearInterval(clockInterval);
-    boot.style.background = '#000';
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        boot.style.background = '#fff';
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            window.location.href = 'explore.html';
-          });
-        });
-      });
-    });
+    window.location.href = 'explore.html';
   }
   setTimeout(function(){
     document.addEventListener('keydown', dismiss, { once:true });

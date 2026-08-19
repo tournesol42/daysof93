@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v53-music-resume-fix -->
+<!-- build: explore-v54-c64-boot -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -109,9 +109,28 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   #geo-tri-hint  { right: 5vw; top: calc(18vh + 114px); width: 120px; font-size: 12px; }
   #geo-circ-hint { left: calc(50% - 70px); top: calc(50% + 75px); width: 140px; font-size: 12px; }
 }
+#c64-boot {
+  position: fixed; inset: 0; z-index: 999;
+  background: #E85500;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 6vw;
+  font-family: 'VT323', monospace; color: #f5a623;
+  cursor: pointer;
+}
+#c64-boot h1 { font-size: clamp(1.2rem, 4vw, 2.2rem); margin-bottom: 8vh; letter-spacing: 0.15em; }
+#c64-boot .prompt { font-size: clamp(1rem, 3vw, 1.8rem); letter-spacing: 0.12em; margin-bottom: 12vh; }
+#c64-boot .footer { font-size: clamp(0.75rem, 2vw, 1.1rem); letter-spacing: 0.1em; opacity: 0.85; }
 </style>
 </head>
 <body>
+<div id="c64-boot">
+  <h1>DAYS OF 93</h1>
+  <p class="prompt">PRESS ANY KEY TO CONTINUE.</p>
+  <div class="footer">
+    <p>**** ConSec 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;&nbsp;&nbsp;38911 BASIC BYTES FREE</p>
+    <p>READY.&nbsp;&nbsp;&nbsp;&nbsp;<span id="c64-clock"></span></p>
+  </div>
+</div>
 <a href="index.html" id="back">← back</a>
 <canvas id="cv"></canvas>
 
@@ -695,6 +714,38 @@ function unlockAudio() {
 }
 
 registerAudioListeners();
+
+(function() {
+  var boot = document.getElementById('c64-boot');
+  if (!boot) return;
+  var gone = false;
+
+  // Live 1993 clock
+  var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function tick() {
+    var n = new Date();
+    var el = document.getElementById('c64-clock');
+    if (el) el.textContent =
+      String(n.getDate()).padStart(2,'0') + ' ' + months[n.getMonth()] + ' 1993  ' +
+      String(n.getHours()).padStart(2,'0') + ':' +
+      String(n.getMinutes()).padStart(2,'0') + ':' +
+      String(n.getSeconds()).padStart(2,'0');
+  }
+  tick();
+  var clkInt = setInterval(tick, 1000);
+
+  function dismiss() {
+    if (gone) return; gone = true;
+    clearInterval(clkInt);
+    unlockAudio(); // gesture context is alive here — audio unlocks reliably
+    boot.style.transition = 'opacity 0.15s';
+    boot.style.opacity = '0';
+    setTimeout(function() { boot.style.display = 'none'; }, 160);
+  }
+
+  boot.addEventListener('click', dismiss, { once: true });
+  document.addEventListener('keydown', dismiss, { once: true });
+})();
 
 function audioTriggerShort() {
   if (!audioReady || !shortBuffers.length || !audioCtx) return;
