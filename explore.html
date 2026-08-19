@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v59-c64-button -->
+<!-- build: explore-v60-restore-v47 -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -109,28 +109,6 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   #geo-tri-hint  { right: 5vw; top: calc(18vh + 114px); width: 120px; font-size: 12px; }
   #geo-circ-hint { left: calc(50% - 70px); top: calc(50% + 75px); width: 140px; font-size: 12px; }
 }
-#e64-boot {
-  position: fixed;
-  top: 0; right: 0; bottom: 0; left: 0;
-  z-index: 9999;
-  background: #FF6B00;
-  font-family: 'Courier New', Courier, monospace;
-  color: #a0d0ff;
-  font-size: clamp(11px, 2.2vw, 15px);
-  line-height: 1.9; letter-spacing: 0.06em;
-  padding: 6vw;
-  opacity: 1;
-  transition: opacity 0.8s ease;
-  cursor: pointer;
-  border: none;
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
-}
-#e64-cursor {
-  display: inline-block;
-  animation: e64-blink 1s step-end infinite;
-}
-@keyframes e64-blink { 0%,100%{opacity:1} 50%{opacity:0} }
 </style>
 </head>
 <body>
@@ -583,7 +561,6 @@ var longEls      = [];
 var longIdx      = 0;
 var audioReady   = false;
 var unlocking    = false;
-var c64Dismissed = false;
 
 var shortFilter      = null;
 var tempoScale       = 1.0;
@@ -664,7 +641,6 @@ function unlockAudio() {
   shortFilter.Q.value = 0.5;
   shortFilter.connect(audioCtx.destination);
 
-  // Resume context first; defer initMusic until context is actually running
   if (audioCtx.state === 'suspended') audioCtx.resume();
   initMusic();
 
@@ -1045,9 +1021,10 @@ async function loadImages() {
   );
 
   currentIndex = Math.floor(Math.random() * images.length);
-  if (c64Dismissed) startEngine();
+  startEngine();
 }
 
+setTimeout(unlockAudio, 300);
 startAnim();
 pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
@@ -1220,29 +1197,5 @@ setTimeout(function() {
   <line id="helper-tail" x1="0" y1="0" x2="0" y2="0"
     stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
 </svg>
-<button id="e64-boot">
-  **** DAYS OF 93 — EXPLORE ****<br><br>
-  64K RAM SYSTEM &nbsp; 38911 BASIC BYTES FREE<br><br>
-  READY.<br><br>
-  PRESS ANY KEY TO CONTINUE.<span id="e64-cursor">&#x2588;</span>
-</button>
-<script>
-(function() {
-  var boot = document.getElementById('e64-boot');
-  var gone = false;
-  function dismiss() {
-    if (gone) return; gone = true;
-    c64Dismissed = true;
-    if (typeof unlockAudio === 'function') unlockAudio();
-    if (typeof startEngine === 'function') startEngine();
-    boot.style.opacity = '0';
-    setTimeout(function() { boot.style.display = 'none'; }, 900);
-  }
-  setTimeout(function() {
-    boot.addEventListener('click',   dismiss, { once: true });
-    document.addEventListener('keydown', dismiss, { once: true });
-  }, 800);
-})();
-</script>
 </body>
 </html>
