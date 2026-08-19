@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93 — explore</title>
-<!-- build: explore-v46-convergence-geometry -->
+<!-- build: explore-v47-shapes-music -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -559,6 +559,7 @@ var lfoTimer         = 0;
 var shapesFloating   = false;
 var shapeFloatT      = 0;
 var shapesConverging  = false;
+var shapesShown       = false;
 var convergeProgress  = 0;
 var convergeDriftRect = {x:0, y:0};
 var convergeDriftTri  = {x:0, y:0};
@@ -654,6 +655,7 @@ function unlockAudio() {
     shortBuffers = buffers;
     audioReady   = true;
     console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
+    if (typeof initMusic === 'function') initMusic();
     if (isPlaying && engineState === 'HOLD') audioTriggerShort();
   }).catch(function(err) {
     console.log('d93: audio unlock failed', err);
@@ -731,6 +733,29 @@ function enterHold(ts) {
 
 function doAdvance(ts) {
   const fromSilence = engineState === 'SILENCE';
+  if (fromSilence && !shapesShown && images.length) {
+    shapesShown = true;
+    if (window.d93GeoEls) {
+      window.d93GeoEls.rect.style.opacity = '1';
+      window.d93GeoEls.tri.style.opacity  = '0.3';
+      window.d93GeoEls.circ.style.opacity = '1';
+      shapesFloating = true;
+      setTimeout(function() {
+        var rh = document.getElementById('geo-rect-hint');
+        var th = document.getElementById('geo-tri-hint');
+        var ch = document.getElementById('geo-circ-hint');
+        if (rh) { rh.style.opacity = '0.9'; rh.classList.add('active'); }
+        if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
+        if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
+        if (typeof startConverge === 'function') startConverge();
+      }, 500);
+      setTimeout(function() {
+        var rect = window.d93GeoEls.rect;
+        if (rect) rect.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
+      }, 2700);
+      setTimeout(function() { shape1MacroActive = true; }, 15000);
+    }
+  }
   // TRANS = NONE: skip straight to next frame
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
@@ -1033,40 +1058,6 @@ setTimeout(unlockAudio, 300);
   }
 
   // Shape 1 appears 5s after playback starts, shape 2 10s after that
-  function waitForPlaying(cb) {
-    if (window.d93Playing) { cb(); return; }
-    var iv = setInterval(function() {
-      if (window.d93Playing) { clearInterval(iv); cb(); }
-    }, 300);
-  }
-  waitForPlaying(function() {
-    setTimeout(function() {
-      // All three shapes appear simultaneously
-      rectEl.style.opacity = '1';
-      triEl.style.opacity  = '0.3';
-      circEl.style.opacity = '1';
-      shapesFloating = true;
-
-      // Hints
-      var rh = document.getElementById('geo-rect-hint');
-      var th = document.getElementById('geo-tri-hint');
-      var ch = document.getElementById('geo-circ-hint');
-      if (rh) { rh.style.opacity = '0.9'; rh.classList.add('active'); }
-      if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
-      if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
-
-      // Rect pulse after fade-in
-      setTimeout(function() {
-        rectEl.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
-      }, 2200);
-
-      // Macro activates 15s after appearance
-      setTimeout(function() { shape1MacroActive = true; }, 15000);
-
-      if (typeof startConverge === 'function') startConverge();
-
-    }, 5000);
-  });
 
   function handlePointer(mx, my) {
     var rb = rectEl.getBoundingClientRect();
