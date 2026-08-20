@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v79-risers -->
+<!-- build: explore-v80-roll-mode -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -280,6 +280,12 @@ var silTotalMs   = 5000;
 var silenceBlack = 0;
 var silFieldReady = false;
 var clusterMode      = 'FAST';
+var rollMode         = false;
+var rollStartTs      = 0;
+var rollDurMs        = 0;
+var rollLfoPeriod    = 500;
+var lastRollEndTs    = -Infinity;
+var nextRollMs       = 6000 + Math.random() * 1000;
 var clusterRemaining = 0;
 let engineState    = 'IDLE';
 let stateStartTs   = 0;
@@ -302,6 +308,12 @@ function randBetween(lo, hi) {
 }
 
 function computeHoldMs() {
+  if (rollMode) {
+    var rollElapsed = performance.now() - rollStartTs;
+    var phase = (rollElapsed % rollLfoPeriod) / rollLfoPeriod;
+    var tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+    return (3 + tri * 13) * tempoScale;
+  }
   if (clusterRemaining <= 0) {
     clusterMode = (clusterMode === 'FAST') ? 'SLOW' : 'FAST';
     var runMin = (clusterMode === 'FAST') ? CFG.clusterFastMin : CFG.clusterSlowMin;
@@ -960,6 +972,24 @@ function doAdvance(ts) {
 }
 
 function advanceFromHold(ts) {
+  // Roll mode: end check
+  if (rollMode && (ts - rollStartTs) >= rollDurMs) {
+    rollMode = false;
+    lastRollEndTs = ts;
+    nextRollMs = 6000 + Math.random() * 1000;
+    console.log('d93: roll end, next in ' + nextRollMs.toFixed(0) + 'ms');
+  }
+  // Roll mode: start check (only if silence is >4s away)
+  if (!rollMode && (ts - lastRollEndTs) >= nextRollMs) {
+    var timeToSilence = nextSilenceMs - (ts - lastSilenceEndTs);
+    if (timeToSilence > 4000) {
+      rollMode      = true;
+      rollStartTs   = ts;
+      rollDurMs     = 2000 + Math.random() * 1000;
+      rollLfoPeriod = 300 + Math.random() * 400;
+      console.log('d93: roll start, dur=' + rollDurMs.toFixed(0) + 'ms lfo=' + rollLfoPeriod.toFixed(0) + 'ms');
+    }
+  }
   if ((ts - lastSilenceEndTs) >= nextSilenceMs) enterSilence(ts);
   else {
     if (!riserPlaying && (ts - lastSilenceEndTs) >= (nextSilenceMs - riserLeadMs)) startRiser(ts);
