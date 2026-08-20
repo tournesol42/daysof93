@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v197-c64-to-explore -->
+<!-- build: v198-orange-redirect -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -379,117 +379,16 @@
     from { transform: translateY(-100vh); }
     to   { transform: translateY(0); }
   }
-  /* C64 boot overlay */
-  #c64-boot{
-    position:fixed; inset:0; z-index:99999;
-    background:#E85500;
-    display:flex; align-items:flex-start; justify-content:flex-start;
-    padding: clamp(24px,5vw,56px);
-    font-family:'Commodore 64 Pixelized', monospace;
-    font-size: clamp(24px, 3.4vw, 40px);
-    color:#AAAAAA;
-    line-height:2; letter-spacing:0.05em;
-    pointer-events:all;
-  }
-  #c64-boot .c64-sm{ font-size: clamp(13px, 1.8vw, 21px); line-height:1.8; }
-  #c64-cursor{ animation: c64blink 0.85s step-end infinite; }
-  @keyframes c64blink{ 0%,100%{opacity:1} 50%{opacity:0} }
-
-  /* Explore button */
-  #explore-btn {
-    display: none;
-    position: fixed;
-    left: calc(31.8vw - 14px);
-    top: calc(50vh + 7.22vw - 14px);
-    right: auto;
-    bottom: auto;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #E85500;
-    text-decoration: none;
-    z-index: 51;
-  }
-  @media (min-width: 720px) {
-    #explore-btn {
-      left: calc(50vw - 12.87vh - 14px);
-      top: calc(55.1vh - 14px);
-    }
-  }
-  #explore-btn.visible { display: block; }
-  #explore-btn.phase2 { animation: dot-slow 2s ease-in-out infinite; }
-  #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
-  #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
-  @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
-  @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
-  @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
 </style>
 </head>
 <body>
-
-<div id="c64-boot">
-  <div>
-    <div>DAYS OF 93</div>
-    <div>&nbsp;</div>
-    <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
-    <div>&nbsp;</div>
-    <div class="c64-sm">**** ConSec 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;38911 BASIC BYTES FREE&nbsp;&nbsp;&nbsp;READY.&nbsp;&nbsp;&nbsp;<span id="c64-datetime"></span></div>
-  </div>
-</div>
 <script>
 (function(){
-  var boot = document.getElementById('c64-boot');
-  var gone = false;
-  var pageLoadTime = Date.now();
-
-  // skip C64 when arriving via a hash link (e.g. #about from music pages)
-  if(window.location.hash){ boot.style.display='none'; return; }
-
-  // skip C64 when returning from explore
-  if (location.search.indexOf('from=explore') !== -1) {
-    boot.style.display = 'none';
-    document.querySelectorAll('.plane, #field, #mesh-canvas, #glitch-canvas, #bg-vector').forEach(function(el) {
-      el.style.opacity = '';
-    });
-    return;
+  if (location.search.indexOf('from=explore') === -1) {
+    document.documentElement.style.background = '#E85500';
+    document.body.style.background = '#E85500';
+    setTimeout(function(){ window.location.href = 'explore.html'; }, 50);
   }
-
-  // live 1993 clock
-  var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  function tickClock(){
-    var n = new Date();
-    var el = document.getElementById('c64-datetime');
-    if(el) el.textContent =
-      String(n.getDate()).padStart(2,'0') + ' ' + months[n.getMonth()] + ' 1993  ' +
-      String(n.getHours()).padStart(2,'0') + ':' +
-      String(n.getMinutes()).padStart(2,'0') + ':' +
-      String(n.getSeconds()).padStart(2,'0');
-  }
-  tickClock();
-  var clockInterval = setInterval(tickClock, 1000);
-
-  function dismiss() {
-    if (gone) return; gone = true;
-    clearInterval(clockInterval);
-    boot.style.background = '#000';
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        boot.style.background = '#fff';
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            window.location.href = 'explore.html';
-          });
-        });
-      });
-    });
-  }
-  setTimeout(function(){
-    document.addEventListener('keydown', dismiss, { once:true });
-    document.addEventListener('click', dismiss, { once:true });
-    document.addEventListener('touchstart', dismiss, { once:true, passive:true });
-  }, 2000);
-
-
 })();
 </script>
 
