@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v87-p4-advance -->
+<!-- build: explore-v88-p5-rollmode -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -944,27 +944,30 @@ function doAdvance(ts) {
   }
 }
 
-function advanceFromHold(ts) {
-  // Roll mode: end check
+function updateRollMode(ts) {
   if (rollMode && (ts - rollStartTs) >= rollDurMs) {
-    rollMode = false;
+    rollMode      = false;
     lastRollEndTs = ts;
-    nextRollMs = 10000;
+    nextRollMs    = 10000;
     console.log('d93: roll end, next in 10000ms');
   }
-  // Roll mode: start check (only if silence is >4s away)
   if (!rollMode && (ts - lastRollEndTs) >= nextRollMs) {
-    var timeToSilence = nextSilenceMs - (ts - lastSilenceEndTs);
+    const timeToSilence = nextSilenceMs - (ts - lastSilenceEndTs);
     if (timeToSilence > 4000) {
-      rollMode      = true;
-      rollStartTs   = ts;
-      rollDurMs  = 2000 + Math.random() * 1000;
-      rollRampUp = Math.random() > 0.5;
+      rollMode    = true;
+      rollStartTs = ts;
+      rollDurMs   = 2000 + Math.random() * 1000;
+      rollRampUp  = Math.random() > 0.5;
       console.log('d93: roll start, dur=' + rollDurMs.toFixed(0) + 'ms ramp=' + (rollRampUp ? 'up' : 'down'));
     }
   }
-  if ((ts - lastSilenceEndTs) >= nextSilenceMs) enterSilence(ts);
-  else {
+}
+
+function advanceFromHold(ts) {
+  updateRollMode(ts);
+  if ((ts - lastSilenceEndTs) >= nextSilenceMs) {
+    enterSilence(ts);
+  } else {
     if (!riserPlaying && (ts - lastSilenceEndTs) >= (nextSilenceMs - riserLeadMs)) startRiser(ts);
     doAdvance(ts);
   }
