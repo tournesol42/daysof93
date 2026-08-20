@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v70-menu-larger -->
+<!-- build: explore-v71-hints-follow -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -59,56 +59,39 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 }
 @keyframes home-pulse { 0%,100%{opacity:1} 50%{opacity:0.12} }
 #geo-rect-hint {
-  position: absolute;
-  left: 5vw;
-  top: calc(52vh + 320px);
-  width: 160px;
-  text-align: center;
+  position: fixed;
+  width: 160px; text-align: center;
   font-family: 'Courier New', Courier, monospace;
   font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase;
   color: #ffffff;
   opacity: 0; transition: opacity 2s ease;
   pointer-events: none; z-index: 21;
   text-shadow:
-    0 0 10px rgba(255,255,255,1),
-    0 0 28px rgba(255,255,255,0.9),
-    0 0 55px rgba(255,255,255,0.6);
+    0 0 8px rgba(255,255,255,1),
+    0 0 20px rgba(255,255,255,1),
+    0 0 40px rgba(255,255,255,0.8),
+    0 0 80px rgba(255,255,255,0.4);
 }
 #geo-rect-hint.active {
   animation: hint-flash 0.75s ease-in-out infinite;
 }
 @keyframes hint-flash { 0%,100%{opacity:1} 50%{opacity:0} }
-@media (max-width: 720px) {
-  #geo-rect-hint { left: 5vw; top: calc(55vh + 150px); width: 100px; }
-}
 #geo-tri-hint, #geo-circ-hint {
-  position: absolute;
+  position: fixed;
+  width: 160px; text-align: center;
   font-family: 'Courier New', Courier, monospace;
   font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase;
   color: #ffffff;
   opacity: 0; transition: opacity 2s ease;
   pointer-events: none; z-index: 21;
   text-shadow:
-    0 0 10px rgba(255,255,255,1),
-    0 0 28px rgba(255,255,255,0.9),
-    0 0 55px rgba(255,255,255,0.6);
-}
-#geo-tri-hint {
-  right: 6vw;
-  top: calc(15vh + 244px);
-  width: 270px; text-align: center;
+    0 0 8px rgba(255,255,255,1),
+    0 0 20px rgba(255,255,255,1),
+    0 0 40px rgba(255,255,255,0.8),
+    0 0 80px rgba(255,255,255,0.4);
 }
 #geo-tri-hint.active, #geo-circ-hint.active {
   animation: hint-flash 0.75s ease-in-out infinite;
-}
-#geo-circ-hint {
-  left: calc(50% - 155px);
-  top: calc(50% + 160px);
-  width: 310px; text-align: center;
-}
-@media (max-width: 720px) {
-  #geo-tri-hint  { right: 5vw; top: calc(18vh + 114px); width: 120px; font-size: 12px; }
-  #geo-circ-hint { left: calc(50% - 70px); top: calc(50% + 75px); width: 140px; font-size: 12px; }
 }
 #c64-boot {
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 99999;
@@ -904,6 +887,33 @@ function frame(ts) {
     var cfy = Math.sin(shapeFloatT*0.47+2.5)*4 + Math.sin(shapeFloatT*0.57)*2 + convergeDriftCirc.y * ec;
     if (gels.circ) gels.circ.style.transform =
       'translate(' + cfx.toFixed(1) + 'px,' + cfy.toFixed(1) + 'px)';
+
+    // Move hints to follow their shapes
+    var rh2 = document.getElementById('geo-rect-hint');
+    var th2 = document.getElementById('geo-tri-hint');
+    var ch2 = document.getElementById('geo-circ-hint');
+    if (rh2 && gels.rect) {
+      var rb3 = gels.rect.getBoundingClientRect();
+      rh2.style.left = (rb3.left + rb3.width * 0.5 - 80).toFixed(0) + 'px';
+      rh2.style.top  = (rb3.bottom + 14).toFixed(0) + 'px';
+    }
+    if (th2 && gels.tri) {
+      var tb3 = gels.tri.getBoundingClientRect();
+      th2.style.left = (tb3.left + tb3.width * 0.5 - 80).toFixed(0) + 'px';
+      th2.style.top  = (tb3.bottom + 10).toFixed(0) + 'px';
+    }
+    if (ch2 && gels.circ) {
+      var cb3 = gels.circ.getBoundingClientRect();
+      ch2.style.left = (cb3.left + cb3.width * 0.5 - 80).toFixed(0) + 'px';
+      ch2.style.top  = (cb3.bottom + 14).toFixed(0) + 'px';
+    }
+    // Fade hints out as convergence completes
+    if (shapesConverging && ec > 0.65) {
+      var hintAlpha = (Math.max(0, 1 - (ec - 0.65) / 0.35)).toFixed(3);
+      if (rh2 && rh2.classList.contains('active')) rh2.style.opacity = hintAlpha;
+      if (th2 && th2.classList.contains('active')) th2.style.opacity = hintAlpha;
+      if (ch2 && ch2.classList.contains('active')) ch2.style.opacity = hintAlpha;
+    }
 
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
