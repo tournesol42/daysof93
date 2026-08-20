@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v78-vol-hover-fix -->
+<!-- build: explore-v79-risers -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -485,6 +485,7 @@ function drawCuts(c, W, H) {
 
 // ── Silence ───────────────────────────────────────────────────────────────────
 function enterSilence(ts) {
+  stopRiser();
   const totalMs = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
   silTotalMs   = totalMs;
   silenceBlack = 0;
@@ -646,6 +647,11 @@ var longEls      = [];
 var longIdx      = 0;
 var long2Els     = [];
 var long2Idx     = 0;
+var transEls     = [];
+var riserPlaying = false;
+var riserEl      = null;
+var riserStartTs = 0;
+var riserLeadMs  = 3500;
 var audioReady   = false;
 var unlocking    = false;
 
@@ -696,6 +702,18 @@ function initAudioEls() {
     b.preload = 'auto'; b.src = lAll[j]; document.body.appendChild(b); longEls.push(b);
   }
   console.log('d93: long audio elements created');
+}
+
+function initTransEls() {
+  var tBase = 'https://daysof93-cdn.b-cdn.net/Transitions/transition_';
+  var tAll = Array.from({length: 5}, function(_, i) {
+    return tBase + (i + 1) + '.wav';
+  }).sort(function() { return Math.random() - 0.5; });
+  for (var j = 0; j < 5; j++) {
+    var b = document.createElement('audio');
+    b.preload = 'auto'; b.src = tAll[j]; document.body.appendChild(b); transEls.push(b);
+  }
+  console.log('d93: trans audio elements created');
 }
 
 function initAudioEls2() {
@@ -755,6 +773,16 @@ function unlockAudio() {
       a.pause(); a.currentTime = 0; a.volume = getVol();
     }
   });
+  transEls.forEach(function(a) {
+    a.volume = 0;
+    var p = a.play();
+    if (p && p.then) {
+      p.then(function() { a.pause(); a.currentTime = 0; a.volume = 0; })
+       .catch(function() { a.volume = 0; });
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = 0;
+    }
+  });
 
   // XHR + callback-style decodeAudioData — avoids fetch() CORS mode issues on iOS
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
@@ -810,6 +838,28 @@ function audioTriggerShort() {
   currentShortSrc = src;
   src.onended = function() { if (currentShortSrc === src) currentShortSrc = null; };
   audioSpike = 1.0;
+}
+
+function startRiser(ts) {
+  if (riserPlaying || !transEls.length || !audioReady) return;
+  var idx = Math.floor(Math.random() * transEls.length);
+  riserEl = transEls[idx];
+  riserEl.currentTime = 0;
+  riserEl.volume = 0;
+  riserEl.play().catch(function() {});
+  riserPlaying = true;
+  riserStartTs = ts;
+  console.log('d93: riser start, lead=' + riserLeadMs.toFixed(0) + 'ms');
+}
+
+function stopRiser() {
+  if (riserEl) {
+    riserEl.pause();
+    riserEl.currentTime = 0;
+    riserEl.volume = 0;
+    riserEl = null;
+  }
+  riserPlaying = false;
 }
 
 function audioTriggerLong() {
@@ -904,13 +954,17 @@ function doAdvance(ts) {
   if (fromSilence) {
     lastSilenceEndTs = ts;
     nextSilenceMs = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
+    riserLeadMs = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
     musicFadeTo(CFG.musicVolLow, CFG.musicFadeOut);
   }
 }
 
 function advanceFromHold(ts) {
   if ((ts - lastSilenceEndTs) >= nextSilenceMs) enterSilence(ts);
-  else doAdvance(ts);
+  else {
+    if (!riserPlaying && (ts - lastSilenceEndTs) >= (nextSilenceMs - riserLeadMs)) startRiser(ts);
+    doAdvance(ts);
+  }
 }
 
 // ── Frame loop ────────────────────────────────────────────────────────────────
@@ -918,6 +972,12 @@ function frame(ts) {
   const dt = Math.min((ts - lastTs) / 1000, 0.05);
   lastTs = ts;
   rafId  = requestAnimationFrame(frame);
+
+  // Riser volume: exponential fade-in toward silence
+  if (riserPlaying && riserEl) {
+    var rt = Math.min((ts - riserStartTs) / riserLeadMs, 1);
+    riserEl.volume = Math.pow(rt, 3) * getVol();
+  }
 
   // LFO for shape 1 (runs when mouse not inside rect)
   if (audioCtx && shortFilter && shape1Touched && !shape1Active && !shape1Fading) {
@@ -1168,6 +1228,7 @@ pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
 initAudioEls();
 initAudioEls2();
+initTransEls();
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
