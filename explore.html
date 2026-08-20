@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v77-vol-slider-fix -->
+<!-- build: explore-v78-vol-hover-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1390,8 +1390,18 @@ setTimeout(function() {
     document.querySelectorAll('audio,video').forEach(function(el) { el.volume = v; });
   }
   document.addEventListener('play', applyAll, true);
-  wrap.addEventListener('mouseenter', function() { popup.style.display = 'flex'; });
-  wrap.addEventListener('mouseleave', function() { popup.style.display = 'none'; });
+  var volHideTimer;
+  wrap.addEventListener('mouseenter', function() {
+    clearTimeout(volHideTimer);
+    popup.style.display = 'flex';
+  });
+  wrap.addEventListener('mouseleave', function() {
+    volHideTimer = setTimeout(function() { popup.style.display = 'none'; }, 250);
+  });
+  popup.addEventListener('mouseenter', function() { clearTimeout(volHideTimer); });
+  popup.addEventListener('mouseleave', function() {
+    volHideTimer = setTimeout(function() { popup.style.display = 'none'; }, 250);
+  });
   wrap.addEventListener('touchstart', function(e) {
     e.stopPropagation();
     if (!popup.contains(e.target)) {
