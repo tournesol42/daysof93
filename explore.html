@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v74-long2-pool -->
+<!-- build: explore-v75-sil-grid -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -131,10 +131,62 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   </div>
 </div>
 <a href="index.html" id="back">← back</a>
+<svg id="sil-field" preserveAspectRatio="xMidYMid slice"
+     style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:6;pointer-events:none;opacity:0;"></svg>
 <canvas id="cv"></canvas>
 
 <script>
 // ── Preset configuration (matches production screenshot) ─────────────────────
+function dayOfYear(d){ var s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+function daySeed(){ var d=new Date(); return d.getFullYear()*1000+dayOfYear(d); }
+function seededRand(seed){ var x=Math.sin(seed)*10000; return x-Math.floor(x); }
+var SIL_SEED = daySeed();
+
+function drawSilField() {
+  var svg = document.getElementById('sil-field');
+  if (!svg) return;
+  var w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox', '0 0 '+w+' '+h);
+  var camX = (seededRand(SIL_SEED+1)-0.5)*40;
+  var camTilt = (seededRand(SIL_SEED+2)-0.5)*0.02;
+  var vpX = w*0.5+camX, vpY = h*0.62;
+  var lines = '';
+  var bands = 18;
+  for (var i=0; i<=bands; i++) {
+    var t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=(0.34*(1-t*0.65)).toFixed(3);
+    lines += '<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="rgba(0,0,0,0.18)" stroke-width="0.75" opacity="'+op+'"/>';
+  }
+  var cols = 16;
+  for (var i=0; i<=cols; i++) {
+    var x=(i/cols)*w;
+    lines += '<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="rgba(0,0,0,0.18)" stroke-width="0.75" opacity="0.18"/>';
+  }
+  var ay = Math.sin(camTilt);
+  lines += '<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="rgba(0,0,0,0.28)" stroke-width="0.75" opacity="0.48"/>';
+  lines += '<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="rgba(0,0,0,0.28)" stroke-width="0.75" opacity="0.42"/>';
+  var gx=vpX, gy=vpY, r=9;
+  lines += '<circle cx="'+gx+'" cy="'+gy+'" r="'+r+'" fill="none" stroke="#000" stroke-width="0.75" stroke-dasharray="2 3" opacity="0.55"/>';
+  lines += '<line x1="'+(gx-r-4)+'" y1="'+gy+'" x2="'+(gx+r+4)+'" y2="'+gy+'" stroke="#000" stroke-width="0.75" opacity="0.55"/>';
+  lines += '<line x1="'+gx+'" y1="'+(gy-r-4)+'" x2="'+gx+'" y2="'+(gy+r+4)+'" stroke="#000" stroke-width="0.75" opacity="0.55"/>';
+  if (w >= 720) {
+    var upperBand = vpY*0.72;
+    for (var i=0; i<4; i++) {
+      var s1=seededRand(SIL_SEED+100+i*3.1), s2=seededRand(SIL_SEED+200+i*5.7);
+      var s3=seededRand(SIL_SEED+300+i*2.3), s4=seededRand(SIL_SEED+350+i*4.9);
+      var x1=s1*w, y1=s2*upperBand, x2=s3*w, y2=s4*upperBand;
+      if (s2>0.5) {
+        var mx=(x1+x2)/2+(s3-0.5)*140, my=(y1+y2)/2+(s1-0.5)*70;
+        lines += '<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="0.75" opacity="'+(0.17+s4*0.12).toFixed(3)+'"/>';
+      } else {
+        lines += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(0,0,0,0.18)" stroke-width="0.75" opacity="'+(0.17+s1*0.12).toFixed(3)+'"/>';
+      }
+    }
+    var s1=seededRand(SIL_SEED+600), s2=seededRand(SIL_SEED+700);
+    lines += '<line x1="'+(s1*w*0.4).toFixed(1)+'" y1="'+(s2*upperBand*0.5).toFixed(1)+'" x2="'+((0.5+s2*0.5)*w).toFixed(1)+'" y2="'+((0.4+s1*0.6)*upperBand).toFixed(1)+'" stroke="rgba(0,0,0,0.18)" stroke-width="0.75" opacity="0.14"/>';
+  }
+  svg.innerHTML = lines;
+}
+
 const CFG = {
   holdMode:       'CLUSTER',
   holdFixed:      120,
@@ -434,6 +486,7 @@ function enterSilence(ts) {
   audioTriggerLong2();
   if (!musicStarted) initMusic();
   else musicFadeTo(CFG.musicVolHigh, CFG.musicFadeIn);
+  drawSilField();
 }
 
 function drawSilenceOverlay(c, W, H, elapsed) {
@@ -441,6 +494,7 @@ function drawSilenceOverlay(c, W, H, elapsed) {
   const p2End = silFadeMs + silHoldMs;
   const p3End = silFadeMs + silHoldMs + silFadeMs;
   let alpha = 0, color = CFG.silenceInColor;
+  var sf = document.getElementById('sil-field');
   if      (elapsed < p1End) {
     var t = elapsed / silFadeMs;
     alpha = silOpacity * Math.pow(t, 8);
@@ -448,11 +502,15 @@ function drawSilenceOverlay(c, W, H, elapsed) {
   }
   else if (elapsed < p2End) { alpha = silOpacity; color = CFG.silenceInColor; }
   else if (elapsed < p3End) { alpha = silOpacity * (1 - (elapsed - p2End) / silFadeMs); color = CFG.silenceOutColor; }
-  else return;
+  else {
+    if (sf) sf.style.opacity = '0';
+    return;
+  }
   c.fillStyle = color;
   c.globalAlpha = Math.max(0, Math.min(1, alpha));
   c.fillRect(0, 0, W, H);
   c.globalAlpha = 1;
+  if (sf) sf.style.opacity = alpha.toFixed(3);
 }
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
