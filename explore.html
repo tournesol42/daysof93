@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v84-p1-constants -->
+<!-- build: explore-v85-p2-globals -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -274,25 +274,6 @@ window.addEventListener('resize', () => {
 });
 
 // ── Engine state ─────────────────────────────────────────────────────────────
-let images        = [];
-let currentIndex  = 0;
-let outgoingIndex = 0;
-let incomingIndex = 0;
-let shuffleQueue  = [];
-
-var lastSilenceEndTs  = -Infinity;
-var nextSilenceMs     = 3000 + Math.random() * 5000;
-var silTotalMs   = 5000;
-var silenceBlack = 0;
-var silFieldReady = false;
-var clusterMode      = 'FAST';
-var rollMode         = false;
-var rollRampUp       = true;
-var rollStartTs      = 0;
-var rollDurMs        = 0;
-var lastRollEndTs    = 0;
-var nextRollMs       = 10000;
-var clusterRemaining = 0;
 let engineState    = 'IDLE';
 let stateStartTs   = 0;
 let currentHoldMs  = 0;
@@ -301,12 +282,97 @@ let isPlaying      = false;
 let rafId          = null;
 let lastTs         = 0;
 
-let silFadeMs  = CFG.silenceFade;
-let silHoldMs  = 0;
-let silOpacity = CFG.silenceOpacity;
+// ── Images ────────────────────────────────────────────────────────────────────
+let images        = [];
+let currentIndex  = 0;
+let outgoingIndex = 0;
+let incomingIndex = 0;
+let shuffleQueue  = [];
 
+// ── Silence ───────────────────────────────────────────────────────────────────
+let lastSilenceEndTs = -Infinity;
+let nextSilenceMs    = 3000 + Math.random() * 5000;
+let silTotalMs       = 5000;
+let silenceBlack     = 0;
+let silFieldReady    = false;
+let silFadeMs        = CFG.silenceFade;
+let silHoldMs        = 0;
+let silOpacity       = CFG.silenceOpacity;
+
+// ── Cluster / Roll ────────────────────────────────────────────────────────────
+let clusterMode      = 'FAST';
+let clusterRemaining = 0;
+let rollMode         = false;
+let rollRampUp       = true;
+let rollStartTs      = 0;
+let rollDurMs        = 0;
+let lastRollEndTs    = 0;
+let nextRollMs       = 10000;
+
+// ── Cutter ────────────────────────────────────────────────────────────────────
 let cutterActive = false;
-let cuts = [];
+let cuts         = [];
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let audioCtx        = null;
+let shortBuffers    = [];
+let currentShortSrc = null;
+let shortFilter     = null;
+let shortPitchRate  = 1.0;
+let audioReady      = false;
+let unlocking       = false;
+let musicEl         = null;
+let musicGain       = null;
+let musicStarted    = false;
+let longEls         = [];
+let longIdx         = 0;
+let long2Els        = [];
+let long2Idx        = 0;
+let transEls        = [];
+
+// ── Riser ─────────────────────────────────────────────────────────────────────
+let riserPlaying = false;
+let riserEl      = null;
+let riserStartTs = 0;
+let riserLeadMs  = 3500;
+
+// ── Shapes ────────────────────────────────────────────────────────────────────
+let shapesFloating    = false;
+let shapeFloatT       = 0;
+let shapesConverging  = false;
+let shapesShown       = false;
+let convergeProgress  = 0;
+let convergeDriftRect = {x:0, y:0};
+let convergeDriftTri  = {x:0, y:0};
+let convergeDriftCirc = {x:0, y:0};
+let shape1Touched     = false;
+let shape1Active      = false;
+let shape1Fading      = false;
+let shape1MacroActive = false;
+let shape2Active      = false;
+let shape2ExitCount   = 0;
+let shape2BrightFrom  = 1.0;
+let shape2FadeStart   = null;
+let shape3Active      = false;
+
+// ── Interaction / Visual ──────────────────────────────────────────────────────
+let tempoScale       = 1.0;
+let tempoTweenStart  = null;
+let tempoTweenFrom   = 1.0;
+let brightnessOverlay = 0;
+let audioSpike       = 0;
+let lfoFreq          = 2000;
+let lfoTarget        = 2000;
+let lfoTimer         = 0;
+let triEffectStrength = 0;
+let mouseBrightness  = 1.0;
+
+// ── Pixel effect ──────────────────────────────────────────────────────────────
+let pixelSpikeVal   = 0;
+let pixelSpikeTimer = 0;
+let effectivePixel  = 0;
+let pixelCanvas     = null;
+let pixelCtx        = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function randBetween(lo, hi) {
@@ -652,61 +718,6 @@ function drawFrame(elapsed) {
   var muted = localStorage.getItem('d93mute') === '1';
   window._d93vol = function() { return muted ? 0 : vol; };
 })();
-
-var audioCtx       = null;
-var shortBuffers   = [];   // decoded AudioBuffers for short pool
-var currentShortSrc = null;
-
-var musicEl      = null;
-var musicGain    = null;
-var musicStarted = false;
-
-var longEls      = [];
-var longIdx      = 0;
-var long2Els     = [];
-var long2Idx     = 0;
-var transEls     = [];
-var riserPlaying = false;
-var riserEl      = null;
-var riserStartTs = 0;
-var riserLeadMs  = 3500;
-var audioReady   = false;
-var unlocking    = false;
-
-var shortFilter      = null;
-var tempoScale       = 1.0;
-var brightnessOverlay = 0;
-var audioSpike       = 0;
-var lfoFreq          = 2000;
-var lfoTarget        = 2000;
-var lfoTimer         = 0;
-var shapesFloating   = false;
-var shapeFloatT      = 0;
-var shapesConverging  = false;
-var shapesShown       = false;
-var convergeProgress  = 0;
-var convergeDriftRect = {x:0, y:0};
-var convergeDriftTri  = {x:0, y:0};
-var convergeDriftCirc = {x:0, y:0};
-var shape1Touched     = false;
-var shape1Active     = false;
-var shape1Fading     = false;
-var shape1MacroActive = false;
-var shape2Active     = false;
-var shape2ExitCount  = 0;
-var shape2BrightFrom = 1.0;
-var shape2FadeStart  = null;
-var shape3Active     = false;
-var mouseBrightness  = 1.0;
-var tempoTweenStart  = null;
-var tempoTweenFrom   = 1.0;
-var triEffectStrength = 0;
-var pixelSpikeVal     = 0;
-var pixelSpikeTimer   = 0;
-var effectivePixel    = 0;
-var pixelCanvas       = null;
-var pixelCtx          = null;
-var shortPitchRate    = 1.0;
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
