@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v91-mesh-energy -->
+<!-- build: explore-v92-mesh-physics -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -803,19 +803,38 @@ function showSilMesh(ts) {
   if (canvas) canvas.style.opacity = '1';
   silMeshStartTs = ts || performance.now();
   if (silMeshRaf) cancelAnimationFrame(silMeshRaf);
+
+  // Angular velocities (rad/frame at 60fps) — incommensurable ratios for Lissajous feel
+  let velX = 0.19;
+  let velY = 0.24;
+  let velZ = 0.13;
+  const damp = 0.992; // per-frame: ~1% of original velocity after 9s
+
   (function animateSilMesh(now) {
     silMeshRaf = requestAnimationFrame(animateSilMesh);
     if (!silMeshRoot || !silMeshRenderer || !silMeshScene || !silMeshCamera) return;
+
     const t     = Math.min((now - silMeshStartTs) / 9000, 1);
     const decay = Math.exp(-t * 3.5);
+    const sec   = now / 1000;
 
-    // Erratic fast rotation decaying to slow horizontal
-    silMeshRoot.rotation.x += (0.20 + (Math.random() - 0.5) * 0.12) * decay;
-    silMeshRoot.rotation.y += (0.25 + (Math.random() - 0.5) * 0.10) * decay + 0.003;
-    silMeshRoot.rotation.z += (0.14 + (Math.random() - 0.5) * 0.14) * decay;
+    // Organic gravity-like nudges: three sine oscillators at incommensurable frequencies
+    // — smooth perturbation with no random shiver
+    velX += Math.sin(sec * 1.37)         * 0.0014 * decay;
+    velY += Math.sin(sec * 0.83 + 1.1)   * 0.0011 * decay;
+    velZ += Math.sin(sec * 2.11 + 0.73)  * 0.0009 * decay;
 
-    // Scale: start ~2× base, shrink to base as it slows
-    silMeshRoot.scale.setScalar(silMeshBaseScale * (1 + 0.9 * decay));
+    // Momentum damping
+    velX *= damp;
+    velY *= damp;
+    velZ *= damp;
+
+    silMeshRoot.rotation.x += velX;
+    silMeshRoot.rotation.y += velY + 0.003; // slow horizontal base always present
+    silMeshRoot.rotation.z += velZ;
+
+    // Scale: 1.5× at start, settles to base size as momentum decays
+    silMeshRoot.scale.setScalar(silMeshBaseScale * (1 + 0.5 * decay));
 
     silMeshRenderer.render(silMeshScene, silMeshCamera);
   })(silMeshStartTs);
