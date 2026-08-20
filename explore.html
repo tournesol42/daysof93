@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v90-sil-mesh -->
+<!-- build: explore-v91-mesh-energy -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -346,8 +346,9 @@ let silMeshRenderer = null;
 let silMeshScene    = null;
 let silMeshCamera   = null;
 let silMeshRoot     = null;
-let silMeshRaf      = null;
-let silMeshStartTs  = 0;
+let silMeshRaf       = null;
+let silMeshStartTs   = 0;
+let silMeshBaseScale = 1.0;
 
 // ── Shapes ────────────────────────────────────────────────────────────────────
 let shapesFloating    = false;
@@ -775,7 +776,8 @@ function initSilMesh() {
       const center = box.getCenter(new THREE.Vector3());
       const size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
-      root.scale.setScalar(3.0 / Math.max(size.x, size.y, size.z));
+      silMeshBaseScale = 3.0 / Math.max(size.x, size.y, size.z);
+      root.scale.setScalar(silMeshBaseScale);
       root.traverse(function(child) {
         if (child.isMesh) {
           child.material = new THREE.MeshBasicMaterial({ color: 0xE85500, wireframe: true });
@@ -804,11 +806,17 @@ function showSilMesh(ts) {
   (function animateSilMesh(now) {
     silMeshRaf = requestAnimationFrame(animateSilMesh);
     if (!silMeshRoot || !silMeshRenderer || !silMeshScene || !silMeshCamera) return;
-    const t4    = Math.min((now - silMeshStartTs) / 4000, 1);
-    const decay = Math.exp(-t4 * 4);
-    silMeshRoot.rotation.x += 0.05 * decay;
-    silMeshRoot.rotation.y += 0.07 * decay + 0.003;
-    silMeshRoot.rotation.z += 0.03 * decay;
+    const t     = Math.min((now - silMeshStartTs) / 9000, 1);
+    const decay = Math.exp(-t * 3.5);
+
+    // Erratic fast rotation decaying to slow horizontal
+    silMeshRoot.rotation.x += (0.20 + (Math.random() - 0.5) * 0.12) * decay;
+    silMeshRoot.rotation.y += (0.25 + (Math.random() - 0.5) * 0.10) * decay + 0.003;
+    silMeshRoot.rotation.z += (0.14 + (Math.random() - 0.5) * 0.14) * decay;
+
+    // Scale: start ~2× base, shrink to base as it slows
+    silMeshRoot.scale.setScalar(silMeshBaseScale * (1 + 0.9 * decay));
+
     silMeshRenderer.render(silMeshScene, silMeshCamera);
   })(silMeshStartTs);
 }
