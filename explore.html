@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v86-p3-pools -->
+<!-- build: explore-v87-p4-advance -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -897,43 +897,49 @@ function enterHold(ts) {
   currentHoldMs = computeHoldMs();
 }
 
+function showShapes() {
+  if (!window.d93GeoEls) return;
+  window.d93GeoEls.rect.style.opacity = '1';
+  window.d93GeoEls.tri.style.opacity  = '0.3';
+  window.d93GeoEls.circ.style.opacity = '1';
+  shapesFloating = true;
+}
+
+function scheduleShapeTimers() {
+  setTimeout(function() {
+    var rh = document.getElementById('geo-rect-hint');
+    var th = document.getElementById('geo-tri-hint');
+    var ch = document.getElementById('geo-circ-hint');
+    if (rh) { rh.style.opacity = '0.9'; rh.classList.add('active'); }
+    if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
+    if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
+  }, SHAPES_HINT_MS);
+  setTimeout(function() {
+    if (typeof startConverge === 'function') startConverge();
+  }, SHAPES_CONVERGE_MS);
+  setTimeout(function() {
+    var rect = window.d93GeoEls ? window.d93GeoEls.rect : null;
+    if (rect) rect.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
+  }, SHAPES_PULSE_MS);
+  setTimeout(function() { shape1MacroActive = true; }, SHAPES_MACRO_MS);
+}
+
 function doAdvance(ts) {
   const fromSilence = engineState === 'SILENCE';
   if (fromSilence && !shapesShown && images.length) {
     shapesShown = true;
-    if (window.d93GeoEls) {
-      window.d93GeoEls.rect.style.opacity = '1';
-      window.d93GeoEls.tri.style.opacity  = '0.3';
-      window.d93GeoEls.circ.style.opacity = '1';
-      shapesFloating = true;
-      setTimeout(function() {
-        var rh = document.getElementById('geo-rect-hint');
-        var th = document.getElementById('geo-tri-hint');
-        var ch = document.getElementById('geo-circ-hint');
-        if (rh) { rh.style.opacity = '0.9'; rh.classList.add('active'); }
-        if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
-        if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
-      }, SHAPES_HINT_MS);
-      setTimeout(function() {
-        if (typeof startConverge === 'function') startConverge();
-      }, SHAPES_CONVERGE_MS);
-      setTimeout(function() {
-        var rect = window.d93GeoEls.rect;
-        if (rect) rect.style.animation = 'geo-rect-pulse 0.6s ease-in-out 4';
-      }, SHAPES_PULSE_MS);
-      setTimeout(function() { shape1MacroActive = true; }, SHAPES_MACRO_MS);
-    }
+    showShapes();
+    scheduleShapeTimers();
   }
-  // TRANS = NONE: skip straight to next frame
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
   audioTriggerShort();
-  if (fromSilence) longPool.stop();
-  if (fromSilence) long2Pool.stop();
   if (fromSilence) {
+    longPool.stop();
+    long2Pool.stop();
     lastSilenceEndTs = ts;
-    nextSilenceMs = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
-    riserLeadMs = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
+    nextSilenceMs    = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
+    riserLeadMs      = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
     musicFadeTo(CFG.musicVolLow, CFG.musicFadeOut);
   }
 }
