@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v85-p2-globals -->
+<!-- build: explore-v86-p3-pools -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -324,11 +324,9 @@ let unlocking       = false;
 let musicEl         = null;
 let musicGain       = null;
 let musicStarted    = false;
-let longEls         = [];
-let longIdx         = 0;
-let long2Els        = [];
-let long2Idx        = 0;
-let transEls        = [];
+let longPool        = null;
+let long2Pool       = null;
+let transPool       = null;
 
 // ── Riser ─────────────────────────────────────────────────────────────────────
 let riserPlaying = false;
@@ -578,8 +576,8 @@ function enterSilence(ts) {
   silOpacity = CFG.silenceOpacity;
   engineState  = 'SILENCE';
   stateStartTs = ts;
-  audioTriggerLong();
-  audioTriggerLong2();
+  longPool.trigger();
+  long2Pool.trigger();
   if (!musicStarted) initMusic();
   else musicFadeTo(CFG.musicVolHigh, CFG.musicFadeIn);
   drawSilField();
@@ -721,40 +719,44 @@ function drawFrame(elapsed) {
 
 function getVol() { return (window._d93vol ? window._d93vol() : 1) * AUDIO_CFG.masterVol; }
 
-function initAudioEls() {
-  var lBase = 'https://daysof93-cdn.b-cdn.net/pool%20long/long_';
-  var lAll  = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
-    return lBase + String(i+1).padStart(2,'0') + '.wav';
-  }).sort(function() { return Math.random()-0.5; });
-  for (var j = 0; j < 3; j++) {
-    var b = document.createElement('audio');
-    b.preload = 'auto'; b.src = lAll[j]; document.body.appendChild(b); longEls.push(b);
-  }
-  console.log('d93: long audio elements created');
-}
-
-function initTransEls() {
-  var tBase = 'https://daysof93-cdn.b-cdn.net/Transitions/transition_';
-  var tAll = Array.from({length: 5}, function(_, i) {
-    return tBase + (i + 1) + '.wav';
-  }).sort(function() { return Math.random() - 0.5; });
-  for (var j = 0; j < 5; j++) {
-    var b = document.createElement('audio');
-    b.preload = 'auto'; b.src = tAll[j]; document.body.appendChild(b); transEls.push(b);
-  }
-  console.log('d93: trans audio elements created');
-}
-
-function initAudioEls2() {
-  var l2Base = 'https://daysof93-cdn.b-cdn.net/pool%20long%202/long2_';
-  var l2All  = Array.from({length: 8}, function(_, i) {
-    return l2Base + String(i+1).padStart(2,'0') + '.wav';
-  }).sort(function() { return Math.random()-0.5; });
-  for (var j = 0; j < 3; j++) {
-    var b = document.createElement('audio');
-    b.preload = 'auto'; b.src = l2All[j]; document.body.appendChild(b); long2Els.push(b);
-  }
-  console.log('d93: long2 audio elements created');
+function makeAudioPool(urls, preloadCount) {
+  const els = [];
+  let idx = 0;
+  urls.slice(0, preloadCount).forEach(function(src) {
+    const el = document.createElement('audio');
+    el.preload = 'auto'; el.src = src;
+    document.body.appendChild(el);
+    els.push(el);
+  });
+  return {
+    els,
+    unlock(defaultVol) {
+      els.forEach(function(a) {
+        a.volume = 0;
+        const p = a.play();
+        const v = (typeof defaultVol === 'function') ? defaultVol() : (defaultVol || 0);
+        if (p && p.then) {
+          p.then(function() { a.pause(); a.currentTime = 0; a.volume = v; })
+           .catch(function()  { a.volume = v; });
+        } else { a.pause(); a.currentTime = 0; a.volume = v; }
+      });
+    },
+    trigger() {
+      if (!audioReady || !els.length) return;
+      els[idx].pause(); els[idx].currentTime = 0;
+      idx = (idx + 1) % els.length;
+      const a = els[idx];
+      a.volume = getVol(); a.currentTime = 0;
+      a.play().catch(function() {});
+    },
+    stop() {
+      if (!els.length) return;
+      els[idx].pause(); els[idx].currentTime = 0;
+    },
+    random() {
+      return els.length ? els[Math.floor(Math.random() * els.length)] : null;
+    }
+  };
 }
 
 function unlockAudio() {
@@ -782,36 +784,9 @@ function unlockAudio() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
   // Long <audio> unlock must also be synchronous within gesture context
-  longEls.forEach(function(a) {
-    a.volume = 0;
-    var p = a.play();
-    if (p && p.then) {
-      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
-       .catch(function() { a.volume = getVol(); });
-    } else {
-      a.pause(); a.currentTime = 0; a.volume = getVol();
-    }
-  });
-  long2Els.forEach(function(a) {
-    a.volume = 0;
-    var p = a.play();
-    if (p && p.then) {
-      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
-       .catch(function() { a.volume = getVol(); });
-    } else {
-      a.pause(); a.currentTime = 0; a.volume = getVol();
-    }
-  });
-  transEls.forEach(function(a) {
-    a.volume = 0;
-    var p = a.play();
-    if (p && p.then) {
-      p.then(function() { a.pause(); a.currentTime = 0; a.volume = 0; })
-       .catch(function() { a.volume = 0; });
-    } else {
-      a.pause(); a.currentTime = 0; a.volume = 0;
-    }
-  });
+  longPool.unlock(getVol);
+  long2Pool.unlock(getVol);
+  transPool.unlock(0);
 
   // XHR + callback-style decodeAudioData — avoids fetch() CORS mode issues on iOS
   var sBase = 'https://daysof93-cdn.b-cdn.net/pool%20short/short_';
@@ -870,9 +845,9 @@ function audioTriggerShort() {
 }
 
 function startRiser(ts) {
-  if (riserPlaying || !transEls.length || !audioReady) return;
-  var idx = Math.floor(Math.random() * transEls.length);
-  riserEl = transEls[idx];
+  if (riserPlaying || !audioReady || !transPool) return;
+  riserEl = transPool.random();
+  if (!riserEl) return;
   riserEl.currentTime = 0;
   riserEl.volume = 0;
   riserEl.play().catch(function() {});
@@ -891,33 +866,6 @@ function stopRiser() {
   riserPlaying = false;
 }
 
-function audioTriggerLong() {
-  if (!audioReady || !longEls.length) return;
-  longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
-  longIdx = (longIdx + 1) % longEls.length;
-  var a = longEls[longIdx];
-  a.volume = getVol(); a.currentTime = 0;
-  a.play().catch(function() {});
-}
-
-function audioStopLong() {
-  if (!longEls.length) return;
-  longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
-}
-
-function audioTriggerLong2() {
-  if (!audioReady || !long2Els.length) return;
-  long2Els[long2Idx].pause(); long2Els[long2Idx].currentTime = 0;
-  long2Idx = (long2Idx + 1) % long2Els.length;
-  var a = long2Els[long2Idx];
-  a.volume = getVol(); a.currentTime = 0;
-  a.play().catch(function() {});
-}
-
-function audioStopLong2() {
-  if (!long2Els.length) return;
-  long2Els[long2Idx].pause(); long2Els[long2Idx].currentTime = 0;
-}
 
 function initMusic() {
   if (musicStarted || !audioCtx) return;
@@ -980,8 +928,8 @@ function doAdvance(ts) {
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
   audioTriggerShort();
-  if (fromSilence) audioStopLong();
-  if (fromSilence) audioStopLong2();
+  if (fromSilence) longPool.stop();
+  if (fromSilence) long2Pool.stop();
   if (fromSilence) {
     lastSilenceEndTs = ts;
     nextSilenceMs = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
@@ -1276,9 +1224,21 @@ async function loadImages() {
 startAnim();
 pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
-initAudioEls();
-initAudioEls2();
-initTransEls();
+const LONG_URLS = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
+  return 'https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(i+1).padStart(2,'0') + '.wav';
+}).sort(function() { return Math.random()-0.5; });
+
+const LONG2_URLS = Array.from({length: 8}, function(_, i) {
+  return 'https://daysof93-cdn.b-cdn.net/pool%20long%202/long2_' + String(i+1).padStart(2,'0') + '.wav';
+}).sort(function() { return Math.random()-0.5; });
+
+const TRANS_URLS = Array.from({length: 5}, function(_, i) {
+  return 'https://daysof93-cdn.b-cdn.net/Transitions/transition_' + (i+1) + '.wav';
+}).sort(function() { return Math.random()-0.5; });
+
+longPool  = makeAudioPool(LONG_URLS,  3);
+long2Pool = makeAudioPool(LONG2_URLS, 3);
+transPool = makeAudioPool(TRANS_URLS, 5);
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
