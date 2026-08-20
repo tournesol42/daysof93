@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v94-helper-fade -->
+<!-- build: explore-v95-thin-fade -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1212,6 +1212,10 @@ function frame(ts) {
       convergeProgress = Math.min(convergeProgress + dt * 0.07, 1);
       if (convergeProgress >= 1 && helperFadeStartTs === 0) {
         helperFadeStartTs = ts;
+        var rt = document.getElementById('geo-rect-thin');
+        var tt = document.getElementById('geo-tri-thin');
+        if (rt) { rt.style.transition = 'opacity 3s ease'; rt.style.opacity = '0'; }
+        if (tt) { tt.style.transition = 'opacity 3s ease'; tt.style.opacity = '0'; }
       }
     }
     var cp  = convergeProgress;
@@ -1272,12 +1276,7 @@ function frame(ts) {
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
     if (helpers && ec > 0.3) {
-      var helperAlpha = Math.min(1, (ec - 0.3) / 0.4);
-      if (helperFadeStartTs > 0) {
-        var fadeT = Math.min((ts - helperFadeStartTs) / 3000, 1);
-        helperAlpha *= 1 - fadeT;
-      }
-      helpers.style.opacity = helperAlpha.toFixed(3);
+      helpers.style.opacity = String(Math.min(1, (ec - 0.3) / 0.4));
 
       var cb2 = gels.circ.getBoundingClientRect();
       var rb2 = gels.rect.getBoundingClientRect();
@@ -1424,7 +1423,7 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     <path d="M 218,21 A 148,148 0 1,1 21,92"
       fill="transparent" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
     <!-- Thin arc: 90°, from ~10 o'clock clockwise through 12 to ~1 o'clock -->
-    <path d="M 21,92 A 148,148 0 0,1 218,21"
+    <path id="geo-rect-thin" d="M 21,92 A 148,148 0 0,1 218,21"
       fill="transparent" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <svg id="geo-tri" viewBox="0 0 270 234" xmlns="http://www.w3.org/2000/svg">
@@ -1433,7 +1432,7 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     <!-- Bottom edge: bottom-left→bottom-right (THICK, orange) -->
     <line x1="1" y1="233" x2="269" y2="233" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
     <!-- Left edge thin part: apex→65% down (THIN, orange) -->
-    <line x1="135" y1="1" x2="48" y2="152" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
+    <line id="geo-tri-thin" x1="135" y1="1" x2="48" y2="152" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
     <!-- Left edge thick part: 65%→bottom-left, connects to orange circle (THICK, orange) -->
     <line x1="48" y1="152" x2="1" y2="233" stroke="#FF6B00" stroke-width="28" stroke-linecap="round"/>
   </svg>
