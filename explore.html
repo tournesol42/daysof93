@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v73-no-flicker -->
+<!-- build: explore-v74-long2-pool -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -431,6 +431,7 @@ function enterSilence(ts) {
   engineState  = 'SILENCE';
   stateStartTs = ts;
   audioTriggerLong();
+  audioTriggerLong2();
   if (!musicStarted) initMusic();
   else musicFadeTo(CFG.musicVolHigh, CFG.musicFadeIn);
 }
@@ -564,6 +565,8 @@ var musicStarted = false;
 
 var longEls      = [];
 var longIdx      = 0;
+var long2Els     = [];
+var long2Idx     = 0;
 var audioReady   = false;
 var unlocking    = false;
 
@@ -616,6 +619,18 @@ function initAudioEls() {
   console.log('d93: long audio elements created');
 }
 
+function initAudioEls2() {
+  var l2Base = 'https://daysof93-cdn.b-cdn.net/pool%20long%202/long2_';
+  var l2All  = Array.from({length: 8}, function(_, i) {
+    return l2Base + String(i+1).padStart(2,'0') + '.wav';
+  }).sort(function() { return Math.random()-0.5; });
+  for (var j = 0; j < 3; j++) {
+    var b = document.createElement('audio');
+    b.preload = 'auto'; b.src = l2All[j]; document.body.appendChild(b); long2Els.push(b);
+  }
+  console.log('d93: long2 audio elements created');
+}
+
 function unlockAudio() {
   if (audioReady) {
     if (audioCtx && audioCtx.state === 'suspended') {
@@ -642,6 +657,16 @@ function unlockAudio() {
 
   // Long <audio> unlock must also be synchronous within gesture context
   longEls.forEach(function(a) {
+    a.volume = 0;
+    var p = a.play();
+    if (p && p.then) {
+      p.then(function() { a.pause(); a.currentTime = 0; a.volume = getVol(); })
+       .catch(function() { a.volume = getVol(); });
+    } else {
+      a.pause(); a.currentTime = 0; a.volume = getVol();
+    }
+  });
+  long2Els.forEach(function(a) {
     a.volume = 0;
     var p = a.play();
     if (p && p.then) {
@@ -722,6 +747,20 @@ function audioStopLong() {
   longEls[longIdx].pause(); longEls[longIdx].currentTime = 0;
 }
 
+function audioTriggerLong2() {
+  if (!audioReady || !long2Els.length) return;
+  long2Els[long2Idx].pause(); long2Els[long2Idx].currentTime = 0;
+  long2Idx = (long2Idx + 1) % long2Els.length;
+  var a = long2Els[long2Idx];
+  a.volume = getVol(); a.currentTime = 0;
+  a.play().catch(function() {});
+}
+
+function audioStopLong2() {
+  if (!long2Els.length) return;
+  long2Els[long2Idx].pause(); long2Els[long2Idx].currentTime = 0;
+}
+
 function initMusic() {
   if (musicStarted || !audioCtx) return;
   musicStarted = true;
@@ -782,6 +821,7 @@ function doAdvance(ts) {
   enterHold(ts);
   audioTriggerShort();
   if (fromSilence) audioStopLong();
+  if (fromSilence) audioStopLong2();
   if (fromSilence) {
     lastSilenceEndTs = ts;
     nextSilenceMs = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
@@ -1048,6 +1088,7 @@ startAnim();
 pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
 initAudioEls();
+initAudioEls2();
 </script>
 
 <div id="geo-rect-hint">⬆ touch ⬇</div>
