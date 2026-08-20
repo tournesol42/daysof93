@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v93-mesh-dismiss -->
+<!-- build: explore-v94-helper-fade -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -357,6 +357,7 @@ let shapeFloatT       = 0;
 let shapesConverging  = false;
 let shapesShown       = false;
 let convergeProgress  = 0;
+let helperFadeStartTs = 0;
 let convergeDriftRect = {x:0, y:0};
 let convergeDriftTri  = {x:0, y:0};
 let convergeDriftCirc = {x:0, y:0};
@@ -1208,7 +1209,10 @@ function frame(ts) {
     shapeFloatT += dt;
 
     if (shapesConverging && convergeProgress < 1) {
-      convergeProgress = Math.min(convergeProgress + dt * 0.07, 1); // ~14s to full
+      convergeProgress = Math.min(convergeProgress + dt * 0.07, 1);
+      if (convergeProgress >= 1 && helperFadeStartTs === 0) {
+        helperFadeStartTs = ts;
+      }
     }
     var cp  = convergeProgress;
     var ec  = cp * cp * (3 - 2 * cp); // smoothstep
@@ -1268,7 +1272,12 @@ function frame(ts) {
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
     if (helpers && ec > 0.3) {
-      helpers.style.opacity = String(Math.min(1, (ec - 0.3) / 0.4));
+      var helperAlpha = Math.min(1, (ec - 0.3) / 0.4);
+      if (helperFadeStartTs > 0) {
+        var fadeT = Math.min((ts - helperFadeStartTs) / 3000, 1);
+        helperAlpha *= 1 - fadeT;
+      }
+      helpers.style.opacity = helperAlpha.toFixed(3);
 
       var cb2 = gels.circ.getBoundingClientRect();
       var rb2 = gels.rect.getBoundingClientRect();
