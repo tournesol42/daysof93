@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v76-vol-gridfade -->
+<!-- build: explore-v77-vol-slider-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1394,7 +1394,9 @@ setTimeout(function() {
   wrap.addEventListener('mouseleave', function() { popup.style.display = 'none'; });
   wrap.addEventListener('touchstart', function(e) {
     e.stopPropagation();
-    popup.style.display === 'flex' ? popup.style.display = 'none' : popup.style.display = 'flex';
+    if (!popup.contains(e.target)) {
+      popup.style.display === 'flex' ? popup.style.display = 'none' : popup.style.display = 'flex';
+    }
   }, {passive: true});
   document.addEventListener('touchstart', function(e) {
     if (!wrap.contains(e.target)) popup.style.display = 'none';
