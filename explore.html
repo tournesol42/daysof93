@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v98-touch-hint -->
+<!-- build: explore-v99-filter-menu -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -47,8 +47,8 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 }
 #explore-home {
   position: fixed; bottom: 28px; right: 28px;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 32px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-family: 'Jost', sans-serif; font-weight: 300;
+  font-size: 32px; letter-spacing: 0.22em; text-transform: uppercase;
   color: #ffffff; text-decoration: none;
   opacity: 0; z-index: 100; pointer-events: none;
   text-shadow: 0 0 20px rgba(255,255,255,1), 0 0 40px rgba(255,255,255,0.5);
@@ -129,7 +129,7 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
   transform: translateX(-50%);
   font-family: 'Jost', sans-serif;
   font-weight: 300;
-  font-size: 18px;
+  font-size: 24px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: #ffffff;
@@ -255,8 +255,8 @@ const CFG = {
   musicFadeIn:  1.5,          // seconds to fade up when silence starts
   musicFadeOut: 2.5,          // seconds to fade down when silence ends
   // Silence: ~16% probability, white flash
-  silenceIntervalMin: 3000,
-  silenceIntervalMax: 8000,
+  silenceIntervalMin: 6000,
+  silenceIntervalMax: 16000,
   silenceDurMin:  4800,
   silenceDurMax:  5000,
   silenceFade:    450,
@@ -1164,15 +1164,32 @@ function frame(ts) {
     riserEl.volume = Math.pow(rt, 3) * getVol();
   }
 
-  // LFO for shape 1 (runs when mouse not inside rect)
-  if (audioCtx && shortFilter && shape1Touched && !shape1Active && !shape1Fading) {
-    lfoTimer -= dt;
-    if (lfoTimer <= 0) {
-      lfoTarget = 300 + Math.random() * 5000;
-      lfoTimer  = 3 + Math.random() * 7;
+  if (audioCtx && shortFilter && !shape1Active && !shape1Fading) {
+    if (firstSilenceDone && engineState === 'HOLD') {
+      // Filter ramp: 20000 → 200hz over 1.5s, then back to 20000 before next silence
+      const holdElapsed = ts - lastSilenceEndTs;
+      const rampDownEnd = 1500;
+      const rampUpEnd   = Math.max(rampDownEnd + 500, nextSilenceMs - 500);
+      let targetFreq;
+      if (holdElapsed < rampDownEnd) {
+        const t = holdElapsed / rampDownEnd;
+        targetFreq = 20000 * Math.pow(200 / 20000, t);
+      } else if (holdElapsed < rampUpEnd) {
+        const t = (holdElapsed - rampDownEnd) / (rampUpEnd - rampDownEnd);
+        targetFreq = 200 * Math.pow(20000 / 200, t);
+      } else {
+        targetFreq = 20000;
+      }
+      shortFilter.frequency.setValueAtTime(targetFreq, audioCtx.currentTime);
+    } else if (shape1Touched && !firstSilenceDone) {
+      lfoTimer -= dt;
+      if (lfoTimer <= 0) {
+        lfoTarget = 300 + Math.random() * 5000;
+        lfoTimer  = 3 + Math.random() * 7;
+      }
+      lfoFreq += (lfoTarget - lfoFreq) * 0.006;
+      shortFilter.frequency.setValueAtTime(lfoFreq, audioCtx.currentTime);
     }
-    lfoFreq += (lfoTarget - lfoFreq) * 0.006;
-    shortFilter.frequency.setValueAtTime(lfoFreq, audioCtx.currentTime);
   }
 
   // Audio spike decay (shape 2)
