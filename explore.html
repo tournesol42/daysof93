@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v105-macro-pull -->
+<!-- build: explore-v106-reverb -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -375,6 +375,8 @@ let macroDragging  = false;
 let macroStartY    = 0;
 let macroPullStart = 0;
 let macroYOffset   = 0;
+let reverbNode     = null;
+let reverbGain     = null;
 let music2El       = null;
 let music2Gain     = null;
 let music2Started  = false;
@@ -921,6 +923,33 @@ function hideSilMesh() {
   if (silMeshRaf) { cancelAnimationFrame(silMeshRaf); silMeshRaf = null; }
 }
 
+function createReverbIR(ctx, duration, decay) {
+  const rate     = ctx.sampleRate;
+  const length   = Math.ceil(rate * duration);
+  const preDelay = Math.floor(rate * 0.04);
+  const ir       = ctx.createBuffer(2, length, rate);
+  for (let c = 0; c < 2; c++) {
+    const ch = ir.getChannelData(c);
+    for (let i = preDelay; i < length; i++) {
+      const t = (i - preDelay) / (length - preDelay);
+      ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+    }
+  }
+  return ir;
+}
+
+function initReverb() {
+  if (reverbNode || !audioCtx || !shortFilter) return;
+  reverbNode        = audioCtx.createConvolver();
+  reverbNode.buffer = createReverbIR(audioCtx, 8.0, 1.2);
+  reverbGain        = audioCtx.createGain();
+  reverbGain.gain.value = 0;
+  shortFilter.connect(reverbNode);
+  reverbNode.connect(reverbGain);
+  reverbGain.connect(audioCtx.destination);
+  console.log('d93: church reverb ready (8s tail)');
+}
+
 function loadMusic2() {
   if (music2El || !audioCtx) return;
   music2El = document.createElement('audio');
@@ -1293,16 +1322,22 @@ function frame(ts) {
     }
     triEffectStrength = macroPull > 0.5 ? (macroPull - 0.5) * 2 : 0;
     effectivePixel    = triEffectStrength;
+    if (reverbGain && audioCtx) {
+      reverbGain.gain.setValueAtTime(macroPull * 0.9, audioCtx.currentTime);
+    }
   } else if (macroActive) {
     brightnessOverlay = 0;
     tempoScale        = 1.0;
     shortPitchRate    = 1.0;
+    if (reverbGain && audioCtx) {
+      reverbGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
   }
 
   if (macroActive && music2Gain && audioCtx) {
     if (macroPull >= 0.5) {
       const vol2 = 0.562 + (macroPull - 0.5) * 2 * (1.0 - 0.562);
-      music2Gain.gain.setValueAtTime(vol2 * getVol(), audioCtx.currentTime);
+      music2Gain.gain.setValueAtTime(vol2, audioCtx.currentTime);
     } else {
       music2Gain.gain.setValueAtTime(0, audioCtx.currentTime);
     }
@@ -1330,6 +1365,7 @@ function frame(ts) {
         setTimeout(function() {
           macroActive = true;
           loadMusic2();
+          initReverb();
           console.log('d93: macro pull active');
         }, 4000);
       }
@@ -1674,7 +1710,7 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     macroStartY    = e.clientY;
     macroPullStart = macroPull;
     if (music2El && !music2Started) {
-      music2El.volume = 0;
+      music2El.volume = 1;
       music2El.play().then(function() { music2Started = true; }).catch(function(){});
     }
   });
@@ -1685,7 +1721,7 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     macroStartY    = e.touches[0].clientY;
     macroPullStart = macroPull;
     if (music2El && !music2Started) {
-      music2El.volume = 0;
+      music2El.volume = 1;
       music2El.play().then(function() { music2Started = true; }).catch(function(){});
     }
   }, { passive: true });
