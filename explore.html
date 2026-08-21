@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v99-filter-menu -->
+<!-- build: explore-v100-filter-curve -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1175,7 +1175,8 @@ function frame(ts) {
         const t = holdElapsed / rampDownEnd;
         targetFreq = 20000 * Math.pow(200 / 20000, t);
       } else if (holdElapsed < rampUpEnd) {
-        const t = (holdElapsed - rampDownEnd) / (rampUpEnd - rampDownEnd);
+        const tRaw = (holdElapsed - rampDownEnd) / (rampUpEnd - rampDownEnd);
+        const t = Math.pow(tRaw, 5);
         targetFreq = 200 * Math.pow(20000 / 200, t);
       } else {
         targetFreq = 20000;
