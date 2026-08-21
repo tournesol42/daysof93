@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v96-grid-brighter -->
+<!-- build: explore-v97-hints-grid-filter -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -122,6 +122,28 @@ canvas { position: fixed; top: 0; left: 0; display: block; }
 #c64-boot .c64-sm { font-size: clamp(13px, 1.8vw, 21px); line-height: 1.8; }
 #c64-cursor { animation: c64blink 0.85s step-end infinite; }
 @keyframes c64blink { 0%,100%{opacity:1} 50%{opacity:0} }
+#touch-hint {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffffff;
+  pointer-events: none;
+  z-index: 21;
+  opacity: 0;
+  white-space: nowrap;
+}
+@keyframes touch-hint-blink {
+  0%, 33.3%  { opacity: 1; }
+  33.4%, 100% { opacity: 0; }
+}
+#touch-hint.active {
+  animation: touch-hint-blink 6s step-start infinite;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -648,12 +670,13 @@ function drawSilenceOverlay(c, W, H, elapsed) {
     c.globalAlpha = 1;
   }
 
-  // Grid: hidden until 2000ms, then fades in over 1500ms
+  // Grid: hidden until gridStart, then fades in over 1500ms
   if (sf) {
-    if (elapsed < 2000) {
+    const gridStart = firstSilenceDone ? 2000 : 7000;
+    if (elapsed < gridStart) {
       sf.style.opacity = '0';
     } else {
-      const gridT = Math.min((elapsed - 2000) / 1500, 1);
+      const gridT = Math.min((elapsed - gridStart) / 1500, 1);
       sf.style.opacity = gridT.toFixed(3);
     }
   }
@@ -1063,12 +1086,8 @@ function showShapes() {
 
 function scheduleShapeTimers() {
   setTimeout(function() {
-    var rh = document.getElementById('geo-rect-hint');
-    var th = document.getElementById('geo-tri-hint');
-    var ch = document.getElementById('geo-circ-hint');
-    if (rh) { rh.style.opacity = '0.9'; rh.classList.add('active'); }
-    if (th) { th.style.opacity = '0.9'; th.classList.add('active'); }
-    if (ch) { ch.style.opacity = '0.9'; ch.classList.add('active'); }
+    var th = document.getElementById('touch-hint');
+    if (th) th.classList.add('active');
   }, SHAPES_HINT_MS);
   setTimeout(function() {
     if (typeof startConverge === 'function') startConverge();
@@ -1212,10 +1231,6 @@ function frame(ts) {
       convergeProgress = Math.min(convergeProgress + dt * 0.07, 1);
       if (convergeProgress >= 1 && helperFadeStartTs === 0) {
         helperFadeStartTs = ts;
-        var rt = document.getElementById('geo-rect-thin');
-        var tt = document.getElementById('geo-tri-thin');
-        if (rt) { rt.style.transition = 'opacity 3s ease'; rt.style.opacity = '0'; }
-        if (tt) { tt.style.transition = 'opacity 3s ease'; tt.style.opacity = '0'; }
       }
     }
     var cp  = convergeProgress;
@@ -1246,32 +1261,6 @@ function frame(ts) {
     if (gels.circ) gels.circ.style.transform =
       'translate(' + cfx.toFixed(1) + 'px,' + cfy.toFixed(1) + 'px)';
 
-    // Move hints to follow their shapes
-    var rh2 = document.getElementById('geo-rect-hint');
-    var th2 = document.getElementById('geo-tri-hint');
-    var ch2 = document.getElementById('geo-circ-hint');
-    if (rh2 && gels.rect) {
-      var rb3 = gels.rect.getBoundingClientRect();
-      rh2.style.left = (rb3.left + rb3.width * 0.5 - 80).toFixed(0) + 'px';
-      rh2.style.top  = (rb3.bottom + 14).toFixed(0) + 'px';
-    }
-    if (th2 && gels.tri) {
-      var tb3 = gels.tri.getBoundingClientRect();
-      th2.style.left = (tb3.left + tb3.width * 0.5 - 80).toFixed(0) + 'px';
-      th2.style.top  = (tb3.bottom + 10).toFixed(0) + 'px';
-    }
-    if (ch2 && gels.circ) {
-      var cb3 = gels.circ.getBoundingClientRect();
-      ch2.style.left = (cb3.left + cb3.width * 0.5 - 80).toFixed(0) + 'px';
-      ch2.style.top  = (cb3.bottom + 14).toFixed(0) + 'px';
-    }
-    // Fade hints out as convergence completes
-    if (shapesConverging && ec > 0.65) {
-      var hintAlpha = (Math.max(0, 1 - (ec - 0.65) / 0.35)).toFixed(3);
-      if (rh2 && rh2.classList.contains('active')) rh2.style.opacity = hintAlpha;
-      if (th2 && th2.classList.contains('active')) th2.style.opacity = hintAlpha;
-      if (ch2 && ch2.classList.contains('active')) ch2.style.opacity = hintAlpha;
-    }
 
     // Helper lines: fade in after 30% convergence, update positions
     var helpers = document.getElementById('geo-helpers');
@@ -1414,9 +1403,10 @@ long2Pool = makeAudioPool(LONG2_URLS, 3);
 transPool = makeAudioPool(TRANS_URLS, 5);
 </script>
 
-<div id="geo-rect-hint">⬆ touch ⬇</div>
-<div id="geo-tri-hint">⬆ drag ⬇</div>
-<div id="geo-circ-hint">← edge →</div>
+<div id="geo-rect-hint" style="display:none"></div>
+<div id="geo-tri-hint" style="display:none"></div>
+<div id="geo-circ-hint" style="display:none"></div>
+<div id="touch-hint">Touch shapes</div>
 <div id="geo-overlay">
   <svg id="geo-rect" viewBox="0 0 310 310" xmlns="http://www.w3.org/2000/svg">
     <!-- Thick arc: 270°, from ~1 o'clock clockwise round to ~10 o'clock -->
