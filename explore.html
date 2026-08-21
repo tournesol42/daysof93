@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v106-reverb -->
+<!-- build: explore-v107-music2-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -951,19 +951,13 @@ function initReverb() {
 }
 
 function loadMusic2() {
-  if (music2El || !audioCtx) return;
+  if (music2El) return;
   music2El = document.createElement('audio');
   music2El.src = 'https://daysof93-cdn.b-cdn.net/pool-music/Exploremain2.mp3';
   music2El.loop = true;
+  music2El.preload = 'auto';
   document.body.appendChild(music2El);
-  try {
-    const src2 = audioCtx.createMediaElementSource(music2El);
-    music2Gain = audioCtx.createGain();
-    music2Gain.gain.value = 0;
-    src2.connect(music2Gain);
-    music2Gain.connect(audioCtx.destination);
-    console.log('d93: music2 loaded');
-  } catch(e) { console.error('d93: music2 error', e); }
+  console.log('d93: music2 preloading');
 }
 
 function makeAudioPool(urls, preloadCount) {
@@ -1337,9 +1331,9 @@ function frame(ts) {
   if (macroActive && music2Gain && audioCtx) {
     if (macroPull >= 0.5) {
       const vol2 = 0.562 + (macroPull - 0.5) * 2 * (1.0 - 0.562);
-      music2Gain.gain.setValueAtTime(vol2, audioCtx.currentTime);
+      music2Gain.gain.value = vol2;
     } else {
-      music2Gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      music2Gain.gain.value = 0;
     }
   }
 
@@ -1709,9 +1703,21 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     macroDragging  = true;
     macroStartY    = e.clientY;
     macroPullStart = macroPull;
-    if (music2El && !music2Started) {
+    if (music2El && !music2Started && audioCtx) {
+      if (!music2Gain) {
+        try {
+          const src2 = audioCtx.createMediaElementSource(music2El);
+          music2Gain = audioCtx.createGain();
+          music2Gain.gain.value = 0;
+          src2.connect(music2Gain);
+          music2Gain.connect(audioCtx.destination);
+        } catch(e) { console.error('d93: music2 connect error', e); }
+      }
       music2El.volume = 1;
-      music2El.play().then(function() { music2Started = true; }).catch(function(){});
+      music2El.play().then(function() {
+        music2Started = true;
+        console.log('d93: music2 playing');
+      }).catch(function(e) { console.error('d93: music2 play error', e); });
     }
   });
 
@@ -1720,9 +1726,21 @@ transPool = makeAudioPool(TRANS_URLS, 5);
     macroDragging  = true;
     macroStartY    = e.touches[0].clientY;
     macroPullStart = macroPull;
-    if (music2El && !music2Started) {
+    if (music2El && !music2Started && audioCtx) {
+      if (!music2Gain) {
+        try {
+          const src2 = audioCtx.createMediaElementSource(music2El);
+          music2Gain = audioCtx.createGain();
+          music2Gain.gain.value = 0;
+          src2.connect(music2Gain);
+          music2Gain.connect(audioCtx.destination);
+        } catch(e) { console.error('d93: music2 connect error', e); }
+      }
       music2El.volume = 1;
-      music2El.play().then(function() { music2Started = true; }).catch(function(){});
+      music2El.play().then(function() {
+        music2Started = true;
+        console.log('d93: music2 playing');
+      }).catch(function(e) { console.error('d93: music2 play error', e); });
     }
   }, { passive: true });
 
