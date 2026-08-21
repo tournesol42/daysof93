@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v102-music-ramp -->
+<!-- build: explore-v103-ramp-once -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -376,6 +376,7 @@ let silMeshRoot     = null;
 let silMeshRaf       = null;
 let silMeshStartTs   = 0;
 let firstSilenceDone = false;
+let filterRampDone   = false;
 let silMeshBaseScale = 1.0;
 
 // ── Shapes ────────────────────────────────────────────────────────────────────
@@ -614,6 +615,7 @@ function drawCuts(c, W, H) {
 function enterSilence(ts) {
   stopRiser();
   if (musicFadeTimer) { clearTimeout(musicFadeTimer); musicFadeTimer = null; }
+  if (firstSilenceDone && !filterRampDone) filterRampDone = true;
   const baseDur = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
   const totalMs = firstSilenceDone ? baseDur : 999999;
   silTotalMs   = totalMs;
@@ -1126,10 +1128,14 @@ function doAdvance(ts) {
     nextSilenceMs    = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
     riserLeadMs      = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
     const fadeAt = Math.max(2000, nextSilenceMs - 500);
-    musicFadeTimer = setTimeout(function() {
-      musicFadeTo(CFG.musicVolLow, 0.5);
-      musicFadeTimer = null;
-    }, fadeAt);
+    if (!filterRampDone) {
+      musicFadeTimer = setTimeout(function() {
+        musicFadeTo(CFG.musicVolLow, 0.5);
+        musicFadeTimer = null;
+      }, fadeAt);
+    } else {
+      musicFadeTo(CFG.musicVolLow, CFG.musicFadeOut);
+    }
   }
 }
 
@@ -1175,7 +1181,7 @@ function frame(ts) {
   }
 
   if (audioCtx && shortFilter && !shape1Active && !shape1Fading) {
-    if (firstSilenceDone && engineState === 'HOLD') {
+    if (firstSilenceDone && !filterRampDone && engineState === 'HOLD') {
       // Filter ramp: 20000 → 200hz over 1.5s, then back to 20000 before next silence
       const holdElapsed = ts - lastSilenceEndTs;
       const rampDownEnd = 1500;
