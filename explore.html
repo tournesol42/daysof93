@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v103-ramp-once -->
+<!-- build: explore-v104-pool-long-fix -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1423,8 +1423,11 @@ async function loadImages() {
 startAnim();
 pixelCanvas = document.createElement('canvas');
 pixelCtx    = pixelCanvas.getContext('2d');
-const LONG_URLS = Array.from({length: AUDIO_CFG.longPoolCount}, function(_, i) {
-  return 'https://daysof93-cdn.b-cdn.net/pool%20long/long_' + String(i+1).padStart(2,'0') + '.wav';
+const LONG_URLS = [
+  'long_01','long_03','long_04','long_05','long_06',
+  'long_07','long_08','long_09','long_10'
+].map(function(n) {
+  return 'https://daysof93-cdn.b-cdn.net/pool%20long/' + n + '.wav';
 }).sort(function() { return Math.random()-0.5; });
 
 const LONG2_URLS = Array.from({length: 8}, function(_, i) {
