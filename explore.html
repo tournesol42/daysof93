@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v104-pool-long-fix -->
+<!-- build: explore-v105-macro-pull -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -367,6 +367,17 @@ let riserPlaying = false;
 let riserEl      = null;
 let riserStartTs = 0;
 let riserLeadMs  = 3500;
+
+// ── Macro pull ────────────────────────────────────────────────────────────────
+let macroActive    = false;
+let macroPull      = 0;
+let macroDragging  = false;
+let macroStartY    = 0;
+let macroPullStart = 0;
+let macroYOffset   = 0;
+let music2El       = null;
+let music2Gain     = null;
+let music2Started  = false;
 
 // ── First silence mesh ────────────────────────────────────────────────────────
 let silMeshRenderer = null;
@@ -910,6 +921,22 @@ function hideSilMesh() {
   if (silMeshRaf) { cancelAnimationFrame(silMeshRaf); silMeshRaf = null; }
 }
 
+function loadMusic2() {
+  if (music2El || !audioCtx) return;
+  music2El = document.createElement('audio');
+  music2El.src = 'https://daysof93-cdn.b-cdn.net/pool-music/Exploremain2.mp3';
+  music2El.loop = true;
+  document.body.appendChild(music2El);
+  try {
+    const src2 = audioCtx.createMediaElementSource(music2El);
+    music2Gain = audioCtx.createGain();
+    music2Gain.gain.value = 0;
+    src2.connect(music2Gain);
+    music2Gain.connect(audioCtx.destination);
+    console.log('d93: music2 loaded');
+  } catch(e) { console.error('d93: music2 error', e); }
+}
+
 function makeAudioPool(urls, preloadCount) {
   const els = [];
   let idx = 0;
@@ -1181,7 +1208,7 @@ function frame(ts) {
   }
 
   if (audioCtx && shortFilter && !shape1Active && !shape1Fading) {
-    if (firstSilenceDone && !filterRampDone && engineState === 'HOLD') {
+    if (firstSilenceDone && !filterRampDone && !macroActive && engineState === 'HOLD') {
       // Filter ramp: 20000 → 200hz over 1.5s, then back to 20000 before next silence
       const holdElapsed = ts - lastSilenceEndTs;
       const rampDownEnd = 1500;
@@ -1221,7 +1248,7 @@ function frame(ts) {
     if (fp >= 1) shape2FadeStart = null;
   }
   var effectiveBright = Math.min(1, targetBright + audioSpike * (1 - targetBright));
-  if (shape1MacroActive && shortFilter && audioCtx) {
+  if (shape1MacroActive && !macroActive && shortFilter && audioCtx) {
     var fv = shortFilter.frequency.value;
     // log-normalise 200Hz→0.0, 20kHz→1.0
     var fNorm = Math.max(0, Math.min(1,
@@ -1231,7 +1258,7 @@ function frame(ts) {
   }
   brightnessOverlay = 1 - effectiveBright;
 
-  if (shape1MacroActive && window.d93GeoEls) {
+  if (shape1MacroActive && !macroActive && window.d93GeoEls) {
     var shapeOpacity = Math.max(0.08, effectiveBright);
     if (window.d93GeoEls.tri)  window.d93GeoEls.tri.style.opacity  = String(shapeOpacity);
     if (window.d93GeoEls.circ) window.d93GeoEls.circ.style.opacity = String(shapeOpacity);
@@ -1255,6 +1282,32 @@ function frame(ts) {
   }
   effectivePixel = Math.max(triEffectStrength, pixelSpikeVal);
 
+  if (macroActive && macroPull > 0) {
+    brightnessOverlay = macroPull * 0.9;
+    tempoScale        = 1 + macroPull * 5;
+    shortPitchRate    = Math.pow(0.5, macroPull);
+    if (shortFilter && audioCtx) {
+      shortFilter.frequency.setValueAtTime(
+        20000 * Math.pow(100 / 20000, macroPull), audioCtx.currentTime
+      );
+    }
+    triEffectStrength = macroPull > 0.5 ? (macroPull - 0.5) * 2 : 0;
+    effectivePixel    = triEffectStrength;
+  } else if (macroActive) {
+    brightnessOverlay = 0;
+    tempoScale        = 1.0;
+    shortPitchRate    = 1.0;
+  }
+
+  if (macroActive && music2Gain && audioCtx) {
+    if (macroPull >= 0.5) {
+      const vol2 = 0.562 + (macroPull - 0.5) * 2 * (1.0 - 0.562);
+      music2Gain.gain.setValueAtTime(vol2 * getVol(), audioCtx.currentTime);
+    } else {
+      music2Gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
+  }
+
   // Shape 3 tempo tween back to normal
   if (tempoTweenStart !== null) {
     var tp = Math.min((ts - tempoTweenStart) / 1000, 1);
@@ -1263,12 +1316,22 @@ function frame(ts) {
   }
 
   if (shapesFloating && window.d93GeoEls) {
-    shapeFloatT += dt;
+    if (!macroActive) shapeFloatT += dt;
+    if (macroActive) {
+      macroYOffset = macroPull * window.innerHeight * 0.52;
+    } else {
+      macroYOffset = 0;
+    }
 
     if (shapesConverging && convergeProgress < 1) {
       convergeProgress = Math.min(convergeProgress + dt * 0.07, 1);
       if (convergeProgress >= 1 && helperFadeStartTs === 0) {
         helperFadeStartTs = ts;
+        setTimeout(function() {
+          macroActive = true;
+          loadMusic2();
+          console.log('d93: macro pull active');
+        }, 4000);
       }
     }
     var cp  = convergeProgress;
@@ -1277,15 +1340,16 @@ function frame(ts) {
     var gels = window.d93GeoEls;
 
     // Circle 2 (orange, rect) → 3 lower bowl
-    var rfx = Math.sin(shapeFloatT*0.41)*5 + Math.sin(shapeFloatT*0.79)*2 + convergeDriftRect.x * ec;
-    var rfy = Math.sin(shapeFloatT*0.53+1.2)*4 + Math.sin(shapeFloatT*0.67)*2 + convergeDriftRect.y * ec;
+    var fs = macroActive ? 0 : 1;
+    var rfx = Math.sin(shapeFloatT*0.41)*5*fs + Math.sin(shapeFloatT*0.79)*2*fs + convergeDriftRect.x * ec;
+    var rfy = Math.sin(shapeFloatT*0.53+1.2)*4*fs + Math.sin(shapeFloatT*0.67)*2*fs + convergeDriftRect.y * ec + macroYOffset;
     if (gels.rect) gels.rect.style.transform =
       'translate(' + rfx.toFixed(1) + 'px,' + rfy.toFixed(1) + 'px)';
 
     // Triangle → 3 upper, rotates -90° as it moves
     var triRot = ec * (-90);
-    var tfx = Math.sin(shapeFloatT*0.37+2.1)*5 + Math.sin(shapeFloatT*0.61)*2 + convergeDriftTri.x * ec;
-    var tfy = Math.sin(shapeFloatT*0.59+0.7)*4 + Math.sin(shapeFloatT*0.83)*2 + convergeDriftTri.y * ec;
+    var tfx = Math.sin(shapeFloatT*0.37+2.1)*5*fs + Math.sin(shapeFloatT*0.61)*2*fs + convergeDriftTri.x * ec;
+    var tfy = Math.sin(shapeFloatT*0.59+0.7)*4*fs + Math.sin(shapeFloatT*0.83)*2*fs + convergeDriftTri.y * ec + macroYOffset;
     if (gels.tri) gels.tri.style.transform =
       'translate(' + tfx.toFixed(1) + 'px,' + tfy.toFixed(1) + 'px) rotate(' + triRot.toFixed(1) + 'deg)';
     if (gels.tri) {
@@ -1294,8 +1358,8 @@ function frame(ts) {
     }
 
     // Circle 1 (dark grey, circ) → 9 bowl
-    var cfx = Math.sin(shapeFloatT*0.29+1.0)*5 + Math.sin(shapeFloatT*0.71)*2 + convergeDriftCirc.x * ec;
-    var cfy = Math.sin(shapeFloatT*0.47+2.5)*4 + Math.sin(shapeFloatT*0.57)*2 + convergeDriftCirc.y * ec;
+    var cfx = Math.sin(shapeFloatT*0.29+1.0)*5*fs + Math.sin(shapeFloatT*0.71)*2*fs + convergeDriftCirc.x * ec;
+    var cfy = Math.sin(shapeFloatT*0.47+2.5)*4*fs + Math.sin(shapeFloatT*0.57)*2*fs + convergeDriftCirc.y * ec + macroYOffset;
     if (gels.circ) gels.circ.style.transform =
       'translate(' + cfx.toFixed(1) + 'px,' + cfy.toFixed(1) + 'px)';
 
@@ -1501,6 +1565,13 @@ transPool = makeAudioPool(TRANS_URLS, 5);
   // Shape 1 appears 5s after playback starts, shape 2 10s after that
 
   function handlePointer(mx, my) {
+    if (macroActive) {
+      if (macroDragging) {
+        var delta = my - macroStartY;
+        macroPull = Math.max(0, Math.min(1, macroPullStart + delta / (window.innerHeight * 0.6)));
+      }
+      return;
+    }
     var rb = rectEl.getBoundingClientRect();
     var tb = triEl.getBoundingClientRect();
     var cb = circEl.getBoundingClientRect();
@@ -1593,7 +1664,34 @@ transPool = makeAudioPool(TRANS_URLS, 5);
   }, { passive: false });
 
   document.addEventListener('touchend', function() {
-    handlePointer(-9999, -9999); // forces all shapes to "leave" state
+    if (macroActive) { macroDragging = false; return; }
+    handlePointer(-9999, -9999);
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (!macroActive) return;
+    macroDragging  = true;
+    macroStartY    = e.clientY;
+    macroPullStart = macroPull;
+    if (music2El && !music2Started) {
+      music2El.volume = 0;
+      music2El.play().then(function() { music2Started = true; }).catch(function(){});
+    }
+  });
+
+  document.addEventListener('touchstart', function(e) {
+    if (!macroActive || !e.touches.length) return;
+    macroDragging  = true;
+    macroStartY    = e.touches[0].clientY;
+    macroPullStart = macroPull;
+    if (music2El && !music2Started) {
+      music2El.volume = 0;
+      music2El.play().then(function() { music2Started = true; }).catch(function(){});
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseup', function() {
+    if (macroActive) macroDragging = false;
   });
 })();
 </script>
