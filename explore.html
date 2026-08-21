@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v100-filter-curve -->
+<!-- build: explore-v102-music-ramp -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -362,6 +362,7 @@ let long2Pool       = null;
 let transPool       = null;
 
 // ── Riser ─────────────────────────────────────────────────────────────────────
+let musicFadeTimer = null;
 let riserPlaying = false;
 let riserEl      = null;
 let riserStartTs = 0;
@@ -612,6 +613,7 @@ function drawCuts(c, W, H) {
 // ── Silence ───────────────────────────────────────────────────────────────────
 function enterSilence(ts) {
   stopRiser();
+  if (musicFadeTimer) { clearTimeout(musicFadeTimer); musicFadeTimer = null; }
   const baseDur = CFG.silenceDurMin + Math.random() * (CFG.silenceDurMax - CFG.silenceDurMin);
   const totalMs = firstSilenceDone ? baseDur : 999999;
   silTotalMs   = totalMs;
@@ -799,7 +801,11 @@ function dismissFirstSilence(ts) {
   lastSilenceEndTs = ts;
   nextSilenceMs    = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
   riserLeadMs      = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
-  musicFadeTo(CFG.musicVolLow, CFG.musicFadeOut);
+  const fadeAt = Math.max(2000, nextSilenceMs - 500);
+  musicFadeTimer = setTimeout(function() {
+    musicFadeTo(CFG.musicVolLow, 0.5);
+    musicFadeTimer = null;
+  }, fadeAt);
   currentIndex = computeNext(currentIndex);
   enterHold(ts);
   audioTriggerShort();
@@ -1119,7 +1125,11 @@ function doAdvance(ts) {
     lastSilenceEndTs = ts;
     nextSilenceMs    = CFG.silenceIntervalMin + Math.random() * (CFG.silenceIntervalMax - CFG.silenceIntervalMin);
     riserLeadMs      = Math.min(3000 + Math.random() * 1000, nextSilenceMs - 500);
-    musicFadeTo(CFG.musicVolLow, CFG.musicFadeOut);
+    const fadeAt = Math.max(2000, nextSilenceMs - 500);
+    musicFadeTimer = setTimeout(function() {
+      musicFadeTo(CFG.musicVolLow, 0.5);
+      musicFadeTimer = null;
+    }, fadeAt);
   }
 }
 
