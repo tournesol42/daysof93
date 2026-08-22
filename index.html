@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v199-c64-portal -->
+<!-- build: v198-orange-redirect -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -379,38 +379,16 @@
     from { transform: translateY(-100vh); }
     to   { transform: translateY(0); }
   }
-#c64-boot {
-  position: fixed; top:0; right:0; bottom:0; left:0; z-index: 99999;
-  background: #E85500;
-  display: flex; align-items: flex-start; justify-content: flex-start;
-  padding: clamp(24px,5vw,56px);
-  font-family: 'Commodore 64 Pixelized', monospace;
-  font-size: clamp(24px,3.4vw,40px);
-  color: #AAAAAA;
-  line-height: 2; letter-spacing: 0.05em;
-  cursor: pointer;
-}
-#c64-boot .c64-sm { font-size: clamp(13px,1.8vw,21px); line-height: 1.8; }
-#c64-cursor { animation: c64blink 0.85s step-end infinite; }
-@keyframes c64blink { 0%,100%{opacity:1} 50%{opacity:0} }
 </style>
 </head>
 <body>
-<link href="https://fonts.cdnfonts.com/css/commodore-64-pixelized" rel="stylesheet">
-<div id="c64-boot">
-  <div>
-    <div>DAYS OF 93</div>
-    <div>&nbsp;</div>
-    <div>PRESS ANY KEY TO CONTINUE.<span id="c64-cursor">&#x2588;</span></div>
-    <div>&nbsp;</div>
-    <div class="c64-sm">**** ConSec 64 BASIC V2 ****&nbsp;&nbsp;&nbsp;64K RAM SYSTEM&nbsp;&nbsp;38911 BASIC BYTES FREE&nbsp;&nbsp;&nbsp;READY.&nbsp;&nbsp;&nbsp;<span id="c64-datetime"></span></div>
-  </div>
-</div>
 <script>
 (function(){
-  if (location.search.indexOf('from=explore') !== -1) return;
-  document.documentElement.style.background = '#E85500';
-  document.body.style.background = '#E85500';
+  if (location.search.indexOf('from=explore') === -1) {
+    document.documentElement.style.background = '#E85500';
+    document.body.style.background = '#E85500';
+    setTimeout(function(){ window.location.href = 'explore.html'; }, 50);
+  }
 })();
 </script>
 
@@ -1439,34 +1417,5 @@ setTimeout(function() {
 })();
 </script>
 
-<script>
-(function(){
-  if (location.search.indexOf('from=explore') !== -1) return;
-  var gone = false;
-  var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  function tickClock(){
-    var n = new Date();
-    var el = document.getElementById('c64-datetime');
-    if (el) el.textContent =
-      String(n.getDate()).padStart(2,'0')+' '+months[n.getMonth()]+' 1993  '+
-      String(n.getHours()).padStart(2,'0')+':'+
-      String(n.getMinutes()).padStart(2,'0')+':'+
-      String(n.getSeconds()).padStart(2,'0');
-  }
-  tickClock();
-  var clk = setInterval(tickClock, 1000);
-  function dismiss() {
-    if (gone) return; gone = true;
-    clearInterval(clk);
-    var boot = document.getElementById('c64-boot');
-    if (boot) boot.style.display = 'none';
-  }
-  setTimeout(function(){
-    document.addEventListener('keydown',    dismiss, {once:true});
-    document.addEventListener('click',      dismiss, {once:true});
-    document.addEventListener('touchstart', dismiss, {once:true, passive:true});
-  }, 500);
-})();
-</script>
 </body>
 </html>
