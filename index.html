@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v200-dot-restored -->
+<!-- build: v202-breathe-restored -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -415,6 +415,28 @@
     document.documentElement.style.background = '#E85500';
     document.body.style.background = '#E85500';
     setTimeout(function(){ window.location.href = 'explore.html'; }, 50);
+  } else {
+    history.replaceState({}, '', '/');
+    // Trigger image + mesh breathing + grid darkening after 2s
+    setTimeout(function() {
+      var v = document.getElementById('bg-vector');
+      if (v) { v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
+      var mc = document.getElementById('mesh-canvas');
+      if (mc) mc.classList.add('mesh-breathing');
+
+      var field = document.getElementById('field');
+      if (field) {
+        var baseAlpha = 0.12, peakAlpha = 0.45, period = 18000;
+        var t0 = performance.now();
+        (function loop(now) {
+          var t = ((now - t0) % period) / period;
+          var s = (1 - Math.cos(t * Math.PI * 2)) / 2;
+          var a = (baseAlpha + s * (peakAlpha - baseAlpha)).toFixed(4);
+          field.style.setProperty('--line', 'rgba(0,0,0,' + a + ')');
+          requestAnimationFrame(loop);
+        })(performance.now());
+      }
+    }, 2000);
   }
 })();
 </script>
