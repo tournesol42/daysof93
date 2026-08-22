@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v113-roll-ramp5 -->
+<!-- build: explore-v114-tempo-dive -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -436,12 +436,6 @@ function randBetween(lo, hi) {
 }
 
 function computeHoldMs() {
-  if (rollMode) {
-    var rollElapsed = performance.now() - rollStartTs;
-    var t = Math.min(rollElapsed / rollDurMs, 1);
-    var interval = rollRampUp ? (3 + t * 17) : (20 - t * 17);
-    return interval * tempoScale;
-  }
   if (clusterRemaining <= 0) {
     clusterMode = (clusterMode === 'FAST') ? 'SLOW' : 'FAST';
     var runMin = (clusterMode === 'FAST') ? CFG.clusterFastMin : CFG.clusterSlowMin;
@@ -1226,13 +1220,12 @@ function frame(ts) {
   const dt = Math.min((ts - lastTs) / 1000, 0.05);
   lastTs = ts;
   rafId  = requestAnimationFrame(frame);
-  // Turntable slowdown during roll
+  // Turntable tempo dive during roll
   if (rollMode) {
-    const rollT    = Math.min((ts - rollStartTs) / 2000, 1);
-    const curve    = rollT * rollT;           // quadratic — slow start, accelerates
-    const speed    = 1 - curve * 0.80;        // 1.0 → 0.20
-    tempoScale     = Math.min(1 / speed, 5);  // 1.0 → 5×
-    shortPitchRate = speed;                   // pitch drops with speed
+    const rollT    = Math.min((ts - rollStartTs) / 3000, 1);
+    const curve    = rollT * rollT;            // quadratic — slow start, accelerates
+    tempoScale     = 1 + curve * 19;           // 1× → 20× (60–1000ms range)
+    shortPitchRate = Math.max(0.15, 1 - curve * 0.85); // pitch dives with speed
   } else if (!macroActive && !shape3Active) {
     shortPitchRate += (1.0 - shortPitchRate) * Math.min(dt * 2, 1);
   }
