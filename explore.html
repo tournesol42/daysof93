@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v114-tempo-dive -->
+<!-- build: explore-v115-tempo-log -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1223,9 +1223,9 @@ function frame(ts) {
   // Turntable tempo dive during roll
   if (rollMode) {
     const rollT    = Math.min((ts - rollStartTs) / 3000, 1);
-    const curve    = rollT * rollT;            // quadratic — slow start, accelerates
-    tempoScale     = 1 + curve * 19;           // 1× → 20× (60–1000ms range)
-    shortPitchRate = Math.max(0.15, 1 - curve * 0.85); // pitch dives with speed
+    const curve    = (Math.exp(rollT * 5) - 1) / (Math.exp(5) - 1); // sharp exponential
+    tempoScale     = 1 + curve * 19;           // 1× → 20× (stays fast, then dives)
+    shortPitchRate = Math.max(0.15, 1 - curve * 0.85); // pitch follows
   } else if (!macroActive && !shape3Active) {
     shortPitchRate += (1.0 - shortPitchRate) * Math.min(dt * 2, 1);
   }
