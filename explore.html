@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v115-tempo-log -->
+<!-- build: explore-v116-pull-fade -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -611,7 +611,7 @@ function drawCuts(c, W, H) {
       ? Math.max(0, 1 - (cut.age - cut.fadeOutStart) / 200)
       : Math.min(1, cut.age / 200);
     if (alpha <= 0) return;
-    c.globalAlpha = alpha;
+    c.globalAlpha = alpha * (1 - macroPull);
     drawSingleCut(c, cut, W, H, 1);
   });
   c.globalAlpha = 1;
@@ -700,7 +700,7 @@ function drawSilenceOverlay(c, W, H, elapsed) {
       sf.style.opacity = '0';
     } else {
       const gridT = Math.min((elapsed - gridStart) / 1500, 1);
-      sf.style.opacity = gridT.toFixed(3);
+      sf.style.opacity = (gridT * (1 - macroPull)).toFixed(3);
     }
   }
 }
