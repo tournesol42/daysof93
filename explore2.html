@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v8-canvas-maxsize -->
+<!-- build: explore2-v10-crosshair-sq -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -278,11 +278,49 @@ canvas {
   letter-spacing: 0.45em;
   text-transform: uppercase;
 }
+#ws-ch {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#ws-ch-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0.75px;
+  background: rgba(255,255,255,0.30);
+}
+#ws-ch-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0.75px;
+  background: rgba(255,255,255,0.30);
+}
+#ws-ch-sq {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 0.75px solid rgba(255,255,255,0.45);
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+}
 </style>
 </head>
 <body>
 
 <div id="ws-overlay">TOUCH TO BEGIN</div>
+<div id="ws-ch">
+  <div id="ws-ch-v"></div>
+  <div id="ws-ch-h"></div>
+  <div id="ws-ch-sq"></div>
+</div>
 
 <!-- Hidden file inputs -->
 <input type="file" id="fileInput" multiple accept="image/*,video/*,video/quicktime,.mov,.m4v" style="display:none">
@@ -2926,6 +2964,23 @@ if (WEBSITE_MODE) {
     if (wsCdnReady) wsStartEngine();
   }, { once: true });
 
+  // ── Crosshair ─────────────────────────────────────────────────────────────
+  const wsCh    = document.getElementById('ws-ch');
+  const wsChV   = document.getElementById('ws-ch-v');
+  const wsChH   = document.getElementById('ws-ch-h');
+  const wsChSq  = document.getElementById('ws-ch-sq');
+  let wsChTimer = null;
+
+  function wsMoveCrosshair(x, y) {
+    wsChV.style.left   = x + 'px';
+    wsChH.style.top    = y + 'px';
+    wsChSq.style.left  = x + 'px';
+    wsChSq.style.top   = y + 'px';
+    wsCh.style.opacity = '1';
+    clearTimeout(wsChTimer);
+    wsChTimer = setTimeout(() => { wsCh.style.opacity = '0'; }, 2000);
+  }
+
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
   // Zones 0–8 row-major: top-left=0, top-right=2, bottom-left=6, bottom-right=8
   // Zone n → snapshot n directly (1:1 mapping, 9 zones, 9 snapshots)
@@ -2951,14 +3006,17 @@ if (WEBSITE_MODE) {
   }
 
   document.addEventListener('mousemove', e => {
+    wsMoveCrosshair(e.clientX, e.clientY);
     wsEnterZone(wsGetZone(e.clientX, e.clientY));
   });
   document.addEventListener('touchmove', e => {
     const touch = e.touches[0];
+    wsMoveCrosshair(touch.clientX, touch.clientY);
     wsEnterZone(wsGetZone(touch.clientX, touch.clientY));
   }, { passive: true });
   document.addEventListener('touchstart', e => {
     const touch = e.touches[0];
+    wsMoveCrosshair(touch.clientX, touch.clientY);
     wsEnterZone(wsGetZone(touch.clientX, touch.clientY));
   }, { passive: true });
 
