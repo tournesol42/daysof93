@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v5-deferred-init -->
+<!-- build: explore2-v6-916-canvas -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2837,8 +2837,8 @@ document.getElementById('snapJpgBtn').addEventListener('click', () => {
 if (WEBSITE_MODE) {
   // ── Resize canvas to full viewport ──────────────────────────────────────
   function wsResizeCanvas() {
-    CW = window.innerWidth;
-    CH = window.innerHeight;
+    // Fixed 9:16 internal resolution — matches source images
+    CW = 1080; CH = 1920;
     cv.width  = CW;
     cv.height = CH;
     modCanvas.width  = CW;
@@ -2851,7 +2851,18 @@ if (WEBSITE_MODE) {
       entry.filled = false;
     });
     ringHead = 0; lastCapTs = 0;
-    console.log('d93: canvas', CW, 'x', CH);
+    // CSS cover-scale to fill viewport
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scale = Math.max(vw / CW, vh / CH);
+    const dw = Math.ceil(CW * scale);
+    const dh = Math.ceil(CH * scale);
+    cv.style.width    = dw + 'px';
+    cv.style.height   = dh + 'px';
+    cv.style.position = 'fixed';
+    cv.style.left     = Math.floor((vw - dw) / 2) + 'px';
+    cv.style.top      = Math.floor((vh - dh) / 2) + 'px';
+    console.log('d93: canvas 1080x1920 scaled', dw, 'x', dh, 'on viewport', vw, 'x', vh);
   }
   wsResizeCanvas();
   window.addEventListener('resize', wsResizeCanvas);
