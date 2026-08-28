@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v29-engine-sync -->
+<!-- build: explore2-v30-zoom-2tier -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1707,14 +1707,12 @@ function advanceSequencer() {
 function paramModTrigger(key, m) {
   if (key === 'zoom') {
     if (m.holdTicks > 0) { m.holdTicks--; return; }
-    const roll = Math.random();
-    if (roll < 0.55) {
-      m.target = 0.08 + Math.random() * 0.30;
-    } else if (roll < 0.85) {
-      m.target = 0.4 + Math.random() * 0.7;
-    } else {
-      m.target = 1.3 + Math.random() * 1.5;
+    const big = Math.random() < 0.18;
+    if (big) {
+      m.target = 1.2 + Math.random() * 1.8;
       m.holdTicks = 3 + Math.floor(Math.random() * 4);
+    } else {
+      m.target = 0.12 + Math.random() * 0.38;
     }
   } else if (key === 'pixel') {
     const big = Math.random() < 0.18;
