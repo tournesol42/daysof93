@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v10-crosshair-sq -->
+<!-- build: explore2-v11-audio -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2941,7 +2941,76 @@ if (WEBSITE_MODE) {
     if (wsGestureReady) wsStartEngine();
   }
 
+  // ── Audio engine ──────────────────────────────────────────────────────────
+  const WS_SHORT_VOL   = 0.7;
+  const WS_LONG_VOL    = 0.5;
+  const WS_SHORT_BASE  = 'https://daysof93-cdn.b-cdn.net/poolexplore2_shortsounds/';
+  const WS_LONG_BASE   = 'https://daysof93-cdn.b-cdn.net/poolexplore2_longsounds/';
+  const WS_SHORT_COUNT = 19;
+  const WS_LONG_COUNT  = 24;
+
+  let wsAudioCtx     = null;
+  let wsShortBuffers = [];
+  let wsShortSource  = null;
+  const wsLongAudio  = new Audio();
+
+  function wsInitAudio() {
+    wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    for (let i = 1; i <= WS_SHORT_COUNT; i++) {
+      (function(url) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => {
+          wsAudioCtx.decodeAudioData(xhr.response,
+            buf => { wsShortBuffers.push(buf); },
+            err => console.warn('d93: short decode failed', url, err)
+          );
+        };
+        xhr.onerror = () => console.warn('d93: short XHR failed', url);
+        xhr.send();
+      })(WS_SHORT_BASE + i + '.wav');
+    }
+    // Patch triggerAudio — monophonic short sound on every clock tick
+    const _origTriggerAudio = triggerAudio;
+    triggerAudio = function() {
+      _origTriggerAudio.call(this);
+      wsPlayShortSound();
+    };
+    console.log('d93: audio init, loading', WS_SHORT_COUNT, 'short WAVs');
+  }
+
+  function wsPlayShortSound() {
+    if (!wsAudioCtx || wsShortBuffers.length === 0) return;
+    if (wsShortSource) { try { wsShortSource.stop(); } catch(e) {} wsShortSource = null; }
+    const buf = wsShortBuffers[Math.floor(Math.random() * wsShortBuffers.length)];
+    const src = wsAudioCtx.createBufferSource();
+    src.buffer = buf;
+    const gain = wsAudioCtx.createGain();
+    gain.gain.value = WS_SHORT_VOL;
+    src.connect(gain);
+    gain.connect(wsAudioCtx.destination);
+    src.start();
+    wsShortSource = src;
+    src.onended = () => { if (wsShortSource === src) wsShortSource = null; };
+  }
+
+  function wsStartLongSound() {
+    const n = Math.floor(Math.random() * WS_LONG_COUNT) + 1;
+    wsLongAudio.src         = WS_LONG_BASE + n + '.mp3';
+    wsLongAudio.volume      = WS_LONG_VOL;
+    wsLongAudio.currentTime = 0;
+    wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
+    console.log('d93: long sound', n);
+  }
+
+  function wsStopLongSound() {
+    wsLongAudio.pause();
+    wsLongAudio.currentTime = 0;
+  }
+
   function wsStartEngine() {
+    wsInitAudio();
     imgRangeFrom = 0; imgRangeTo = 1;
     imgRangeRS.setRange(0, 1);
     updateImgRangeStatus();
@@ -3000,9 +3069,12 @@ if (WEBSITE_MODE) {
     if (!_filled.length) return;
     const _idx = _filled.length === 1 ? 0 : Math.round(t * (_filled.length - 1));
     const _slot = _filled[_idx];
+    const prevBrigLow = brigLow;
     snapFaderPos = _slot;
     applySnapshot(snapshots[_slot]);
-    console.log('d93: zone', zone, '→ snapshot t=', t.toFixed(2));
+    if (brigLow > 0 && prevBrigLow === 0) wsStartLongSound();
+    if (brigLow === 0 && prevBrigLow > 0) wsStopLongSound();
+    console.log('d93: zone', zone, '→ snapshot t=', t.toFixed(2), 'brigLow:', brigLow);
   }
 
   document.addEventListener('mousemove', e => {
