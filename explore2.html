@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v22-vol-fader -->
+<!-- build: explore2-v23-mainmusic -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3041,6 +3041,28 @@ if (WEBSITE_MODE) {
     wsLongAudio.currentTime = 0;
   }
 
+  // ── Main music engine (every 4–8 brigLow activations) ────────────────────
+  const WS_MAIN_BASE  = 'https://daysof93-cdn.b-cdn.net/mainmusicexplore2/';
+  const WS_MAIN_COUNT = 10;
+  const WS_MAIN_VOL   = 0.6;
+  const wsMainAudio   = new Audio();
+  let wsMainTriggerCount  = 0;
+  let wsMainTriggerTarget = Math.floor(Math.random() * 5) + 4;
+
+  function wsCheckMainMusic() {
+    wsMainTriggerCount++;
+    if (wsMainTriggerCount >= wsMainTriggerTarget) {
+      const n = Math.floor(Math.random() * WS_MAIN_COUNT) + 1;
+      wsMainAudio.src         = WS_MAIN_BASE + n + '.mp3';
+      wsMainAudio.volume      = WS_MAIN_VOL;
+      wsMainAudio.currentTime = 0;
+      wsMainAudio.play().catch(e => console.warn('d93: main music play failed', e));
+      console.log('d93: main music', n, '— next in', wsMainTriggerTarget, 'triggers');
+      wsMainTriggerCount  = 0;
+      wsMainTriggerTarget = Math.floor(Math.random() * 5) + 4;
+    }
+  }
+
   function wsCreateReverbIR(ctx, duration, decay) {
     const rate     = ctx.sampleRate;
     const length   = Math.ceil(rate * duration);
@@ -3140,7 +3162,7 @@ if (WEBSITE_MODE) {
     snapFaderPos = _slot;
     applySnapshot(snapshots[_slot]);
     const newBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
-    if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
+    if (newBrigLow > 0 && prevBrigLow === 0) { wsStartLongSound(); wsCheckMainMusic(); }
     if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
   }
 
