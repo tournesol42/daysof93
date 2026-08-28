@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v13-shortsounds-31 -->
+<!-- build: explore2-v14-filters-reverb -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2953,6 +2953,7 @@ if (WEBSITE_MODE) {
   let wsShortBuffers = [];
   let wsShortSource  = null;
   const wsLongAudio  = new Audio();
+  let wsHPF = null, wsLPF = null, wsReverbNode = null, wsReverbGain = null;
 
   function wsInitAudio() {
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2971,6 +2972,29 @@ if (WEBSITE_MODE) {
         xhr.send();
       })(WS_SHORT_BASE + i + '.wav');
     }
+    // Filters and reverb
+    wsHPF = wsAudioCtx.createBiquadFilter();
+    wsHPF.type = 'highpass';
+    wsHPF.frequency.value = 20;
+    wsHPF.Q.value = 0.7;
+
+    wsLPF = wsAudioCtx.createBiquadFilter();
+    wsLPF.type = 'lowpass';
+    wsLPF.frequency.value = 20000;
+    wsLPF.Q.value = 0.7;
+
+    wsReverbNode = wsAudioCtx.createConvolver();
+    wsReverbNode.buffer = wsCreateReverbIR(wsAudioCtx, 8.0, 1.2);
+
+    wsReverbGain = wsAudioCtx.createGain();
+    wsReverbGain.gain.value = 0;
+
+    wsHPF.connect(wsLPF);
+    wsLPF.connect(wsAudioCtx.destination);
+    wsLPF.connect(wsReverbNode);
+    wsReverbNode.connect(wsReverbGain);
+    wsReverbGain.connect(wsAudioCtx.destination);
+
     // Patch triggerAudio — monophonic short sound on every clock tick
     const _origTriggerAudio = triggerAudio;
     triggerAudio = function() {
@@ -2990,7 +3014,7 @@ if (WEBSITE_MODE) {
     const gain = wsAudioCtx.createGain();
     gain.gain.value = WS_SHORT_VOL;
     src.connect(gain);
-    gain.connect(wsAudioCtx.destination);
+    gain.connect(wsHPF);
     src.start();
     wsShortSource = src;
     src.onended = () => { if (wsShortSource === src) wsShortSource = null; };
@@ -3008,6 +3032,39 @@ if (WEBSITE_MODE) {
   function wsStopLongSound() {
     wsLongAudio.pause();
     wsLongAudio.currentTime = 0;
+  }
+
+  function wsCreateReverbIR(ctx, duration, decay) {
+    const rate     = ctx.sampleRate;
+    const length   = Math.ceil(rate * duration);
+    const buffer   = ctx.createBuffer(2, length, rate);
+    const preDelay = Math.ceil(rate * 0.04);
+    for (let c = 0; c < 2; c++) {
+      const data = buffer.getChannelData(c);
+      for (let i = 0; i < preDelay; i++) data[i] = 0;
+      for (let i = preDelay; i < length; i++) {
+        const t = (i - preDelay) / (length - preDelay);
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+      }
+    }
+    return buffer;
+  }
+
+  function wsLogInterp(a, b, t) {
+    return Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * t);
+  }
+
+  function wsUpdateFilters(x, y) {
+    if (!wsAudioCtx || !wsHPF) return;
+    const nx = Math.max(0, Math.min(1, x / window.innerWidth));
+    const ny = Math.max(0, Math.min(1, y / window.innerHeight));
+    // Highpass X axis: left = 2000Hz (bright/thin), right = 20Hz (full)
+    wsHPF.frequency.setTargetAtTime(wsLogInterp(2000, 20, nx), wsAudioCtx.currentTime, 0.08);
+    // Lowpass Y axis: top = 20000Hz (open), bottom = 200Hz (closed)
+    wsLPF.frequency.setTargetAtTime(wsLogInterp(20000, 200, ny), wsAudioCtx.currentTime, 0.08);
+    // Reverb Y axis: silent above centre, 3%–40% wet below centre
+    const wet = ny > 0.5 ? 0.03 + ((ny - 0.5) / 0.5) * 0.37 : 0;
+    wsReverbGain.gain.setTargetAtTime(wet, wsAudioCtx.currentTime, 0.15);
   }
 
   function wsStartEngine() {
@@ -3049,6 +3106,7 @@ if (WEBSITE_MODE) {
     wsCh.style.opacity = '1';
     clearTimeout(wsChTimer);
     wsChTimer = setTimeout(() => { wsCh.style.opacity = '0'; }, 2000);
+    wsUpdateFilters(x, y);
   }
 
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
