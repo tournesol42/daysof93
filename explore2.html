@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v28-mainmusic-fix -->
+<!-- build: explore2-v29-engine-sync -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1027,8 +1027,7 @@ let modZoomJitter  = 0;
 let modTexBoost    = 0;
 let modPixelBoost  = 0;
 let modRotJitter   = 0;
-let modColorAlpha  = 0;
-let modColorR = 0.5, modColorG = 0.5, modColorB = 0.5;
+let modSampleTs    = 0;
 
 // ── Param modulation framework ─────────────────────────────────────────────────
 const paramMods = {
@@ -1708,12 +1707,14 @@ function advanceSequencer() {
 function paramModTrigger(key, m) {
   if (key === 'zoom') {
     if (m.holdTicks > 0) { m.holdTicks--; return; }
-    const big = Math.random() < 0.18;
-    if (big) {
-      m.target = 1.2 + Math.random() * 1.8;
-      m.holdTicks = 3 + Math.floor(Math.random() * 4);
+    const roll = Math.random();
+    if (roll < 0.55) {
+      m.target = 0.08 + Math.random() * 0.30;
+    } else if (roll < 0.85) {
+      m.target = 0.4 + Math.random() * 0.7;
     } else {
-      m.target = 0.12 + Math.random() * 0.38;
+      m.target = 1.3 + Math.random() * 1.5;
+      m.holdTicks = 3 + Math.floor(Math.random() * 4);
     }
   } else if (key === 'pixel') {
     const big = Math.random() < 0.18;
@@ -2054,7 +2055,8 @@ function setBrigStatus() {
 }
 
 // ── BLEND ENGINE ──────────────────────────────────────────────────────────────
-function updateModEngine(dt, fader) {
+function updateModEngine(dt) {
+  const fader = parseInt(blendEngSlider.value) / 100;
   // Hot target rotation — decides which effects receive energy
   mEng.hotTimer -= dt;
   if (mEng.hotTimer <= 0) {
@@ -2104,25 +2106,36 @@ function updateModEngine(dt, fader) {
     mEng.blendTimer = 6 + Math.random() * 18;
   }
 
-  // Sample pixels from modCanvas centre 8×8
-  try {
-    const d = modCtx.getImageData(modCanvas.width/2 - 4, modCanvas.height/2 - 4, 8, 8).data;
-    let r=0, g=0, b=0, n=0;
-    for (let i=0; i<d.length; i+=4) { r+=d[i]/255; g+=d[i+1]/255; b+=d[i+2]/255; n++; }
-    if (n) { mEng.r=r/n; mEng.g=g/n; mEng.b=b/n; mEng.lum=0.299*mEng.r+0.587*mEng.g+0.114*mEng.b; }
-  } catch(e) {}
+  // GPU→CPU readbacks throttled to 5/s
+  const nowMs = performance.now();
+  if (nowMs - modSampleTs > 200) {
+    modSampleTs = nowMs;
+    try {
+      const d = modCtx.getImageData(
+        modCanvas.width/2 - 4, modCanvas.height/2 - 4, 8, 8).data;
+      let r=0, g=0, b=0, n=0;
+      for (let i=0; i<d.length; i+=4) {
+        r+=d[i]/255; g+=d[i+1]/255; b+=d[i+2]/255; n++;
+      }
+      if (n) {
+        mEng.r=r/n; mEng.g=g/n; mEng.b=b/n;
+        mEng.lum=0.299*mEng.r+0.587*mEng.g+0.114*mEng.b;
+      }
+    } catch(e) {}
 
-  // Temporal difference 16×16
-  try {
-    const curr = modCtx.getImageData(0, 0, 16, 16).data;
-    if (prevThumbData) {
-      let diff = 0;
-      for (let i=0; i<curr.length; i+=4)
-        diff += Math.abs(curr[i]-prevThumbData[i]) + Math.abs(curr[i+1]-prevThumbData[i+1]) + Math.abs(curr[i+2]-prevThumbData[i+2]);
-      mEng.energy = diff / (curr.length/4 * 255 * 3);
-    }
-    prevThumbData = new Uint8ClampedArray(curr);
-  } catch(e) {}
+    try {
+      const curr = modCtx.getImageData(0, 0, 16, 16).data;
+      if (prevThumbData) {
+        let diff = 0;
+        for (let i=0; i<curr.length; i+=4)
+          diff += Math.abs(curr[i]-prevThumbData[i])
+                + Math.abs(curr[i+1]-prevThumbData[i+1])
+                + Math.abs(curr[i+2]-prevThumbData[i+2]);
+        mEng.energy = diff / (curr.length/4 * 255 * 3);
+      }
+      prevThumbData = new Uint8ClampedArray(curr);
+    } catch(e) {}
+  }
 
   // Update modulation globals
   const modVal = mEng.aVal * (1 - mEng.xf) + mEng.bVal * mEng.xf;
@@ -2130,27 +2143,17 @@ function updateModEngine(dt, fader) {
 
   modTexBoost = fader * mEng.aVal * 0.10;
 
-  // ZOOM — MOD B spikes, much larger range
   modZoomJitter = isHot('zoom')
-    ? mEng.bVal * fader * (0.15 + Math.random() * 0.25)
-    : mEng.bVal * fader * 0.02;
+    ? mEng.bVal * (0.15 + Math.random() * 0.25)
+    : mEng.bVal * 0.02;
 
-  // PIXEL — MOD B spikes push pixelation hard
   modPixelBoost = isHot('pixel')
-    ? mEng.bVal * fader * (15 + Math.random() * 20)
+    ? mEng.bVal * (15 + Math.random() * 20)
     : 0;
 
-  // ROTATION — MOD B spikes, noticeable jitter
   modRotJitter = isHot('rotation')
-    ? mEng.bVal * fader * (Math.random() > 0.5 ? 1 : -1) * (8 + Math.random() * 12)
+    ? mEng.bVal * (Math.random() > 0.5 ? 1 : -1) * (8 + Math.random() * 12)
     : 0;
-
-  // COLOR — MOD A breathing, sampled from delayed frame
-  modColorAlpha = Math.min(0.55,
-    mEng.aVal * fader * (0.4 + mEng.energy * 0.8));
-  modColorR = mEng.r;
-  modColorG = mEng.g;
-  modColorB = mEng.b;
 }
 
 function drawBlendEngine(c, W, H, dt, now) {
@@ -2172,7 +2175,7 @@ function drawBlendEngine(c, W, H, dt, now) {
   modCtx.clearRect(0, 0, modCanvas.width, modCanvas.height);
   modCtx.drawImage(best.canvas, 0, 0, modCanvas.width, modCanvas.height);
 
-  if (dt > 0) updateModEngine(dt, fader);
+  // updateModEngine now called from renderFrame
 
   const modVal = mEng.aVal * (1 - mEng.xf) + mEng.bVal * mEng.xf;
   const depth  = fader * Math.min(1, modVal + mEng.energy * 0.5);
@@ -2180,7 +2183,7 @@ function drawBlendEngine(c, W, H, dt, now) {
   // Visual composite: delayed frame over current canvas
   c.save();
   c.globalCompositeOperation = mEng.blendOp;
-  c.globalAlpha = Math.min(0.9, fader * 0.6 + depth * 0.4 + 0.1);
+  c.globalAlpha = Math.min(0.85, fader * 0.55 + depth * 0.35);
   c.drawImage(best.canvas, 0, 0, W, H);
   c.restore();
 
@@ -2361,6 +2364,7 @@ function renderFrame(c, W, H, now) {
   const dt = c === ctx ? Math.min((now - lastFrameTs) / 1000, 0.05) : 0;
   if (c === ctx) lastFrameTs = now;
   if (c === ctx) tickInterp(now);
+  if (c === ctx && dt > 0) updateModEngine(dt);
   if (ghostSnap.width !== W || ghostSnap.height !== H) {
     ghostSnap.width = W; ghostSnap.height = H;
   }
@@ -2471,23 +2475,6 @@ function renderFrame(c, W, H, now) {
     c.globalAlpha = 1;
   }
 
-  // 3b. Mod engine color wash
-  if (modColorAlpha > 0.02) {
-    c.save();
-    c.globalCompositeOperation = 'overlay';
-    c.globalAlpha = modColorAlpha;
-    c.fillStyle = `rgb(${Math.round(modColorR*255)},${Math.round(modColorG*255)},${Math.round(modColorB*255)})`;
-    c.fillRect(0, 0, W, H);
-    c.restore();
-    if (modColorAlpha > 0.3) {
-      c.save();
-      c.globalCompositeOperation = 'screen';
-      c.globalAlpha = (modColorAlpha - 0.3) * 0.5;
-      c.fillStyle = `rgb(${Math.round(modColorR*255)},${Math.round(modColorG*255)},${Math.round(modColorB*255)})`;
-      c.fillRect(0, 0, W, H);
-      c.restore();
-    }
-  }
 
   // 4. Texture — ghost + animated cut lines
   if (effectiveTexture > 0) {
@@ -2923,14 +2910,14 @@ if (WEBSITE_MODE) {
   window.addEventListener('resize', wsResizeCanvas);
 
   // ── Inline snapshots ─────────────────────────────────────────────────────
-  const WS_SNAPSHOTS = {"version":1,"snapshots":[{"zoomIn":1,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":226,"bpmMin":60,"bpmMax":180,"probLow":86,"probHigh":89,"silenceFreq":0,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.25,"imgRangeTo":0.31,"zoomModOn":false,"pixelModOn":false,"chromaModOn":false,"textureModOn":false,"brigLow":17,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":1,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":226,"bpmMin":60,"bpmMax":180,"probLow":86,"probHigh":89,"silenceFreq":0,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0,"imgRangeTo":1,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":59,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":135,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":0,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.9,"imgRangeTo":1,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":77,"blendEng":100,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":135,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":0,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.69,"imgRangeTo":0.89,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":0,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":135,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":28,"silDurMin":3,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.21,"imgRangeTo":0.32,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":0,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":93,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":28,"silDurMin":3,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.21,"imgRangeTo":0.32,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":35,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#E0E0E0","colorSlideOpacity":100,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":148,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":28,"silDurMin":1.5,"silDurMax":2.5,"burstOn":true,"imgRangeFrom":0.21,"imgRangeTo":0.32,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":14,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#E0E0E0","colorSlideOpacity":0,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":169,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":4,"silenceFreq":0,"silDurMin":1.5,"silDurMax":2.5,"burstOn":true,"imgRangeFrom":0.92,"imgRangeTo":0.96,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":0,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":100,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":59,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":4,"silenceFreq":27,"silDurMin":1.5,"silDurMax":2.5,"burstOn":true,"imgRangeFrom":0,"imgRangeTo":1,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":true,"brigLow":5,"blendEng":0,"audioVol":80,"audioProb":100},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"imgRangeFrom":0,"imgRangeTo":1};
+  const WS_SNAPSHOTS = {"version":1,"snapshots":[{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":201,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":9,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.46,"imgRangeTo":0.5,"zoomModOn":false,"pixelModOn":false,"chromaModOn":false,"textureModOn":false,"brigLow":5,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":129,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":15,"silenceFreq":9,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.79,"imgRangeTo":0.9,"zoomModOn":true,"pixelModOn":false,"chromaModOn":true,"textureModOn":false,"brigLow":5,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":129,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":15,"silenceFreq":9,"silDurMin":1,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.38,"imgRangeTo":0.57,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":false,"brigLow":42,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FF2D55","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":20,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":13,"silDurMin":1.5,"silDurMax":5,"burstOn":false,"imgRangeFrom":0.38,"imgRangeTo":0.57,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":false,"brigLow":42,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FFFFFF","colorSlideOpacity":95,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":20,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":13,"silDurMin":1.5,"silDurMax":5,"burstOn":false,"imgRangeFrom":0.61,"imgRangeTo":0.83,"zoomModOn":true,"pixelModOn":false,"chromaModOn":false,"textureModOn":false,"brigLow":42,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":1,"colorSlide":"#FFFFFF","colorSlideOpacity":0,"texture":0,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":174,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":21,"silenceFreq":0,"silDurMin":1.5,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.61,"imgRangeTo":0.83,"zoomModOn":true,"pixelModOn":false,"chromaModOn":true,"textureModOn":false,"brigLow":0,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":1,"colorSlide":"#FFFFFF","colorSlideOpacity":0,"texture":48,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":226,"bpmMin":60,"bpmMax":180,"probLow":72,"probHigh":100,"silenceFreq":0,"silDurMin":1.5,"silDurMax":5,"burstOn":false,"imgRangeFrom":0,"imgRangeTo":0.03,"zoomModOn":false,"pixelModOn":true,"chromaModOn":true,"textureModOn":false,"brigLow":13,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":0,"pixel":0,"pixelSize":8,"poster":0,"chroma":0,"colorSlide":"#FFFFFF","colorSlideOpacity":0,"texture":34,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":53,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":34,"silDurMin":1.5,"silDurMax":5,"burstOn":false,"imgRangeFrom":0,"imgRangeTo":0.27,"zoomModOn":true,"pixelModOn":true,"chromaModOn":false,"textureModOn":false,"brigLow":84,"blendEng":0,"audioVol":80,"audioProb":100},{"zoomIn":0.3,"rotation":25,"pixel":0,"pixelSize":8,"poster":0,"chroma":16,"colorSlide":"#FFFFFF","colorSlideOpacity":0,"texture":34,"duotoneOn":false,"duotoneShadow":"#000000","duotoneHighlight":"#ffffff","duotoneAmount":50,"focusX":50,"focusY":50,"tempoMode":"FIXED","bpmFixed":53,"bpmMin":60,"bpmMax":180,"probLow":0,"probHigh":100,"silenceFreq":34,"silDurMin":1.5,"silDurMax":5,"burstOn":true,"imgRangeFrom":0.42,"imgRangeTo":0.82,"zoomModOn":true,"pixelModOn":true,"chromaModOn":true,"textureModOn":false,"brigLow":84,"blendEng":0,"audioVol":80,"audioProb":100},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"imgRangeFrom":0.42,"imgRangeTo":0.82};
   WS_SNAPSHOTS.snapshots.forEach((s, i) => { if (i < 100) snapshots[i] = s; });
   console.log('d93: snapshots loaded —', WS_SNAPSHOTS.snapshots.filter(Boolean).length, 'filled');
 
   // ── CDN image loader ──────────────────────────────────────────────────────
   const WS_CDN_BASE = 'https://daysof93-cdn.b-cdn.net/Explore2/';
-  const WS_CDN_URLS = Array.from({length: 37}, (_, i) =>
-    WS_CDN_BASE + String(i + 1).padStart(3, '0') + '.jpg');
+  const WS_CDN_URLS = Array.from({length: 40}, (_, i) =>
+    WS_CDN_BASE + String(i + 1).padStart(3, '0') + '.jpeg');
 
   let wsCdnReady     = false;
   let wsGestureReady = false;
