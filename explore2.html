@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v25-mainmusic-clock -->
+<!-- build: explore2-v26-y-fade -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -278,6 +278,14 @@ canvas {
   letter-spacing: 0.45em;
   text-transform: uppercase;
 }
+#ws-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 499;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+}
 #ws-ch {
   position: fixed;
   inset: 0;
@@ -326,6 +334,7 @@ canvas {
     <input type="range" id="d93-vol-sl" min="0" max="1" step="0.01" style="height:72px;writing-mode:vertical-lr;direction:rtl;accent-color:#fff;cursor:pointer;width:18px;">
   </div>
 </div>
+<div id="ws-fade"></div>
 <div id="ws-ch">
   <div id="ws-ch-v"></div>
   <div id="ws-ch-h"></div>
@@ -3128,11 +3137,12 @@ if (WEBSITE_MODE) {
   }, { once: true });
 
   // ── Crosshair ─────────────────────────────────────────────────────────────
-  const wsCh    = document.getElementById('ws-ch');
-  const wsChV   = document.getElementById('ws-ch-v');
-  const wsChH   = document.getElementById('ws-ch-h');
-  const wsChSq  = document.getElementById('ws-ch-sq');
-  let wsChTimer = null;
+  const wsCh     = document.getElementById('ws-ch');
+  const wsChV    = document.getElementById('ws-ch-v');
+  const wsChH    = document.getElementById('ws-ch-h');
+  const wsChSq   = document.getElementById('ws-ch-sq');
+  const wsFadeEl = document.getElementById('ws-fade');
+  let wsChTimer  = null;
 
   function wsMoveCrosshair(x, y) {
     wsChV.style.left   = x + 'px';
@@ -3143,6 +3153,11 @@ if (WEBSITE_MODE) {
     clearTimeout(wsChTimer);
     wsChTimer = setTimeout(() => { wsCh.style.opacity = '0'; }, 2000);
     wsUpdateFilters(x, y);
+    const _ny = Math.max(0, Math.min(1, y / window.innerHeight));
+    const _snap = snapshots[snapFaderPos];
+    const _whiteBg = _snap && _snap.colorSlideOpacity > 50;
+    const _fo = (!_whiteBg && _ny > 0.6) ? ((_ny - 0.6) / 0.4 * 0.9) : 0;
+    wsFadeEl.style.opacity = _fo.toFixed(3);
   }
 
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
