@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v15-hpf-top15 -->
+<!-- build: explore2-v16-diag -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3127,6 +3127,7 @@ if (WEBSITE_MODE) {
   }
 
   function wsEnterZone(zone) {
+    console.log('d93: wsEnterZone called, zone=' + zone + ' current=' + wsCurrentZone);
     if (zone === wsCurrentZone) return;
     wsCurrentZone = zone;
     const t = zone / 8;
