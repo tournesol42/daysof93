@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v19-filter-guard-fix -->
+<!-- build: explore2-v20-reverb-log -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3056,8 +3056,11 @@ if (WEBSITE_MODE) {
     const ny = Math.max(0, Math.min(1, y / window.innerHeight));
     // Lowpass Y axis: top = 20000Hz (open), bottom = 200Hz (closed)
     wsLPF.frequency.setTargetAtTime(wsLogInterp(20000, 200, ny), wsAudioCtx.currentTime, 0.08);
-    // Reverb send Y axis: silent above centre, 3%–40% send below centre
-    const send = ny > 0.5 ? 0.03 + ((ny - 0.5) / 0.5) * 0.37 : 0;
+    // Reverb send Y axis: log curve — rises fast just below centre, flattens toward bottom
+    // At ny=0.5 (LPF≈2kHz): send=0.03. At ny=0.6: ~20%. At ny=1.0: 40%.
+    const _rt = Math.max(0, (ny - 0.5) / 0.5);
+    const _logT = Math.log(1 + _rt * 9) / Math.log(10);
+    const send = ny > 0.5 ? 0.03 + 0.37 * _logT : 0;
     wsReverbGain.gain.setTargetAtTime(send, wsAudioCtx.currentTime, 0.15);
   }
 
