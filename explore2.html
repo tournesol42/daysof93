@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v18-reverb-send -->
+<!-- build: explore2-v19-filter-guard-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3051,7 +3051,7 @@ if (WEBSITE_MODE) {
   }
 
   function wsUpdateFilters(x, y) {
-    if (!wsAudioCtx || !wsHPF) return;
+    if (!wsAudioCtx || !wsLPF) return;
     const nx = Math.max(0, Math.min(1, x / window.innerWidth));
     const ny = Math.max(0, Math.min(1, y / window.innerHeight));
     // Lowpass Y axis: top = 20000Hz (open), bottom = 200Hz (closed)
@@ -3115,7 +3115,6 @@ if (WEBSITE_MODE) {
   }
 
   function wsEnterZone(zone) {
-    console.log('d93: wsEnterZone called, zone=' + zone + ' current=' + wsCurrentZone);
     if (zone === wsCurrentZone) return;
     wsCurrentZone = zone;
     const t = zone / 8;
@@ -3129,7 +3128,6 @@ if (WEBSITE_MODE) {
     const newBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
     if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
     if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
-    console.log('d93: zone', zone, '→ snapshot t=', t.toFixed(2), 'brigLow:', brigLow);
   }
 
   document.addEventListener('mousemove', e => {
