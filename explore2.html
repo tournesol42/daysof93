@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v23-mainmusic -->
+<!-- build: explore2-v25-mainmusic-clock -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3007,6 +3007,12 @@ if (WEBSITE_MODE) {
       _origTriggerAudio.call(this);
       wsPlayShortSound();
     };
+    // Patch triggerBrightLower — main music counter on every sync dark flash
+    const _origTriggerBrightLower = triggerBrightLower;
+    triggerBrightLower = function(sync) {
+      _origTriggerBrightLower.call(this, sync);
+      if (sync) wsCheckMainMusic();
+    };
     console.log('d93: audio init, loading', WS_SHORT_COUNT, 'short WAVs');
   }
 
@@ -3162,7 +3168,7 @@ if (WEBSITE_MODE) {
     snapFaderPos = _slot;
     applySnapshot(snapshots[_slot]);
     const newBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
-    if (newBrigLow > 0 && prevBrigLow === 0) { wsStartLongSound(); wsCheckMainMusic(); }
+    if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
     if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
   }
 
