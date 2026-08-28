@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v26-y-fade -->
+<!-- build: explore2-v27-reverb-return -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2972,7 +2972,7 @@ if (WEBSITE_MODE) {
   let wsShortBuffers = [];
   let wsShortSource  = null;
   const wsLongAudio  = new Audio();
-  let wsLPF = null, wsReverbNode = null, wsReverbGain = null;
+  let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null, wsMainSrc = null;
 
   function wsInitAudio() {
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2995,7 +2995,7 @@ if (WEBSITE_MODE) {
     wsLPF = wsAudioCtx.createBiquadFilter();
     wsLPF.type = 'lowpass';
     wsLPF.frequency.value = 20000;
-    wsLPF.Q.value = 0.7;
+    wsLPF.Q.value = 0.1;
 
     wsReverbGain = wsAudioCtx.createGain();
     wsReverbGain.gain.value = 0;
@@ -3003,12 +3003,20 @@ if (WEBSITE_MODE) {
     wsReverbNode = wsAudioCtx.createConvolver();
     wsReverbNode.buffer = wsCreateReverbIR(wsAudioCtx, 8.0, 1.2);
 
+    wsReverbReturnGain = wsAudioCtx.createGain();
+    wsReverbReturnGain.gain.value = 2.512; // +8dB
+
     // Dry path: LPF → destination
     wsLPF.connect(wsAudioCtx.destination);
-    // Wet path: LPF → convolver → return gain → destination
-    wsLPF.connect(wsReverbNode);
-    wsReverbNode.connect(wsReverbGain);
-    wsReverbGain.connect(wsAudioCtx.destination);
+    // Wet path: LPF → send → convolver → +8dB return → destination
+    wsLPF.connect(wsReverbGain);
+    wsReverbGain.connect(wsReverbNode);
+    wsReverbNode.connect(wsReverbReturnGain);
+    wsReverbReturnGain.connect(wsAudioCtx.destination);
+    // Main music: dry → destination, wet → shared reverb send
+    wsMainSrc = wsAudioCtx.createMediaElementSource(wsMainAudio);
+    wsMainSrc.connect(wsAudioCtx.destination);
+    wsMainSrc.connect(wsReverbGain);
 
     // Patch triggerAudio — monophonic short sound on every clock tick
     const _origTriggerAudio = triggerAudio;
