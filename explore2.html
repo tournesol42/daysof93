@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v16-diag -->
+<!-- build: explore2-v17-briglow-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3135,11 +3135,12 @@ if (WEBSITE_MODE) {
     if (!_filled.length) return;
     const _idx = _filled.length === 1 ? 0 : Math.round(t * (_filled.length - 1));
     const _slot = _filled[_idx];
-    const prevBrigLow = brigLow;
+    const prevBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
     snapFaderPos = _slot;
     applySnapshot(snapshots[_slot]);
-    if (brigLow > 0 && prevBrigLow === 0) wsStartLongSound();
-    if (brigLow === 0 && prevBrigLow > 0) wsStopLongSound();
+    const newBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
+    if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
+    if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
     console.log('d93: zone', zone, '→ snapshot t=', t.toFixed(2), 'brigLow:', brigLow);
   }
 
