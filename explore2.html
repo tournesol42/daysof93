@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v17-briglow-fix -->
+<!-- build: explore2-v18-reverb-send -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2953,7 +2953,7 @@ if (WEBSITE_MODE) {
   let wsShortBuffers = [];
   let wsShortSource  = null;
   const wsLongAudio  = new Audio();
-  let wsHPF = null, wsLPF = null, wsReverbNode = null, wsReverbGain = null;
+  let wsLPF = null, wsReverbNode = null, wsReverbGain = null;
 
   function wsInitAudio() {
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2973,27 +2973,23 @@ if (WEBSITE_MODE) {
       })(WS_SHORT_BASE + i + '.wav');
     }
     // Filters and reverb
-    wsHPF = wsAudioCtx.createBiquadFilter();
-    wsHPF.type = 'highpass';
-    wsHPF.frequency.value = 20;
-    wsHPF.Q.value = 0.7;
-
     wsLPF = wsAudioCtx.createBiquadFilter();
     wsLPF.type = 'lowpass';
     wsLPF.frequency.value = 20000;
     wsLPF.Q.value = 0.7;
 
-    wsReverbNode = wsAudioCtx.createConvolver();
-    wsReverbNode.buffer = wsCreateReverbIR(wsAudioCtx, 8.0, 1.2);
-
     wsReverbGain = wsAudioCtx.createGain();
     wsReverbGain.gain.value = 0;
 
-    wsHPF.connect(wsLPF);
+    wsReverbNode = wsAudioCtx.createConvolver();
+    wsReverbNode.buffer = wsCreateReverbIR(wsAudioCtx, 8.0, 1.2);
+
+    // Dry path: LPF → destination
     wsLPF.connect(wsAudioCtx.destination);
-    wsLPF.connect(wsReverbNode);
-    wsReverbNode.connect(wsReverbGain);
-    wsReverbGain.connect(wsAudioCtx.destination);
+    // Wet path: LPF → send gain → convolver → destination
+    wsLPF.connect(wsReverbGain);
+    wsReverbGain.connect(wsReverbNode);
+    wsReverbNode.connect(wsAudioCtx.destination);
 
     // Patch triggerAudio — monophonic short sound on every clock tick
     const _origTriggerAudio = triggerAudio;
@@ -3014,7 +3010,7 @@ if (WEBSITE_MODE) {
     const gain = wsAudioCtx.createGain();
     gain.gain.value = WS_SHORT_VOL;
     src.connect(gain);
-    gain.connect(wsHPF);
+    gain.connect(wsLPF);
     src.start();
     wsShortSource = src;
     src.onended = () => { if (wsShortSource === src) wsShortSource = null; };
@@ -3058,19 +3054,11 @@ if (WEBSITE_MODE) {
     if (!wsAudioCtx || !wsHPF) return;
     const nx = Math.max(0, Math.min(1, x / window.innerWidth));
     const ny = Math.max(0, Math.min(1, y / window.innerHeight));
-    // Highpass Y axis: top 15% only — top edge = 2000Hz, 15% mark = 20Hz (open)
-    // Below 15%: reopens slowly to avoid bass snapping back
-    if (ny < 0.15) {
-      const hpfT = 1 - (ny / 0.15);
-      wsHPF.frequency.setTargetAtTime(wsLogInterp(20, 2000, hpfT), wsAudioCtx.currentTime, 0.08);
-    } else {
-      wsHPF.frequency.setTargetAtTime(20, wsAudioCtx.currentTime, 0.6);
-    }
     // Lowpass Y axis: top = 20000Hz (open), bottom = 200Hz (closed)
     wsLPF.frequency.setTargetAtTime(wsLogInterp(20000, 200, ny), wsAudioCtx.currentTime, 0.08);
-    // Reverb Y axis: silent above centre, 3%–40% wet below centre
-    const wet = ny > 0.5 ? 0.03 + ((ny - 0.5) / 0.5) * 0.37 : 0;
-    wsReverbGain.gain.setTargetAtTime(wet, wsAudioCtx.currentTime, 0.15);
+    // Reverb send Y axis: silent above centre, 3%–40% send below centre
+    const send = ny > 0.5 ? 0.03 + ((ny - 0.5) / 0.5) * 0.37 : 0;
+    wsReverbGain.gain.setTargetAtTime(send, wsAudioCtx.currentTime, 0.15);
   }
 
   function wsStartEngine() {
