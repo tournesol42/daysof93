@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v40-mesh-idle-scale -->
+<!-- build: explore2-v41-mesh-tilt-pinch -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3051,6 +3051,7 @@ if (WEBSITE_MODE) {
     wsLongAudio.currentTime = 0;
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
+    wsMeshDoPinch();
   }
 
   function wsStopLongSound() {
@@ -3243,6 +3244,21 @@ if (WEBSITE_MODE) {
   // Scale animation
   let wsMeshScale    = 1.0;
   let wsMeshLastMove = 0;
+  // Corner pinch spring
+  let wsMeshPinchAmt = 0, wsMeshPinchVel = 0;
+  let wsMeshPinchX   = 0, wsMeshPinchY   = 0, wsMeshPinchZ = 0;
+
+  function wsMeshDoPinch() {
+    if (wsMeshState === 'idle') return;
+    if (Math.random() > 0.65) return; // fires ~65% of the time
+    const rx = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+    const ry = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+    const rz = (Math.random() - 0.5) * 0.4;
+    const mag = Math.sqrt(rx*rx + ry*ry + rz*rz);
+    wsMeshPinchX = rx / mag; wsMeshPinchY = ry / mag; wsMeshPinchZ = rz / mag;
+    wsMeshPinchVel += 0.25 + Math.random() * 0.30;
+    console.log('d93: pinch', wsMeshPinchX.toFixed(2), wsMeshPinchY.toFixed(2));
+  }
 
   function wsMeshSetColor(white) {
     if (!wsMeshObj) return;
@@ -3312,7 +3328,7 @@ if (WEBSITE_MODE) {
       const dist   = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
       // Shape: 30% narrower, 20% taller
       group.scale.set(0.7, 1.2, 1.0);
-      wsMeshCamera.position.set(0, 0, dist);
+      wsMeshCamera.position.set(0, dist * 0.7, dist * 0.7);
       wsMeshCamera.lookAt(0, 0, 0);
       wsMeshCamera.updateProjectionMatrix();
       // Store viewport world height for Y-position tracking
@@ -3356,7 +3372,15 @@ if (WEBSITE_MODE) {
       const _scaleTgt  = _idleMs > 4000 ? 0.5 : 1.0;
       const _scaleLerp = _scaleTgt < wsMeshScale ? 0.007 : 0.18;
       wsMeshScale += (_scaleTgt - wsMeshScale) * _scaleLerp;
-      wsMeshObj.scale.set(0.7 * wsMeshScale, 1.2 * wsMeshScale, 1.0 * wsMeshScale);
+      // Corner pinch spring — loose, elastic, snaps back
+      wsMeshPinchVel += -wsMeshPinchAmt * 0.13;
+      wsMeshPinchVel *= 0.82;
+      wsMeshPinchAmt += wsMeshPinchVel;
+      // Base size 30% smaller: shape (0.49, 0.84, 0.7) × scale animation × pinch distortion
+      const _px = 1 + wsMeshPinchX * wsMeshPinchAmt;
+      const _py = 1 + wsMeshPinchY * wsMeshPinchAmt;
+      const _pz = 1 + wsMeshPinchZ * wsMeshPinchAmt;
+      wsMeshObj.scale.set(0.49 * wsMeshScale * _px, 0.84 * wsMeshScale * _py, 0.7 * wsMeshScale * _pz);
       wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
