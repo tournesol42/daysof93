@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v38-mesh-position -->
+<!-- build: explore2-v39-mesh-follow -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3163,6 +3163,10 @@ if (WEBSITE_MODE) {
     const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = _fo.toFixed(3);
     wsMouseNY = _ny;
+    wsMouseNX = Math.max(0, Math.min(1, x / window.innerWidth));
+    const _prevLower = wsInLower20;
+    wsInLower20 = _ny >= 0.8;
+    if (wsInLower20 !== _prevLower) wsUpdateMeshColor();
     if (_ny > 0.8 && wsMeshState === 'idle' && !wsMeshEntryTimer) {
       wsMeshEntryTimer = setTimeout(() => {
         wsMeshEntryTimer = null;
@@ -3205,7 +3209,7 @@ if (WEBSITE_MODE) {
     if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
     if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
     const _s = snapshots[_slot];
-    wsMeshSetColor(_s && _s.colorSlideOpacity > 50);
+    wsUpdateMeshColor();
   }
 
   document.addEventListener('mousemove', e => {
@@ -3239,11 +3243,19 @@ if (WEBSITE_MODE) {
   let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
   let wsMeshSpringX = 0, wsMeshSpringY = 0;
   let wsMeshVelX = 0, wsMeshVelY = 0;
-  let wsMeshViewH = 1; // viewport world height, set after load
+  let wsMeshViewH = 1, wsMeshViewW = 1;
+  // Cursor follow (activates 15s after mesh appears)
+  let wsMeshFollowX = 0, wsMeshFollowY = 0;
+  let wsMeshFollowVX = 0, wsMeshFollowVY = 0;
+  let wsMeshFollowActive = false;
+  let wsMouseNX = 0;
+  let wsInLower20 = false;
 
-  function wsMeshSetColor(white) {
+  function wsUpdateMeshColor() {
     if (!wsMeshObj) return;
-    const col = white ? 0x111111 : 0xcccccc;
+    const s = snapshots[snapFaderPos];
+    const whiteBg = s && s.colorSlideOpacity > 50;
+    const col = whiteBg ? 0x111111 : (wsInLower20 ? 0xFF6600 : 0xcccccc);
     wsMeshObj.traverse(ch => {
       if (ch.isLineSegments) ch.material.color.setHex(col);
     });
@@ -3314,6 +3326,7 @@ if (WEBSITE_MODE) {
       wsMeshCamera.updateProjectionMatrix();
       // Store viewport world height for Y-position tracking
       wsMeshViewH = 2 * dist * Math.tan((wsMeshCamera.fov / 2) * Math.PI / 180);
+      wsMeshViewW = wsMeshViewH * (wsMeshCanvas.width / wsMeshCanvas.height);
       console.log('d93: mesh loaded', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2), 'viewH', wsMeshViewH.toFixed(2));
     }, undefined, err => console.warn('d93: mesh failed', err));
 
@@ -3348,11 +3361,34 @@ if (WEBSITE_MODE) {
       wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
       wsMeshObj.rotation.z += wsMeshAngVZ;
 
-      // Y position: ny=1.0 → bottom+5% below screen, ny=0.5 → centred
-      // Above centre: stays centred, wild rotations take over
-      const _nyPos = Math.max(0.5, wsMouseNY);
-      const _tPos  = (_nyPos - 0.5) / 0.5; // 0 at centre, 1 at bottom
-      wsMeshObj.position.y = -_tPos * wsMeshViewH * 0.55;
+      // Cursor follow physics — activates 15s after fade-in starts
+      if (wsMeshState !== 'idle' && !wsMeshFollowActive) {
+        if ((now - wsMeshFadeStart) >= 15000) wsMeshFollowActive = true;
+      }
+      if (wsMeshFollowActive) {
+        // Target: cursor mapped to ±50% of viewport world size, scaled to 20%
+        const _tx = (wsMouseNX - 0.5) * wsMeshViewW * 0.20;
+        const _ty = -(wsMouseNY - 0.5) * wsMeshViewH * 0.20;
+        const _dx = _tx - wsMeshFollowX;
+        const _dy = _ty - wsMeshFollowY;
+        const _dist = Math.sqrt(_dx * _dx + _dy * _dy);
+        // Fast attack (0.12) toward target, slow release via spring
+        const _alpha = _dist > 0.001 ? 0.12 : 0.04;
+        wsMeshFollowVX += (_tx - wsMeshFollowX) * _alpha;
+        wsMeshFollowVY += (_ty - wsMeshFollowY) * _alpha;
+        wsMeshFollowVX *= 0.72;
+        wsMeshFollowVY *= 0.72;
+        wsMeshFollowX += wsMeshFollowVX;
+        wsMeshFollowY += wsMeshFollowVY;
+        wsMeshObj.position.x = wsMeshFollowX;
+        wsMeshObj.position.y = wsMeshFollowY;
+      } else {
+        // Before follow: centred, slight Y drift based on cursor
+        const _nyPos = Math.max(0.5, wsMouseNY);
+        const _tPos  = (_nyPos - 0.5) / 0.5;
+        wsMeshObj.position.x = 0;
+        wsMeshObj.position.y = -_tPos * wsMeshViewH * 0.55;
+      }
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
     })();
