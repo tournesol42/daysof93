@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v30-zoom-2tier -->
+<!-- build: explore2-v31-zoom-916-scale -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1707,12 +1707,14 @@ function advanceSequencer() {
 function paramModTrigger(key, m) {
   if (key === 'zoom') {
     if (m.holdTicks > 0) { m.holdTicks--; return; }
+    // Website: targets halved vs standalone — 9:16 canvas shows full image at zoom=1.0
+    // making the same offset twice as dramatic as on standalone's 1:1 canvas
     const big = Math.random() < 0.18;
     if (big) {
-      m.target = 1.2 + Math.random() * 1.8;
+      m.target = 0.6 + Math.random() * 0.9;
       m.holdTicks = 3 + Math.floor(Math.random() * 4);
     } else {
-      m.target = 0.12 + Math.random() * 0.38;
+      m.target = 0.06 + Math.random() * 0.19;
     }
   } else if (key === 'pixel') {
     const big = Math.random() < 0.18;
