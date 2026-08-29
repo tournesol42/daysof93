@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v35-fade-aggressive -->
+<!-- build: explore2-v36-cad-mesh -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -278,6 +278,13 @@ canvas {
   letter-spacing: 0.45em;
   text-transform: uppercase;
 }
+#ws-mesh-cv {
+  position: fixed;
+  inset: 0;
+  z-index: 501;
+  pointer-events: none;
+  opacity: 0;
+}
 #ws-fade {
   position: fixed;
   inset: 0;
@@ -320,6 +327,8 @@ canvas {
   left: 50%;
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
@@ -335,6 +344,7 @@ canvas {
   </div>
 </div>
 <div id="ws-fade"></div>
+<canvas id="ws-mesh-cv"></canvas>
 <div id="ws-ch">
   <div id="ws-ch-v"></div>
   <div id="ws-ch-h"></div>
@@ -3151,6 +3161,7 @@ if (WEBSITE_MODE) {
     const _rawFade = Math.max(0, (_ny - 0.8) / 0.2);
     const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = _fo.toFixed(3);
+    wsMeshOpacity = Math.pow(_rawFade, 0.6);
   }
 
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
@@ -3194,6 +3205,84 @@ if (WEBSITE_MODE) {
     wsMoveCrosshair(touch.clientX, touch.clientY);
     wsEnterZone(wsGetZone(touch.clientX, touch.clientY));
   }, { passive: true });
+
+  // ── Three.js CAD wireframe mesh ───────────────────────────────────────────
+  const wsMeshCv     = document.getElementById('ws-mesh-cv');
+  let wsMeshOpacity  = 0;
+  let wsMeshRenderer = null;
+  let wsMeshScene    = null;
+  let wsMeshCamera   = null;
+  let wsMeshObj      = null;
+
+  function wsInitMesh() {
+    wsMeshScene  = new THREE.Scene();
+    wsMeshCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
+
+    wsMeshRenderer = new THREE.WebGLRenderer({
+      canvas: wsMeshCv,
+      alpha: true,
+      antialias: true,
+    });
+    wsMeshRenderer.setPixelRatio(window.devicePixelRatio);
+    wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
+    wsMeshRenderer.setClearColor(0x000000, 0);
+
+    const loader = new THREE.GLTFLoader();
+    loader.load('/do93_cad.glb', gltf => {
+      const root = gltf.scene;
+      const group = new THREE.Group();
+
+      root.traverse(child => {
+        if (!child.isMesh) return;
+        const geo = new THREE.WireframeGeometry(child.geometry);
+        const mat = new THREE.LineBasicMaterial({
+          color: 0xcccccc,
+          transparent: true,
+          opacity: 0.7,
+        });
+        const lines = new THREE.LineSegments(geo, mat);
+        lines.applyMatrix4(child.matrixWorld);
+        group.add(lines);
+      });
+
+      wsMeshScene.add(group);
+      wsMeshObj = group;
+
+      // Auto-fit: centre and scale to fill viewport
+      const box    = new THREE.Box3().setFromObject(group);
+      const center = box.getCenter(new THREE.Vector3());
+      const size   = box.getSize(new THREE.Vector3());
+      group.position.sub(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov    = wsMeshCamera.fov * (Math.PI / 180);
+      const dist   = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
+      wsMeshCamera.position.set(0, 0, dist);
+      wsMeshCamera.lookAt(0, 0, 0);
+      wsMeshCamera.updateProjectionMatrix();
+
+      console.log('d93: mesh loaded, size', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+    }, undefined, err => console.warn('d93: mesh load failed', err));
+
+    (function wsMeshLoop() {
+      requestAnimationFrame(wsMeshLoop);
+      if (!wsMeshRenderer) return;
+      wsMeshCv.style.opacity = wsMeshOpacity.toFixed(3);
+      if (wsMeshOpacity > 0.01 && wsMeshObj) {
+        wsMeshObj.rotation.y += 0.002;
+        wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
+      }
+    })();
+  }
+
+  window.addEventListener('resize', () => {
+    if (!wsMeshRenderer) return;
+    wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+    wsMeshCamera.updateProjectionMatrix();
+    wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  wsInitMesh();
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
   wsLoadCdnImages(WS_CDN_URLS);
