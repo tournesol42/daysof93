@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v41-mesh-tilt-pinch -->
+<!-- build: explore2-v42-mesh-topdown-big -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3247,6 +3247,12 @@ if (WEBSITE_MODE) {
   // Corner pinch spring
   let wsMeshPinchAmt = 0, wsMeshPinchVel = 0;
   let wsMeshPinchX   = 0, wsMeshPinchY   = 0, wsMeshPinchZ = 0;
+  // Occasional 2× size event
+  let wsMeshBigScale     = 1.0;
+  let wsMeshBigActive    = false;
+  let wsMeshBigEventTs   = 0;
+  let wsMeshBigNextIn    = 12000 + Math.random() * 14000;
+  let wsMeshBigEndTs     = 0;
 
   function wsMeshDoPinch() {
     if (wsMeshState === 'idle') return;
@@ -3328,7 +3334,7 @@ if (WEBSITE_MODE) {
       const dist   = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
       // Shape: 30% narrower, 20% taller
       group.scale.set(0.7, 1.2, 1.0);
-      wsMeshCamera.position.set(0, dist * 0.7, dist * 0.7);
+      wsMeshCamera.position.set(0, dist * 1.5, dist * 0.18);
       wsMeshCamera.lookAt(0, 0, 0);
       wsMeshCamera.updateProjectionMatrix();
       // Store viewport world height for Y-position tracking
@@ -3376,11 +3382,24 @@ if (WEBSITE_MODE) {
       wsMeshPinchVel += -wsMeshPinchAmt * 0.13;
       wsMeshPinchVel *= 0.82;
       wsMeshPinchAmt += wsMeshPinchVel;
-      // Base size 30% smaller: shape (0.49, 0.84, 0.7) × scale animation × pinch distortion
+      // Occasional 2× size event — autonomous random trigger
+      if (wsMeshState !== 'idle') {
+        if (!wsMeshBigActive && (now - wsMeshBigEventTs) > wsMeshBigNextIn) {
+          wsMeshBigActive  = true;
+          wsMeshBigEndTs   = now + 2500 + Math.random() * 3000;
+          wsMeshBigEventTs = now;
+          wsMeshBigNextIn  = 12000 + Math.random() * 14000;
+          console.log('d93: mesh big event');
+        }
+        if (wsMeshBigActive && now > wsMeshBigEndTs) wsMeshBigActive = false;
+      }
+      const _bigTgt = wsMeshBigActive ? 2.0 : 1.0;
+      wsMeshBigScale += (_bigTgt - wsMeshBigScale) * (_bigTgt > wsMeshBigScale ? 0.04 : 0.015);
+      // Base size 30% smaller: shape (0.49, 0.84, 0.7) × scale animation × big event × pinch
       const _px = 1 + wsMeshPinchX * wsMeshPinchAmt;
       const _py = 1 + wsMeshPinchY * wsMeshPinchAmt;
       const _pz = 1 + wsMeshPinchZ * wsMeshPinchAmt;
-      wsMeshObj.scale.set(0.49 * wsMeshScale * _px, 0.84 * wsMeshScale * _py, 0.7 * wsMeshScale * _pz);
+      wsMeshObj.scale.set(0.49 * wsMeshScale * wsMeshBigScale * _px, 0.84 * wsMeshScale * wsMeshBigScale * _py, 0.7 * wsMeshScale * wsMeshBigScale * _pz);
       wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
