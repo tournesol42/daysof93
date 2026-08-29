@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v34-fade-curve -->
+<!-- build: explore2-v35-fade-aggressive -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3147,9 +3147,9 @@ if (WEBSITE_MODE) {
     const _ny = Math.max(0, Math.min(1, y / window.innerHeight));
     const _snap = snapshots[snapFaderPos];
     const _whiteBg = _snap && _snap.colorSlideOpacity > 50;
-    // Fade starts at 80% Y, square-root curve — gets dark quickly
+    // Fade starts at 80% Y — aggressive curve, 74% dark at 90% Y, 97% at 100%
     const _rawFade = Math.max(0, (_ny - 0.8) / 0.2);
-    const _fo = !_whiteBg ? Math.pow(_rawFade, 0.5) * 0.95 : 0;
+    const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = _fo.toFixed(3);
   }
 
