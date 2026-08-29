@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v36-cad-mesh -->
+<!-- build: explore2-v37-mesh-physics -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3016,6 +3016,7 @@ if (WEBSITE_MODE) {
     triggerAudio = function() {
       _origTriggerAudio.call(this);
       wsPlayShortSound();
+      wsMeshOnTrigger();
     };
     // Patch triggerBrightLower — main music counter on every sync dark flash
     const _origTriggerBrightLower = triggerBrightLower;
@@ -3161,7 +3162,21 @@ if (WEBSITE_MODE) {
     const _rawFade = Math.max(0, (_ny - 0.8) / 0.2);
     const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = _fo.toFixed(3);
-    wsMeshOpacity = Math.pow(_rawFade, 0.6);
+    wsMouseNY = _ny;
+    if (_ny > 0.8 && wsMeshState === 'idle' && !wsMeshEntryTimer) {
+      wsMeshEntryTimer = setTimeout(() => {
+        wsMeshEntryTimer = null;
+        if (wsMouseNY > 0.8 && wsMeshState === 'idle') {
+          wsMeshState    = 'fading';
+          wsMeshFadeStart = performance.now();
+          console.log('d93: mesh fade started');
+        }
+      }, 2000);
+    }
+    if (_ny <= 0.8 && wsMeshEntryTimer) {
+      clearTimeout(wsMeshEntryTimer);
+      wsMeshEntryTimer = null;
+    }
   }
 
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
@@ -3207,21 +3222,55 @@ if (WEBSITE_MODE) {
   }, { passive: true });
 
   // ── Three.js CAD wireframe mesh ───────────────────────────────────────────
-  const wsMeshCv     = document.getElementById('ws-mesh-cv');
-  let wsMeshOpacity  = 0;
-  let wsMeshRenderer = null;
-  let wsMeshScene    = null;
-  let wsMeshCamera   = null;
-  let wsMeshObj      = null;
+  const wsMeshCv      = document.getElementById('ws-mesh-cv');
+  let wsMeshRenderer  = null;
+  let wsMeshScene     = null;
+  let wsMeshCamera    = null;
+  let wsMeshObj       = null;
+  let wsMeshState     = 'idle';   // 'idle' | 'fading' | 'active'
+  let wsMeshFadeStart = 0;
+  let wsMeshCurOpacity = 0;
+  let wsMeshEntryTimer = null;
+  let wsMouseNY        = 0;
+
+  // Physics state
+  let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
+  let wsMeshSpringX = 0, wsMeshSpringY = 0;
+  let wsMeshVelX = 0, wsMeshVelY = 0;
+
+  function wsMeshOnTrigger() {
+    if (wsMeshState === 'idle') return;
+    if (wsMouseNY > 0.8) {
+      // Lower section: gentle elastic spring impulse
+      const imp = 0.012 + Math.random() * 0.022;
+      wsMeshVelX += (Math.random() - 0.5) * imp;
+      wsMeshVelY += (Math.random() - 0.5) * imp;
+    } else if (wsMouseNY < 0.5) {
+      // Upper section: drastic rotation impulse — variable speed, organic
+      const spd  = 0.035 + Math.random() * 0.11;
+      const axis = Math.random();
+      if (axis < 0.33) {
+        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else if (axis < 0.66) {
+        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else {
+        wsMeshAngVX += (Math.random() - 0.5) * spd;
+        wsMeshAngVY += (Math.random() - 0.5) * spd;
+        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
+      }
+      const cap = 0.22;
+      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
+      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
+      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
+    }
+  }
 
   function wsInitMesh() {
     wsMeshScene  = new THREE.Scene();
     wsMeshCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
 
     wsMeshRenderer = new THREE.WebGLRenderer({
-      canvas: wsMeshCv,
-      alpha: true,
-      antialias: true,
+      canvas: wsMeshCv, alpha: true, antialias: true,
     });
     wsMeshRenderer.setPixelRatio(window.devicePixelRatio);
     wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -3229,49 +3278,62 @@ if (WEBSITE_MODE) {
 
     const loader = new THREE.GLTFLoader();
     loader.load('/do93_cad.glb', gltf => {
-      const root = gltf.scene;
       const group = new THREE.Group();
-
-      root.traverse(child => {
+      gltf.scene.traverse(child => {
         if (!child.isMesh) return;
-        const geo = new THREE.WireframeGeometry(child.geometry);
-        const mat = new THREE.LineBasicMaterial({
-          color: 0xcccccc,
-          transparent: true,
-          opacity: 0.7,
-        });
+        const geo  = new THREE.WireframeGeometry(child.geometry);
+        const mat  = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.7 });
         const lines = new THREE.LineSegments(geo, mat);
         lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
       });
-
       wsMeshScene.add(group);
       wsMeshObj = group;
-
-      // Auto-fit: centre and scale to fill viewport
       const box    = new THREE.Box3().setFromObject(group);
       const center = box.getCenter(new THREE.Vector3());
       const size   = box.getSize(new THREE.Vector3());
       group.position.sub(center);
-
       const maxDim = Math.max(size.x, size.y, size.z);
       const fov    = wsMeshCamera.fov * (Math.PI / 180);
       const dist   = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
       wsMeshCamera.position.set(0, 0, dist);
       wsMeshCamera.lookAt(0, 0, 0);
       wsMeshCamera.updateProjectionMatrix();
-
-      console.log('d93: mesh loaded, size', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
-    }, undefined, err => console.warn('d93: mesh load failed', err));
+      console.log('d93: mesh loaded', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+    }, undefined, err => console.warn('d93: mesh failed', err));
 
     (function wsMeshLoop() {
       requestAnimationFrame(wsMeshLoop);
-      if (!wsMeshRenderer) return;
-      wsMeshCv.style.opacity = wsMeshOpacity.toFixed(3);
-      if (wsMeshOpacity > 0.01 && wsMeshObj) {
-        wsMeshObj.rotation.y += 0.002;
-        wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
+      if (!wsMeshRenderer || !wsMeshObj) return;
+
+      // Opacity state machine
+      const now = performance.now();
+      if (wsMeshState === 'fading') {
+        wsMeshCurOpacity = Math.min(1.0, (now - wsMeshFadeStart) / 20000);
+        if (wsMeshCurOpacity >= 1.0) wsMeshState = 'active';
+      } else if (wsMeshState === 'active') {
+        wsMeshCurOpacity = 1.0;
+      } else {
+        wsMeshCurOpacity = 0;
       }
+      wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+      if (wsMeshCurOpacity < 0.005) return;
+
+      // Spring physics — elastic position offset
+      wsMeshVelX  *= 0.88; wsMeshVelY  *= 0.88;
+      wsMeshSpringX += wsMeshVelX;  wsMeshSpringY += wsMeshVelY;
+      wsMeshSpringX *= 0.84;        wsMeshSpringY *= 0.84;
+
+      // Angular velocity physics — rotation damping
+      wsMeshAngVX *= 0.978; wsMeshAngVY *= 0.978; wsMeshAngVZ *= 0.97;
+      // Minimum idle drift so mesh is never fully static
+      if (Math.abs(wsMeshAngVY) < 0.0025) wsMeshAngVY += 0.0008;
+
+      wsMeshObj.rotation.x += wsMeshAngVX + wsMeshSpringY * 0.007;
+      wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
+      wsMeshObj.rotation.z += wsMeshAngVZ;
+
+      wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
     })();
   }
 
