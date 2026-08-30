@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v44-cam-diag -->
+<!-- build: explore2-v45-gltf-cameras -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3278,7 +3278,10 @@ if (WEBSITE_MODE) {
       // ── Build wireframe mesh ──────────────────────────────────────────────
       const group = new THREE.Group();
 
+      let _meshCount = 0;
       gltf.scene.traverse(child => {
+        if (!child.isMesh) { return; }
+        _meshCount++;
         if (!child.isMesh) return;
         const geo   = new THREE.WireframeGeometry(child.geometry);
         const mat   = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.7 });
@@ -3294,16 +3297,11 @@ if (WEBSITE_MODE) {
       const center = box.getCenter(new THREE.Vector3());
       group.position.sub(center);
 
-      // ── Extract DO93_CAM camera snapshots ────────────────────────────────
-      const camNodes = [];
-      gltf.scene.traverse(child => {
-        console.log('d93: node', child.type, child.name);
-        if (child.isCamera || child.type === 'PerspectiveCamera' || child.type === 'Camera') {
-          child.updateWorldMatrix(true, false);
-          camNodes.push(child);
-        }
-      });
+      // ── Extract DO93_CAM camera snapshots via gltf.cameras ───────────────
+      gltf.scene.updateMatrixWorld(true);
+      const camNodes = (gltf.cameras || []).slice();
       camNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      console.log('d93: gltf.cameras count:', camNodes.length, camNodes.map(c => c.name).join(', '));
       wsMeshCamViews = camNodes.map(cam => ({
         pos:  cam.getWorldPosition(new THREE.Vector3()).sub(center),
         quat: cam.getWorldQuaternion(new THREE.Quaternion()),
