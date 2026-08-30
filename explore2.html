@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v69-mesh-vertical-rot -->
+<!-- build: explore2-v70-mesh-physics-full -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3291,10 +3291,22 @@ if (WEBSITE_MODE) {
       wsMeshVelX += (Math.random() - 0.5) * imp;
       wsMeshVelY += (Math.random() - 0.5) * imp;
     } else if (wsMouseNY < 0.5) {
-      // Upper section: boost vertical rotation speed
-      const boost = (Math.random() > 0.5 ? 1 : -1) * (0.05 + Math.random() * 0.18);
-      wsMeshRotSpd += boost;
-      wsMeshRotSpd = Math.max(-0.28, Math.min(0.28, wsMeshRotSpd));
+      // Upper section: drastic multi-axis rotation impulse — variable speed, organic
+      const spd  = 0.035 + Math.random() * 0.11;
+      const axis = Math.random();
+      if (axis < 0.33) {
+        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else if (axis < 0.66) {
+        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else {
+        wsMeshAngVX += (Math.random() - 0.5) * spd;
+        wsMeshAngVY += (Math.random() - 0.5) * spd;
+        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
+      }
+      const cap = 0.22;
+      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
+      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
+      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
     }
   }
 
@@ -3392,15 +3404,18 @@ if (WEBSITE_MODE) {
       wsMeshSpringX += wsMeshVelX; wsMeshSpringY += wsMeshVelY;
       wsMeshSpringX *= 0.84;       wsMeshSpringY *= 0.84;
       // Vertical rotation — randomly varying speed, slow drift
+      // Base vertical rotation — slow, randomly varying speed
       wsMeshRotTimer -= dt;
       if (wsMeshRotTimer <= 0) {
         wsMeshRotTarget = (Math.random() > 0.5 ? 1 : -1) * (0.02 + Math.random() * 0.09);
         wsMeshRotTimer  = 3 + Math.random() * 9;
       }
       wsMeshRotSpd += (wsMeshRotTarget - wsMeshRotSpd) * Math.min(1, dt * 0.25);
-      wsMeshObj.rotation.x += wsMeshRotSpd * dt + wsMeshSpringY * 0.007;
-      wsMeshObj.rotation.y += wsMeshSpringX * 0.007;
-      wsMeshObj.rotation.z  = 0;
+      // Angular velocity damping — upper zone drastic rotation
+      wsMeshAngVX *= 0.978; wsMeshAngVY *= 0.978; wsMeshAngVZ *= 0.97;
+      wsMeshObj.rotation.x += wsMeshRotSpd * dt + wsMeshAngVX + wsMeshSpringY * 0.007;
+      wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
+      wsMeshObj.rotation.z += wsMeshAngVZ;
       wsMeshObj.scale.set(0.49, 0.49, 0.49);
       wsMeshObj.position.set(0, 0, 0);
 
