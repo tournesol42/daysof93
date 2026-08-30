@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v57-cam-slerp-fix -->
+<!-- build: explore2-v58-mesh-bg-gate -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3335,15 +3335,12 @@ if (WEBSITE_MODE) {
       const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
       wsMeshLastNow = now;
 
-      // Opacity state machine
-      if (wsMeshState === 'fading') {
-        wsMeshCurOpacity = Math.min(1.0, (now - wsMeshFadeStart) / 20000);
-        if (wsMeshCurOpacity >= 1.0) wsMeshState = 'active';
-      } else if (wsMeshState === 'active') {
-        wsMeshCurOpacity = 1.0;
-      } else {
-        wsMeshCurOpacity = 0;
-      }
+      // Mesh visible only on solid black or solid white BG
+      const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
+      const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
+      const _targetOpacity = (_isSolidBlack || _isSolidWhite) ? 1.0 : 0.0;
+      wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, dt * 6);
+      wsMeshSetColor(_isSolidWhite);
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
       if (wsMeshCurOpacity < 0.005) return;
 
@@ -3354,10 +3351,7 @@ if (WEBSITE_MODE) {
           ? 2 * wsMeshCamT * wsMeshCamT
           : 1 - Math.pow(-2 * wsMeshCamT + 2, 2) / 2;
         wsMeshCamera.position.lerpVectors(wsMeshCamFrom.pos, wsMeshCamTo.pos, _e);
-        wsMeshCamera.quaternion.slerpQuaternions(wsMeshCamFrom.quat, wsMeshCamTo.quat, _e);
-        const _fov = wsMeshCamFrom.fov + (wsMeshCamTo.fov - wsMeshCamFrom.fov) * _e;
-        wsMeshCamera.fov = _fov;
-        wsMeshCamera.updateProjectionMatrix();
+        wsMeshCamera.lookAt(0, 0, 0);
       }
 
       wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
