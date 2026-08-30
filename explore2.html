@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v53-rotate-interp -->
+<!-- build: explore2-v54-cam-snap-rotate -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3268,9 +3268,13 @@ if (WEBSITE_MODE) {
     const v = wsMeshCamViews[safe];
     wsMeshCamera.position.copy(v.pos);
     wsMeshCamera.quaternion.copy(v.quat);
-    wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
-    wsMeshCamTo   = wsMeshCamViews[safe];
-    wsMeshCamT    = 0.0;
+    const v = wsMeshCamViews[safe];
+    wsMeshCamera.position.copy(v.pos);
+    wsMeshCamera.quaternion.copy(v.quat);
+    wsMeshCamera.fov    = v.fov;
+    wsMeshCamera.aspect = 1080 / 1920;
+    wsMeshCamera.updateProjectionMatrix();
+    wsMeshCamT = 1.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
 
