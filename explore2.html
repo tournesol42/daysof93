@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v60-mesh-geom-centre -->
+<!-- build: explore2-v61-mesh-lookat-track -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3303,14 +3303,10 @@ if (WEBSITE_MODE) {
       wsMeshScene.add(group);
       wsMeshObj = group;
 
-      // Centre geometry at world origin so rotation is a spin not an orbit
+      // Store real Blender-world bbox centre — used for dynamic lookAt tracking
       const _bbox = new THREE.Box3().setFromObject(group);
-      const _bboxCentre = _bbox.getCenter(new THREE.Vector3());
-      group.traverse(ch => {
-        if (ch.isLineSegments) ch.geometry.translate(-_bboxCentre.x, -_bboxCentre.y, -_bboxCentre.z);
-      });
-      wsMeshCenter.set(0, 0, 0);
-      console.log('d93: mesh centred, offset was', _bboxCentre.x.toFixed(2), _bboxCentre.y.toFixed(2), _bboxCentre.z.toFixed(2));
+      wsMeshCenter = _bbox.getCenter(new THREE.Vector3());
+      console.log('d93: mesh bbox centre', wsMeshCenter.x.toFixed(2), wsMeshCenter.y.toFixed(2), wsMeshCenter.z.toFixed(2));
 
       gltf.scene.updateMatrixWorld(true);
       const camNodes = (gltf.cameras || []).slice();
@@ -3330,7 +3326,7 @@ if (WEBSITE_MODE) {
         wsMeshCamera.position.copy(v0.pos);
         wsMeshCamera.fov = v0.fov;
         wsMeshCamera.aspect = 1080 / 1920;
-        wsMeshCamera.lookAt(0, 0, 0);
+        wsMeshCamera.lookAt(wsMeshCenter.x, wsMeshCenter.y, wsMeshCenter.z);
         wsMeshCamera.updateProjectionMatrix();
       }
 
@@ -3362,7 +3358,11 @@ if (WEBSITE_MODE) {
           : 1 - Math.pow(-2 * wsMeshCamT + 2, 2) / 2;
         wsMeshCamera.position.lerpVectors(wsMeshCamFrom.pos, wsMeshCamTo.pos, _e);
       }
-      wsMeshCamera.lookAt(0, 0, 0);
+      // Track mesh centre as it orbits around world Y axis
+      const _cos = Math.cos(wsMeshRotY), _sin = Math.sin(wsMeshRotY);
+      const _rcX = _cos * wsMeshCenter.x - _sin * wsMeshCenter.z;
+      const _rcZ = _sin * wsMeshCenter.x + _cos * wsMeshCenter.z;
+      wsMeshCamera.lookAt(_rcX, wsMeshCenter.y, _rcZ);
 
       wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
       wsMeshObj.rotation.y = wsMeshRotY;
