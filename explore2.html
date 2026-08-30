@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v66-mesh-offset-trim -->
+<!-- build: explore2-v67-mesh-scale70 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3366,7 +3366,7 @@ if (WEBSITE_MODE) {
 
       wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
       wsMeshObj.rotation.y = wsMeshRotY;
-      wsMeshObj.scale.set(1, 1, 1);
+      wsMeshObj.scale.set(0.7, 0.7, 0.7);
       wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
