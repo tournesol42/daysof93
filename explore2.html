@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v75-cam-orbit-physics -->
+<!-- build: explore2-v76-mesh-axis-physics -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3253,15 +3253,8 @@ if (WEBSITE_MODE) {
   let wsMeshCenter    = new THREE.Vector3(); // mesh bounding box centre
   let wsMeshLastNow   = 0;      // for dt calc
   // Physics state
-  // Orbital camera state — camera orbits mesh, mesh stays still
-  let wsCamTheta       = 0;     // azimuth angle
-  let wsCamPhi         = 0;     // elevation angle
-  let wsCamRadius      = 5;     // distance from mesh centre
-  let wsCamDTheta      = 0;     // azimuth angular velocity
-  let wsCamDPhi        = 0;     // elevation angular velocity
-  let wsCamThetaTarget = 0.03;  // target drift speed
-  let wsCamSpeedTimer  = 0;
-  // Spring (lower zone — nudges camera position)
+  // Mesh rotation physics
+  let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
   let wsMeshSpringX = 0, wsMeshSpringY = 0;
   let wsMeshVelX = 0, wsMeshVelY = 0;
   // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
@@ -3281,11 +3274,9 @@ if (WEBSITE_MODE) {
     if (!wsMeshCamViews.length || !wsMeshCamera) return;
     const safe = Math.min(idx, wsMeshCamViews.length - 1);
     const v = wsMeshCamViews[safe];
-    const _p = v.pos.clone().sub(wsMeshCenter);
-    wsCamRadius = Math.max(0.1, _p.length());
-    wsCamTheta  = Math.atan2(_p.x, _p.z);
-    wsCamPhi    = Math.asin(Math.max(-1, Math.min(1, _p.y / wsCamRadius)));
-    wsCamDTheta = 0; wsCamDPhi = 0;
+    wsMeshCamera.position.copy(v.pos);
+    wsMeshCamera.quaternion.copy(v.quat);
+    wsMeshCamT = 1.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
 
@@ -3297,23 +3288,22 @@ if (WEBSITE_MODE) {
       wsMeshVelX += (Math.random() - 0.5) * imp;
       wsMeshVelY += (Math.random() - 0.5) * imp;
     } else if (wsMouseNY < 0.5) {
-      // Upper section: drastic multi-axis orbital impulse — 360° H, 360° V, inbetween
+      // Upper section: drastic multi-axis mesh rotation impulse — 360° V, 360° H, inbetween
       const spd  = 0.035 + Math.random() * 0.11;
       const axis = Math.random();
       if (axis < 0.33) {
-        // Horizontal 360°
-        wsCamDTheta += (Math.random() > 0.5 ? 1 : -1) * spd;
+        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
       } else if (axis < 0.66) {
-        // Vertical 360°
-        wsCamDPhi += (Math.random() > 0.5 ? 1 : -1) * spd;
+        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
       } else {
-        // Inbetween — both axes
-        wsCamDTheta += (Math.random() - 0.5) * spd;
-        wsCamDPhi   += (Math.random() - 0.5) * spd * 0.7;
+        wsMeshAngVX += (Math.random() - 0.5) * spd;
+        wsMeshAngVY += (Math.random() - 0.5) * spd;
+        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
       }
       const cap = 0.22;
-      wsCamDTheta = Math.max(-cap, Math.min(cap, wsCamDTheta));
-      wsCamDPhi   = Math.max(-cap, Math.min(cap, wsCamDPhi));
+      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
+      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
+      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
     }
   }
 
@@ -3411,29 +3401,16 @@ if (WEBSITE_MODE) {
       wsMeshSpringX += wsMeshVelX; wsMeshSpringY += wsMeshVelY;
       wsMeshSpringX *= 0.84;       wsMeshSpringY *= 0.84;
       // Vertical rotation — randomly varying speed, slow drift
-      // Spring physics (lower zone nudge)
+      // Spring physics — lower zone elastic nudge
       wsMeshVelX *= 0.88; wsMeshVelY *= 0.88;
       wsMeshSpringX += wsMeshVelX; wsMeshSpringY += wsMeshVelY;
       wsMeshSpringX *= 0.84; wsMeshSpringY *= 0.84;
-      // Slow drift — randomly varying azimuth speed
-      wsCamSpeedTimer -= dt;
-      if (wsCamSpeedTimer <= 0) {
-        wsCamThetaTarget = (Math.random() > 0.5 ? 1 : -1) * (0.02 + Math.random() * 0.09);
-        wsCamSpeedTimer  = 3 + Math.random() * 9;
-      }
-      wsCamDTheta += (wsCamThetaTarget - wsCamDTheta) * Math.min(1, dt * 0.25);
-      // Angular velocity damping
-      wsCamDTheta *= 0.978; wsCamDPhi *= 0.978;
-      wsCamTheta += wsCamDTheta * dt;
-      wsCamPhi   += wsCamDPhi   * dt;
-      wsCamPhi    = Math.max(-Math.PI, Math.min(Math.PI, wsCamPhi));
-      // Set camera position from spherical coords
-      const _cx = wsMeshCenter.x + wsCamRadius * Math.sin(wsCamTheta) * Math.cos(wsCamPhi);
-      const _cy = wsMeshCenter.y + wsCamRadius * Math.sin(wsCamPhi);
-      const _cz = wsMeshCenter.z + wsCamRadius * Math.cos(wsCamTheta) * Math.cos(wsCamPhi);
-      wsMeshCamera.position.set(_cx + wsMeshSpringX * 0.1, _cy + wsMeshSpringY * 0.1, _cz);
-      wsMeshCamera.lookAt(wsMeshCenter.x, wsMeshCenter.y, wsMeshCenter.z);
-      wsMeshObj.rotation.set(0, 0, 0);
+      // Angular velocity — mesh rotates around its own axis
+      wsMeshAngVX *= 0.978; wsMeshAngVY *= 0.978; wsMeshAngVZ *= 0.97;
+      if (Math.abs(wsMeshAngVY) < 0.0025) wsMeshAngVY += 0.0008;
+      wsMeshObj.rotation.x += wsMeshAngVX + wsMeshSpringY * 0.007;
+      wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
+      wsMeshObj.rotation.z += wsMeshAngVZ;
       wsMeshObj.scale.set(0.49, 0.49, 0.49);
       wsMeshObj.position.set(0, 0, 0);
 
