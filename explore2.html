@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v50-no-center -->
+<!-- build: explore2-v51-916-aspect -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3162,7 +3162,8 @@ if (WEBSITE_MODE) {
     const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = _fo.toFixed(3);
     wsMouseNY = _ny;
-    wsMeshLastMove = performance.now();
+
+
     if (_ny > 0.8 && wsMeshState === 'idle' && !wsMeshEntryTimer) {
       wsMeshEntryTimer = setTimeout(() => {
         wsMeshEntryTimer = null;
@@ -3245,9 +3246,8 @@ if (WEBSITE_MODE) {
   let wsMeshLastNow   = 0;      // for dt calc
   // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
   const WS_ZONE_CAM   = [0, 1, 2, 3, 4, 5, 6, 3, 4];
-  // Scale animation (idle shrink)
-  let wsMeshScale     = 1.0;
-  let wsMeshLastMove  = 0;
+
+
 
   function wsMeshSetColor(white) {
     if (!wsMeshObj) return;
@@ -3264,7 +3264,7 @@ if (WEBSITE_MODE) {
     wsMeshCamera.position.copy(v.pos);
     wsMeshCamera.quaternion.copy(v.quat);
     wsMeshCamera.fov    = v.fov;
-    wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+    wsMeshCamera.aspect = 1080 / 1920;
     wsMeshCamera.updateProjectionMatrix();
     wsMeshCamT = 1.0; // no lerp
     console.log('d93: zone', wsCurrentZone, '→ cam', safe, 'pos', v.pos.x.toFixed(1), v.pos.y.toFixed(1), v.pos.z.toFixed(1));
@@ -3275,7 +3275,7 @@ if (WEBSITE_MODE) {
     wsMeshCamera   = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
     wsMeshRenderer = new THREE.WebGLRenderer({ canvas: wsMeshCv, alpha: true, antialias: true });
     wsMeshRenderer.setPixelRatio(window.devicePixelRatio);
-    wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
+    wsMeshRenderer.setSize(1080, 1920);
     wsMeshRenderer.setClearColor(0x000000, 0);
 
     const loader = new THREE.GLTFLoader();
@@ -3317,7 +3317,7 @@ if (WEBSITE_MODE) {
         wsMeshCamera.position.copy(v0.pos);
         wsMeshCamera.quaternion.copy(v0.quat);
         wsMeshCamera.fov = v0.fov;
-        wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+        wsMeshCamera.aspect = 1080 / 1920;
         wsMeshCamera.updateProjectionMatrix();
       }
 
@@ -3366,9 +3366,8 @@ if (WEBSITE_MODE) {
 
   window.addEventListener('resize', () => {
     if (!wsMeshRenderer) return;
-    wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+    wsMeshCamera.aspect = 1080 / 1920;
     wsMeshCamera.updateProjectionMatrix();
-    wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
   });
 
   wsInitMesh();
