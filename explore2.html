@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v45-gltf-cameras -->
+<!-- build: explore2-v46-gltf-diag -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3275,6 +3275,14 @@ if (WEBSITE_MODE) {
 
     const loader = new THREE.GLTFLoader();
     loader.load('/do93_cad%202.glb', gltf => {
+      console.log('d93: gltf keys:', Object.keys(gltf).join(', '));
+      console.log('d93: scenes:', gltf.scenes ? gltf.scenes.length : 'none');
+      console.log('d93: scene children:', gltf.scene ? gltf.scene.children.length : 'none');
+      console.log('d93: gltf.cameras:', gltf.cameras ? gltf.cameras.length : 'none');
+      // Try all scenes
+      const allNodes = [];
+      (gltf.scenes || [gltf.scene]).forEach(s => s && s.traverse(c => allNodes.push(c.type + ':' + c.name)));
+      console.log('d93: all nodes across all scenes:', allNodes.slice(0,20).join(' | '));
       // ── Build wireframe mesh ──────────────────────────────────────────────
       const group = new THREE.Group();
 
