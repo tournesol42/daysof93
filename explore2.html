@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v74-cam-orbit -->
+<!-- build: explore2-v75-cam-orbit-physics -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3297,12 +3297,23 @@ if (WEBSITE_MODE) {
       wsMeshVelX += (Math.random() - 0.5) * imp;
       wsMeshVelY += (Math.random() - 0.5) * imp;
     } else if (wsMouseNY < 0.5) {
-      // Upper section: drastic camera orbital impulse — variable, organic
-      const spd = 0.035 + Math.random() * 0.11;
-      wsCamDTheta += (Math.random() > 0.5 ? 1 : -1) * spd;
-      if (Math.random() < 0.5) wsCamDPhi += (Math.random() > 0.5 ? 1 : -1) * spd * 0.5;
-      wsCamDTheta = Math.max(-0.22, Math.min(0.22, wsCamDTheta));
-      wsCamDPhi   = Math.max(-0.10, Math.min(0.10, wsCamDPhi));
+      // Upper section: drastic multi-axis orbital impulse — 360° H, 360° V, inbetween
+      const spd  = 0.035 + Math.random() * 0.11;
+      const axis = Math.random();
+      if (axis < 0.33) {
+        // Horizontal 360°
+        wsCamDTheta += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else if (axis < 0.66) {
+        // Vertical 360°
+        wsCamDPhi += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else {
+        // Inbetween — both axes
+        wsCamDTheta += (Math.random() - 0.5) * spd;
+        wsCamDPhi   += (Math.random() - 0.5) * spd * 0.7;
+      }
+      const cap = 0.22;
+      wsCamDTheta = Math.max(-cap, Math.min(cap, wsCamDTheta));
+      wsCamDPhi   = Math.max(-cap, Math.min(cap, wsCamDPhi));
     }
   }
 
@@ -3415,7 +3426,7 @@ if (WEBSITE_MODE) {
       wsCamDTheta *= 0.978; wsCamDPhi *= 0.978;
       wsCamTheta += wsCamDTheta * dt;
       wsCamPhi   += wsCamDPhi   * dt;
-      wsCamPhi    = Math.max(-1.1, Math.min(1.1, wsCamPhi));
+      wsCamPhi    = Math.max(-Math.PI, Math.min(Math.PI, wsCamPhi));
       // Set camera position from spherical coords
       const _cx = wsMeshCenter.x + wsCamRadius * Math.sin(wsCamTheta) * Math.cos(wsCamPhi);
       const _cy = wsMeshCenter.y + wsCamRadius * Math.sin(wsCamPhi);
