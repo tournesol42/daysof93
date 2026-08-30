@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v42-mesh-topdown-big -->
+<!-- build: explore2-v44-cam-diag -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3297,7 +3297,8 @@ if (WEBSITE_MODE) {
       // ── Extract DO93_CAM camera snapshots ────────────────────────────────
       const camNodes = [];
       gltf.scene.traverse(child => {
-        if (child.isCamera) {
+        console.log('d93: node', child.type, child.name);
+        if (child.isCamera || child.type === 'PerspectiveCamera' || child.type === 'Camera') {
           child.updateWorldMatrix(true, false);
           camNodes.push(child);
         }
