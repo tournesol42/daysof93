@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v51-916-aspect -->
+<!-- build: explore2-v52-mesh-align-poly -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -280,7 +280,6 @@ canvas {
 }
 #ws-mesh-cv {
   position: fixed;
-  inset: 0;
   z-index: 501;
   pointer-events: none;
   opacity: 0;
@@ -2915,6 +2914,13 @@ if (WEBSITE_MODE) {
     cv.style.left     = Math.floor((vw - dw) / 2) + 'px';
     cv.style.top      = Math.floor((vh - dh) / 2) + 'px';
     console.log('d93: canvas 1080x1920 scaled', dw, 'x', dh, 'on viewport', vw, 'x', vh);
+    const _mc = document.getElementById('ws-mesh-cv');
+    if (_mc) {
+      _mc.style.width  = dw + 'px';
+      _mc.style.height = dh + 'px';
+      _mc.style.left   = cv.style.left;
+      _mc.style.top    = cv.style.top;
+    }
   }
   wsResizeCanvas();
   window.addEventListener('resize', wsResizeCanvas);
@@ -2967,7 +2973,8 @@ if (WEBSITE_MODE) {
 
   let wsAudioCtx     = null;
   let wsShortBuffers = [];
-  let wsShortSource  = null;
+
+
   const wsLongAudio  = new Audio();
   let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null, wsMainSrc = null;
 
@@ -3029,7 +3036,6 @@ if (WEBSITE_MODE) {
   function wsPlayShortSound() {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
     if (bLow.alpha > 0.45) return;
-    if (wsShortSource) { try { wsShortSource.stop(); } catch(e) {} wsShortSource = null; }
     const buf = wsShortBuffers[Math.floor(Math.random() * wsShortBuffers.length)];
     const src = wsAudioCtx.createBufferSource();
     src.buffer = buf;
@@ -3039,8 +3045,6 @@ if (WEBSITE_MODE) {
     src.connect(gain);
     gain.connect(wsLPF);
     src.start();
-    wsShortSource = src;
-    src.onended = () => { if (wsShortSource === src) wsShortSource = null; };
   }
 
   function wsStartLongSound() {
