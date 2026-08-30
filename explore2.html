@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v70-mesh-physics-full -->
+<!-- build: explore2-v71-cam-snap-opposite -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3278,7 +3278,9 @@ if (WEBSITE_MODE) {
     const v = wsMeshCamViews[safe];
     wsMeshCamFrom = { pos: wsMeshCamera.position.clone() };
     wsMeshCamTo   = { pos: v.pos.clone() };
-    wsMeshCamDur  = 0.5;
+    const _d1 = wsMeshCamFrom.pos.clone().sub(wsMeshCenter).normalize();
+    const _d2 = wsMeshCamTo.pos.clone().sub(wsMeshCenter).normalize();
+    wsMeshCamDur  = _d1.dot(_d2) < 0 ? 0.0 : 0.5;
     wsMeshCamT    = 0.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
