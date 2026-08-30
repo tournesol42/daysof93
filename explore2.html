@@ -3016,7 +3016,6 @@ if (WEBSITE_MODE) {
     triggerAudio = function() {
       _origTriggerAudio.call(this);
       wsPlayShortSound();
-      wsMeshOnTrigger();
     };
     // Patch triggerBrightLower — main music counter on every sync dark flash
     const _origTriggerBrightLower = triggerBrightLower;
@@ -3051,7 +3050,6 @@ if (WEBSITE_MODE) {
     wsLongAudio.currentTime = 0;
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
-    wsMeshDoPinch();
   }
 
   function wsStopLongSound() {
@@ -3237,34 +3235,18 @@ if (WEBSITE_MODE) {
   let wsMeshEntryTimer = null;
   let wsMouseNY        = 0;
 
-  // Physics state
-  let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
-  let wsMeshSpringX = 0, wsMeshSpringY = 0;
-  let wsMeshVelX = 0, wsMeshVelY = 0;
-  // Scale animation
-  let wsMeshScale    = 1.0;
-  let wsMeshLastMove = 0;
-  // Corner pinch spring
-  let wsMeshPinchAmt = 0, wsMeshPinchVel = 0;
-  let wsMeshPinchX   = 0, wsMeshPinchY   = 0, wsMeshPinchZ = 0;
-  // Occasional 2× size event
-  let wsMeshBigScale     = 1.0;
-  let wsMeshBigActive    = false;
-  let wsMeshBigEventTs   = 0;
-  let wsMeshBigNextIn    = 12000 + Math.random() * 14000;
-  let wsMeshBigEndTs     = 0;
-
-  function wsMeshDoPinch() {
-    if (wsMeshState === 'idle') return;
-    if (Math.random() > 0.65) return; // fires ~65% of the time
-    const rx = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
-    const ry = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
-    const rz = (Math.random() - 0.5) * 0.4;
-    const mag = Math.sqrt(rx*rx + ry*ry + rz*rz);
-    wsMeshPinchX = rx / mag; wsMeshPinchY = ry / mag; wsMeshPinchZ = rz / mag;
-    wsMeshPinchVel += 0.25 + Math.random() * 0.30;
-    console.log('d93: pinch', wsMeshPinchX.toFixed(2), wsMeshPinchY.toFixed(2));
-  }
+  // Camera animation state
+  let wsMeshCamViews  = [];     // [{pos, quat, fov}] extracted from GLB DO93_CAM nodes
+  let wsMeshCamFrom   = null;   // lerp start
+  let wsMeshCamTo     = null;   // lerp target
+  let wsMeshCamT      = 1.0;    // 0→1 interpolation progress
+  const WS_CAM_DUR    = 2.0;    // transition duration in seconds
+  let wsMeshLastNow   = 0;      // for dt calc
+  // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
+  const WS_ZONE_CAM   = [0, 1, 2, 3, 4, 5, 6, 3, 4];
+  // Scale animation (idle shrink)
+  let wsMeshScale     = 1.0;
+  let wsMeshLastMove  = 0;
 
   function wsMeshSetColor(white) {
     if (!wsMeshObj) return;
@@ -3274,80 +3256,82 @@ if (WEBSITE_MODE) {
     });
   }
 
-  function wsMeshOnTrigger() {
-    if (wsMeshState === 'idle') return;
-    if (wsMouseNY > 0.8) {
-      // Lower section: gentle elastic spring impulse
-      const imp = 0.012 + Math.random() * 0.022;
-      wsMeshVelX += (Math.random() - 0.5) * imp;
-      wsMeshVelY += (Math.random() - 0.5) * imp;
-    } else if (wsMouseNY < 0.5) {
-      // Upper section: drastic rotation impulse — variable speed, organic
-      const spd  = 0.035 + Math.random() * 0.11;
-      const axis = Math.random();
-      if (axis < 0.33) {
-        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
-      } else if (axis < 0.66) {
-        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
-      } else {
-        wsMeshAngVX += (Math.random() - 0.5) * spd;
-        wsMeshAngVY += (Math.random() - 0.5) * spd;
-        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
-      }
-      const cap = 0.22;
-      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
-      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
-      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
-    }
+  function wsStartCamTransition(idx) {
+    if (!wsMeshCamViews.length || !wsMeshCamera) return;
+    const safe = Math.min(idx, wsMeshCamViews.length - 1);
+    wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
+    wsMeshCamTo   = wsMeshCamViews[safe];
+    wsMeshCamT    = 0.0;
+    console.log('d93: cam transition →', safe);
   }
 
   function wsInitMesh() {
-    wsMeshScene  = new THREE.Scene();
-    wsMeshCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
-
-    wsMeshRenderer = new THREE.WebGLRenderer({
-      canvas: wsMeshCv, alpha: true, antialias: true,
-    });
+    wsMeshScene    = new THREE.Scene();
+    wsMeshCamera   = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
+    wsMeshRenderer = new THREE.WebGLRenderer({ canvas: wsMeshCv, alpha: true, antialias: true });
     wsMeshRenderer.setPixelRatio(window.devicePixelRatio);
     wsMeshRenderer.setSize(window.innerWidth, window.innerHeight);
     wsMeshRenderer.setClearColor(0x000000, 0);
 
     const loader = new THREE.GLTFLoader();
-    loader.load('/do93_cad.glb', gltf => {
+    loader.load('/do93_cad%202.glb', gltf => {
+      // ── Build wireframe mesh ──────────────────────────────────────────────
       const group = new THREE.Group();
+
       gltf.scene.traverse(child => {
         if (!child.isMesh) return;
-        const geo  = new THREE.WireframeGeometry(child.geometry);
-        const mat  = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.7 });
+        const geo   = new THREE.WireframeGeometry(child.geometry);
+        const mat   = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.7 });
         const lines = new THREE.LineSegments(geo, mat);
         lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
       });
       wsMeshScene.add(group);
       wsMeshObj = group;
+
+      // Centre mesh at origin
       const box    = new THREE.Box3().setFromObject(group);
       const center = box.getCenter(new THREE.Vector3());
-      const size   = box.getSize(new THREE.Vector3());
       group.position.sub(center);
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const fov    = wsMeshCamera.fov * (Math.PI / 180);
-      const dist   = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.3;
-      // Shape: 30% narrower, 20% taller
-      group.scale.set(0.7, 1.2, 1.0);
-      wsMeshCamera.position.set(0, dist * 1.5, dist * 0.18);
-      wsMeshCamera.lookAt(0, 0, 0);
-      wsMeshCamera.updateProjectionMatrix();
-      // Store viewport world height for Y-position tracking
-      wsMeshViewH = 2 * dist * Math.tan((wsMeshCamera.fov / 2) * Math.PI / 180);
-      console.log('d93: mesh loaded', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2), 'viewH', wsMeshViewH.toFixed(2));
-    }, undefined, err => console.warn('d93: mesh failed', err));
 
+      // ── Extract DO93_CAM camera snapshots ────────────────────────────────
+      const camNodes = [];
+      gltf.scene.traverse(child => {
+        if (child.isCamera) {
+          child.updateWorldMatrix(true, false);
+          camNodes.push(child);
+        }
+      });
+      camNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      wsMeshCamViews = camNodes.map(cam => ({
+        pos:  cam.getWorldPosition(new THREE.Vector3()).sub(center),
+        quat: cam.getWorldQuaternion(new THREE.Quaternion()),
+        fov:  cam.fov || 45,
+      }));
+      console.log('d93: mesh loaded,', wsMeshCamViews.length, 'cameras:', camNodes.map(c => c.name).join(', '));
+
+      // Set initial camera to view 0
+      if (wsMeshCamViews.length > 0) {
+        const v0 = wsMeshCamViews[0];
+        wsMeshCamera.position.copy(v0.pos);
+        wsMeshCamera.quaternion.copy(v0.quat);
+        wsMeshCamera.fov = v0.fov;
+        wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+        wsMeshCamera.updateProjectionMatrix();
+      }
+
+    }, undefined, err => console.warn('d93: mesh load failed', err));
+
+    // ── Render loop ───────────────────────────────────────────────────────
     (function wsMeshLoop() {
       requestAnimationFrame(wsMeshLoop);
       if (!wsMeshRenderer || !wsMeshObj) return;
 
-      // Opacity state machine
       const now = performance.now();
+      const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
+      wsMeshLastNow = now;
+
+      // Opacity state machine
       if (wsMeshState === 'fading') {
         wsMeshCurOpacity = Math.min(1.0, (now - wsMeshFadeStart) / 20000);
         if (wsMeshCurOpacity >= 1.0) wsMeshState = 'active';
@@ -3359,47 +3343,25 @@ if (WEBSITE_MODE) {
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
       if (wsMeshCurOpacity < 0.005) return;
 
-      // Spring physics — elastic position offset
-      wsMeshVelX  *= 0.88; wsMeshVelY  *= 0.88;
-      wsMeshSpringX += wsMeshVelX;  wsMeshSpringY += wsMeshVelY;
-      wsMeshSpringX *= 0.84;        wsMeshSpringY *= 0.84;
-
-      // Angular velocity physics — rotation damping
-      wsMeshAngVX *= 0.978; wsMeshAngVY *= 0.978; wsMeshAngVZ *= 0.97;
-      // Minimum idle drift so mesh is never fully static
-      if (Math.abs(wsMeshAngVY) < 0.0025) wsMeshAngVY += 0.0008;
-
-      wsMeshObj.rotation.x += wsMeshAngVX + wsMeshSpringY * 0.007;
-      wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
-      wsMeshObj.rotation.z += wsMeshAngVZ;
-
-      // Scale animation: 4s idle → shrink to 50% (slow organic), mouse activity → restore (fast exp)
-      const _idleMs    = now - wsMeshLastMove;
-      const _scaleTgt  = _idleMs > 4000 ? 0.5 : 1.0;
-      const _scaleLerp = _scaleTgt < wsMeshScale ? 0.007 : 0.18;
-      wsMeshScale += (_scaleTgt - wsMeshScale) * _scaleLerp;
-      // Corner pinch spring — loose, elastic, snaps back
-      wsMeshPinchVel += -wsMeshPinchAmt * 0.13;
-      wsMeshPinchVel *= 0.82;
-      wsMeshPinchAmt += wsMeshPinchVel;
-      // Occasional 2× size event — autonomous random trigger
-      if (wsMeshState !== 'idle') {
-        if (!wsMeshBigActive && (now - wsMeshBigEventTs) > wsMeshBigNextIn) {
-          wsMeshBigActive  = true;
-          wsMeshBigEndTs   = now + 2500 + Math.random() * 3000;
-          wsMeshBigEventTs = now;
-          wsMeshBigNextIn  = 12000 + Math.random() * 14000;
-          console.log('d93: mesh big event');
-        }
-        if (wsMeshBigActive && now > wsMeshBigEndTs) wsMeshBigActive = false;
+      // Camera interpolation between Blender snapshots — ease in-out
+      if (wsMeshCamT < 1.0 && wsMeshCamFrom && wsMeshCamTo) {
+        wsMeshCamT = Math.min(1.0, wsMeshCamT + dt / WS_CAM_DUR);
+        const _e = wsMeshCamT < 0.5
+          ? 2 * wsMeshCamT * wsMeshCamT
+          : 1 - Math.pow(-2 * wsMeshCamT + 2, 2) / 2;
+        wsMeshCamera.position.lerpVectors(wsMeshCamFrom.pos, wsMeshCamTo.pos, _e);
+        wsMeshCamera.quaternion.slerpQuaternions(wsMeshCamFrom.quat, wsMeshCamTo.quat, _e);
+        const _fov = wsMeshCamFrom.fov + (wsMeshCamTo.fov - wsMeshCamFrom.fov) * _e;
+        wsMeshCamera.fov = _fov;
+        wsMeshCamera.updateProjectionMatrix();
       }
-      const _bigTgt = wsMeshBigActive ? 2.0 : 1.0;
-      wsMeshBigScale += (_bigTgt - wsMeshBigScale) * (_bigTgt > wsMeshBigScale ? 0.04 : 0.015);
-      // Base size 30% smaller: shape (0.49, 0.84, 0.7) × scale animation × big event × pinch
-      const _px = 1 + wsMeshPinchX * wsMeshPinchAmt;
-      const _py = 1 + wsMeshPinchY * wsMeshPinchAmt;
-      const _pz = 1 + wsMeshPinchZ * wsMeshPinchAmt;
-      wsMeshObj.scale.set(0.49 * wsMeshScale * wsMeshBigScale * _px, 0.84 * wsMeshScale * wsMeshBigScale * _py, 0.7 * wsMeshScale * wsMeshBigScale * _pz);
+
+      // Scale animation: 4s idle → 50%, mouse → restore
+      const _idleMs   = now - wsMeshLastMove;
+      const _scaleTgt = _idleMs > 4000 ? 0.5 : 1.0;
+      const _scaleLrp = _scaleTgt < wsMeshScale ? 0.007 : 0.18;
+      wsMeshScale    += (_scaleTgt - wsMeshScale) * _scaleLrp;
+      wsMeshObj.scale.set(0.49 * wsMeshScale, 0.84 * wsMeshScale, 0.7 * wsMeshScale);
       wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
