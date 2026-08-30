@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v61-mesh-lookat-track -->
+<!-- build: explore2-v64-mesh-position-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2918,7 +2918,7 @@ if (WEBSITE_MODE) {
     if (_mc) {
       _mc.style.width  = dw + 'px';
       _mc.style.height = dh + 'px';
-      _mc.style.left   = cv.style.left;
+      _mc.style.left   = (Math.floor((vw - dw) / 2) + Math.round(dw * 2 / 9)) + 'px';
       _mc.style.top    = cv.style.top;
     }
   }
@@ -3279,9 +3279,9 @@ if (WEBSITE_MODE) {
     wsMeshScene    = new THREE.Scene();
     wsMeshCamera   = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
     wsMeshRenderer = new THREE.WebGLRenderer({ canvas: wsMeshCv, alpha: true, antialias: true });
-    wsMeshRenderer.setPixelRatio(window.devicePixelRatio);
     wsMeshRenderer.setSize(1080, 1920);
     wsMeshRenderer.setClearColor(0x000000, 0);
+    wsResizeCanvas();
 
     const loader = new THREE.GLTFLoader();
     loader.load('/do93_cad_3.glb', gltf => {
