@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v56-new-mesh -->
+<!-- build: explore2-v57-cam-slerp-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3268,6 +3268,7 @@ if (WEBSITE_MODE) {
     const v = wsMeshCamViews[safe];
     wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
     wsMeshCamTo   = { pos: v.pos.clone(), quat: v.quat.clone(), fov: v.fov };
+    if (wsMeshCamFrom.quat.dot(wsMeshCamTo.quat) < 0) wsMeshCamTo.quat.negate();
     wsMeshCamT    = 0.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
