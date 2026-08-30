@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v59-mesh-center-randcam -->
+<!-- build: explore2-v60-mesh-geom-centre -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3303,10 +3303,14 @@ if (WEBSITE_MODE) {
       wsMeshScene.add(group);
       wsMeshObj = group;
 
-      // Compute mesh bounding box centre for lookAt target
+      // Centre geometry at world origin so rotation is a spin not an orbit
       const _bbox = new THREE.Box3().setFromObject(group);
-      wsMeshCenter = _bbox.getCenter(new THREE.Vector3());
-      console.log('d93: mesh centre', wsMeshCenter.x.toFixed(2), wsMeshCenter.y.toFixed(2), wsMeshCenter.z.toFixed(2));
+      const _bboxCentre = _bbox.getCenter(new THREE.Vector3());
+      group.traverse(ch => {
+        if (ch.isLineSegments) ch.geometry.translate(-_bboxCentre.x, -_bboxCentre.y, -_bboxCentre.z);
+      });
+      wsMeshCenter.set(0, 0, 0);
+      console.log('d93: mesh centred, offset was', _bboxCentre.x.toFixed(2), _bboxCentre.y.toFixed(2), _bboxCentre.z.toFixed(2));
 
       gltf.scene.updateMatrixWorld(true);
       const camNodes = (gltf.cameras || []).slice();
@@ -3324,8 +3328,9 @@ if (WEBSITE_MODE) {
       if (wsMeshCamViews.length > 0) {
         const v0 = wsMeshCamViews[0];
         wsMeshCamera.position.copy(v0.pos);
-        wsMeshCamera.lookAt(wsMeshCenter);
+        wsMeshCamera.fov = v0.fov;
         wsMeshCamera.aspect = 1080 / 1920;
+        wsMeshCamera.lookAt(0, 0, 0);
         wsMeshCamera.updateProjectionMatrix();
       }
 
@@ -3356,8 +3361,8 @@ if (WEBSITE_MODE) {
           ? 2 * wsMeshCamT * wsMeshCamT
           : 1 - Math.pow(-2 * wsMeshCamT + 2, 2) / 2;
         wsMeshCamera.position.lerpVectors(wsMeshCamFrom.pos, wsMeshCamTo.pos, _e);
-        wsMeshCamera.lookAt(wsMeshCenter);
       }
+      wsMeshCamera.lookAt(0, 0, 0);
 
       wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
       wsMeshObj.rotation.y = wsMeshRotY;
