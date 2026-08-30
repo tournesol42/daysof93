@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v58-mesh-bg-gate -->
+<!-- build: explore2-v59-mesh-center-randcam -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3247,7 +3247,9 @@ if (WEBSITE_MODE) {
   let wsMeshCamFrom   = null;   // lerp start
   let wsMeshCamTo     = null;   // lerp target
   let wsMeshCamT      = 1.0;    // 0→1 interpolation progress
-  const WS_CAM_DUR    = 2.0;    // transition duration in seconds
+  const WS_CAM_DUR    = 2.0;    // transition duration in seconds (default)
+  let wsMeshCamDur    = 2.0;    // per-transition randomised duration
+  let wsMeshCenter    = new THREE.Vector3(); // mesh bounding box centre
   let wsMeshLastNow   = 0;      // for dt calc
   // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
   const WS_ZONE_CAM   = [0, 1, 2, 3, 4, 5, 6, 3, 4];
@@ -3266,9 +3268,9 @@ if (WEBSITE_MODE) {
     if (!wsMeshCamViews.length || !wsMeshCamera) return;
     const safe = Math.min(idx, wsMeshCamViews.length - 1);
     const v = wsMeshCamViews[safe];
-    wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
-    wsMeshCamTo   = { pos: v.pos.clone(), quat: v.quat.clone(), fov: v.fov };
-    if (wsMeshCamFrom.quat.dot(wsMeshCamTo.quat) < 0) wsMeshCamTo.quat.negate();
+    wsMeshCamFrom = { pos: wsMeshCamera.position.clone() };
+    wsMeshCamTo   = { pos: v.pos.clone() };
+    wsMeshCamDur  = 0.8 + Math.random() * 1.7;
     wsMeshCamT    = 0.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
@@ -3301,7 +3303,11 @@ if (WEBSITE_MODE) {
       wsMeshScene.add(group);
       wsMeshObj = group;
 
-      // No manual centering — cameras already point at mesh in Blender world space
+      // Compute mesh bounding box centre for lookAt target
+      const _bbox = new THREE.Box3().setFromObject(group);
+      wsMeshCenter = _bbox.getCenter(new THREE.Vector3());
+      console.log('d93: mesh centre', wsMeshCenter.x.toFixed(2), wsMeshCenter.y.toFixed(2), wsMeshCenter.z.toFixed(2));
+
       gltf.scene.updateMatrixWorld(true);
       const camNodes = (gltf.cameras || []).slice();
       camNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -3318,8 +3324,7 @@ if (WEBSITE_MODE) {
       if (wsMeshCamViews.length > 0) {
         const v0 = wsMeshCamViews[0];
         wsMeshCamera.position.copy(v0.pos);
-        wsMeshCamera.quaternion.copy(v0.quat);
-        wsMeshCamera.fov = v0.fov;
+        wsMeshCamera.lookAt(wsMeshCenter);
         wsMeshCamera.aspect = 1080 / 1920;
         wsMeshCamera.updateProjectionMatrix();
       }
@@ -3346,12 +3351,12 @@ if (WEBSITE_MODE) {
 
       // Camera interpolation between Blender snapshots — ease in-out
       if (wsMeshCamT < 1.0 && wsMeshCamFrom && wsMeshCamTo) {
-        wsMeshCamT = Math.min(1.0, wsMeshCamT + dt / WS_CAM_DUR);
+        wsMeshCamT = Math.min(1.0, wsMeshCamT + dt / wsMeshCamDur);
         const _e = wsMeshCamT < 0.5
           ? 2 * wsMeshCamT * wsMeshCamT
           : 1 - Math.pow(-2 * wsMeshCamT + 2, 2) / 2;
         wsMeshCamera.position.lerpVectors(wsMeshCamFrom.pos, wsMeshCamTo.pos, _e);
-        wsMeshCamera.lookAt(0, 0, 0);
+        wsMeshCamera.lookAt(wsMeshCenter);
       }
 
       wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
