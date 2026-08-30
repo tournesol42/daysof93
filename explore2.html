@@ -3268,9 +3268,6 @@ if (WEBSITE_MODE) {
     const v = wsMeshCamViews[safe];
     wsMeshCamera.position.copy(v.pos);
     wsMeshCamera.quaternion.copy(v.quat);
-    const v = wsMeshCamViews[safe];
-    wsMeshCamera.position.copy(v.pos);
-    wsMeshCamera.quaternion.copy(v.quat);
     wsMeshCamera.fov    = v.fov;
     wsMeshCamera.aspect = 1080 / 1920;
     wsMeshCamera.updateProjectionMatrix();
