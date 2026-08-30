@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v52-mesh-align-poly -->
+<!-- build: explore2-v53-rotate-interp -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3242,7 +3242,8 @@ if (WEBSITE_MODE) {
   let wsMouseNY        = 0;
 
   // Camera animation state
-  let wsMeshCamViews  = [];     // [{pos, quat, fov}] extracted from GLB DO93_CAM nodes
+  let wsMeshCamViews  = [];
+  let wsMeshRotY      = 0;  // slow continuous mesh rotation     // [{pos, quat, fov}] extracted from GLB DO93_CAM nodes
   let wsMeshCamFrom   = null;   // lerp start
   let wsMeshCamTo     = null;   // lerp target
   let wsMeshCamT      = 1.0;    // 0→1 interpolation progress
@@ -3267,11 +3268,10 @@ if (WEBSITE_MODE) {
     const v = wsMeshCamViews[safe];
     wsMeshCamera.position.copy(v.pos);
     wsMeshCamera.quaternion.copy(v.quat);
-    wsMeshCamera.fov    = v.fov;
-    wsMeshCamera.aspect = 1080 / 1920;
-    wsMeshCamera.updateProjectionMatrix();
-    wsMeshCamT = 1.0; // no lerp
-    console.log('d93: zone', wsCurrentZone, '→ cam', safe, 'pos', v.pos.x.toFixed(1), v.pos.y.toFixed(1), v.pos.z.toFixed(1));
+    wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
+    wsMeshCamTo   = wsMeshCamViews[safe];
+    wsMeshCamT    = 0.0;
+    console.log('d93: zone', wsCurrentZone, '→ cam', safe);
   }
 
   function wsInitMesh() {
@@ -3361,6 +3361,8 @@ if (WEBSITE_MODE) {
         wsMeshCamera.updateProjectionMatrix();
       }
 
+      wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
+      wsMeshObj.rotation.y = wsMeshRotY;
       wsMeshObj.scale.set(1, 1, 1);
       wsMeshObj.position.set(0, 0, 0);
 
