@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v49-native-scale -->
+<!-- build: explore2-v50-no-center -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3298,21 +3298,17 @@ if (WEBSITE_MODE) {
       wsMeshScene.add(group);
       wsMeshObj = group;
 
-      // Centre mesh at origin
-      const box    = new THREE.Box3().setFromObject(group);
-      const center = box.getCenter(new THREE.Vector3());
-      group.position.sub(center);
-
-      // ── Extract DO93_CAM camera snapshots via gltf.cameras ───────────────
+      // No manual centering — cameras already point at mesh in Blender world space
       gltf.scene.updateMatrixWorld(true);
       const camNodes = (gltf.cameras || []).slice();
       camNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       console.log('d93: gltf.cameras count:', camNodes.length, camNodes.map(c => c.name).join(', '));
-      wsMeshCamViews = camNodes.map(cam => ({
-        pos:  cam.getWorldPosition(new THREE.Vector3()).sub(center),
-        quat: cam.getWorldQuaternion(new THREE.Quaternion()),
-        fov:  cam.fov || 45,
-      }));
+      wsMeshCamViews = camNodes.map(cam => {
+        const pos  = cam.getWorldPosition(new THREE.Vector3());
+        const quat = cam.getWorldQuaternion(new THREE.Quaternion());
+        console.log('d93: cam', cam.name, pos.x.toFixed(1), pos.y.toFixed(1), pos.z.toFixed(1));
+        return { pos, quat, fov: cam.fov || 45 };
+      });
       console.log('d93: mesh loaded,', wsMeshCamViews.length, 'cameras:', camNodes.map(c => c.name).join(', '));
 
       // Set initial camera to view 0
