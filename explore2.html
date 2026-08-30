@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v47-cam-clean -->
+<!-- build: explore2-v48-cam-snap -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3260,10 +3260,14 @@ if (WEBSITE_MODE) {
   function wsStartCamTransition(idx) {
     if (!wsMeshCamViews.length || !wsMeshCamera) return;
     const safe = Math.min(idx, wsMeshCamViews.length - 1);
-    wsMeshCamFrom = { pos: wsMeshCamera.position.clone(), quat: wsMeshCamera.quaternion.clone(), fov: wsMeshCamera.fov };
-    wsMeshCamTo   = wsMeshCamViews[safe];
-    wsMeshCamT    = 0.0;
-    console.log('d93: cam transition →', safe);
+    const v = wsMeshCamViews[safe];
+    wsMeshCamera.position.copy(v.pos);
+    wsMeshCamera.quaternion.copy(v.quat);
+    wsMeshCamera.fov    = v.fov;
+    wsMeshCamera.aspect = window.innerWidth / window.innerHeight;
+    wsMeshCamera.updateProjectionMatrix();
+    wsMeshCamT = 1.0; // no lerp
+    console.log('d93: zone', wsCurrentZone, '→ cam', safe, 'pos', v.pos.x.toFixed(1), v.pos.y.toFixed(1), v.pos.z.toFixed(1));
   }
 
   function wsInitMesh() {
@@ -3283,9 +3287,8 @@ if (WEBSITE_MODE) {
 
       let _meshCount = 0;
       gltf.scene.traverse(child => {
-        if (!child.isMesh) { return; }
-        _meshCount++;
         if (!child.isMesh) return;
+        _meshCount++;
         const geo   = new THREE.WireframeGeometry(child.geometry);
         const mat   = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.7 });
         const lines = new THREE.LineSegments(geo, mat);
