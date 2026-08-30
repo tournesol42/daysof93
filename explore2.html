@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v67-mesh-scale70 -->
+<!-- build: explore2-v68-mesh-physics -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3023,6 +3023,7 @@ if (WEBSITE_MODE) {
     triggerAudio = function() {
       _origTriggerAudio.call(this);
       wsPlayShortSound();
+      wsMeshOnTrigger();
     };
     // Patch triggerBrightLower — main music counter on every sync dark flash
     const _origTriggerBrightLower = triggerBrightLower;
@@ -3251,6 +3252,10 @@ if (WEBSITE_MODE) {
   let wsMeshCamDur    = 2.0;    // per-transition randomised duration
   let wsMeshCenter    = new THREE.Vector3(); // mesh bounding box centre
   let wsMeshLastNow   = 0;      // for dt calc
+  // Physics state
+  let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
+  let wsMeshSpringX = 0, wsMeshSpringY = 0;
+  let wsMeshVelX = 0, wsMeshVelY = 0;
   // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
   const WS_ZONE_CAM   = [0, 1, 2, 3, 4, 5, 6, 3, 4];
 
@@ -3273,6 +3278,33 @@ if (WEBSITE_MODE) {
     wsMeshCamDur  = 0.8 + Math.random() * 1.7;
     wsMeshCamT    = 0.0;
     console.log('d93: zone', wsCurrentZone, '→ cam', safe);
+  }
+
+  function wsMeshOnTrigger() {
+    if (wsMeshCurOpacity < 0.01) return;
+    if (wsMouseNY > 0.8) {
+      // Lower section: gentle elastic spring impulse
+      const imp = 0.012 + Math.random() * 0.022;
+      wsMeshVelX += (Math.random() - 0.5) * imp;
+      wsMeshVelY += (Math.random() - 0.5) * imp;
+    } else if (wsMouseNY < 0.5) {
+      // Upper section: drastic rotation impulse — variable speed, organic
+      const spd  = 0.035 + Math.random() * 0.11;
+      const axis = Math.random();
+      if (axis < 0.33) {
+        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else if (axis < 0.66) {
+        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
+      } else {
+        wsMeshAngVX += (Math.random() - 0.5) * spd;
+        wsMeshAngVY += (Math.random() - 0.5) * spd;
+        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
+      }
+      const cap = 0.22;
+      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
+      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
+      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
+    }
   }
 
   function wsInitMesh() {
@@ -3364,8 +3396,16 @@ if (WEBSITE_MODE) {
       const _rcZ = _sin * wsMeshCenter.x + _cos * wsMeshCenter.z;
       wsMeshCamera.lookAt(_rcX, wsMeshCenter.y, _rcZ);
 
-      wsMeshRotY += dt * 0.08; // ~one full rotation per 80s
-      wsMeshObj.rotation.y = wsMeshRotY;
+      // Spring physics — elastic position offset
+      wsMeshVelX *= 0.88; wsMeshVelY *= 0.88;
+      wsMeshSpringX += wsMeshVelX; wsMeshSpringY += wsMeshVelY;
+      wsMeshSpringX *= 0.84;       wsMeshSpringY *= 0.84;
+      // Angular velocity — damped rotation with idle drift
+      wsMeshAngVX *= 0.978; wsMeshAngVY *= 0.978; wsMeshAngVZ *= 0.97;
+      if (Math.abs(wsMeshAngVY) < 0.0025) wsMeshAngVY += 0.0008;
+      wsMeshObj.rotation.x += wsMeshAngVX + wsMeshSpringY * 0.007;
+      wsMeshObj.rotation.y += wsMeshAngVY + wsMeshSpringX * 0.007;
+      wsMeshObj.rotation.z += wsMeshAngVZ;
       wsMeshObj.scale.set(0.7, 0.7, 0.7);
       wsMeshObj.position.set(0, 0, 0);
 
