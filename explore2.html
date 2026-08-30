@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v76-mesh-axis-physics -->
+<!-- build: explore2-v77-mesh-fade-slow -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3377,7 +3377,8 @@ if (WEBSITE_MODE) {
       const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
       const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
       const _targetOpacity = (_isSolidBlack || _isSolidWhite) ? 1.0 : 0.0;
-      wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, dt * 6);
+      const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 6 : dt * 0.8;
+      wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
       wsMeshSetColor(_isSolidWhite);
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
       if (wsMeshCurOpacity < 0.005) return;
