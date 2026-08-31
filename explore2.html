@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v93-synth-reverb-bus -->
+<!-- build: explore2-v94-synth-lpf -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2972,17 +2972,21 @@ if (WEBSITE_MODE) {
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
-  const WS_SYNTH_VOL   = 0.3;
+  const WS_SYNTH_VOL   = 0.17;
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
   let wsCurrentShortSrc = null;
   let wsSynthBuffers    = [];
   let wsCurrentSynthSrc = null;
-  let wsSynthRevSend    = null;   // gain node: synth → synth reverb
-  let wsSynthRevReturn  = null;   // gain node: synth reverb → destination
-  let wsSynthRevNode    = null;   // convolver
-  let wsLastTriggerTime = 0;      // timestamp of last image trigger
+  let wsSynthRevSend    = null;
+  let wsSynthRevReturn  = null;
+  let wsSynthRevNode    = null;
+  let wsSynthLPF        = null;
+  let wsSynthRWalk      = 0;      // slow random walk -1..1
+  let wsSynthSpike      = 0;      // transient brightness spike in Hz
+  let wsSynthSpikeTimer = 5;      // seconds until next spike check
+  let wsLastTriggerTime = 0;
   // Gate sequencer
   const WS_SEQ_PATTERNS = [
     [1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], // 01
@@ -3065,6 +3069,13 @@ if (WEBSITE_MODE) {
     wsSynthRevSend.connect(wsSynthRevNode);
     wsSynthRevNode.connect(wsSynthRevReturn);
     wsSynthRevReturn.connect(wsAudioCtx.destination);
+    // Synth LPF — sits between panner and both outputs
+    wsSynthLPF = wsAudioCtx.createBiquadFilter();
+    wsSynthLPF.type = 'lowpass';
+    wsSynthLPF.frequency.value = 12000;
+    wsSynthLPF.Q.value = 0.5;
+    wsSynthLPF.connect(wsAudioCtx.destination);
+    wsSynthLPF.connect(wsSynthRevSend);
 
     // Patch triggerAudio — monophonic short sound on every clock tick
     const _origTriggerAudio = triggerAudio;
@@ -3114,8 +3125,8 @@ if (WEBSITE_MODE) {
     panner.pan.value  = (Math.random() * 2 - 1) * 0.7;
     src.connect(gain);
     gain.connect(panner);
-    panner.connect(wsAudioCtx.destination);
-    if (wsSynthRevSend) panner.connect(wsSynthRevSend);
+    if (wsSynthLPF) { panner.connect(wsSynthLPF); }
+    else { panner.connect(wsAudioCtx.destination); }
     src.start();
     wsCurrentSynthSrc = src;
     src.onended = () => { if (wsCurrentSynthSrc === src) wsCurrentSynthSrc = null; };
@@ -3435,6 +3446,29 @@ if (WEBSITE_MODE) {
       const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
       wsMeshLastNow = now;
 
+      // Synth LPF modulation — fast triggers close filter, slow triggers open it
+      if (wsSynthLPF && wsAudioCtx && wsLastTriggerTime > 0) {
+        const _elapsed = now - wsLastTriggerTime;
+        const _t       = Math.min(1.0, _elapsed / 3000); // 0=fast 1=slow
+        // Base freq: fast→400Hz, slow→12kHz
+        const _baseFreq = 400 + 11600 * _t;
+        // Slow random walk
+        wsSynthRWalk += (Math.random() - 0.5) * dt * 0.35;
+        wsSynthRWalk  = Math.max(-1, Math.min(1, wsSynthRWalk));
+        const _walkHz = wsSynthRWalk * 2000 * (1 - _t * 0.5);
+        // Rare spike — only when filter is low, for reverb to catch
+        wsSynthSpikeTimer -= dt;
+        wsSynthSpike *= Math.pow(0.005, dt); // very fast decay ~0.2s
+        if (wsSynthSpikeTimer <= 0) {
+          wsSynthSpikeTimer = 4 + Math.random() * 12;
+          if (_baseFreq + _walkHz < 2500) {
+            wsSynthSpike = 5000 + Math.random() * 7000;
+            console.log('d93: synth spike', Math.round(wsSynthSpike));
+          }
+        }
+        const _freq = Math.max(400, Math.min(12000, _baseFreq + _walkHz + wsSynthSpike));
+        wsSynthLPF.frequency.setTargetAtTime(_freq, wsAudioCtx.currentTime, 0.04);
+      }
       // Synth reverb send — rises on log curve as triggers slow down
       if (wsSynthRevSend && wsLastTriggerTime > 0) {
         const _elapsed = now - wsLastTriggerTime;
