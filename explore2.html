@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v77-mesh-fade-slow -->
+<!-- build: explore2-v78-mesh-bypass -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3425,7 +3425,8 @@ if (WEBSITE_MODE) {
     wsMeshCamera.updateProjectionMatrix();
   });
 
-  wsInitMesh();
+  const WS_MESH_ENABLED = false; // set true to re-enable
+  if (WS_MESH_ENABLED) wsInitMesh();
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
   wsLoadCdnImages(WS_CDN_URLS);
