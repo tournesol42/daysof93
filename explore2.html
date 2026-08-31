@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v91-synth-engine -->
+<!-- build: explore2-v92-gate-sequencer -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2972,13 +2972,26 @@ if (WEBSITE_MODE) {
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
-  const WS_SYNTH_VOL   = 0.6;
+  const WS_SYNTH_VOL   = 0.3;
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
   let wsCurrentShortSrc = null;
   let wsSynthBuffers    = [];
   let wsCurrentSynthSrc = null;
+  // Gate sequencer
+  const WS_SEQ_PATTERNS = [
+    [1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], // 01
+    [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], // 02
+    [1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0], // 03
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // 04
+    [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], // 05
+    [1,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0], // 06
+    [0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0], // 07
+    [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1], // 08
+  ];
+  let wsSeqStep    = 0;
+  let wsSeqPattern = 0;
 
 
   const wsLongAudio  = new Audio();
@@ -3044,7 +3057,7 @@ if (WEBSITE_MODE) {
     triggerAudio = function() {
       _origTriggerAudio.call(this);
       wsPlayShortSound();
-      wsPlaySynthSound();
+      wsSeqOnClock();
       wsMeshOnTrigger();
     };
     // Patch triggerBrightLower — main music counter on every sync dark flash
@@ -3090,6 +3103,17 @@ if (WEBSITE_MODE) {
     src.start();
     wsCurrentSynthSrc = src;
     src.onended = () => { if (wsCurrentSynthSrc === src) wsCurrentSynthSrc = null; };
+  }
+
+  function wsSeqOnClock() {
+    const gate = WS_SEQ_PATTERNS[wsSeqPattern][wsSeqStep];
+    if (gate) wsPlaySynthSound();
+    wsSeqStep++;
+    if (wsSeqStep >= 16) {
+      wsSeqStep = 0;
+      wsSeqPattern = Math.floor(Math.random() * WS_SEQ_PATTERNS.length);
+      console.log('d93: seq pattern', wsSeqPattern + 1);
+    }
   }
 
   function wsStartLongSound() {
