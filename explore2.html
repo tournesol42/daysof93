@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v89-mesh-scale-2x -->
+<!-- build: explore2-v90-mesh-scale-short -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3059,11 +3059,6 @@ if (WEBSITE_MODE) {
     wsLongAudio.currentTime = 0;
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
-    wsMeshLongCount++;
-    if (wsMeshLongCount % 4 === 0) {
-      wsMeshScaleMul = 2.0;
-      console.log('d93: mesh scale boost');
-    }
   }
 
   function wsStopLongSound() {
@@ -3295,6 +3290,11 @@ if (WEBSITE_MODE) {
 
   function wsMeshOnTrigger() {
     if (wsMeshCurOpacity < 0.01) return;
+    wsMeshLongCount++;
+    if (wsMeshLongCount % 8 === 0) {
+      wsMeshScaleMul = 2.0;
+      console.log('d93: mesh scale boost');
+    }
     // Pick random axis uniformly on unit sphere
     const _theta = Math.random() * Math.PI * 2;
     const _phi   = Math.acos(2 * Math.random() - 1);
