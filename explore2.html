@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v95-synth-mouse-mod -->
+<!-- build: explore2-v96-lpf-reversed -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3452,13 +3452,13 @@ if (WEBSITE_MODE) {
       if (wsSynthLPF && wsAudioCtx) {
         let _lpfFreq;
         if (wsMouseNY < 0.4) {
-          _lpfFreq = 800;
+          _lpfFreq = 12000;
         } else if (wsMouseNY < 0.6) {
           const _t = (wsMouseNY - 0.4) / 0.2;
-          _lpfFreq = 800 + _t * 1200;
+          _lpfFreq = 12000 - _t * 10000;
         } else {
           const _t = (wsMouseNY - 0.6) / 0.4;
-          _lpfFreq = 2000 + _t * 10000;
+          _lpfFreq = 2000 - _t * 1200;
         }
         wsSynthLPF.frequency.setTargetAtTime(_lpfFreq, wsAudioCtx.currentTime, 0.15);
       }
@@ -3466,10 +3466,10 @@ if (WEBSITE_MODE) {
       if (wsSynthRevSend && wsAudioCtx) {
         let _send;
         if (wsMouseNY < 0.5) {
-          _send = 0.2;
+          _send = 0.1;
         } else {
           const _t = Math.min(1.0, (wsMouseNY - 0.5) / 0.4);
-          _send = 0.2 + _t * 0.2;
+          _send = 0.1 + _t * 0.3;
         }
         wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.3);
       }
