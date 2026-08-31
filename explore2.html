@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v96-lpf-reversed -->
+<!-- build: explore2-v97-lpf-init-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3072,7 +3072,7 @@ if (WEBSITE_MODE) {
     // Synth LPF — sits between panner and both outputs
     wsSynthLPF = wsAudioCtx.createBiquadFilter();
     wsSynthLPF.type = 'lowpass';
-    wsSynthLPF.frequency.value = 12000;
+    wsSynthLPF.frequency.value = 800;
     wsSynthLPF.Q.value = 0.5;
     wsSynthLPF.connect(wsAudioCtx.destination);
     wsSynthLPF.connect(wsSynthRevSend);
@@ -3452,15 +3452,15 @@ if (WEBSITE_MODE) {
       if (wsSynthLPF && wsAudioCtx) {
         let _lpfFreq;
         if (wsMouseNY < 0.4) {
-          _lpfFreq = 12000;
+          _lpfFreq = 800;
         } else if (wsMouseNY < 0.6) {
           const _t = (wsMouseNY - 0.4) / 0.2;
-          _lpfFreq = 12000 - _t * 10000;
+          _lpfFreq = 800 + _t * 1200;
         } else {
           const _t = (wsMouseNY - 0.6) / 0.4;
-          _lpfFreq = 2000 - _t * 1200;
+          _lpfFreq = 2000 + _t * 10000;
         }
-        wsSynthLPF.frequency.setTargetAtTime(_lpfFreq, wsAudioCtx.currentTime, 0.15);
+        wsSynthLPF.frequency.setTargetAtTime(_lpfFreq, wsAudioCtx.currentTime, 0.05);
       }
       // Synth reverb send — top 50%: 20%, bottom 50%→10%: 20%→40%
       if (wsSynthRevSend && wsAudioCtx) {
