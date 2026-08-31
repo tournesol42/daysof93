@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v92-gate-sequencer -->
+<!-- build: explore2-v93-synth-reverb-bus -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2979,6 +2979,10 @@ if (WEBSITE_MODE) {
   let wsCurrentShortSrc = null;
   let wsSynthBuffers    = [];
   let wsCurrentSynthSrc = null;
+  let wsSynthRevSend    = null;   // gain node: synth → synth reverb
+  let wsSynthRevReturn  = null;   // gain node: synth reverb → destination
+  let wsSynthRevNode    = null;   // convolver
+  let wsLastTriggerTime = 0;      // timestamp of last image trigger
   // Gate sequencer
   const WS_SEQ_PATTERNS = [
     [1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], // 01
@@ -3051,11 +3055,22 @@ if (WEBSITE_MODE) {
     wsReverbGain.connect(wsReverbNode);
     wsReverbNode.connect(wsReverbReturnGain);
     wsReverbReturnGain.connect(wsAudioCtx.destination);
+    // Synth reverb aux bus — send level driven by trigger slowdown
+    wsSynthRevNode   = wsAudioCtx.createConvolver();
+    wsSynthRevNode.buffer = wsCreateReverbIR(wsAudioCtx, 6.0, 1.0);
+    wsSynthRevSend   = wsAudioCtx.createGain();
+    wsSynthRevSend.gain.value = 0;
+    wsSynthRevReturn = wsAudioCtx.createGain();
+    wsSynthRevReturn.gain.value = 1.5;
+    wsSynthRevSend.connect(wsSynthRevNode);
+    wsSynthRevNode.connect(wsSynthRevReturn);
+    wsSynthRevReturn.connect(wsAudioCtx.destination);
 
     // Patch triggerAudio — monophonic short sound on every clock tick
     const _origTriggerAudio = triggerAudio;
     triggerAudio = function() {
       _origTriggerAudio.call(this);
+      wsLastTriggerTime = performance.now();
       wsPlayShortSound();
       wsSeqOnClock();
       wsMeshOnTrigger();
@@ -3100,6 +3115,7 @@ if (WEBSITE_MODE) {
     src.connect(gain);
     gain.connect(panner);
     panner.connect(wsAudioCtx.destination);
+    if (wsSynthRevSend) panner.connect(wsSynthRevSend);
     src.start();
     wsCurrentSynthSrc = src;
     src.onended = () => { if (wsCurrentSynthSrc === src) wsCurrentSynthSrc = null; };
@@ -3419,6 +3435,13 @@ if (WEBSITE_MODE) {
       const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
       wsMeshLastNow = now;
 
+      // Synth reverb send — rises on log curve as triggers slow down
+      if (wsSynthRevSend && wsLastTriggerTime > 0) {
+        const _elapsed = now - wsLastTriggerTime;
+        const _t       = Math.min(1.0, _elapsed / 3000);
+        const _send    = Math.log10(1 + _t * 9);
+        wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.05);
+      }
       // BG-gated visibility
       const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
       const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
