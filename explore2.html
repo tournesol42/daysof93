@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v82-mesh-y-rot -->
+<!-- build: explore2-v83-mesh-centre-decay -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3316,7 +3316,9 @@ if (WEBSITE_MODE) {
       const _box    = new THREE.Box3().setFromObject(group);
       const _center = _box.getCenter(new THREE.Vector3());
       const _size   = _box.getSize(new THREE.Vector3());
-      group.position.sub(_center);
+      group.traverse(ch => {
+        if (ch.isLineSegments) ch.geometry.translate(-_center.x, -_center.y, -_center.z);
+      });
       const _maxDim = Math.max(_size.x, _size.y, _size.z);
       const _fovR   = wsMeshCamera.fov * (Math.PI / 180);
       const _dist   = Math.abs(_maxDim / 2 / Math.tan(_fovR / 2)) * 1.3;
@@ -3348,11 +3350,10 @@ if (WEBSITE_MODE) {
       wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
 
       // Rotation — idle drift + trigger impulses
-      wsMeshAngVY *= 0.999;
+      wsMeshAngVY *= Math.pow(0.55, dt);
       if (wsMeshAngVY < 0.008) wsMeshAngVY = 0.008;
       wsMeshObj.rotation.y += wsMeshAngVY * dt;
       wsMeshObj.scale.set(0.30, 0.30, 0.30);
-      wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
     })();
