@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v97-lpf-init-fix -->
+<!-- build: explore2-v98-drum-pitch-sh -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3102,6 +3102,9 @@ if (WEBSITE_MODE) {
     if (wsCurrentShortSrc) { try { wsCurrentShortSrc.stop(); } catch(e) {} }
     const src = wsAudioCtx.createBufferSource();
     src.buffer = buf;
+    // Sample & hold pitch: -12 to +5 semitones, sampled fresh each trigger
+    const _semitones = -12 + Math.random() * 17;
+    src.playbackRate.value = Math.pow(2, _semitones / 12);
     const gain = wsAudioCtx.createGain();
     const _vol = window._d93vol ? window._d93vol() : 1;
     gain.gain.value = WS_SHORT_VOL * _vol;
