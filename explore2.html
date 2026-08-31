@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v81-mesh-trigger-rot -->
+<!-- build: explore2-v82-mesh-y-rot -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3283,22 +3283,10 @@ if (WEBSITE_MODE) {
 
   function wsMeshOnTrigger() {
     if (wsMeshCurOpacity < 0.01) return;
-    // Each trigger accelerates rotation organically
-    const spd  = 0.3 + Math.random() * 1.4;
-    const axis = Math.random();
-    if (axis < 0.5) {
-      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
-    } else if (axis < 0.8) {
-      wsMeshAngVX += (Math.random() - 0.5) * spd * 0.6;
-      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
-    } else {
-      wsMeshAngVX += (Math.random() - 0.5) * spd * 0.4;
-      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd * 0.7;
-      wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.3;
-    }
-    wsMeshAngVX = Math.max(-3.0, Math.min(3.0, wsMeshAngVX));
-    wsMeshAngVY = Math.max(-4.0, Math.min(4.0, wsMeshAngVY));
-    wsMeshAngVZ = Math.max(-1.5, Math.min(1.5, wsMeshAngVZ));
+    // Trigger accelerates vertical right rotation only
+    const spd = 0.3 + Math.random() * 1.4;
+    wsMeshAngVY += spd;
+    wsMeshAngVY = Math.min(6.0, wsMeshAngVY);
   }
 
   function wsInitMesh() {
@@ -3360,14 +3348,10 @@ if (WEBSITE_MODE) {
       wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
 
       // Rotation — idle drift + trigger impulses
-      wsMeshAngVY *= 0.993;
-      if (Math.abs(wsMeshAngVY) < 0.008) wsMeshAngVY = 0.008;
-      wsMeshAngVX *= 0.97;
-      wsMeshAngVZ *= 0.97;
-      wsMeshObj.rotation.x += wsMeshAngVX * dt;
+      wsMeshAngVY *= 0.999;
+      if (wsMeshAngVY < 0.008) wsMeshAngVY = 0.008;
       wsMeshObj.rotation.y += wsMeshAngVY * dt;
-      wsMeshObj.rotation.z += wsMeshAngVZ * dt;
-      wsMeshObj.scale.set(0.25, 0.25, 0.25);
+      wsMeshObj.scale.set(0.30, 0.30, 0.30);
       wsMeshObj.position.set(0, 0, 0);
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
