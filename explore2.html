@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v87-mesh-scale-boost -->
+<!-- build: explore2-v88-mono-short-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2972,7 +2972,8 @@ if (WEBSITE_MODE) {
   const WS_LONG_COUNT  = 24;
 
   let wsAudioCtx     = null;
-  let wsShortBuffers = [];
+  let wsShortBuffers    = [];
+  let wsCurrentShortSrc = null;
 
 
   const wsLongAudio  = new Audio();
@@ -3038,6 +3039,7 @@ if (WEBSITE_MODE) {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
     if (bLow.alpha > 0.45) return;
     const buf = wsShortBuffers[Math.floor(Math.random() * wsShortBuffers.length)];
+    if (wsCurrentShortSrc) { try { wsCurrentShortSrc.stop(); } catch(e) {} }
     const src = wsAudioCtx.createBufferSource();
     src.buffer = buf;
     const gain = wsAudioCtx.createGain();
@@ -3046,6 +3048,8 @@ if (WEBSITE_MODE) {
     src.connect(gain);
     gain.connect(wsLPF);
     src.start();
+    wsCurrentShortSrc = src;
+    src.onended = () => { if (wsCurrentShortSrc === src) wsCurrentShortSrc = null; };
   }
 
   function wsStartLongSound() {
@@ -3056,7 +3060,7 @@ if (WEBSITE_MODE) {
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
     wsMeshLongCount++;
-    if (wsMeshLongCount % 8 === 0) {
+    if (wsMeshLongCount % 4 === 0) {
       wsMeshScaleMul = 1.5;
       console.log('d93: mesh scale boost');
     }
