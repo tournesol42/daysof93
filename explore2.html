@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v80-mesh-clean -->
+<!-- build: explore2-v81-mesh-trigger-rot -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3254,7 +3254,8 @@ if (WEBSITE_MODE) {
   let wsMeshLastNow   = 0;      // for dt calc
   // Physics state
   // Mesh rotation physics
-  let wsMeshAngVX = 0, wsMeshAngVY = 0.002, wsMeshAngVZ = 0;
+  let wsMeshAngVX = 0, wsMeshAngVY = 0.008, wsMeshAngVZ = 0;
+  let wsMeshMats  = [];
   let wsMeshSpringX = 0, wsMeshSpringY = 0;
   let wsMeshVelX = 0, wsMeshVelY = 0;
   // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
@@ -3282,29 +3283,22 @@ if (WEBSITE_MODE) {
 
   function wsMeshOnTrigger() {
     if (wsMeshCurOpacity < 0.01) return;
-    if (wsMouseNY > 0.8) {
-      // Lower section: gentle elastic spring impulse
-      const imp = 0.012 + Math.random() * 0.022;
-      wsMeshVelX += (Math.random() - 0.5) * imp;
-      wsMeshVelY += (Math.random() - 0.5) * imp;
-    } else if (wsMouseNY < 0.5) {
-      // Upper section: drastic multi-axis mesh rotation impulse — 360° V, 360° H, inbetween
-      const spd  = 0.035 + Math.random() * 0.11;
-      const axis = Math.random();
-      if (axis < 0.33) {
-        wsMeshAngVX += (Math.random() > 0.5 ? 1 : -1) * spd;
-      } else if (axis < 0.66) {
-        wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
-      } else {
-        wsMeshAngVX += (Math.random() - 0.5) * spd;
-        wsMeshAngVY += (Math.random() - 0.5) * spd;
-        wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.35;
-      }
-      const cap = 0.22;
-      wsMeshAngVX = Math.max(-cap, Math.min(cap, wsMeshAngVX));
-      wsMeshAngVY = Math.max(-cap, Math.min(cap, wsMeshAngVY));
-      wsMeshAngVZ = Math.max(-cap * 0.4, Math.min(cap * 0.4, wsMeshAngVZ));
+    // Each trigger accelerates rotation organically
+    const spd  = 0.3 + Math.random() * 1.4;
+    const axis = Math.random();
+    if (axis < 0.5) {
+      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
+    } else if (axis < 0.8) {
+      wsMeshAngVX += (Math.random() - 0.5) * spd * 0.6;
+      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd;
+    } else {
+      wsMeshAngVX += (Math.random() - 0.5) * spd * 0.4;
+      wsMeshAngVY += (Math.random() > 0.5 ? 1 : -1) * spd * 0.7;
+      wsMeshAngVZ += (Math.random() - 0.5) * spd * 0.3;
     }
+    wsMeshAngVX = Math.max(-3.0, Math.min(3.0, wsMeshAngVX));
+    wsMeshAngVY = Math.max(-4.0, Math.min(4.0, wsMeshAngVY));
+    wsMeshAngVZ = Math.max(-1.5, Math.min(1.5, wsMeshAngVZ));
   }
 
   function wsInitMesh() {
@@ -3318,10 +3312,12 @@ if (WEBSITE_MODE) {
     const loader = new THREE.GLTFLoader();
     loader.load('/do93_cad_4.glb', gltf => {
       const group = new THREE.Group();
+      wsMeshMats = [];
       gltf.scene.traverse(child => {
         if (!child.isMesh) return;
         const geo   = new THREE.WireframeGeometry(child.geometry);
-        const mat   = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff });
+        wsMeshMats.push(mat);
         const lines = new THREE.LineSegments(geo, mat);
         lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
@@ -3329,7 +3325,6 @@ if (WEBSITE_MODE) {
       wsMeshScene.add(group);
       wsMeshObj = group;
 
-      // Auto-fit: centre group and position camera to frame it
       const _box    = new THREE.Box3().setFromObject(group);
       const _center = _box.getCenter(new THREE.Vector3());
       const _size   = _box.getSize(new THREE.Vector3());
@@ -3340,13 +3335,41 @@ if (WEBSITE_MODE) {
       wsMeshCamera.position.set(0, 0, _dist);
       wsMeshCamera.lookAt(0, 0, 0);
       wsMeshCamera.updateProjectionMatrix();
-      console.log('d93: mesh loaded, size', _size.x.toFixed(2), _size.y.toFixed(2), _size.z.toFixed(2), 'dist', _dist.toFixed(2));
+      console.log('d93: mesh loaded, size', _size.x.toFixed(2), _size.y.toFixed(2), _size.z.toFixed(2));
     }, undefined, err => console.warn('d93: mesh load failed', err));
 
     (function wsMeshLoop() {
       requestAnimationFrame(wsMeshLoop);
       if (!wsMeshRenderer || !wsMeshObj) return;
-      wsMeshCv.style.opacity = '1';
+
+      const now = performance.now();
+      const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
+      wsMeshLastNow = now;
+
+      // BG-gated visibility
+      const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
+      const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
+      const _targetOpacity = (_isSolidBlack || _isSolidWhite) ? 1.0 : 0.0;
+      const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 6 : dt * 0.8;
+      wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
+      wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+      if (wsMeshCurOpacity < 0.005) return;
+
+      // Color: white on black BG, black on white BG — fast transition
+      const _tc = new THREE.Color(_isSolidWhite ? 0x000000 : 0xffffff);
+      wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
+
+      // Rotation — idle drift + trigger impulses
+      wsMeshAngVY *= 0.993;
+      if (Math.abs(wsMeshAngVY) < 0.008) wsMeshAngVY = 0.008;
+      wsMeshAngVX *= 0.97;
+      wsMeshAngVZ *= 0.97;
+      wsMeshObj.rotation.x += wsMeshAngVX * dt;
+      wsMeshObj.rotation.y += wsMeshAngVY * dt;
+      wsMeshObj.rotation.z += wsMeshAngVZ * dt;
+      wsMeshObj.scale.set(0.25, 0.25, 0.25);
+      wsMeshObj.position.set(0, 0, 0);
+
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
     })();
   }
