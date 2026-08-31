@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v99-master-limiter -->
+<!-- build: explore2-v100-glitch-engine -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2969,16 +2969,34 @@ if (WEBSITE_MODE) {
   const WS_SHORT_BASE  = 'https://daysof93-cdn.b-cdn.net/poolexplore2_shortsounds/';
   const WS_LONG_BASE   = 'https://daysof93-cdn.b-cdn.net/poolexplore2_longsounds/';
   const WS_SYNTH_BASE  = 'https://daysof93-cdn.b-cdn.net/Shortsynthsoundsxplore_2/';
+  const WS_GLITCH_BASE = 'https://daysof93-cdn.b-cdn.net/Glitchdrumsexplore_2/';
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
+  const WS_GLITCH_COUNT = 28;
   const WS_SYNTH_VOL   = 0.17;
+  const WS_GLITCH_VOL  = 0.5;
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
   let wsCurrentShortSrc = null;
-  let wsSynthBuffers    = [];
-  let wsCurrentSynthSrc = null;
+  let wsSynthBuffers     = [];
+  let wsCurrentSynthSrc  = null;
+  let wsGlitchBuffers    = [];
+  let wsCurrentGlitchSrc = null;
+  // Glitch drum sequencer
+  const WS_GLITCH_PATTERNS = [
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // 01
+    [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], // 02
+    [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], // 03
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0], // 04
+    [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], // 05
+    [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], // 06
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // 07
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // 08
+  ];
+  let wsGlitchSeqStep    = 0;
+  let wsGlitchSeqPattern = 0;
   let wsSynthRevSend    = null;
   let wsSynthRevReturn  = null;
   let wsSynthRevNode    = null;
@@ -3038,6 +3056,21 @@ if (WEBSITE_MODE) {
         xhr.send();
       })(WS_SYNTH_BASE + 'synthshort' + String(i).padStart(2, '0') + '.wav');
     }
+    for (let i = 1; i <= WS_GLITCH_COUNT; i++) {
+      (function(url) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => {
+          wsAudioCtx.decodeAudioData(xhr.response,
+            buf => { wsGlitchBuffers.push(buf); },
+            err => console.warn('d93: glitch decode failed', url, err)
+          );
+        };
+        xhr.onerror = () => console.warn('d93: glitch XHR failed', url);
+        xhr.send();
+      })(WS_GLITCH_BASE + 'glitchdrums' + String(i).padStart(2, '0') + '.wav');
+    }
     // Filters and reverb
     wsLPF = wsAudioCtx.createBiquadFilter();
     wsLPF.type = 'lowpass';
@@ -3096,6 +3129,7 @@ if (WEBSITE_MODE) {
       wsLastTriggerTime = performance.now();
       wsPlayShortSound();
       wsSeqOnClock();
+      wsGlitchSeqOnClock();
       wsMeshOnTrigger();
     };
     // Patch triggerBrightLower — main music counter on every sync dark flash
@@ -3155,6 +3189,36 @@ if (WEBSITE_MODE) {
       wsSeqStep = 0;
       wsSeqPattern = Math.floor(Math.random() * WS_SEQ_PATTERNS.length);
       console.log('d93: seq pattern', wsSeqPattern + 1);
+    }
+  }
+
+  function wsPlayGlitchSound() {
+    if (!wsAudioCtx || wsGlitchBuffers.length === 0) return;
+    const buf = wsGlitchBuffers[Math.floor(Math.random() * wsGlitchBuffers.length)];
+    if (wsCurrentGlitchSrc) { try { wsCurrentGlitchSrc.stop(); } catch(e) {} }
+    const src    = wsAudioCtx.createBufferSource();
+    src.buffer   = buf;
+    const gain   = wsAudioCtx.createGain();
+    const panner = wsAudioCtx.createStereoPanner();
+    const _vol   = window._d93vol ? window._d93vol() : 1;
+    gain.gain.value  = WS_GLITCH_VOL * _vol;
+    panner.pan.value = (Math.random() * 2 - 1) * 0.5;
+    src.connect(gain);
+    gain.connect(panner);
+    panner.connect(wsMasterGain);
+    src.start();
+    wsCurrentGlitchSrc = src;
+    src.onended = () => { if (wsCurrentGlitchSrc === src) wsCurrentGlitchSrc = null; };
+  }
+
+  function wsGlitchSeqOnClock() {
+    const gate = WS_GLITCH_PATTERNS[wsGlitchSeqPattern][wsGlitchSeqStep];
+    if (gate) wsPlayGlitchSound();
+    wsGlitchSeqStep++;
+    if (wsGlitchSeqStep >= 16) {
+      wsGlitchSeqStep = 0;
+      wsGlitchSeqPattern = Math.floor(Math.random() * WS_GLITCH_PATTERNS.length);
+      console.log('d93: glitch pattern', wsGlitchSeqPattern + 1);
     }
   }
 
