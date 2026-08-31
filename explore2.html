@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v78-mesh-bypass -->
+<!-- build: explore2-v79-mesh-cad4 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3316,7 +3316,7 @@ if (WEBSITE_MODE) {
     wsResizeCanvas();
 
     const loader = new THREE.GLTFLoader();
-    loader.load('/do93_cad_3.glb', gltf => {
+    loader.load('/do93_cad_4.glb', gltf => {
 
 
       // ── Build wireframe mesh ──────────────────────────────────────────────
@@ -3425,7 +3425,7 @@ if (WEBSITE_MODE) {
     wsMeshCamera.updateProjectionMatrix();
   });
 
-  const WS_MESH_ENABLED = false; // set true to re-enable
+  const WS_MESH_ENABLED = true;
   if (WS_MESH_ENABLED) wsInitMesh();
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
