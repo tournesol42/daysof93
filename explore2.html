@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v98-drum-pitch-sh -->
+<!-- build: explore2-v99-master-limiter -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3004,6 +3004,7 @@ if (WEBSITE_MODE) {
 
   const wsLongAudio  = new Audio();
   let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null, wsMainSrc = null;
+  let wsMasterGain = null;
 
   function wsInitAudio() {
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3052,14 +3053,25 @@ if (WEBSITE_MODE) {
     wsReverbReturnGain = wsAudioCtx.createGain();
     wsReverbReturnGain.gain.value = 2.512; // +8dB
 
-    // Dry path: LPF → destination
-    wsLPF.connect(wsAudioCtx.destination);
-    // Wet path: LPF → send → convolver → +8dB return → destination
+    // Master gain + limiter — all ws audio routes through here
+    wsMasterGain = wsAudioCtx.createGain();
+    wsMasterGain.gain.value = 1.0;
+    const wsLimiter = wsAudioCtx.createDynamicsCompressor();
+    wsLimiter.threshold.value = -1.0;
+    wsLimiter.knee.value      = 0;
+    wsLimiter.ratio.value     = 20;
+    wsLimiter.attack.value    = 0.001;
+    wsLimiter.release.value   = 0.08;
+    wsMasterGain.connect(wsLimiter);
+    wsLimiter.connect(wsAudioCtx.destination);
+    // Dry path: LPF → master
+    wsLPF.connect(wsMasterGain);
+    // Wet path: LPF → send → convolver → +8dB return → master
     wsLPF.connect(wsReverbGain);
     wsReverbGain.connect(wsReverbNode);
     wsReverbNode.connect(wsReverbReturnGain);
-    wsReverbReturnGain.connect(wsAudioCtx.destination);
-    // Synth reverb aux bus — send level driven by trigger slowdown
+    wsReverbReturnGain.connect(wsMasterGain);
+    // Synth reverb aux bus
     wsSynthRevNode   = wsAudioCtx.createConvolver();
     wsSynthRevNode.buffer = wsCreateReverbIR(wsAudioCtx, 6.0, 1.0);
     wsSynthRevSend   = wsAudioCtx.createGain();
@@ -3068,13 +3080,13 @@ if (WEBSITE_MODE) {
     wsSynthRevReturn.gain.value = 1.5;
     wsSynthRevSend.connect(wsSynthRevNode);
     wsSynthRevNode.connect(wsSynthRevReturn);
-    wsSynthRevReturn.connect(wsAudioCtx.destination);
+    wsSynthRevReturn.connect(wsMasterGain);
     // Synth LPF — sits between panner and both outputs
     wsSynthLPF = wsAudioCtx.createBiquadFilter();
     wsSynthLPF.type = 'lowpass';
     wsSynthLPF.frequency.value = 800;
     wsSynthLPF.Q.value = 0.5;
-    wsSynthLPF.connect(wsAudioCtx.destination);
+    wsSynthLPF.connect(wsMasterGain);
     wsSynthLPF.connect(wsSynthRevSend);
 
     // Patch triggerAudio — monophonic short sound on every clock tick
