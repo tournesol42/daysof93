@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v94-synth-lpf -->
+<!-- build: explore2-v95-synth-mouse-mod -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3150,6 +3150,16 @@ if (WEBSITE_MODE) {
     wsLongAudio.currentTime = 0;
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
+    // Mesh rotation direction change on every long sound trigger
+    if (wsMeshRotAxis) {
+      const _theta = Math.random() * Math.PI * 2;
+      const _phi   = Math.acos(2 * Math.random() - 1);
+      wsMeshRotAxis.set(
+        Math.sin(_phi) * Math.cos(_theta),
+        Math.sin(_phi) * Math.sin(_theta),
+        Math.cos(_phi)
+      ).normalize();
+    }
   }
 
   function wsStopLongSound() {
@@ -3386,15 +3396,7 @@ if (WEBSITE_MODE) {
       wsMeshScaleMul = 2.0;
       console.log('d93: mesh scale boost');
     }
-    // Pick random axis uniformly on unit sphere
-    const _theta = Math.random() * Math.PI * 2;
-    const _phi   = Math.acos(2 * Math.random() - 1);
-    wsMeshRotAxis.set(
-      Math.sin(_phi) * Math.cos(_theta),
-      Math.sin(_phi) * Math.sin(_theta),
-      Math.cos(_phi)
-    ).normalize();
-    // Add speed impulse
+    // Speed impulse only — axis changes on long sound trigger
     const spd = 0.3 + Math.random() * 1.4;
     wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
   }
@@ -3446,35 +3448,30 @@ if (WEBSITE_MODE) {
       const dt  = wsMeshLastNow > 0 ? Math.min((now - wsMeshLastNow) / 1000, 0.1) : 0;
       wsMeshLastNow = now;
 
-      // Synth LPF modulation — fast triggers close filter, slow triggers open it
-      if (wsSynthLPF && wsAudioCtx && wsLastTriggerTime > 0) {
-        const _elapsed = now - wsLastTriggerTime;
-        const _t       = Math.min(1.0, _elapsed / 3000); // 0=fast 1=slow
-        // Base freq: fast→400Hz, slow→12kHz
-        const _baseFreq = 400 + 11600 * _t;
-        // Slow random walk
-        wsSynthRWalk += (Math.random() - 0.5) * dt * 0.35;
-        wsSynthRWalk  = Math.max(-1, Math.min(1, wsSynthRWalk));
-        const _walkHz = wsSynthRWalk * 2000 * (1 - _t * 0.5);
-        // Rare spike — only when filter is low, for reverb to catch
-        wsSynthSpikeTimer -= dt;
-        wsSynthSpike *= Math.pow(0.005, dt); // very fast decay ~0.2s
-        if (wsSynthSpikeTimer <= 0) {
-          wsSynthSpikeTimer = 4 + Math.random() * 12;
-          if (_baseFreq + _walkHz < 2500) {
-            wsSynthSpike = 5000 + Math.random() * 7000;
-            console.log('d93: synth spike', Math.round(wsSynthSpike));
-          }
+      // Synth LPF — mouse Y position: top 40%→800Hz, 40-60%→2kHz, bottom→12kHz
+      if (wsSynthLPF && wsAudioCtx) {
+        let _lpfFreq;
+        if (wsMouseNY < 0.4) {
+          _lpfFreq = 800;
+        } else if (wsMouseNY < 0.6) {
+          const _t = (wsMouseNY - 0.4) / 0.2;
+          _lpfFreq = 800 + _t * 1200;
+        } else {
+          const _t = (wsMouseNY - 0.6) / 0.4;
+          _lpfFreq = 2000 + _t * 10000;
         }
-        const _freq = Math.max(400, Math.min(12000, _baseFreq + _walkHz + wsSynthSpike));
-        wsSynthLPF.frequency.setTargetAtTime(_freq, wsAudioCtx.currentTime, 0.04);
+        wsSynthLPF.frequency.setTargetAtTime(_lpfFreq, wsAudioCtx.currentTime, 0.15);
       }
-      // Synth reverb send — rises on log curve as triggers slow down
-      if (wsSynthRevSend && wsLastTriggerTime > 0) {
-        const _elapsed = now - wsLastTriggerTime;
-        const _t       = Math.min(1.0, _elapsed / 3000);
-        const _send    = Math.log10(1 + _t * 9);
-        wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.05);
+      // Synth reverb send — top 50%: 20%, bottom 50%→10%: 20%→40%
+      if (wsSynthRevSend && wsAudioCtx) {
+        let _send;
+        if (wsMouseNY < 0.5) {
+          _send = 0.2;
+        } else {
+          const _t = Math.min(1.0, (wsMouseNY - 0.5) / 0.4);
+          _send = 0.2 + _t * 0.2;
+        }
+        wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.3);
       }
       // BG-gated visibility
       const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
