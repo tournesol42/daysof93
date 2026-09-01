@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v132-mesh-solid-orange -->
+<!-- build: explore2-v133-mesh-orange-wire -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3525,7 +3525,7 @@ if (WEBSITE_MODE) {
         lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
         // Solid orange — shown on white BG
-        const solidMat  = new THREE.MeshBasicMaterial({ color: 0xffad00, side: THREE.DoubleSide });
+        const solidMat  = new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide });
         wsSolidMats.push(solidMat);
         const solidMesh = new THREE.Mesh(child.geometry, solidMat);
         solidMesh.applyMatrix4(child.matrixWorld);
@@ -3642,11 +3642,14 @@ if (WEBSITE_MODE) {
 
       if (wsMeshCurOpacity < 0.005) return;
 
-      // Wireframe on black BG, solid orange on white BG
+      // Black BG: white wireframe only. White BG: solid orange + black wireframe on top.
       const _showSolid = wsEntryDone && _isSolidWhite;
       wsMeshObj.traverse(ch => {
-        if (ch.isLineSegments)                ch.visible = !_showSolid;
-        if (ch.isMesh && ch.userData.isSolid) ch.visible =  _showSolid;
+        if (ch.isLineSegments) {
+          ch.visible = true;
+          ch.material.color.set(_showSolid ? 0x000000 : 0xffffff);
+        }
+        if (ch.isMesh && ch.userData.isSolid) ch.visible = _showSolid;
       });
 
       // Rotation — brake during corner pull, burst on release
