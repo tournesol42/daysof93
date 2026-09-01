@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v111-entry-zone8 -->
+<!-- build: explore2-v112-entry-freeze-y -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3364,8 +3364,8 @@ if (WEBSITE_MODE) {
     const _whiteBg = _snap && _snap.colorSlideOpacity > 50;
     // Fade starts at 80% Y — aggressive curve, 74% dark at 90% Y, 97% at 100%
     const _rawFade = Math.max(0, (_ny - 0.8) / 0.2);
-    const _fo = !_whiteBg ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
-    wsFadeEl.style.opacity = _fo.toFixed(3);
+    const _fo = (!wsEntryDone || !_whiteBg) ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
+    wsFadeEl.style.opacity = (wsEntryDone ? _fo : 0).toFixed(3);
     wsMouseNY = _ny;
     if (!wsEntryDone) {
       wsFirstTouch = true;
@@ -3558,15 +3558,16 @@ if (WEBSITE_MODE) {
       wsMeshLastNow = now;
 
       // Synth LPF — mouse Y position: top 40%→800Hz, 40-60%→2kHz, bottom→12kHz
+      const _mny = wsEntryDone ? wsMouseNY : 0;
       if (wsSynthLPF && wsAudioCtx) {
         let _lpfFreq;
-        if (wsMouseNY < 0.4) {
+        if (_mny < 0.4) {
           _lpfFreq = 800;
-        } else if (wsMouseNY < 0.6) {
-          const _t = (wsMouseNY - 0.4) / 0.2;
+        } else if (_mny < 0.6) {
+          const _t = (_mny - 0.4) / 0.2;
           _lpfFreq = 800 + _t * 1200;
         } else {
-          const _t = (wsMouseNY - 0.6) / 0.4;
+          const _t = (_mny - 0.6) / 0.4;
           _lpfFreq = 2000 + _t * 10000;
         }
         wsSynthLPF.frequency.setTargetAtTime(_lpfFreq, wsAudioCtx.currentTime, 0.05);
@@ -3574,10 +3575,10 @@ if (WEBSITE_MODE) {
       // Synth reverb send — top 50%: 10%, bottom→40%
       if (wsSynthRevSend && wsAudioCtx) {
         let _send;
-        if (wsMouseNY < 0.5) {
+        if (_mny < 0.5) {
           _send = 0.1;
         } else {
-          const _t = Math.min(1.0, (wsMouseNY - 0.5) / 0.4);
+          const _t = Math.min(1.0, (_mny - 0.5) / 0.4);
           _send = 0.1 + _t * 0.3;
         }
         wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.3);
@@ -3585,10 +3586,10 @@ if (WEBSITE_MODE) {
       // Glitch reverb send — same position mapping
       if (wsGlitchRevSend && wsAudioCtx) {
         let _gsend;
-        if (wsMouseNY < 0.5) {
+        if (_mny < 0.5) {
           _gsend = 0.1;
         } else {
-          const _t = Math.min(1.0, (wsMouseNY - 0.5) / 0.4);
+          const _t = Math.min(1.0, (_mny - 0.5) / 0.4);
           _gsend = 0.1 + _t * 0.3;
         }
         wsGlitchRevSend.gain.setTargetAtTime(_gsend, wsAudioCtx.currentTime, 0.3);
