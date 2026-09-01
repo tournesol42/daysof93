@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v136-mesh-child-align -->
+<!-- build: explore2-v137-mesh-geo-bake -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3519,18 +3519,20 @@ if (WEBSITE_MODE) {
         if (!child.isMesh) return;
         // Wireframe edges — shown on black BG
         const geo   = new THREE.EdgesGeometry(child.geometry);
-        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+        geo.applyMatrix4(child.matrixWorld);
+        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff });
         wsMeshMats.push(mat);
         const lines = new THREE.LineSegments(geo, mat);
-        lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
-        // Solid orange — shown on white BG, geometry cloned and baked same as wireframe
+        // Solid orange — geometry baked same way, guaranteed alignment
+        const solidGeo = child.geometry.clone();
+        solidGeo.applyMatrix4(child.matrixWorld);
         const solidMat  = new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide });
         wsSolidMats.push(solidMat);
-        const solidMesh = new THREE.Mesh(child.geometry, solidMat);
+        const solidMesh = new THREE.Mesh(solidGeo, solidMat);
         solidMesh.visible = false;
         solidMesh.userData.isSolid = true;
-        lines.add(solidMesh);
+        group.add(solidMesh);
       });
       wsMeshScene.add(group);
       wsMeshObj = group;
