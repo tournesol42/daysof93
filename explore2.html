@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v126-corner-pre-gate -->
+<!-- build: explore2-v127-entry-done-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3393,7 +3393,7 @@ if (WEBSITE_MODE) {
         }
         wsMasterGain.gain.setTargetAtTime(_ev, wsAudioCtx.currentTime, 0.08);
       }
-      if (wsEntryProgress >= 0.95) {
+      if (wsEntryProgress >= 0.3) {
         wsEntryDone = true;
         if (wsEntryOverlay) wsEntryOverlay.style.display = 'none';
         if (wsMasterGain && wsAudioCtx) wsMasterGain.gain.setTargetAtTime(1.0, wsAudioCtx.currentTime, 0.08);
