@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v129-entry-trigger-gate -->
+<!-- build: explore2-v130-corner-rotation -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3459,6 +3459,8 @@ if (WEBSITE_MODE) {
   let wsCornerVel         = 0;
   let wsCornerDX          = 0;
   let wsCornerDY          = 0;
+  let wsPrevCornerRotX    = 0;
+  let wsPrevCornerRotY    = 0;
   let wsCornerActive      = false;
   let wsCornerCooldown    = 0;
   let wsCornerEntryDelay  = 20;
@@ -3617,7 +3619,8 @@ if (WEBSITE_MODE) {
         }
       }
       if (wsCornerActive) {
-        wsCornerVel    += (-wsCornerSpring * 12 - wsCornerVel * 3) * dt;
+        const _damp = wsCornerVel > 0 ? 1.5 : 5.5;
+        wsCornerVel    += (-wsCornerSpring * 12 - wsCornerVel * _damp) * dt;
         wsCornerSpring += wsCornerVel * dt;
         if (Math.abs(wsCornerSpring) < 0.004 && Math.abs(wsCornerVel) < 0.008) {
           wsCornerActive = false;
@@ -3640,7 +3643,15 @@ if (WEBSITE_MODE) {
         wsMeshAngV *= Math.pow(0.55, dt);
         if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
       }
+      // Undo previous corner rotation offset before spinning
+      wsMeshObj.rotation.x -= wsPrevCornerRotX;
+      wsMeshObj.rotation.y -= wsPrevCornerRotY;
       wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
+      // Apply new corner rotation — tilts mesh so corner faces screen corner
+      wsPrevCornerRotX = wsCornerDY * wsCornerSpring * 0.45;
+      wsPrevCornerRotY = wsCornerDX * wsCornerSpring * 0.45;
+      wsMeshObj.rotation.x += wsPrevCornerRotX;
+      wsMeshObj.rotation.y += wsPrevCornerRotY;
       wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
 
       // Stretch toward corner — dramatic reach with thinning
