@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v115-orch-gesture -->
+<!-- build: explore2-v116-touch-fade -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3342,12 +3342,18 @@ if (WEBSITE_MODE) {
     if (!wsOrchAudio) {
       wsOrchAudio = new Audio(WS_ORCH_URL);
       wsOrchAudio.loop   = true;
-      wsOrchAudio.volume = 0.8;
+      wsOrchAudio.volume = 0.45;
       wsOrchAudio.play().catch(e => console.warn('d93: orch play failed', e));
     }
-    wsOverlay.style.display = 'none';
-    wsGestureReady = true;
-    if (wsCdnReady) wsStartEngine();
+    // Fade text to black over 3s, then start engine after 5s total
+    wsOverlay.style.transition = 'color 3s ease';
+    wsOverlay.style.color = 'transparent';
+    wsOverlay.style.pointerEvents = 'none';
+    setTimeout(() => {
+      wsOverlay.style.display = 'none';
+      wsGestureReady = true;
+      if (wsCdnReady) wsStartEngine();
+    }, 5000);
   }, { once: true });
 
   // ── Crosshair ─────────────────────────────────────────────────────────────
