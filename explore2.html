@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v133-mesh-orange-wire -->
+<!-- build: explore2-v134-mesh-geo-align -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3524,11 +3524,12 @@ if (WEBSITE_MODE) {
         const lines = new THREE.LineSegments(geo, mat);
         lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
-        // Solid orange — shown on white BG
+        // Solid orange — shown on white BG, geometry cloned and baked same as wireframe
         const solidMat  = new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide });
         wsSolidMats.push(solidMat);
-        const solidMesh = new THREE.Mesh(child.geometry, solidMat);
-        solidMesh.applyMatrix4(child.matrixWorld);
+        const solidGeo  = child.geometry.clone();
+        solidGeo.applyMatrix4(child.matrixWorld);
+        const solidMesh = new THREE.Mesh(solidGeo, solidMat);
         solidMesh.visible = false;
         solidMesh.userData.isSolid = true;
         group.add(solidMesh);
