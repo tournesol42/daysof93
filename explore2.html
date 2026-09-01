@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v123-dead-code-cleanup -->
+<!-- build: explore2-v124-corner-pull -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3377,6 +3377,7 @@ if (WEBSITE_MODE) {
     const _fo = (!wsEntryDone || !_whiteBg) ? Math.pow(_rawFade, 0.4) * 0.97 : 0;
     wsFadeEl.style.opacity = (wsEntryDone ? _fo : 0).toFixed(3);
     wsMouseNY = _ny;
+    wsMouseNX = Math.max(0, Math.min(1, x / window.innerWidth));
     if (!wsEntryDone) {
       wsFirstTouch = true;
       wsEntryProgress = Math.max(wsEntryProgress, Math.min(1.0, Math.max(0, (_ny - 0.85) / 0.15)));
@@ -3443,8 +3444,16 @@ if (WEBSITE_MODE) {
   let wsMeshScene     = null;
   let wsMeshCamera    = null;
   let wsMeshObj       = null;
-  let wsMeshCurOpacity = 0;
-  let wsMouseNY        = 0;
+  let wsMeshCurOpacity    = 0;
+  let wsMouseNY           = 0;
+  let wsMouseNX           = 0;
+  let wsCornerSpring      = 0;
+  let wsCornerVel         = 0;
+  let wsCornerDX          = 0;
+  let wsCornerDY          = 0;
+  let wsCornerActive      = false;
+  let wsCornerCooldown    = 0;
+  let wsCornerEntryDelay  = 20;
 
   let wsMeshLastNow   = 0;
   let wsMeshAngV      = 1.5;
@@ -3587,8 +3596,47 @@ if (WEBSITE_MODE) {
       if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
       wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
       wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
-      const _s = 0.30 * wsMeshScaleMul;
-      wsMeshObj.scale.set(_s, _s, _s);
+
+      // Corner pull — 20s entry lockout
+      if (wsEntryDone && wsCornerEntryDelay > 0) wsCornerEntryDelay -= dt;
+      if (wsEntryDone && wsCornerEntryDelay <= 0 && !wsCornerActive) {
+        wsCornerCooldown -= dt;
+        if (wsCornerCooldown <= 0) {
+          const _cL = wsMouseNX < 0.15, _cR = wsMouseNX > 0.85;
+          const _cT = wsMouseNY < 0.15, _cB = wsMouseNY > 0.85;
+          if ((_cL || _cR) && (_cT || _cB) && Math.random() < dt * 0.15) {
+            wsCornerDX      = _cR ?  1 : -1;
+            wsCornerDY      = _cT ? -1 :  1;
+            wsCornerActive  = true;
+            wsCornerSpring  = 0;
+            wsCornerVel     = 2.8;
+            wsCornerCooldown = 3 + Math.random() * 4;
+          }
+        }
+      }
+      // Spring — k=18, damping=5 — ~1.2s total, 2 organic oscillations
+      if (wsCornerActive) {
+        wsCornerVel    += (-wsCornerSpring * 18 - wsCornerVel * 5) * dt;
+        wsCornerSpring += wsCornerVel * dt;
+        if (Math.abs(wsCornerSpring) < 0.004 && Math.abs(wsCornerVel) < 0.008) {
+          wsCornerActive = false;
+          wsCornerSpring = 0;
+          wsCornerVel    = 0;
+        }
+      }
+      // Stretch toward corner — asymmetric scale + position pull
+      const _pull = wsCornerSpring * 0.5;
+      const _base = 0.30 * wsMeshScaleMul;
+      wsMeshObj.scale.set(
+        _base * (1 + _pull * Math.abs(wsCornerDX)),
+        _base * (1 + _pull * Math.abs(wsCornerDY)),
+        _base
+      );
+      wsMeshObj.position.set(
+        wsCornerSpring * wsCornerDX * 0.15,
+        wsCornerSpring * wsCornerDY * 0.15,
+        0
+      );
 
       wsMeshRenderer.render(wsMeshScene, wsMeshCamera);
     })();
