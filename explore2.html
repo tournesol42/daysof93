@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v139-mesh-one-layer -->
+<!-- build: explore2-v141-mesh-restored -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3469,8 +3469,6 @@ if (WEBSITE_MODE) {
   let wsMeshAngV      = 1.5;
   let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
   let wsMeshMats      = [];
-  let wsSolidMats     = [];
-  let wsMeshSolidObj  = null;
   let wsMeshLongCount    = 0;
   let wsMeshScaleMul     = 1.0;
   let wsMeshEntryTrigger = 0;
@@ -3518,34 +3516,15 @@ if (WEBSITE_MODE) {
       wsMeshMats = [];
       gltf.scene.traverse(child => {
         if (!child.isMesh) return;
-        // Wireframe edges — shown on black BG
         const geo   = new THREE.EdgesGeometry(child.geometry);
-        geo.applyMatrix4(child.matrixWorld);
-        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
+        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
         wsMeshMats.push(mat);
         const lines = new THREE.LineSegments(geo, mat);
+        lines.applyMatrix4(child.matrixWorld);
         group.add(lines);
       });
       wsMeshScene.add(group);
       wsMeshObj = group;
-      // Solid orange trailing group — separate scene object
-      const solidGroup = new THREE.Group();
-      gltf.scene.traverse(child => {
-        if (!child.isMesh) return;
-        const solidGeo = new THREE.EdgesGeometry(child.geometry);
-        solidGeo.applyMatrix4(child.matrixWorld);
-        const solidMat = new THREE.LineBasicMaterial({ color: 0x000000 });
-        wsSolidMats.push(solidMat);
-        const solidLines = new THREE.LineSegments(solidGeo, solidMat);
-        solidGroup.add(solidLines);
-        const fillGeo = child.geometry.clone();
-        fillGeo.applyMatrix4(child.matrixWorld);
-        const fillMesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide }));
-        solidGroup.add(fillMesh);
-      });
-      solidGroup.visible = false;
-      wsMeshScene.add(solidGroup);
-      wsMeshSolidObj = solidGroup;
 
       const _box    = new THREE.Box3().setFromObject(group);
       const _center = _box.getCenter(new THREE.Vector3());
@@ -3653,22 +3632,9 @@ if (WEBSITE_MODE) {
 
       if (wsMeshCurOpacity < 0.005) return;
 
-      // Black BG: white wireframe. White BG: solid orange trailing group + pulsating black wireframe.
-      const _showSolid = wsEntryDone && _isSolidWhite;
-      wsMeshObj.visible = !_showSolid;
-      if (!_showSolid) {
-        wsMeshMats.forEach(m => { m.color.set(0xffffff); m.opacity = 1.0; });
-      }
-      if (wsMeshSolidObj) {
-        wsMeshSolidObj.visible = _showSolid;
-        if (_showSolid) {
-          wsMeshSolidObj.rotation.x += (wsMeshObj.rotation.x - wsMeshSolidObj.rotation.x) * Math.min(1, dt * 1.8);
-          wsMeshSolidObj.rotation.y += (wsMeshObj.rotation.y - wsMeshSolidObj.rotation.y) * Math.min(1, dt * 1.8);
-          wsMeshSolidObj.rotation.z += (wsMeshObj.rotation.z - wsMeshSolidObj.rotation.z) * Math.min(1, dt * 1.8);
-          wsMeshSolidObj.position.copy(wsMeshObj.position);
-          wsMeshSolidObj.scale.copy(wsMeshObj.scale);
-        }
-      }
+      // Color: white on black BG, black on white BG — fast transition
+      const _tc = new THREE.Color((wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
+      wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
 
       // Rotation — brake during corner pull, burst on release
       if (wsCornerActive) {
