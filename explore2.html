@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v137-mesh-geo-bake -->
+<!-- build: explore2-v138-mesh-solid-trail -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3470,6 +3470,7 @@ if (WEBSITE_MODE) {
   let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
   let wsMeshMats      = [];
   let wsSolidMats     = [];
+  let wsMeshSolidObj  = null;
   let wsMeshLongCount    = 0;
   let wsMeshScaleMul     = 1.0;
   let wsMeshEntryTrigger = 0;
@@ -3520,22 +3521,31 @@ if (WEBSITE_MODE) {
         // Wireframe edges — shown on black BG
         const geo   = new THREE.EdgesGeometry(child.geometry);
         geo.applyMatrix4(child.matrixWorld);
-        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff });
+        const mat   = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
         wsMeshMats.push(mat);
         const lines = new THREE.LineSegments(geo, mat);
         group.add(lines);
-        // Solid orange — geometry baked same way, guaranteed alignment
-        const solidGeo = child.geometry.clone();
-        solidGeo.applyMatrix4(child.matrixWorld);
-        const solidMat  = new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide });
-        wsSolidMats.push(solidMat);
-        const solidMesh = new THREE.Mesh(solidGeo, solidMat);
-        solidMesh.visible = false;
-        solidMesh.userData.isSolid = true;
-        group.add(solidMesh);
       });
       wsMeshScene.add(group);
       wsMeshObj = group;
+      // Solid orange trailing group — separate scene object
+      const solidGroup = new THREE.Group();
+      gltf.scene.traverse(child => {
+        if (!child.isMesh) return;
+        const solidGeo = new THREE.EdgesGeometry(child.geometry);
+        solidGeo.applyMatrix4(child.matrixWorld);
+        const solidMat = new THREE.LineBasicMaterial({ color: 0x000000 });
+        wsSolidMats.push(solidMat);
+        const solidLines = new THREE.LineSegments(solidGeo, solidMat);
+        solidGroup.add(solidLines);
+        const fillGeo = child.geometry.clone();
+        fillGeo.applyMatrix4(child.matrixWorld);
+        const fillMesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({ color: 0xFF6B00, side: THREE.DoubleSide }));
+        solidGroup.add(fillMesh);
+      });
+      solidGroup.visible = false;
+      wsMeshScene.add(solidGroup);
+      wsMeshSolidObj = solidGroup;
 
       const _box    = new THREE.Box3().setFromObject(group);
       const _center = _box.getCenter(new THREE.Vector3());
@@ -3643,15 +3653,28 @@ if (WEBSITE_MODE) {
 
       if (wsMeshCurOpacity < 0.005) return;
 
-      // Black BG: white wireframe only. White BG: solid orange + black wireframe on top.
+      // Black BG: white wireframe. White BG: solid orange trailing group + pulsating black wireframe.
       const _showSolid = wsEntryDone && _isSolidWhite;
-      wsMeshObj.traverse(ch => {
-        if (ch.isLineSegments) {
-          ch.visible = true;
-          ch.material.color.set(_showSolid ? 0x000000 : 0xffffff);
+      wsMeshMats.forEach(m => {
+        m.color.set(_showSolid ? 0x000000 : 0xffffff);
+        if (_showSolid) {
+          const _motion = Math.min(1.0, wsMeshAngV / 4.0);
+          const _pulse  = 0.15 + _motion * 0.75 + Math.sin(now * 0.004) * 0.08 * _motion;
+          m.opacity = Math.max(0.05, Math.min(1.0, _pulse));
+        } else {
+          m.opacity = 1.0;
         }
-        if (ch.isMesh && ch.userData.isSolid) ch.visible = _showSolid;
       });
+      if (wsMeshSolidObj) {
+        wsMeshSolidObj.visible = _showSolid;
+        if (_showSolid) {
+          wsMeshSolidObj.rotation.x += (wsMeshObj.rotation.x - wsMeshSolidObj.rotation.x) * Math.min(1, dt * 1.8);
+          wsMeshSolidObj.rotation.y += (wsMeshObj.rotation.y - wsMeshSolidObj.rotation.y) * Math.min(1, dt * 1.8);
+          wsMeshSolidObj.rotation.z += (wsMeshObj.rotation.z - wsMeshSolidObj.rotation.z) * Math.min(1, dt * 1.8);
+          wsMeshSolidObj.position.copy(wsMeshObj.position);
+          wsMeshSolidObj.scale.copy(wsMeshObj.scale);
+        }
+      }
 
       // Rotation — brake during corner pull, burst on release
       if (wsCornerActive) {
