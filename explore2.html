@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v130-corner-rotation -->
+<!-- build: explore2-v131-mesh-slow-fade -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3597,7 +3597,7 @@ if (WEBSITE_MODE) {
       } else {
         _targetOpacity = (_isSolidBlack || _isSolidWhite) ? 1.0 : 0.0;
       }
-      const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.8;
+      const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.4;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
 
