@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v108-trigger-restored -->
+<!-- build: explore2-v109-axis-per-trigger -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3505,7 +3505,14 @@ if (WEBSITE_MODE) {
       wsMeshScaleMul = 2.0;
       console.log('d93: mesh scale boost');
     }
-    // Speed impulse only — axis changes on long sound trigger
+    // Random axis on every trigger
+    const _theta = Math.random() * Math.PI * 2;
+    const _phi   = Math.acos(2 * Math.random() - 1);
+    wsMeshRotAxis.set(
+      Math.sin(_phi) * Math.cos(_theta),
+      Math.sin(_phi) * Math.sin(_theta),
+      Math.cos(_phi)
+    ).normalize();
     const spd = 0.3 + Math.random() * 1.4;
     wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
   }
