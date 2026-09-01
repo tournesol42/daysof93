@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v128-corner-dramatic -->
+<!-- build: explore2-v129-entry-trigger-gate -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3467,8 +3467,9 @@ if (WEBSITE_MODE) {
   let wsMeshAngV      = 1.5;
   let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
   let wsMeshMats      = [];
-  let wsMeshLongCount = 0;
-  let wsMeshScaleMul  = 1.0;
+  let wsMeshLongCount    = 0;
+  let wsMeshScaleMul     = 1.0;
+  let wsMeshEntryTrigger = 0;
 
 
 
@@ -3490,6 +3491,10 @@ if (WEBSITE_MODE) {
         Math.sin(_phi) * Math.sin(_theta),
         Math.cos(_phi)
       ).normalize();
+    }
+    if (!wsEntryDone) {
+      wsMeshEntryTrigger++;
+      if (wsMeshEntryTrigger % 4 !== 0) return;
     }
     const spd = 0.3 + Math.random() * 1.4;
     wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
