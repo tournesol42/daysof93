@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v125-entry-vol-corner -->
+<!-- build: explore2-v126-corner-pre-gate -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3142,6 +3142,7 @@ if (WEBSITE_MODE) {
     const _origTriggerAudio = triggerAudio;
     triggerAudio = function() {
       _origTriggerAudio.call(this);
+      if (!wsAudioCtx) return;
       wsLastTriggerTime = performance.now();
       wsPlayShortSound();
       wsSeqOnClock();
@@ -3592,19 +3593,8 @@ if (WEBSITE_MODE) {
       const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.8;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
-      if (wsMeshCurOpacity < 0.005) return;
 
-      // Color: white on black BG, black on white BG — fast transition
-      const _tc = new THREE.Color((wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
-      wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
-
-      // Rotation — dead-axis spin, axis set per trigger
-      wsMeshAngV *= Math.pow(0.55, dt);
-      if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
-      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
-      wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
-
-      // Corner pull — 20s entry lockout
+      // Corner pull — runs regardless of mesh visibility
       if (wsEntryDone && !wsCornerActive) {
         wsCornerCooldown -= dt;
         if (wsCornerCooldown <= 0) {
@@ -3617,10 +3607,10 @@ if (WEBSITE_MODE) {
             wsCornerSpring  = 0;
             wsCornerVel     = 2.8;
             wsCornerCooldown = 3 + Math.random() * 4;
+            console.log('d93: corner pull', wsCornerDX, wsCornerDY);
           }
         }
       }
-      // Spring — k=18, damping=5 — ~1.2s total, 2 organic oscillations
       if (wsCornerActive) {
         wsCornerVel    += (-wsCornerSpring * 18 - wsCornerVel * 5) * dt;
         wsCornerSpring += wsCornerVel * dt;
@@ -3630,6 +3620,19 @@ if (WEBSITE_MODE) {
           wsCornerVel    = 0;
         }
       }
+
+      if (wsMeshCurOpacity < 0.005) return;
+
+      // Color: white on black BG, black on white BG — fast transition
+      const _tc = new THREE.Color((wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
+      wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
+
+      // Rotation — dead-axis spin, axis set per trigger
+      wsMeshAngV *= Math.pow(0.55, dt);
+      if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
+      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
+      wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
+
       // Stretch toward corner — asymmetric scale + position pull
       const _pull = wsCornerSpring * 0.5;
       const _base = 0.30 * wsMeshScaleMul;
