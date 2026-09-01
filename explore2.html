@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v121-lpf-firstplay -->
+<!-- build: explore2-v122-lpf-gate-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3163,13 +3163,13 @@ if (WEBSITE_MODE) {
 
   function wsPlayShortSound() {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
+    if (bLow.alpha > 0.45) return;
     if (!wsLPFSweepDone) {
       wsLPFSweepDone = true;
       wsLPF.frequency.cancelScheduledValues(wsAudioCtx.currentTime);
       wsLPF.frequency.setValueAtTime(20000, wsAudioCtx.currentTime + 1.0);
       wsLPF.frequency.exponentialRampToValueAtTime(400, wsAudioCtx.currentTime + 5.0);
     }
-    if (bLow.alpha > 0.45) return;
     const buf = wsShortBuffers[Math.floor(Math.random() * wsShortBuffers.length)];
     if (wsCurrentShortSrc) { try { wsCurrentShortSrc.stop(); } catch(e) {} }
     const src = wsAudioCtx.createBufferSource();
