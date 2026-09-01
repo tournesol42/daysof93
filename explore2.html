@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v127-entry-done-fix -->
+<!-- build: explore2-v128-corner-dramatic -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3605,19 +3605,20 @@ if (WEBSITE_MODE) {
             wsCornerDY      = _cT ? -1 :  1;
             wsCornerActive  = true;
             wsCornerSpring  = 0;
-            wsCornerVel     = 2.8;
+            wsCornerVel     = 5.5;
             wsCornerCooldown = 3 + Math.random() * 4;
             console.log('d93: corner pull', wsCornerDX, wsCornerDY);
           }
         }
       }
       if (wsCornerActive) {
-        wsCornerVel    += (-wsCornerSpring * 18 - wsCornerVel * 5) * dt;
+        wsCornerVel    += (-wsCornerSpring * 12 - wsCornerVel * 3) * dt;
         wsCornerSpring += wsCornerVel * dt;
         if (Math.abs(wsCornerSpring) < 0.004 && Math.abs(wsCornerVel) < 0.008) {
           wsCornerActive = false;
           wsCornerSpring = 0;
           wsCornerVel    = 0;
+          wsMeshAngV     = 1.0 + Math.random() * 1.5;
         }
       }
 
@@ -3627,23 +3628,28 @@ if (WEBSITE_MODE) {
       const _tc = new THREE.Color((wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
       wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
 
-      // Rotation — dead-axis spin, axis set per trigger
-      wsMeshAngV *= Math.pow(0.55, dt);
-      if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
+      // Rotation — brake during corner pull, burst on release
+      if (wsCornerActive) {
+        wsMeshAngV *= Math.pow(0.02, dt);
+      } else {
+        wsMeshAngV *= Math.pow(0.55, dt);
+        if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
+      }
       wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
       wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
 
-      // Stretch toward corner — asymmetric scale + position pull
-      const _pull = wsCornerSpring * 0.5;
-      const _base = 0.30 * wsMeshScaleMul;
+      // Stretch toward corner — dramatic reach with thinning
+      const _pull = wsCornerSpring * 4.0;
+      const _thin = Math.max(0.1, 1 - Math.abs(wsCornerSpring) * 0.4);
+      const _base = 0.30 * wsMeshScaleMul * _thin;
       wsMeshObj.scale.set(
         _base * (1 + _pull * Math.abs(wsCornerDX)),
         _base * (1 + _pull * Math.abs(wsCornerDY)),
         _base
       );
       wsMeshObj.position.set(
-        wsCornerSpring * wsCornerDX * 0.15,
-        wsCornerSpring * wsCornerDY * 0.15,
+        wsCornerSpring * wsCornerDX * 1.2,
+        wsCornerSpring * wsCornerDY * 1.2,
         0
       );
 
