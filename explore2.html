@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v116-touch-fade -->
+<!-- build: explore2-v117-level-match -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2964,7 +2964,7 @@ if (WEBSITE_MODE) {
   }
 
   // ── Audio engine ──────────────────────────────────────────────────────────
-  const WS_SHORT_VOL   = 0.7;
+  const WS_SHORT_VOL   = 1.0;
   const WS_LONG_VOL    = 0.5;
   const WS_SHORT_BASE  = 'https://daysof93-cdn.b-cdn.net/poolexplore2_shortsounds/';
   const WS_LONG_BASE   = 'https://daysof93-cdn.b-cdn.net/poolexplore2_longsounds/';
@@ -2977,7 +2977,7 @@ if (WEBSITE_MODE) {
   const WS_SYNTH_COUNT = 60;
   const WS_GLITCH_COUNT = 28;
   const WS_SYNTH_VOL   = 0.17;
-  const WS_GLITCH_VOL  = 0.5;
+  const WS_GLITCH_VOL  = 0.7;
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
@@ -3097,7 +3097,7 @@ if (WEBSITE_MODE) {
 
     // Master gain + limiter — all ws audio routes through here
     wsMasterGain = wsAudioCtx.createGain();
-    wsMasterGain.gain.value = wsEntryDone ? 1.0 : (0.178 + 0.822 * wsEntryProgress) * 0.398;
+    wsMasterGain.gain.value = 1.0;
     const wsLimiter = wsAudioCtx.createDynamicsCompressor();
     wsLimiter.threshold.value = -1.0;
     wsLimiter.knee.value      = 0;
@@ -3386,7 +3386,7 @@ if (WEBSITE_MODE) {
       wsEntryProgress = Math.max(wsEntryProgress, Math.min(1.0, Math.max(0, (_ny - 0.85) / 0.15)));
       if (wsEntryOverlay) wsEntryOverlay.style.opacity = (1.0 - wsEntryProgress).toFixed(3);
       if (wsMasterGain && wsAudioCtx) {
-        wsMasterGain.gain.setTargetAtTime((0.178 + 0.822 * wsEntryProgress) * 0.398, wsAudioCtx.currentTime, 0.05);
+        // wsMasterGain stays at 1.0 — entry sequence is visual only
       }
       if (wsEntryProgress >= 0.95) {
         wsEntryDone = true;
