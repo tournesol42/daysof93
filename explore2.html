@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v124-corner-pull -->
+<!-- build: explore2-v125-entry-vol-corner -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3094,7 +3094,7 @@ if (WEBSITE_MODE) {
 
     // Master gain + limiter — all ws audio routes through here
     wsMasterGain = wsAudioCtx.createGain();
-    wsMasterGain.gain.value = 1.0;
+    wsMasterGain.gain.value = 0.316;
     const wsLimiter = wsAudioCtx.createDynamicsCompressor();
     wsLimiter.threshold.value = -1.0;
     wsLimiter.knee.value      = 0;
@@ -3383,12 +3383,19 @@ if (WEBSITE_MODE) {
       wsEntryProgress = Math.max(wsEntryProgress, Math.min(1.0, Math.max(0, (_ny - 0.85) / 0.15)));
       if (wsEntryOverlay) wsEntryOverlay.style.opacity = (1.0 - wsEntryProgress).toFixed(3);
       if (wsMasterGain && wsAudioCtx) {
-        // wsMasterGain stays at 1.0 — entry sequence is visual only
+        let _ev;
+        if (_ny < 0.6) {
+          _ev = 0.316;
+        } else {
+          const _t = (_ny - 0.6) / 0.4;
+          _ev = Math.pow(10, -0.5 * (1 - _t));
+        }
+        wsMasterGain.gain.setTargetAtTime(_ev, wsAudioCtx.currentTime, 0.08);
       }
       if (wsEntryProgress >= 0.95) {
         wsEntryDone = true;
         if (wsEntryOverlay) wsEntryOverlay.style.display = 'none';
-        if (wsMasterGain && wsAudioCtx) wsMasterGain.gain.setTargetAtTime(1.0, wsAudioCtx.currentTime, 0.05);
+        if (wsMasterGain && wsAudioCtx) wsMasterGain.gain.setTargetAtTime(1.0, wsAudioCtx.currentTime, 0.08);
         console.log('d93: entry done');
       }
     }
@@ -3598,13 +3605,12 @@ if (WEBSITE_MODE) {
       wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
 
       // Corner pull — 20s entry lockout
-      if (wsEntryDone && wsCornerEntryDelay > 0) wsCornerEntryDelay -= dt;
-      if (wsEntryDone && wsCornerEntryDelay <= 0 && !wsCornerActive) {
+      if (wsEntryDone && !wsCornerActive) {
         wsCornerCooldown -= dt;
         if (wsCornerCooldown <= 0) {
-          const _cL = wsMouseNX < 0.15, _cR = wsMouseNX > 0.85;
-          const _cT = wsMouseNY < 0.15, _cB = wsMouseNY > 0.85;
-          if ((_cL || _cR) && (_cT || _cB) && Math.random() < dt * 0.15) {
+          const _cL = wsMouseNX < 0.2, _cR = wsMouseNX > 0.8;
+          const _cT = wsMouseNY < 0.2, _cB = wsMouseNY > 0.8;
+          if ((_cL || _cR) && (_cT || _cB) && Math.random() < dt * 1.5) {
             wsCornerDX      = _cR ?  1 : -1;
             wsCornerDY      = _cT ? -1 :  1;
             wsCornerActive  = true;
