@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v120-lpf-sweep -->
+<!-- build: explore2-v121-lpf-firstplay -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2981,7 +2981,8 @@ if (WEBSITE_MODE) {
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
-  let wsCurrentShortSrc = null;
+  let wsCurrentShortSrc  = null;
+  let wsLPFSweepDone     = false;
   let wsSynthBuffers     = [];
   let wsCurrentSynthSrc  = null;
   let wsGlitchBuffers    = [];
@@ -3085,9 +3086,6 @@ if (WEBSITE_MODE) {
     wsLPF.type = 'lowpass';
     wsLPF.frequency.value = 20000;
     wsLPF.Q.value = 0.1;
-    // Open for 1s then sweep to 400Hz over 3s
-    wsLPF.frequency.setValueAtTime(20000, wsAudioCtx.currentTime + 1.0);
-    wsLPF.frequency.exponentialRampToValueAtTime(400, wsAudioCtx.currentTime + 5.0);
 
     wsReverbGain = wsAudioCtx.createGain();
     wsReverbGain.gain.value = 0;
@@ -3165,6 +3163,12 @@ if (WEBSITE_MODE) {
 
   function wsPlayShortSound() {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
+    if (!wsLPFSweepDone) {
+      wsLPFSweepDone = true;
+      wsLPF.frequency.cancelScheduledValues(wsAudioCtx.currentTime);
+      wsLPF.frequency.setValueAtTime(20000, wsAudioCtx.currentTime + 1.0);
+      wsLPF.frequency.exponentialRampToValueAtTime(400, wsAudioCtx.currentTime + 5.0);
+    }
     if (bLow.alpha > 0.45) return;
     const buf = wsShortBuffers[Math.floor(Math.random() * wsShortBuffers.length)];
     if (wsCurrentShortSrc) { try { wsCurrentShortSrc.stop(); } catch(e) {} }
