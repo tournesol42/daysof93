@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v118-lpf-sweep-axis -->
+<!-- build: explore2-v120-lpf-sweep -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3087,7 +3087,7 @@ if (WEBSITE_MODE) {
     wsLPF.Q.value = 0.1;
     // Open for 1s then sweep to 400Hz over 3s
     wsLPF.frequency.setValueAtTime(20000, wsAudioCtx.currentTime + 1.0);
-    wsLPF.frequency.exponentialRampToValueAtTime(400, wsAudioCtx.currentTime + 4.0);
+    wsLPF.frequency.exponentialRampToValueAtTime(400, wsAudioCtx.currentTime + 5.0);
 
     wsReverbGain = wsAudioCtx.createGain();
     wsReverbGain.gain.value = 0;
