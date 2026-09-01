@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v138-mesh-solid-trail -->
+<!-- build: explore2-v139-mesh-one-layer -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3655,16 +3655,10 @@ if (WEBSITE_MODE) {
 
       // Black BG: white wireframe. White BG: solid orange trailing group + pulsating black wireframe.
       const _showSolid = wsEntryDone && _isSolidWhite;
-      wsMeshMats.forEach(m => {
-        m.color.set(_showSolid ? 0x000000 : 0xffffff);
-        if (_showSolid) {
-          const _motion = Math.min(1.0, wsMeshAngV / 4.0);
-          const _pulse  = 0.15 + _motion * 0.75 + Math.sin(now * 0.004) * 0.08 * _motion;
-          m.opacity = Math.max(0.05, Math.min(1.0, _pulse));
-        } else {
-          m.opacity = 1.0;
-        }
-      });
+      wsMeshObj.visible = !_showSolid;
+      if (!_showSolid) {
+        wsMeshMats.forEach(m => { m.color.set(0xffffff); m.opacity = 1.0; });
+      }
       if (wsMeshSolidObj) {
         wsMeshSolidObj.visible = _showSolid;
         if (_showSolid) {
