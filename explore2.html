@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v122-lpf-gate-fix -->
+<!-- build: explore2-v123-dead-code-cleanup -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2986,7 +2986,6 @@ if (WEBSITE_MODE) {
   let wsSynthBuffers     = [];
   let wsCurrentSynthSrc  = null;
   let wsGlitchBuffers    = [];
-  let wsCurrentGlitchSrc = null;
   let wsGlitchRevSend    = null;
   let wsGlitchRevReturn  = null;
   let wsGlitchRevNode    = null;
@@ -3011,9 +3010,6 @@ if (WEBSITE_MODE) {
   let wsSynthRevReturn  = null;
   let wsSynthRevNode    = null;
   let wsSynthLPF        = null;
-  let wsSynthRWalk      = 0;      // slow random walk -1..1
-  let wsSynthSpike      = 0;      // transient brightness spike in Hz
-  let wsSynthSpikeTimer = 5;      // seconds until next spike check
   let wsLastTriggerTime = 0;
   // Gate sequencer
   const WS_SEQ_PATTERNS = [
@@ -3308,13 +3304,8 @@ if (WEBSITE_MODE) {
     return buffer;
   }
 
-  function wsLogInterp(a, b, t) {
-    return Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * t);
-  }
-
   function wsUpdateFilters(x, y) {
     if (!wsAudioCtx || !wsLPF) return;
-    const nx = Math.max(0, Math.min(1, x / window.innerWidth));
     const ny = Math.max(0, Math.min(1, y / window.innerHeight));
     // Reverb send Y axis: log curve — rises fast just below centre, flattens toward bottom
     // At ny=0.5 (LPF≈2kHz): send=0.03. At ny=0.6: ~20%. At ny=1.0: 40%.
@@ -3402,20 +3393,6 @@ if (WEBSITE_MODE) {
     }
 
 
-    if (_ny > 0.8 && wsMeshState === 'idle' && !wsMeshEntryTimer) {
-      wsMeshEntryTimer = setTimeout(() => {
-        wsMeshEntryTimer = null;
-        if (wsMouseNY > 0.8 && wsMeshState === 'idle') {
-          wsMeshState    = 'fading';
-          wsMeshFadeStart = performance.now();
-          console.log('d93: mesh fade started');
-        }
-      }, 2000);
-    }
-    if (_ny <= 0.8 && wsMeshEntryTimer) {
-      clearTimeout(wsMeshEntryTimer);
-      wsMeshEntryTimer = null;
-    }
   }
 
   // ── 3×3 zone grid → snapshot ─────────────────────────────────────────────
@@ -3443,9 +3420,6 @@ if (WEBSITE_MODE) {
     const newBrigLow = parseInt(document.getElementById('brigLowSlider').value) || 0;
     if (newBrigLow > 0 && prevBrigLow === 0) wsStartLongSound();
     if (newBrigLow === 0 && prevBrigLow > 0) wsStopLongSound();
-    const _s = snapshots[_slot];
-    wsMeshSetColor(_s && _s.colorSlideOpacity > 50);
-    wsStartCamTransition(WS_ZONE_CAM[wsCurrentZone] !== undefined ? WS_ZONE_CAM[wsCurrentZone] : 0);
   }
 
   document.addEventListener('mousemove', e => {
@@ -3469,53 +3443,19 @@ if (WEBSITE_MODE) {
   let wsMeshScene     = null;
   let wsMeshCamera    = null;
   let wsMeshObj       = null;
-  let wsMeshState     = 'idle';   // 'idle' | 'fading' | 'active'
-  let wsMeshFadeStart = 0;
   let wsMeshCurOpacity = 0;
-  let wsMeshEntryTimer = null;
   let wsMouseNY        = 0;
 
-  // Camera animation state
-  let wsMeshCamViews  = [];
-  let wsMeshRotY      = 0;  // slow continuous mesh rotation     // [{pos, quat, fov}] extracted from GLB DO93_CAM nodes
-  let wsMeshCamFrom   = null;   // lerp start
-  let wsMeshCamTo     = null;   // lerp target
-  let wsMeshCamT      = 1.0;    // 0→1 interpolation progress
-  const WS_CAM_DUR    = 2.0;    // transition duration in seconds (default)
-  let wsMeshCamDur    = 2.0;    // per-transition randomised duration
-  let wsMeshCenter    = new THREE.Vector3(); // mesh bounding box centre
-  let wsMeshLastNow   = 0;      // for dt calc
-  // Physics state
-  // Mesh rotation physics
-  let wsMeshAngV    = 1.5;                           // scalar rotation speed — starts visible, decays
-  let wsMeshRotAxis = new THREE.Vector3(0, 1, 0);   // current rotation axis
-  let wsMeshMats    = [];
-  let wsMeshLongCount = 0;    // counts long sound triggers
-  let wsMeshScaleMul  = 1.0;  // scale multiplier — 1.0 base, 1.5 on boost
-  let wsMeshSpringX = 0, wsMeshSpringY = 0;
-  let wsMeshVelX = 0, wsMeshVelY = 0;
-  // Zone 0–8 → camera index (7 cameras; zones 7,8 reuse cams 3,4)
-  const WS_ZONE_CAM   = [0, 1, 2, 3, 4, 5, 6, 3, 4];
+  let wsMeshLastNow   = 0;
+  let wsMeshAngV      = 1.5;
+  let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
+  let wsMeshMats      = [];
+  let wsMeshLongCount = 0;
+  let wsMeshScaleMul  = 1.0;
 
 
 
-  function wsMeshSetColor(white) {
-    if (!wsMeshObj) return;
-    const col = white ? 0x111111 : 0xcccccc;
-    wsMeshObj.traverse(ch => {
-      if (ch.isLineSegments) ch.material.color.setHex(col);
-    });
-  }
 
-  function wsStartCamTransition(idx) {
-    if (!wsMeshCamViews.length || !wsMeshCamera) return;
-    const safe = Math.min(idx, wsMeshCamViews.length - 1);
-    const v = wsMeshCamViews[safe];
-    wsMeshCamera.position.copy(v.pos);
-    wsMeshCamera.quaternion.copy(v.quat);
-    wsMeshCamT = 1.0;
-    console.log('d93: zone', wsCurrentZone, '→ cam', safe);
-  }
 
   function wsMeshOnTrigger() {
     if (wsMeshCurOpacity < 0.01) return;
