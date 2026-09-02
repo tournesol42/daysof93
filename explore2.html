@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v145-orch-xhrbuffer-masterfix -->
+<!-- build: explore2-v146-orch-prefetch-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2971,17 +2971,6 @@ if (WEBSITE_MODE) {
   const WS_SYNTH_BASE  = 'https://daysof93-cdn.b-cdn.net/Shortsynthsoundsxplore_2/';
   const WS_GLITCH_BASE = 'https://daysof93-cdn.b-cdn.net/Glitchdrumsexplore_2/';
   const WS_ORCH_URL    = 'https://daysof93-cdn.b-cdn.net/Explore2orch.mp3';
-  (function() {
-    const _x = new XMLHttpRequest();
-    _x.open('GET', WS_ORCH_URL, true);
-    _x.responseType = 'arraybuffer';
-    _x.onload = function() {
-      wsOrchXhrData = _x.response;
-      console.log('d93: orch XHR ready');
-      if (wsOrchReady && wsAudioCtx && wsOrchGainNode) wsDecodeAndPlayOrch();
-    };
-    _x.send();
-  })();
   let wsOrchXhrData  = null;
   let wsOrchBuffer   = null;
   let wsOrchNode     = null;
@@ -3332,7 +3321,6 @@ if (WEBSITE_MODE) {
     }
     wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
-    if (wsOrchGainNode) wsOrchGainNode.gain.setTargetAtTime(v * 0.45, wsAudioCtx.currentTime, 0.08);
   }
 
   function wsCreateReverbIR(ctx, duration, decay) {
@@ -3382,6 +3370,17 @@ if (WEBSITE_MODE) {
   const wsOverlay = document.getElementById('ws-overlay');
   wsOverlay.addEventListener('pointerdown', () => {
     wsInitAudio();
+    if (!wsOrchXhrData && !wsOrchReady) {
+      const _ox = new XMLHttpRequest();
+      _ox.open('GET', WS_ORCH_URL, true);
+      _ox.responseType = 'arraybuffer';
+      _ox.onload = function() {
+        wsOrchXhrData = _ox.response;
+        console.log('d93: orch XHR ready');
+        if (wsOrchReady && wsAudioCtx && wsOrchGainNode) wsDecodeAndPlayOrch();
+      };
+      _ox.send();
+    }
     if (wsAudioCtx && wsAudioCtx.state === 'suspended') wsAudioCtx.resume();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     wsOrchReady = true;
@@ -3814,6 +3813,9 @@ document.getElementById('audioVolSlider').addEventListener('input', () => {
     wsMasterGain.gain.setTargetAtTime(val / 100, wsAudioCtx.currentTime, 0.01);
   }
   wsSetMasterLevel(val / 100);
+  if (wsOrchGainNode && wsAudioCtx) {
+    wsOrchGainNode.gain.setTargetAtTime((val / 100) * 0.45, wsAudioCtx.currentTime, 0.01);
+  }
 });
 document.getElementById('audioProbSlider').addEventListener('input', () => {
   document.getElementById('audioProbVal').textContent =
