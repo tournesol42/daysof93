@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v162-mode-b-mesh-drift -->
+<!-- build: explore2-v163-mode-b-scale-timing -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3331,7 +3331,8 @@ if (WEBSITE_MODE) {
     wsModeBMusic.volume = Math.min(1, wsUserLevel * 1.245);
     wsModeBMusic.play().catch(e => console.warn('d93: mode B music failed', e));
     wsCurrentZone = -1;
-    wsMeshScaleMul   = 5.0;
+    wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
+    wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
   }
 
@@ -3761,7 +3762,8 @@ if (WEBSITE_MODE) {
       wsPrevCornerRotY = wsCornerDX * wsCornerSpring * 0.45;
       wsMeshObj.rotation.x += wsPrevCornerRotX;
       wsMeshObj.rotation.y += wsPrevCornerRotY;
-      wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * 1.5);
+      const _scDecay = (wsMode === 'B' && (performance.now() - wsDriftStartTime) < 4000) ? 0.25 : 1.5;
+      wsMeshScaleMul += (1.0 - wsMeshScaleMul) * Math.min(1, dt * _scDecay);
 
       // Stretch toward corner — dramatic reach with thinning
       const _pull = wsCornerSpring * 4.0;
