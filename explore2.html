@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v168-mesh-envelope-follower -->
+<!-- build: explore2-v169-modeb-webaudio-envelope -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2986,7 +2986,9 @@ if (WEBSITE_MODE) {
   let wsUserLevel    = 1.0;
   let wsMode          = 'A';
   let wsEntryDoneTime = 0;
-  let wsModeBMusic    = null;
+  let wsModeBXhrData  = null;
+  let wsModeBNode     = null;
+  let wsModeBGainNode = null;
   let wsSoundsAMuted  = false;
   let wsAnalyser  = null;
   let wsEnvelope  = 0;
@@ -3332,10 +3334,7 @@ if (WEBSITE_MODE) {
     if (wsOrchNode) { try { wsOrchNode.stop(); } catch(e) {} wsOrchNode = null; }
     wsMainAudio.pause();
     wsMainAudio.src = '';
-    wsModeBMusic = new Audio('https://daysof93-cdn.b-cdn.net/explore2main3.mp3');
-    wsModeBMusic.loop = true;
-    wsModeBMusic.volume = Math.min(1, wsUserLevel * 1.245);
-    wsModeBMusic.play().catch(e => console.warn('d93: mode B music failed', e));
+    wsPlayModeBMusic();
     wsCurrentZone = -1;
     wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
     wsMeshScaleMul   = 10.0;
@@ -3362,6 +3361,21 @@ if (WEBSITE_MODE) {
     });
   }
 
+  function wsPlayModeBMusic() {
+    if (!wsModeBXhrData || !wsAudioCtx) return;
+    wsAudioCtx.decodeAudioData(wsModeBXhrData.slice(0), function(buf) {
+      wsModeBGainNode = wsAudioCtx.createGain();
+      wsModeBGainNode.gain.value = 1.245;
+      wsModeBGainNode.connect(wsMasterGain);
+      wsModeBNode = wsAudioCtx.createBufferSource();
+      wsModeBNode.buffer = buf;
+      wsModeBNode.loop = true;
+      wsModeBNode.connect(wsModeBGainNode);
+      wsModeBNode.start();
+      console.log('d93: mode B music via AudioBuffer');
+    }, function(err) { console.warn('d93: mode B decode failed', err); });
+  }
+
   function wsSetMasterLevel(v) {
     wsMasterLevel = v;
     if (wsMasterGain && wsAudioCtx) {
@@ -3369,7 +3383,7 @@ if (WEBSITE_MODE) {
     }
     wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
-    if (wsModeBMusic) wsModeBMusic.volume = Math.min(1, v * 1.245);
+    if (wsModeBGainNode) wsModeBGainNode.gain.setTargetAtTime(v * 1.245, wsAudioCtx.currentTime, 0.08);
   }
   window.wsSetMasterLevel = wsSetMasterLevel;
   window.wsSetUserLevel = function(v) {
@@ -3407,6 +3421,13 @@ if (WEBSITE_MODE) {
   function wsStartEngine() {
     wsFirstTouch = true;
     wsInitAudio();
+    if (!wsModeBXhrData) {
+      const _bx = new XMLHttpRequest();
+      _bx.open('GET', 'https://daysof93-cdn.b-cdn.net/explore2main3.mp3', true);
+      _bx.responseType = 'arraybuffer';
+      _bx.onload = function() { wsModeBXhrData = _bx.response; };
+      _bx.send();
+    }
     imgRangeFrom = 0; imgRangeTo = 1;
     imgRangeRS.setRange(0, 1);
     updateImgRangeStatus();
@@ -3724,7 +3745,9 @@ if (WEBSITE_MODE) {
         const _rms = Math.sqrt(_sq / _td.length);
         const _coeff = _rms > wsEnvelope ? 0.80 : 0.06;
         wsEnvelope += (_rms - wsEnvelope) * _coeff;
-        wsMeshCv.style.opacity = Math.max(0.10, Math.min(1.0, wsEnvelope * 4)).toFixed(3);
+        const _db = wsEnvelope > 0.001 ? 20 * Math.log10(wsEnvelope) : -60;
+        const _norm = Math.max(0, Math.min(1, (_db + 40) / 40));
+        wsMeshCv.style.opacity = Math.max(0.10, _norm).toFixed(3);
       } else {
         wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
       }
