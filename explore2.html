@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v147-orch-vol-diag -->
+<!-- build: explore2-v148-early-sound-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3255,6 +3255,7 @@ if (WEBSITE_MODE) {
   }
 
   function wsStartLongSound() {
+    if (!wsAudioCtx) return;
     const n = Math.floor(Math.random() * WS_LONG_COUNT) + 1;
     wsLongAudio.src         = WS_LONG_BASE + n + '.mp3';
     wsLongAudio.currentTime = 0;
@@ -3273,6 +3274,7 @@ if (WEBSITE_MODE) {
   }
 
   function wsStopLongSound() {
+    if (!wsAudioCtx) return;
     wsLongAudio.pause();
     wsLongAudio.currentTime = 0;
   }
@@ -4012,10 +4014,7 @@ window.d93 = {
     var v = muted ? 0 : vol;
     document.querySelectorAll('audio,video').forEach(function(el) { el.volume = v; });
   }
-  document.addEventListener('play', function(e) {
-    console.warn('d93: PLAY EVENT before touch —', e.target.tagName, e.target.src || e.target.currentSrc || '(no src)', new Error().stack);
-    applyAll();
-  }, true);
+  document.addEventListener('play', applyAll, true);
   var volHideTimer;
   wrap.addEventListener('mouseenter', function() {
     clearTimeout(volHideTimer);
