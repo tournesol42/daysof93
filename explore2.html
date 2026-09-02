@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v164-alpha-video -->
+<!-- build: explore2-v165-hide-mesh-mode-b -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3334,6 +3334,8 @@ if (WEBSITE_MODE) {
     wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
     wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
+    wsMeshCurOpacity = 0;
+    wsMeshCv.style.opacity = '0';
     wsTDVideo.style.display = 'block';
     wsTDVideo.currentTime = 0;
     wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
@@ -3708,7 +3710,7 @@ if (WEBSITE_MODE) {
       }
       const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.4;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
-      wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+      if (wsMode !== 'B') wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
 
       // Corner pull — runs regardless of mesh visibility
       if (wsEntryDone && !wsCornerActive) {
