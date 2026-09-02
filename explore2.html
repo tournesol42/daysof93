@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v149-volume-fader-fix -->
+<!-- build: explore2-v150-entry-userlevel-split -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2977,6 +2977,8 @@ if (WEBSITE_MODE) {
   let wsOrchGainNode = null;
   let wsOrchReady    = false;
   let wsMasterLevel  = 0.316;
+  let wsEntryLevel   = 0.316;
+  let wsUserLevel    = 1.0;
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
@@ -3325,6 +3327,10 @@ if (WEBSITE_MODE) {
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
   }
   window.wsSetMasterLevel = wsSetMasterLevel;
+  window.wsSetUserLevel = function(v) {
+    wsUserLevel = v;
+    wsSetMasterLevel(wsEntryLevel * v);
+  };
 
   function wsCreateReverbIR(ctx, duration, decay) {
     const rate     = ctx.sampleRate;
@@ -3437,12 +3443,14 @@ if (WEBSITE_MODE) {
           const _t = (_ny - 0.6) / 0.4;
           _ev = Math.pow(10, -0.5 * (1 - _t));
         }
-        wsSetMasterLevel(_ev);
+        wsEntryLevel = _ev;
+        wsSetMasterLevel(_ev * wsUserLevel);
       }
       if (wsEntryProgress >= 0.3) {
         wsEntryDone = true;
         if (wsEntryOverlay) wsEntryOverlay.style.display = 'none';
-        wsSetMasterLevel(1.0);
+        wsEntryLevel = 1.0;
+        wsSetMasterLevel(wsUserLevel);
         console.log('d93: entry done');
       }
     }
@@ -4014,7 +4022,7 @@ window.d93 = {
   function applyAll() {
     var v = muted ? 0 : vol;
     document.querySelectorAll('audio,video').forEach(function(el) { el.volume = v; });
-    if (window.wsSetMasterLevel) window.wsSetMasterLevel(v);
+    if (window.wsSetUserLevel) window.wsSetUserLevel(v);
   }
   document.addEventListener('play', applyAll, true);
   var volHideTimer;
