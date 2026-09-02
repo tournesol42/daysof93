@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v166-mesh-display-none -->
+<!-- build: explore2-v167-video-white-bg-only -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3334,9 +3334,7 @@ if (WEBSITE_MODE) {
     wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
     wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
-    wsMeshCurOpacity = 0;
-    wsMeshCv.style.display = 'none';
-    if (wsMeshRenderer) wsMeshRenderer.clear();
+
     wsTDVideo.style.display = 'block';
     wsTDVideo.currentTime = 0;
     wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
@@ -3701,6 +3699,9 @@ if (WEBSITE_MODE) {
       // Mesh visibility: hidden before first touch, fades in on touch, BG-gated after entry
       const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
       const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
+      if (wsMode === 'B') {
+        wsTDVideo.style.display = _isSolidWhite ? 'block' : 'none';
+      }
       let _targetOpacity;
       if (!wsFirstTouch) {
         _targetOpacity = 0.0;
@@ -3711,10 +3712,6 @@ if (WEBSITE_MODE) {
       }
       const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.4;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
-      if (wsMode === 'B') {
-        if (wsMeshRenderer) wsMeshRenderer.clear();
-        return;
-      }
       wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
 
       // Corner pull — runs regardless of mesh visibility
