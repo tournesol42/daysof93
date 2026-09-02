@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v151-snapshots-v3-46images -->
+<!-- build: explore2-v152-zone-mapping-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3473,7 +3473,7 @@ if (WEBSITE_MODE) {
     if (zone === wsCurrentZone) return;
     wsCurrentZone = zone;
     const t = zone / 8;
-    const _filled = filledSnapshotList();
+    const _filled = filledSnapshotList().filter(i => i < 8);
     if (!_filled.length) return;
     const _idx = _filled.length === 1 ? 0 : Math.round(t * (_filled.length - 1));
     const _slot = _filled[_idx];
