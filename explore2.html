@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v148-early-sound-fix -->
+<!-- build: explore2-v149-volume-fader-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3324,6 +3324,7 @@ if (WEBSITE_MODE) {
     wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
   }
+  window.wsSetMasterLevel = wsSetMasterLevel;
 
   function wsCreateReverbIR(ctx, duration, decay) {
     const rate     = ctx.sampleRate;
@@ -4013,6 +4014,7 @@ window.d93 = {
   function applyAll() {
     var v = muted ? 0 : vol;
     document.querySelectorAll('audio,video').forEach(function(el) { el.volume = v; });
+    if (window.wsSetMasterLevel) window.wsSetMasterLevel(v);
   }
   document.addEventListener('play', applyAll, true);
   var volHideTimer;
