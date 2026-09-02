@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v167-video-white-bg-only -->
+<!-- build: explore2-v168-mesh-envelope-follower -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2988,6 +2988,8 @@ if (WEBSITE_MODE) {
   let wsEntryDoneTime = 0;
   let wsModeBMusic    = null;
   let wsSoundsAMuted  = false;
+  let wsAnalyser  = null;
+  let wsEnvelope  = 0;
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
@@ -3121,6 +3123,10 @@ if (WEBSITE_MODE) {
     wsLimiter.attack.value    = 0.001;
     wsLimiter.release.value   = 0.08;
     wsMasterGain.connect(wsLimiter);
+    wsAnalyser = wsAudioCtx.createAnalyser();
+    wsAnalyser.fftSize = 512;
+    wsAnalyser.smoothingTimeConstant = 0;
+    wsMasterGain.connect(wsAnalyser);
     wsLimiter.connect(wsAudioCtx.destination);
     wsOrchGainNode = wsAudioCtx.createGain();
     wsOrchGainNode.gain.value = 1.42;
@@ -3699,9 +3705,7 @@ if (WEBSITE_MODE) {
       // Mesh visibility: hidden before first touch, fades in on touch, BG-gated after entry
       const _isSolidBlack = bLow.alpha > 0.88 || silenceAlpha > 0.88;
       const _isSolidWhite = cColorSlideOpacity >= 90 && cColorSlide.toUpperCase() === '#FFFFFF';
-      if (wsMode === 'B') {
-        wsTDVideo.style.display = _isSolidWhite ? 'block' : 'none';
-      }
+
       let _targetOpacity;
       if (!wsFirstTouch) {
         _targetOpacity = 0.0;
@@ -3712,7 +3716,18 @@ if (WEBSITE_MODE) {
       }
       const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.4;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
-      wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+      if (wsMode === 'B' && wsAnalyser) {
+        const _td = new Uint8Array(wsAnalyser.frequencyBinCount);
+        wsAnalyser.getByteTimeDomainData(_td);
+        let _sq = 0;
+        for (let i = 0; i < _td.length; i++) { const _s = (_td[i] - 128) / 128; _sq += _s * _s; }
+        const _rms = Math.sqrt(_sq / _td.length);
+        const _coeff = _rms > wsEnvelope ? 0.80 : 0.06;
+        wsEnvelope += (_rms - wsEnvelope) * _coeff;
+        wsMeshCv.style.opacity = Math.max(0.10, Math.min(1.0, wsEnvelope * 4)).toFixed(3);
+      } else {
+        wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+      }
 
       // Corner pull — runs regardless of mesh visibility
       if (wsEntryDone && !wsCornerActive) {
