@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v169-modeb-webaudio-envelope -->
+<!-- build: explore2-v170-video-envelope -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3341,6 +3341,7 @@ if (WEBSITE_MODE) {
     wsDriftStartTime = performance.now();
 
     wsTDVideo.style.display = 'block';
+    wsTDVideo.style.opacity = '0.10';
     wsTDVideo.currentTime = 0;
     wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
   }
@@ -3737,6 +3738,7 @@ if (WEBSITE_MODE) {
       }
       const _fadeRate = _targetOpacity > wsMeshCurOpacity ? dt * 3 : dt * 0.4;
       wsMeshCurOpacity += (_targetOpacity - wsMeshCurOpacity) * Math.min(1, _fadeRate);
+      wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
       if (wsMode === 'B' && wsAnalyser) {
         const _td = new Uint8Array(wsAnalyser.frequencyBinCount);
         wsAnalyser.getByteTimeDomainData(_td);
@@ -3747,9 +3749,7 @@ if (WEBSITE_MODE) {
         wsEnvelope += (_rms - wsEnvelope) * _coeff;
         const _db = wsEnvelope > 0.001 ? 20 * Math.log10(wsEnvelope) : -60;
         const _norm = Math.max(0, Math.min(1, (_db + 40) / 40));
-        wsMeshCv.style.opacity = Math.max(0.10, _norm).toFixed(3);
-      } else {
-        wsMeshCv.style.opacity = wsMeshCurOpacity.toFixed(3);
+        wsTDVideo.style.opacity = Math.max(0.10, _norm).toFixed(3);
       }
 
       // Corner pull — runs regardless of mesh visibility
