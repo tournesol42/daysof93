@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v144-wsaudioctx-resume -->
+<!-- build: explore2-v145-orch-xhrbuffer-masterfix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2971,7 +2971,23 @@ if (WEBSITE_MODE) {
   const WS_SYNTH_BASE  = 'https://daysof93-cdn.b-cdn.net/Shortsynthsoundsxplore_2/';
   const WS_GLITCH_BASE = 'https://daysof93-cdn.b-cdn.net/Glitchdrumsexplore_2/';
   const WS_ORCH_URL    = 'https://daysof93-cdn.b-cdn.net/Explore2orch.mp3';
-  let wsOrchAudio      = null;
+  (function() {
+    const _x = new XMLHttpRequest();
+    _x.open('GET', WS_ORCH_URL, true);
+    _x.responseType = 'arraybuffer';
+    _x.onload = function() {
+      wsOrchXhrData = _x.response;
+      console.log('d93: orch XHR ready');
+      if (wsOrchReady && wsAudioCtx && wsOrchGainNode) wsDecodeAndPlayOrch();
+    };
+    _x.send();
+  })();
+  let wsOrchXhrData  = null;
+  let wsOrchBuffer   = null;
+  let wsOrchNode     = null;
+  let wsOrchGainNode = null;
+  let wsOrchReady    = false;
+  let wsMasterLevel  = 0.316;
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
@@ -3029,12 +3045,6 @@ if (WEBSITE_MODE) {
   const wsLongAudio  = new Audio();
   let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null;
   let wsMasterGain = null;
-  let wsLongSrc = null;
-  let wsLongGain = null;
-  let wsOrchSrc  = null;
-  let wsOrchGain = null;
-  let wsMainSrc  = null;
-  let wsMainGain = null;
 
   function wsInitAudio() {
     if (wsAudioCtx) return;
@@ -3102,6 +3112,8 @@ if (WEBSITE_MODE) {
     // Master gain + limiter — all ws audio routes through here
     wsMasterGain = wsAudioCtx.createGain();
     wsMasterGain.gain.value = 0.316;
+    wsLongAudio.volume = Math.min(1, 0.316 * WS_LONG_VOL);
+    wsMainAudio.volume = Math.min(1, 0.316 * WS_MAIN_VOL);
     const wsLimiter = wsAudioCtx.createDynamicsCompressor();
     wsLimiter.threshold.value = -1.0;
     wsLimiter.knee.value      = 0;
@@ -3110,16 +3122,9 @@ if (WEBSITE_MODE) {
     wsLimiter.release.value   = 0.08;
     wsMasterGain.connect(wsLimiter);
     wsLimiter.connect(wsAudioCtx.destination);
-    wsLongSrc = wsAudioCtx.createMediaElementSource(wsLongAudio);
-    wsLongGain = wsAudioCtx.createGain();
-    wsLongGain.gain.value = WS_LONG_VOL;
-    wsLongSrc.connect(wsLongGain);
-    wsLongGain.connect(wsMasterGain);
-    wsMainSrc = wsAudioCtx.createMediaElementSource(wsMainAudio);
-    wsMainGain = wsAudioCtx.createGain();
-    wsMainGain.gain.value = WS_MAIN_VOL;
-    wsMainSrc.connect(wsMainGain);
-    wsMainGain.connect(wsMasterGain);
+    wsOrchGainNode = wsAudioCtx.createGain();
+    wsOrchGainNode.gain.value = 0.45;
+    wsOrchGainNode.connect(wsMasterGain);
     // Dry path: LPF → master
     wsLPF.connect(wsMasterGain);
     // Wet path: LPF → send → convolver → +8dB return → master
@@ -3304,6 +3309,32 @@ if (WEBSITE_MODE) {
     }
   }
 
+  function wsDecodeAndPlayOrch() {
+    if (!wsOrchXhrData || !wsAudioCtx || !wsOrchGainNode) return;
+    if (wsOrchNode) return; // already playing
+    wsAudioCtx.decodeAudioData(wsOrchXhrData.slice(0), function(buf) {
+      wsOrchBuffer = buf;
+      wsOrchNode   = wsAudioCtx.createBufferSource();
+      wsOrchNode.buffer = wsOrchBuffer;
+      wsOrchNode.loop   = true;
+      wsOrchNode.connect(wsOrchGainNode);
+      wsOrchNode.start();
+      console.log('d93: orch playing via AudioBuffer');
+    }, function(err) {
+      console.warn('d93: orch decode failed', err);
+    });
+  }
+
+  function wsSetMasterLevel(v) {
+    wsMasterLevel = v;
+    if (wsMasterGain && wsAudioCtx) {
+      wsMasterGain.gain.setTargetAtTime(v, wsAudioCtx.currentTime, 0.08);
+    }
+    wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
+    wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
+    if (wsOrchGainNode) wsOrchGainNode.gain.setTargetAtTime(v * 0.45, wsAudioCtx.currentTime, 0.08);
+  }
+
   function wsCreateReverbIR(ctx, duration, decay) {
     const rate     = ctx.sampleRate;
     const length   = Math.ceil(rate * duration);
@@ -3353,16 +3384,8 @@ if (WEBSITE_MODE) {
     wsInitAudio();
     if (wsAudioCtx && wsAudioCtx.state === 'suspended') wsAudioCtx.resume();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    if (!wsOrchAudio) {
-      wsOrchAudio = new Audio(WS_ORCH_URL);
-      wsOrchAudio.loop = true;
-      wsOrchSrc  = wsAudioCtx.createMediaElementSource(wsOrchAudio);
-      wsOrchGain = wsAudioCtx.createGain();
-      wsOrchGain.gain.value = 0.45;
-      wsOrchSrc.connect(wsOrchGain);
-      wsOrchGain.connect(wsMasterGain);
-      wsOrchAudio.play().catch(e => console.warn('d93: orch play failed', e));
-    }
+    wsOrchReady = true;
+    if (wsOrchXhrData && wsOrchGainNode) wsDecodeAndPlayOrch();
     // Fade text to black over 3s, then start engine after 5s total
     wsOverlay.style.transition = 'color 3s ease';
     wsOverlay.style.color = 'transparent';
@@ -3412,12 +3435,12 @@ if (WEBSITE_MODE) {
           const _t = (_ny - 0.6) / 0.4;
           _ev = Math.pow(10, -0.5 * (1 - _t));
         }
-        wsMasterGain.gain.setTargetAtTime(_ev, wsAudioCtx.currentTime, 0.08);
+        wsSetMasterLevel(_ev);
       }
       if (wsEntryProgress >= 0.3) {
         wsEntryDone = true;
         if (wsEntryOverlay) wsEntryOverlay.style.display = 'none';
-        if (wsMasterGain && wsAudioCtx) wsMasterGain.gain.setTargetAtTime(1.0, wsAudioCtx.currentTime, 0.08);
+        wsSetMasterLevel(1.0);
         console.log('d93: entry done');
       }
     }
@@ -3790,6 +3813,7 @@ document.getElementById('audioVolSlider').addEventListener('input', () => {
   if (wsMasterGain && wsAudioCtx) {
     wsMasterGain.gain.setTargetAtTime(val / 100, wsAudioCtx.currentTime, 0.01);
   }
+  wsSetMasterLevel(val / 100);
 });
 document.getElementById('audioProbSlider').addEventListener('input', () => {
   document.getElementById('audioProbVal').textContent =
