@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v156-entry-zone-fix -->
+<!-- build: explore2-v157-mode-b -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2979,6 +2979,10 @@ if (WEBSITE_MODE) {
   let wsMasterLevel  = 0.316;
   let wsEntryLevel   = 0.316;
   let wsUserLevel    = 1.0;
+  let wsMode          = 'A';
+  let wsEntryDoneTime = 0;
+  let wsModeBMusic    = null;
+  let wsSoundsAMuted  = false;
   const WS_SHORT_COUNT = 31;
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
@@ -3173,6 +3177,7 @@ if (WEBSITE_MODE) {
 
   function wsPlayShortSound() {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
+    if (wsSoundsAMuted) return;
     if (bLow.alpha > 0.45) return;
     if (!wsLPFSweepDone) {
       wsLPFSweepDone = true;
@@ -3258,6 +3263,7 @@ if (WEBSITE_MODE) {
 
   function wsStartLongSound() {
     if (!wsAudioCtx) return;
+    if (wsSoundsAMuted) return;
     const n = Math.floor(Math.random() * WS_LONG_COUNT) + 1;
     wsLongAudio.src         = WS_LONG_BASE + n + '.mp3';
     wsLongAudio.currentTime = 0;
@@ -3290,6 +3296,7 @@ if (WEBSITE_MODE) {
   let wsMainTriggerTarget = Math.floor(Math.random() * 5) + 4;
 
   function wsCheckMainMusic() {
+    if (wsSoundsAMuted) return;
     wsMainTriggerCount++;
     if (wsMainTriggerCount >= wsMainTriggerTarget) {
       const n = Math.floor(Math.random() * WS_MAIN_COUNT) + 1;
@@ -3300,6 +3307,20 @@ if (WEBSITE_MODE) {
       wsMainTriggerCount  = 0;
       wsMainTriggerTarget = Math.floor(Math.random() * 5) + 4;
     }
+  }
+
+  function wsSwitchToModeB() {
+    if (wsMode === 'B') return;
+    wsMode = 'B';
+    console.log('d93: mode B activated');
+    wsSoundsAMuted = true;
+    wsMainAudio.pause();
+    wsMainAudio.src = '';
+    wsModeBMusic = new Audio('https://daysof93-cdn.b-cdn.net/explore2main3.mp3');
+    wsModeBMusic.loop = true;
+    wsModeBMusic.volume = Math.min(1, wsUserLevel * 0.7);
+    wsModeBMusic.play().catch(e => console.warn('d93: mode B music failed', e));
+    wsCurrentZone = -1;
   }
 
   function wsDecodeAndPlayOrch() {
@@ -3325,6 +3346,7 @@ if (WEBSITE_MODE) {
     }
     wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
+    if (wsModeBMusic) wsModeBMusic.volume = Math.min(1, v * 0.7);
   }
   window.wsSetMasterLevel = wsSetMasterLevel;
   window.wsSetUserLevel = function(v) {
@@ -3450,7 +3472,8 @@ if (WEBSITE_MODE) {
         wsSetMasterLevel(_ev * wsUserLevel);
       }
       if (wsEntryProgress >= 0.3) {
-        wsEntryDone = true;
+        wsEntryDone     = true;
+        wsEntryDoneTime = performance.now();
         if (wsEntryOverlay) wsEntryOverlay.style.display = 'none';
         wsEntryLevel = 1.0;
         wsSetMasterLevel(wsUserLevel);
@@ -3476,7 +3499,9 @@ if (WEBSITE_MODE) {
     if (zone === wsCurrentZone) return;
     wsCurrentZone = zone;
     const t = zone / 8;
-    const _filled = filledSnapshotList().filter(i => i < 8);
+    const _filled = wsMode === 'B'
+      ? filledSnapshotList().filter(i => i >= 8 && i <= 16)
+      : filledSnapshotList().filter(i => i < 8);
     if (!_filled.length) return;
     const _idx = _filled.length === 1 ? 0 : Math.round(t * (_filled.length - 1));
     const _slot = _filled[_idx];
@@ -3668,6 +3693,10 @@ if (WEBSITE_MODE) {
         if (wsCornerCooldown <= 0) {
           const _cL = wsMouseNX < 0.2, _cR = wsMouseNX > 0.8;
           const _cT = wsMouseNY < 0.2, _cB = wsMouseNY > 0.8;
+          if (wsMode === 'A' && wsEntryDone && _cR && _cB &&
+              (performance.now() - wsEntryDoneTime) > 10000) {
+            wsSwitchToModeB();
+          }
           if ((_cL || _cR) && (_cT || _cB) && Math.random() < dt * 1.5) {
             wsCornerDX      = _cR ?  1 : -1;
             wsCornerDY      = _cT ? -1 :  1;
