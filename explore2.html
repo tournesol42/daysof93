@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v142-master-fader-fix -->
+<!-- build: explore2-v143-audio-routing-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3027,14 +3027,17 @@ if (WEBSITE_MODE) {
 
 
   const wsLongAudio  = new Audio();
-  let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null, wsMainSrc = null;
+  let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null;
   let wsMasterGain = null;
   let wsLongSrc = null;
   let wsLongGain = null;
   let wsOrchSrc  = null;
   let wsOrchGain = null;
+  let wsMainSrc  = null;
+  let wsMainGain = null;
 
   function wsInitAudio() {
+    if (wsAudioCtx) return;
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     for (let i = 1; i <= WS_SHORT_COUNT; i++) {
       (function(url) {
@@ -3112,6 +3115,11 @@ if (WEBSITE_MODE) {
     wsLongGain.gain.value = WS_LONG_VOL;
     wsLongSrc.connect(wsLongGain);
     wsLongGain.connect(wsMasterGain);
+    wsMainSrc = wsAudioCtx.createMediaElementSource(wsMainAudio);
+    wsMainGain = wsAudioCtx.createGain();
+    wsMainGain.gain.value = WS_MAIN_VOL;
+    wsMainSrc.connect(wsMainGain);
+    wsMainGain.connect(wsMasterGain);
     // Dry path: LPF → master
     wsLPF.connect(wsMasterGain);
     // Wet path: LPF → send → convolver → +8dB return → master
@@ -3288,7 +3296,6 @@ if (WEBSITE_MODE) {
     if (wsMainTriggerCount >= wsMainTriggerTarget) {
       const n = Math.floor(Math.random() * WS_MAIN_COUNT) + 1;
       wsMainAudio.src         = WS_MAIN_BASE + n + '.mp3';
-      wsMainAudio.volume      = WS_MAIN_VOL;
       wsMainAudio.currentTime = 0;
       wsMainAudio.play().catch(e => console.warn('d93: main music play failed', e));
       console.log('d93: main music', n, '— next in', wsMainTriggerTarget, 'triggers');
@@ -3343,6 +3350,7 @@ if (WEBSITE_MODE) {
   // ── First-touch overlay ───────────────────────────────────────────────────
   const wsOverlay = document.getElementById('ws-overlay');
   wsOverlay.addEventListener('pointerdown', () => {
+    wsInitAudio();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     if (!wsOrchAudio) {
       wsOrchAudio = new Audio(WS_ORCH_URL);
