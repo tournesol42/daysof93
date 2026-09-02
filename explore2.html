@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v161-mute-glitch-mode-b -->
+<!-- build: explore2-v162-mode-b-mesh-drift -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -954,6 +954,7 @@ let activeSlot = 0;
 
 let seqMode    = 'SEQ';   // 'SEQ' | 'RANDOM'
 let programOn  = false;
+let wsDriftX = 0, wsDriftY = 0, wsDriftStartTime = 0;
 let triggerOn  = false;
 let tempoMode  = 'FIXED'; // 'FIXED' | 'RANGE'
 let burstOn    = false;
@@ -2406,10 +2407,14 @@ function renderFrame(c, W, H, now) {
     c.translate(fxPx, fyPx);
     c.rotate(effectiveRotation * Math.PI / 180);
     c.translate(-fxPx, -fyPx);
-    drawSourceCovered(c, src, W, H, effectiveZoom, cFocusX, cFocusY);
+    drawSourceCovered(c, src, W, H, effectiveZoom,
+      Math.max(0, Math.min(100, cFocusX + wsDriftX)),
+      Math.max(0, Math.min(100, cFocusY + wsDriftY)));
     c.restore();
   } else {
-    drawSourceCovered(c, src, W, H, effectiveZoom, cFocusX, cFocusY);
+    drawSourceCovered(c, src, W, H, effectiveZoom,
+      Math.max(0, Math.min(100, cFocusX + wsDriftX)),
+      Math.max(0, Math.min(100, cFocusY + wsDriftY)));
   }
 
   // 1b. Blend engine (after source, before other effects)
@@ -3326,6 +3331,8 @@ if (WEBSITE_MODE) {
     wsModeBMusic.volume = Math.min(1, wsUserLevel * 1.245);
     wsModeBMusic.play().catch(e => console.warn('d93: mode B music failed', e));
     wsCurrentZone = -1;
+    wsMeshScaleMul   = 5.0;
+    wsDriftStartTime = performance.now();
   }
 
   function wsDecodeAndPlayOrch() {
@@ -3640,6 +3647,13 @@ if (WEBSITE_MODE) {
       if (!wsEntryDone && wsAudioCtx && (performance.now() - wsLastTriggerTime) > 2500) {
         wsLastTriggerTime = performance.now();
         wsMeshOnTrigger();
+      }
+      if (wsMode === 'B') {
+        const _ds = (performance.now() - wsDriftStartTime) / 1000;
+        wsDriftX = 14 * Math.sin(_ds * 0.52 + 0.7);
+        wsDriftY = 14 * Math.sin(_ds * 0.37 + 1.3);
+      } else {
+        wsDriftX = 0; wsDriftY = 0;
       }
       const _mny = wsEntryDone ? wsMouseNY : 0;
       if (wsSynthLPF && wsAudioCtx) {
