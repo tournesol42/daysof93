@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v153-image-padding-fix -->
+<!-- build: explore2-v154-entry-overlay-mesh-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3433,8 +3433,9 @@ if (WEBSITE_MODE) {
     wsMouseNX = Math.max(0, Math.min(1, x / window.innerWidth));
     if (!wsEntryDone) {
       wsFirstTouch = true;
+      const _overlayFade = Math.max(0, Math.min(1, (_ny - 0.60) / 0.25));
+      if (wsEntryOverlay) wsEntryOverlay.style.opacity = (1.0 - _overlayFade).toFixed(3);
       wsEntryProgress = Math.max(wsEntryProgress, Math.min(1.0, Math.max(0, (_ny - 0.85) / 0.15)));
-      if (wsEntryOverlay) wsEntryOverlay.style.opacity = (1.0 - wsEntryProgress).toFixed(3);
       if (wsMasterGain && wsAudioCtx) {
         let _ev;
         if (_ny < 0.6) {
@@ -3604,6 +3605,10 @@ if (WEBSITE_MODE) {
       wsMeshLastNow = now;
 
       // Synth LPF — mouse Y position: top 40%→800Hz, 40-60%→2kHz, bottom→12kHz
+      if (!wsEntryDone && wsAudioCtx && (performance.now() - wsLastTriggerTime) > 2500) {
+        wsLastTriggerTime = performance.now();
+        wsMeshOnTrigger();
+      }
       const _mny = wsEntryDone ? wsMouseNY : 0;
       if (wsSynthLPF && wsAudioCtx) {
         let _lpfFreq;
