@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v159-mute-orch-on-shift -->
+<!-- build: explore2-v160-mode-b-audio-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3204,6 +3204,7 @@ if (WEBSITE_MODE) {
 
   function wsPlaySynthSound() {
     if (!wsAudioCtx || wsSynthBuffers.length === 0) return;
+    if (wsSoundsAMuted) return;
     const buf = wsSynthBuffers[Math.floor(Math.random() * wsSynthBuffers.length)];
     if (wsCurrentSynthSrc) { try { wsCurrentSynthSrc.stop(); } catch(e) {} }
     const src    = wsAudioCtx.createBufferSource();
@@ -3314,13 +3315,14 @@ if (WEBSITE_MODE) {
     wsMode = 'B';
     console.log('d93: mode B activated');
     wsSoundsAMuted = true;
+    if (wsCurrentSynthSrc) { try { wsCurrentSynthSrc.stop(); } catch(e) {} wsCurrentSynthSrc = null; }
+    if (wsOrchGainNode) wsOrchGainNode.gain.setValueAtTime(0, wsAudioCtx.currentTime);
     if (wsOrchNode) { try { wsOrchNode.stop(); } catch(e) {} wsOrchNode = null; }
-    if (wsOrchGainNode) wsOrchGainNode.gain.setTargetAtTime(0, wsAudioCtx.currentTime, 0.5);
     wsMainAudio.pause();
     wsMainAudio.src = '';
     wsModeBMusic = new Audio('https://daysof93-cdn.b-cdn.net/explore2main3.mp3');
     wsModeBMusic.loop = true;
-    wsModeBMusic.volume = Math.min(1, wsUserLevel * 0.7);
+    wsModeBMusic.volume = Math.min(1, wsUserLevel * 1.245);
     wsModeBMusic.play().catch(e => console.warn('d93: mode B music failed', e));
     wsCurrentZone = -1;
   }
@@ -3348,7 +3350,7 @@ if (WEBSITE_MODE) {
     }
     wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
-    if (wsModeBMusic) wsModeBMusic.volume = Math.min(1, v * 0.7);
+    if (wsModeBMusic) wsModeBMusic.volume = Math.min(1, v * 1.245);
   }
   window.wsSetMasterLevel = wsSetMasterLevel;
   window.wsSetUserLevel = function(v) {
