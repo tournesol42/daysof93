@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v152-zone-mapping-fix -->
+<!-- build: explore2-v153-image-padding-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2933,7 +2933,7 @@ if (WEBSITE_MODE) {
   // ── CDN image loader ──────────────────────────────────────────────────────
   const WS_CDN_BASE = 'https://daysof93-cdn.b-cdn.net/Explore2/';
   const WS_CDN_URLS = Array.from({length: 46}, (_, i) =>
-    WS_CDN_BASE + String(i + 1).padStart(3, '0') + '.jpeg');
+    WS_CDN_BASE + String(i + 1).padStart(2, '0') + '.jpeg');
 
   let wsCdnReady     = false;
   let wsGestureReady = false;
