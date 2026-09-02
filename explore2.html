@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v163-mode-b-scale-timing -->
+<!-- build: explore2-v164-alpha-video -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3334,6 +3334,9 @@ if (WEBSITE_MODE) {
     wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
     wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
+    wsTDVideo.style.display = 'block';
+    wsTDVideo.currentTime = 0;
+    wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
   }
 
   function wsDecodeAndPlayOrch() {
@@ -3798,6 +3801,21 @@ if (WEBSITE_MODE) {
   wsEntryOverlay = document.createElement('div');
   wsEntryOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:1.0;z-index:500;pointer-events:none;';
   document.body.appendChild(wsEntryOverlay);
+
+  const wsTDVideo = document.createElement('video');
+  wsTDVideo.setAttribute('playsinline', '');
+  wsTDVideo.setAttribute('muted', '');
+  wsTDVideo.setAttribute('loop', '');
+  wsTDVideo.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:600;pointer-events:none;display:none;';
+  const wsTDSrc1 = document.createElement('source');
+  wsTDSrc1.src  = 'https://daysof93-cdn.b-cdn.net/explore2TD-safari.mov';
+  wsTDSrc1.type = 'video/mp4; codecs="hvc1"';
+  const wsTDSrc2 = document.createElement('source');
+  wsTDSrc2.src  = 'https://daysof93-cdn.b-cdn.net/explore2TD-chrome.webm';
+  wsTDSrc2.type = 'video/webm; codecs="vp9"';
+  wsTDVideo.appendChild(wsTDSrc1);
+  wsTDVideo.appendChild(wsTDSrc2);
+  document.body.appendChild(wsTDVideo);
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
   wsLoadCdnImages(WS_CDN_URLS);
