@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v141-mesh-restored -->
+<!-- build: explore2-v142-master-fader-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3029,6 +3029,10 @@ if (WEBSITE_MODE) {
   const wsLongAudio  = new Audio();
   let wsLPF = null, wsReverbNode = null, wsReverbGain = null, wsReverbReturnGain = null, wsMainSrc = null;
   let wsMasterGain = null;
+  let wsLongSrc = null;
+  let wsLongGain = null;
+  let wsOrchSrc  = null;
+  let wsOrchGain = null;
 
   function wsInitAudio() {
     wsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3103,6 +3107,11 @@ if (WEBSITE_MODE) {
     wsLimiter.release.value   = 0.08;
     wsMasterGain.connect(wsLimiter);
     wsLimiter.connect(wsAudioCtx.destination);
+    wsLongSrc = wsAudioCtx.createMediaElementSource(wsLongAudio);
+    wsLongGain = wsAudioCtx.createGain();
+    wsLongGain.gain.value = WS_LONG_VOL;
+    wsLongSrc.connect(wsLongGain);
+    wsLongGain.connect(wsMasterGain);
     // Dry path: LPF → master
     wsLPF.connect(wsMasterGain);
     // Wet path: LPF → send → convolver → +8dB return → master
@@ -3246,7 +3255,6 @@ if (WEBSITE_MODE) {
   function wsStartLongSound() {
     const n = Math.floor(Math.random() * WS_LONG_COUNT) + 1;
     wsLongAudio.src         = WS_LONG_BASE + n + '.mp3';
-    wsLongAudio.volume      = WS_LONG_VOL;
     wsLongAudio.currentTime = 0;
     wsLongAudio.play().catch(e => console.warn('d93: long play failed', e));
     console.log('d93: long sound', n);
@@ -3338,8 +3346,12 @@ if (WEBSITE_MODE) {
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     if (!wsOrchAudio) {
       wsOrchAudio = new Audio(WS_ORCH_URL);
-      wsOrchAudio.loop   = true;
-      wsOrchAudio.volume = 0.45;
+      wsOrchAudio.loop = true;
+      wsOrchSrc  = wsAudioCtx.createMediaElementSource(wsOrchAudio);
+      wsOrchGain = wsAudioCtx.createGain();
+      wsOrchGain.gain.value = 0.45;
+      wsOrchSrc.connect(wsOrchGain);
+      wsOrchGain.connect(wsMasterGain);
       wsOrchAudio.play().catch(e => console.warn('d93: orch play failed', e));
     }
     // Fade text to black over 3s, then start engine after 5s total
@@ -3765,6 +3777,9 @@ document.getElementById('audioVolSlider').addEventListener('input', () => {
   document.getElementById('audioVolVal').textContent = val + '%';
   if (audioCtx && audioCtx._masterGain) {
     audioCtx._masterGain.gain.setTargetAtTime(val / 100, audioCtx.currentTime, 0.01);
+  }
+  if (wsMasterGain && wsAudioCtx) {
+    wsMasterGain.gain.setTargetAtTime(val / 100, wsAudioCtx.currentTime, 0.01);
   }
 });
 document.getElementById('audioProbSlider').addEventListener('input', () => {
