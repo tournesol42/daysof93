@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v174-mesh-slow-modeB -->
+<!-- build: explore2-v175-no-mesh-video-modeB -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3339,8 +3339,8 @@ if (WEBSITE_MODE) {
     wsEnterZone(wsGetZone(wsMouseNX * window.innerWidth, wsMouseNY * window.innerHeight));
     wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
-
-    wsTDVideo.style.display = 'block';
+    wsMeshCv.style.display = 'none';
+    wsTDVideo.style.display = 'none';
     wsTDVideo.style.opacity = '0.10';
     wsTDVideo.currentTime = 0;
     wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
