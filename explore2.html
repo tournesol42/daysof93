@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v179-spacious-drums-A -->
+<!-- build: explore2-v180-synth-reverb-noburst-longfade -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3271,7 +3271,7 @@ if (WEBSITE_MODE) {
 
   function wsSeqOnClock() {
     const gate = WS_SEQ_PATTERNS[wsSeqPattern][wsSeqStep];
-    if (gate) wsPlaySynthSound();
+    if (gate && !burstActive) wsPlaySynthSound();
     wsSeqStep++;
     if (wsSeqStep >= 16) {
       wsSeqStep = 0;
@@ -3419,7 +3419,7 @@ if (WEBSITE_MODE) {
     if (wsMasterGain && wsAudioCtx) {
       wsMasterGain.gain.setTargetAtTime(v, wsAudioCtx.currentTime, 0.08);
     }
-    wsLongAudio.volume  = Math.min(1, v * WS_LONG_VOL);
+    if (wsEntryDone) wsLongAudio.volume = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
     if (wsModeBGainNode) wsModeBGainNode.gain.setTargetAtTime(v * 1.245, wsAudioCtx.currentTime, 0.08);
   }
@@ -3454,6 +3454,10 @@ if (WEBSITE_MODE) {
     const _logT = Math.log(1 + _rt * 9) / Math.log(10);
     const send = ny > 0.5 ? 0.03 + 0.37 * _logT : 0;
     wsReverbGain.gain.setTargetAtTime(send, wsAudioCtx.currentTime, 0.15);
+    if (!wsEntryDone) {
+      const _lv = ny < 0.5 ? 0 : Math.min(1, (ny - 0.5) / 0.5);
+      wsLongAudio.volume = Math.min(1, _lv * WS_LONG_VOL * wsUserLevel);
+    }
   }
 
   function wsStartEngine() {
@@ -3752,14 +3756,8 @@ if (WEBSITE_MODE) {
       }
       // Synth reverb send — top 50%: 10%, bottom→40%
       if (wsSynthRevSend && wsAudioCtx) {
-        let _send;
-        if (_mny < 0.5) {
-          _send = 0.1;
-        } else {
-          const _t = Math.min(1.0, (_mny - 0.5) / 0.4);
-          _send = 0.1 + _t * 0.3;
-        }
-        wsSynthRevSend.gain.setTargetAtTime(_send, wsAudioCtx.currentTime, 0.3);
+        const _ssend = 0.30 + 0.20 * _mny;
+        wsSynthRevSend.gain.setTargetAtTime(_ssend, wsAudioCtx.currentTime, 0.3);
       }
       // Glitch reverb send — same position mapping
       if (wsGlitchRevSend && wsAudioCtx) {
