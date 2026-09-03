@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v185-synth-restored-mesh-calm -->
+<!-- build: explore2-v186-mesh-axis-restored -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3657,7 +3657,7 @@ if (WEBSITE_MODE) {
       console.log('d93: mesh scale boost');
     }
     // Occasional axis change (~every 8th trigger)
-    if (Math.random() < 0.12 && !burstActive) {
+    if (Math.random() < 0.12) {
       const _theta = Math.random() * Math.PI * 2;
       const _phi   = Math.acos(2 * Math.random() - 1);
       wsMeshRotAxis.set(
