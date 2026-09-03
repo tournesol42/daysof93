@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v183-synth-vol-mesh-fix -->
+<!-- build: explore2-v184-mesh-velocity-noburst -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3670,8 +3670,10 @@ if (WEBSITE_MODE) {
       wsMeshEntryTrigger++;
       if (wsMeshEntryTrigger % 4 !== 0) return;
     }
-    const spd = 0.3 + Math.random() * 1.4;
-    wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
+    if (!burstActive) {
+      const spd = 0.3 + Math.random() * 1.4;
+      wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
+    }
   }
 
   function wsInitMesh() {
