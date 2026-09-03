@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v177-mullholland-video -->
+<!-- build: explore2-v178-quad-videos -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3340,19 +3340,14 @@ if (WEBSITE_MODE) {
     wsMeshScaleMul   = 10.0;
     wsDriftStartTime = performance.now();
     wsMeshCv.style.display = 'none';
-    wsTDVideo.style.display = 'none';
-    wsTDVideo.style.opacity = '0.10';
-    wsTDVideo.currentTime = 0;
-    wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
-
-    if (wsMHVideo) {
-      wsMHVideo.style.display = 'block';
-      wsMHVideo.style.opacity = '1';
-      wsMHVideo.playbackRate  = 0.5;
-      wsMHVideo.currentTime   = 0;
-      wsMHVideo.play().catch(e => console.warn('d93: MH video failed', e));
-    }
-    wsMHStartTime = performance.now();
+    wsActiveQuad = -1;
+    wsQuadVideos.forEach((v, i) => {
+      v.style.opacity = '0';
+      v.currentTime = 0;
+      v.play().catch(e => console.warn('d93: quad video ' + i + ' failed', e));
+    });
+    const _iq = wsGetQuad();
+    if (wsQuadVideos[_iq]) { wsQuadVideos[_iq].style.opacity = '1'; wsActiveQuad = _iq; }
   }
 
   function wsDecodeAndPlayOrch() {
@@ -3490,9 +3485,8 @@ if (WEBSITE_MODE) {
   const wsChSq   = document.getElementById('ws-ch-sq');
   const wsFadeEl = document.getElementById('ws-fade');
   let wsChTimer  = null;
-  let wsMHVideo       = null;
-  let wsMHStartTime   = null;
-  let wsMHLastTrigger = 0;
+  let wsQuadVideos  = [];
+  let wsActiveQuad  = -1;
 
   function wsMoveCrosshair(x, y) {
     wsChV.style.left   = x + 'px';
@@ -3504,15 +3498,7 @@ if (WEBSITE_MODE) {
     wsChTimer = setTimeout(() => { wsCh.style.opacity = '0'; }, 2000);
     wsUpdateFilters(x, y);
 
-    if (wsMode === 'B' && wsMHVideo && wsMHStartTime &&
-        (performance.now() - wsMHStartTime) > 5000 &&
-        (performance.now() - wsMHLastTrigger) > 300) {
-      wsMHLastTrigger = performance.now();
-      const lagMs  = Math.random() * 3500 + 500; // 0.5s–4s
-      const target = Math.random();               // 0.0–1.0
-      wsMHVideo.style.transition = 'opacity ' + lagMs.toFixed(0) + 'ms ease-in-out';
-      wsMHVideo.style.opacity    = target.toFixed(3);
-    }
+
     const _ny = Math.max(0, Math.min(1, y / window.innerHeight));
     const _snap = snapshots[snapFaderPos];
     const _whiteBg = _snap && _snap.colorSlideOpacity > 50;
@@ -3555,6 +3541,13 @@ if (WEBSITE_MODE) {
   // Zones 0–8 row-major: top-left=0, top-right=2, bottom-left=6, bottom-right=8
   // Zone n → snapshot n directly (1:1 mapping, 9 zones, 9 snapshots)
   let wsCurrentZone = -1;
+
+  function wsGetQuad() {
+    if (wsMouseNX < 0.5 && wsMouseNY < 0.5) return 0;
+    if (wsMouseNX >= 0.5 && wsMouseNY < 0.5) return 1;
+    if (wsMouseNX < 0.5 && wsMouseNY >= 0.5) return 2;
+    return 3;
+  }
 
   function wsGetZone(clientX, clientY) {
     const col = Math.min(2, Math.floor(clientX / window.innerWidth  * 3));
@@ -3771,7 +3764,6 @@ if (WEBSITE_MODE) {
         wsEnvelope += (_rms - wsEnvelope) * _coeff;
         const _db = wsEnvelope > 0.001 ? 20 * Math.log10(wsEnvelope) : -60;
         const _norm = Math.max(0, Math.min(1, (_db + 40) / 40));
-        wsTDVideo.style.opacity = Math.max(0.10, _norm).toFixed(3);
       }
 
       // Corner pull — runs regardless of mesh visibility
@@ -3793,6 +3785,14 @@ if (WEBSITE_MODE) {
             wsCornerCooldown = 3 + Math.random() * 4;
             console.log('d93: corner pull', wsCornerDX, wsCornerDY);
           }
+        }
+      }
+      if (wsMode === 'B' && wsQuadVideos.length === 4) {
+        const _q = wsGetQuad();
+        if (_q !== wsActiveQuad) {
+          if (wsActiveQuad >= 0) wsQuadVideos[wsActiveQuad].style.opacity = '0';
+          wsQuadVideos[_q].style.opacity = '1';
+          wsActiveQuad = _q;
         }
       }
       if (wsCornerActive) {
@@ -3871,32 +3871,24 @@ if (WEBSITE_MODE) {
   wsEntryOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:1.0;z-index:500;pointer-events:none;';
   document.body.appendChild(wsEntryOverlay);
 
-  const wsTDVideo = document.createElement('video');
-  wsTDVideo.setAttribute('playsinline', '');
-  wsTDVideo.setAttribute('muted', '');
-  wsTDVideo.setAttribute('loop', '');
-  wsTDVideo.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:600;pointer-events:none;display:none;';
-  const wsTDSrc1 = document.createElement('source');
-  wsTDSrc1.src  = 'https://daysof93-cdn.b-cdn.net/explore2TD-safari.mov';
-  wsTDSrc1.type = 'video/mp4; codecs="hvc1"';
-  const wsTDSrc2 = document.createElement('source');
-  wsTDSrc2.src  = 'https://daysof93-cdn.b-cdn.net/explore2TD-chrome.webm';
-  wsTDSrc2.type = 'video/webm; codecs="vp9"';
-  wsTDVideo.appendChild(wsTDSrc1);
-  wsTDVideo.appendChild(wsTDSrc2);
-  document.body.appendChild(wsTDVideo);
-
-  wsMHVideo = document.createElement('video');
-  wsMHVideo.setAttribute('playsinline', '');
-  wsMHVideo.setAttribute('muted', '');
-  wsMHVideo.setAttribute('loop', '');
-  wsMHVideo.playbackRate = 0.5;
-  wsMHVideo.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:998;pointer-events:none;display:none;opacity:1;transition:opacity 1s ease-in-out;';
-  const wsMHSrc = document.createElement('source');
-  wsMHSrc.src  = 'https://daysof93-cdn.b-cdn.net/Mullholland%20House%201.webm';
-  wsMHSrc.type = 'video/webm; codecs="vp9"';
-  wsMHVideo.appendChild(wsMHSrc);
-  document.body.appendChild(wsMHVideo);
+  const _qUrls = [
+    'https://daysof93-cdn.b-cdn.net/caraccident.webm',
+    'https://daysof93-cdn.b-cdn.net/caraccident2.webm',
+    'https://daysof93-cdn.b-cdn.net/caraccident3.webm',
+    'https://daysof93-cdn.b-cdn.net/caraccident4.webm',
+  ];
+  _qUrls.forEach(function(url) {
+    const v = document.createElement('video');
+    v.setAttribute('playsinline', '');
+    v.setAttribute('muted', '');
+    v.setAttribute('loop', '');
+    v.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:998;pointer-events:none;opacity:0;transition:opacity 2s ease;display:block;';
+    const s = document.createElement('source');
+    s.src = url; s.type = 'video/webm; codecs="vp9"';
+    v.appendChild(s);
+    document.body.appendChild(v);
+    wsQuadVideos.push(v);
+  });
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
   wsLoadCdnImages(WS_CDN_URLS);
