@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v189-mesh-360-lag -->
+<!-- build: explore2-v190-mesh-synth-dynamic -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3260,7 +3260,7 @@ if (WEBSITE_MODE) {
     src.start();
     wsCurrentSynthSrc = src;
     src.onended = () => { if (wsCurrentSynthSrc === src) wsCurrentSynthSrc = null; };
-    wsMeshAngV = Math.min(1.5, wsMeshAngV + 0.15 + Math.random() * 0.25);
+    wsMeshAngV = Math.min(4.0, wsMeshAngV + 0.8 + Math.random() * 1.2);
   }
 
   function wsSeqOnClock() {
@@ -3862,7 +3862,7 @@ if (WEBSITE_MODE) {
         wsMeshAngV *= Math.pow(0.02, dt);
       } else {
         wsMeshAngV *= Math.pow(0.55, dt);
-        if (wsMeshAngV < 0.30) wsMeshAngV = 0.30;
+        if (wsMeshAngV < 0.02) wsMeshAngV = 0.02;
       }
       // Undo previous corner rotation offset before spinning
       wsMeshObj.rotation.x -= wsPrevCornerRotX;
