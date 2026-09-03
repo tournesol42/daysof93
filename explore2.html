@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v188-synth-drives-mesh -->
+<!-- build: explore2-v189-mesh-360-lag -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3441,7 +3441,7 @@ if (WEBSITE_MODE) {
 
   function wsUpdateFilters(x, y) {
     if (!wsAudioCtx || !wsLPF) return;
-    const ny = Math.max(0, Math.min(1, y / window.innerHeight));
+    const ny = wsSmoothedNY;
     // Reverb send Y axis: log curve — rises fast just below centre, flattens toward bottom
     // At ny=0.5 (LPF≈2kHz): send=0.03. At ny=0.6: ~20%. At ny=1.0: 40%.
     const _rt = Math.max(0, (ny - 0.5) / 0.5);
@@ -3648,6 +3648,8 @@ if (WEBSITE_MODE) {
 
   let wsMeshLastNow   = 0;
   let wsMeshAngV      = 0.3;
+  let wsMeshRotAccum  = 0;
+  let wsSmoothedNY    = 0;
   let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
   let wsMeshMats      = [];
   let wsMeshLongCount    = 0;
@@ -3666,7 +3668,7 @@ if (WEBSITE_MODE) {
       console.log('d93: mesh scale boost');
     }
     // Occasional axis change (~every 8th trigger)
-    if (Math.random() < 0.12) {
+    if (Math.random() < 0.12 && wsMeshRotAccum >= Math.PI * 2) {
       const _theta = Math.random() * Math.PI * 2;
       const _phi   = Math.acos(2 * Math.random() - 1);
       wsMeshRotAxis.set(
@@ -3674,6 +3676,7 @@ if (WEBSITE_MODE) {
         Math.sin(_phi) * Math.sin(_theta),
         Math.cos(_phi)
       ).normalize();
+      wsMeshRotAccum = 0;
     }
     if (!wsEntryDone) {
       wsMeshEntryTrigger++;
@@ -3744,7 +3747,8 @@ if (WEBSITE_MODE) {
       } else {
         wsDriftX = 0; wsDriftY = 0;
       }
-      const _mny = wsEntryDone ? wsMouseNY : 0;
+      wsSmoothedNY += (wsMouseNY - wsSmoothedNY) * Math.min(1, dt * 0.8);
+      const _mny = wsEntryDone ? wsSmoothedNY : 0;
       if (wsSynthLPF && wsAudioCtx && wsEntryDone) {
         let _lpfFreq;
         if (_mny < 0.4) {
@@ -3863,7 +3867,9 @@ if (WEBSITE_MODE) {
       // Undo previous corner rotation offset before spinning
       wsMeshObj.rotation.x -= wsPrevCornerRotX;
       wsMeshObj.rotation.y -= wsPrevCornerRotY;
-      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt * (wsMode === 'B' ? 0.25 : 1.0));
+      const _rotStep = wsMeshAngV * dt * (wsMode === 'B' ? 0.25 : 1.0);
+      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, _rotStep);
+      wsMeshRotAccum += Math.abs(_rotStep);
       // Apply new corner rotation — tilts mesh so corner faces screen corner
       wsPrevCornerRotX = wsCornerDY * wsCornerSpring * 0.45;
       wsPrevCornerRotY = wsCornerDX * wsCornerSpring * 0.45;
