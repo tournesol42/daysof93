@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v186-mesh-axis-restored -->
+<!-- build: explore2-v187-mesh-lpf-entry -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3474,6 +3474,14 @@ if (WEBSITE_MODE) {
     wsEnterZone(7);
     const btn = document.getElementById('triggerOnBtn');
     if (btn) { btn.textContent = 'ON'; btn.classList.add('active'); }
+    if (wsSynthLPF && wsAudioCtx) {
+      const _t = wsAudioCtx.currentTime;
+      wsSynthLPF.frequency.cancelScheduledValues(_t);
+      wsSynthLPF.frequency.setValueAtTime(20000, _t + 1.0);
+      wsSynthLPF.frequency.exponentialRampToValueAtTime(800, _t + 4.0);
+      wsSynthLPF.frequency.setValueAtTime(800, _t + 7.0);
+      wsSynthLPF.frequency.exponentialRampToValueAtTime(20000, _t + 11.0);
+    }
     startTrigger();
     console.log('d93: trigger started');
   }
@@ -3652,7 +3660,7 @@ if (WEBSITE_MODE) {
   function wsMeshOnTrigger() {
     if (wsMeshCurOpacity < 0.01) return;
     wsMeshLongCount++;
-    if (wsMeshLongCount % 8 === 0) {
+    if (wsMeshLongCount % 32 === 0) {
       wsMeshScaleMul = 2.0;
       console.log('d93: mesh scale boost');
     }
@@ -3671,8 +3679,8 @@ if (WEBSITE_MODE) {
       if (wsMeshEntryTrigger % 4 !== 0) return;
     }
     if (!burstActive) {
-      const spd = 0.04 + Math.random() * 0.08;
-      wsMeshAngV = Math.min(1.2, wsMeshAngV + spd);
+      const spd = 0.10 + Math.random() * 0.20;
+      wsMeshAngV = Math.min(1.5, wsMeshAngV + spd);
     }
   }
 
@@ -3736,7 +3744,7 @@ if (WEBSITE_MODE) {
         wsDriftX = 0; wsDriftY = 0;
       }
       const _mny = wsEntryDone ? wsMouseNY : 0;
-      if (wsSynthLPF && wsAudioCtx) {
+      if (wsSynthLPF && wsAudioCtx && wsEntryDone) {
         let _lpfFreq;
         if (_mny < 0.4) {
           _lpfFreq = 800;
@@ -3849,7 +3857,7 @@ if (WEBSITE_MODE) {
         wsMeshAngV *= Math.pow(0.02, dt);
       } else {
         wsMeshAngV *= Math.pow(0.55, dt);
-        if (wsMeshAngV < 0.05) wsMeshAngV = 0.05;
+        if (wsMeshAngV < 0.30) wsMeshAngV = 0.30;
       }
       // Undo previous corner rotation offset before spinning
       wsMeshObj.rotation.x -= wsPrevCornerRotX;
