@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v176-mesh-hidden-modeB -->
+<!-- build: explore2-v177-mullholland-video -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3344,6 +3344,15 @@ if (WEBSITE_MODE) {
     wsTDVideo.style.opacity = '0.10';
     wsTDVideo.currentTime = 0;
     wsTDVideo.play().catch(e => console.warn('d93: TD video failed', e));
+
+    if (wsMHVideo) {
+      wsMHVideo.style.display = 'block';
+      wsMHVideo.style.opacity = '1';
+      wsMHVideo.playbackRate  = 0.5;
+      wsMHVideo.currentTime   = 0;
+      wsMHVideo.play().catch(e => console.warn('d93: MH video failed', e));
+    }
+    wsMHStartTime = performance.now();
   }
 
   function wsDecodeAndPlayOrch() {
@@ -3481,6 +3490,9 @@ if (WEBSITE_MODE) {
   const wsChSq   = document.getElementById('ws-ch-sq');
   const wsFadeEl = document.getElementById('ws-fade');
   let wsChTimer  = null;
+  let wsMHVideo       = null;
+  let wsMHStartTime   = null;
+  let wsMHLastTrigger = 0;
 
   function wsMoveCrosshair(x, y) {
     wsChV.style.left   = x + 'px';
@@ -3491,6 +3503,16 @@ if (WEBSITE_MODE) {
     clearTimeout(wsChTimer);
     wsChTimer = setTimeout(() => { wsCh.style.opacity = '0'; }, 2000);
     wsUpdateFilters(x, y);
+
+    if (wsMode === 'B' && wsMHVideo && wsMHStartTime &&
+        (performance.now() - wsMHStartTime) > 5000 &&
+        (performance.now() - wsMHLastTrigger) > 300) {
+      wsMHLastTrigger = performance.now();
+      const lagMs  = Math.random() * 3500 + 500; // 0.5s–4s
+      const target = Math.random();               // 0.0–1.0
+      wsMHVideo.style.transition = 'opacity ' + lagMs.toFixed(0) + 'ms ease-in-out';
+      wsMHVideo.style.opacity    = target.toFixed(3);
+    }
     const _ny = Math.max(0, Math.min(1, y / window.innerHeight));
     const _snap = snapshots[snapFaderPos];
     const _whiteBg = _snap && _snap.colorSlideOpacity > 50;
@@ -3863,6 +3885,18 @@ if (WEBSITE_MODE) {
   wsTDVideo.appendChild(wsTDSrc1);
   wsTDVideo.appendChild(wsTDSrc2);
   document.body.appendChild(wsTDVideo);
+
+  wsMHVideo = document.createElement('video');
+  wsMHVideo.setAttribute('playsinline', '');
+  wsMHVideo.setAttribute('muted', '');
+  wsMHVideo.setAttribute('loop', '');
+  wsMHVideo.playbackRate = 0.5;
+  wsMHVideo.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:998;pointer-events:none;display:none;opacity:1;transition:opacity 1s ease-in-out;';
+  const wsMHSrc = document.createElement('source');
+  wsMHSrc.src  = 'https://daysof93-cdn.b-cdn.net/Mullholland%20House%201.webm';
+  wsMHSrc.type = 'video/webm; codecs="vp9"';
+  wsMHVideo.appendChild(wsMHSrc);
+  document.body.appendChild(wsMHVideo);
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
   wsLoadCdnImages(WS_CDN_URLS);
