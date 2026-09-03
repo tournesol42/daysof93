@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v182-spacious-prefetch -->
+<!-- build: explore2-v183-synth-vol-mesh-fix -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2996,7 +2996,7 @@ if (WEBSITE_MODE) {
   const WS_LONG_COUNT  = 24;
   const WS_SYNTH_COUNT = 60;
   const WS_GLITCH_COUNT = 28;
-  const WS_SYNTH_VOL   = 0.17;
+  const WS_SYNTH_VOL   = 0.50;
   const WS_GLITCH_VOL  = 0.7;
 
   let wsAudioCtx        = null;
@@ -3073,7 +3073,7 @@ if (WEBSITE_MODE) {
     }
     wsSpacious1XhrData.forEach(function(data) {
       wsAudioCtx.decodeAudioData(data.slice(0),
-        function(buf) { wsSpacious1Buffers.push(buf); },
+        function(buf) { wsSpacious1Buffers.push(buf); console.log('d93: spacious buffer ready, total:', wsSpacious1Buffers.length); },
         function(err) { console.warn('d93: spacious decode failed', err); }
       );
     });
@@ -3657,7 +3657,7 @@ if (WEBSITE_MODE) {
       console.log('d93: mesh scale boost');
     }
     // Occasional axis change (~every 8th trigger)
-    if (Math.random() < 0.12) {
+    if (Math.random() < 0.12 && !burstActive) {
       const _theta = Math.random() * Math.PI * 2;
       const _phi   = Math.acos(2 * Math.random() - 1);
       wsMeshRotAxis.set(
@@ -3922,13 +3922,15 @@ if (WEBSITE_MODE) {
       _sx.responseType = 'arraybuffer';
       _sx.onload = function() {
         wsSpacious1XhrData.push(_sx.response);
+        console.log('d93: spacious XHR loaded, total:', wsSpacious1XhrData.length);
         if (wsAudioCtx) {
           wsAudioCtx.decodeAudioData(_sx.response.slice(0),
-            function(buf) { wsSpacious1Buffers.push(buf); },
+            function(buf) { wsSpacious1Buffers.push(buf); console.log('d93: spacious buffer ready, total:', wsSpacious1Buffers.length); },
             function(err) { console.warn('d93: spacious late decode failed', err); }
           );
         }
       };
+      _sx.onerror = function() { console.warn('d93: spacious XHR failed', url); };
       _sx.send();
     })('https://daysof93-cdn.b-cdn.net/xplore2_drumsspacious1/drumsspacious' + _si + '.wav');
   }
