@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v184-mesh-velocity-noburst -->
+<!-- build: explore2-v185-synth-restored-mesh-calm -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3264,7 +3264,7 @@ if (WEBSITE_MODE) {
 
   function wsSeqOnClock() {
     const gate = WS_SEQ_PATTERNS[wsSeqPattern][wsSeqStep];
-    if (gate && !burstActive) wsPlaySynthSound();
+    if (gate) wsPlaySynthSound();
     wsSeqStep++;
     if (wsSeqStep >= 16) {
       wsSeqStep = 0;
@@ -3638,7 +3638,7 @@ if (WEBSITE_MODE) {
   let wsCornerEntryDelay  = 20;
 
   let wsMeshLastNow   = 0;
-  let wsMeshAngV      = 1.5;
+  let wsMeshAngV      = 0.3;
   let wsMeshRotAxis   = new THREE.Vector3(0, 1, 0);
   let wsMeshMats      = [];
   let wsMeshLongCount    = 0;
@@ -3671,8 +3671,8 @@ if (WEBSITE_MODE) {
       if (wsMeshEntryTrigger % 4 !== 0) return;
     }
     if (!burstActive) {
-      const spd = 0.3 + Math.random() * 1.4;
-      wsMeshAngV = Math.min(6.0, wsMeshAngV + spd);
+      const spd = 0.04 + Math.random() * 0.08;
+      wsMeshAngV = Math.min(1.2, wsMeshAngV + spd);
     }
   }
 
@@ -3829,7 +3829,7 @@ if (WEBSITE_MODE) {
           wsCornerActive = false;
           wsCornerSpring = 0;
           wsCornerVel    = 0;
-          wsMeshAngV     = 1.0 + Math.random() * 1.5;
+          wsMeshAngV     = 0.3 + Math.random() * 0.4;
         }
       }
 
@@ -3849,7 +3849,7 @@ if (WEBSITE_MODE) {
         wsMeshAngV *= Math.pow(0.02, dt);
       } else {
         wsMeshAngV *= Math.pow(0.55, dt);
-        if (wsMeshAngV < 0.15) wsMeshAngV = 0.15;
+        if (wsMeshAngV < 0.05) wsMeshAngV = 0.05;
       }
       // Undo previous corner rotation offset before spinning
       wsMeshObj.rotation.x -= wsPrevCornerRotX;
