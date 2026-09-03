@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v190-mesh-synth-dynamic -->
+<!-- build: explore2-v191-cornerB-dwell -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3644,6 +3644,8 @@ if (WEBSITE_MODE) {
   let wsPrevCornerRotY    = 0;
   let wsCornerActive      = false;
   let wsCornerCooldown    = 0;
+  let wsCornerBInZone = false;
+  let wsCornerBTimer  = null;
   let wsCornerEntryDelay  = 20;
 
   let wsMeshLastNow   = 0;
@@ -3809,11 +3811,17 @@ if (WEBSITE_MODE) {
       if (wsEntryDone && !wsCornerActive) {
         wsCornerCooldown -= dt;
         if (wsCornerCooldown <= 0) {
-          const _cL = wsMouseNX < 0.2, _cR = wsMouseNX > 0.8;
-          const _cT = wsMouseNY < 0.2, _cB = wsMouseNY > 0.8;
-          if (wsMode === 'A' && wsEntryDone && _cR && _cB &&
-              (performance.now() - wsEntryDoneTime) > 10000) {
-            wsSwitchToModeB();
+          const _cL = wsMouseNX < 0.3, _cR = wsMouseNX > 0.7;
+          const _cT = wsMouseNY < 0.3, _cB = wsMouseNY > 0.7;
+          const _inBZone = wsMode === 'A' && wsEntryDone && _cR && _cB &&
+              (performance.now() - wsEntryDoneTime) > 4000;
+          if (_inBZone && !wsCornerBInZone) {
+            wsCornerBInZone = true;
+            wsCornerBTimer = setTimeout(function() { wsSwitchToModeB(); }, 3000);
+          } else if (!_inBZone && wsCornerBInZone) {
+            wsCornerBInZone = false;
+            clearTimeout(wsCornerBTimer);
+            wsCornerBTimer = null;
           }
           if ((_cL || _cR) && (_cT || _cB) && Math.random() < dt * 1.5) {
             wsCornerDX      = _cR ?  1 : -1;
