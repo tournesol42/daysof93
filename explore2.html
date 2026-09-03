@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v178-quad-videos -->
+<!-- build: explore2-v179-spacious-drums-A -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3001,6 +3001,8 @@ if (WEBSITE_MODE) {
 
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
+  let wsSpacious1Buffers = [];
+  let wsSpacious1Counter = 0;
   let wsCurrentShortSrc  = null;
   let wsLPFSweepDone     = false;
   let wsSynthBuffers     = [];
@@ -3067,6 +3069,20 @@ if (WEBSITE_MODE) {
         xhr.onerror = () => console.warn('d93: short XHR failed', url);
         xhr.send();
       })(WS_SHORT_BASE + i + '.wav');
+    }
+    for (let i = 1; i <= 10; i++) {
+      (function(url) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => {
+          wsAudioCtx.decodeAudioData(xhr.response,
+            buf => { wsSpacious1Buffers.push(buf); },
+            err => console.warn('d93: spacious decode failed', url, err)
+          );
+        };
+        xhr.send();
+      })('https://daysof93-cdn.b-cdn.net/xplore2_drumsspacious1/drumsspacious' + i + '.wav');
     }
     for (let i = 1; i <= WS_SYNTH_COUNT; i++) {
       (function(url) {
@@ -3174,6 +3190,11 @@ if (WEBSITE_MODE) {
       _origTriggerAudio.call(this);
       if (!wsAudioCtx) return;
       wsLastTriggerTime = performance.now();
+      wsSpacious1Counter++;
+      if (wsMode === 'A' && wsSpacious1Counter >= 16) {
+        wsSpacious1Counter = 0;
+        wsPlaySpacious1();
+      }
       wsPlayShortSound();
       wsSeqOnClock();
       wsGlitchSeqOnClock();
@@ -3190,7 +3211,7 @@ if (WEBSITE_MODE) {
 
   function wsPlayShortSound() {
     if (!wsAudioCtx || wsShortBuffers.length === 0) return;
-    if (wsSoundsAMuted) return;
+    if (wsMode === 'A' || wsSoundsAMuted) return;
     if (bLow.alpha > 0.45) return;
     if (!wsLPFSweepDone) {
       wsLPFSweepDone = true;
@@ -3213,6 +3234,18 @@ if (WEBSITE_MODE) {
     src.start();
     wsCurrentShortSrc = src;
     src.onended = () => { if (wsCurrentShortSrc === src) wsCurrentShortSrc = null; };
+  }
+
+  function wsPlaySpacious1() {
+    if (!wsAudioCtx || wsSpacious1Buffers.length === 0) return;
+    const buf  = wsSpacious1Buffers[Math.floor(Math.random() * wsSpacious1Buffers.length)];
+    const src  = wsAudioCtx.createBufferSource();
+    src.buffer = buf;
+    const gain = wsAudioCtx.createGain();
+    gain.gain.value = wsUserLevel * (window._d93vol ? window._d93vol() : 1);
+    src.connect(gain);
+    gain.connect(wsLPF);
+    src.start();
   }
 
   function wsPlaySynthSound() {
