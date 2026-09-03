@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v180-synth-reverb-noburst-longfade -->
+<!-- build: explore2-v181-no-glitch-in-A -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3282,7 +3282,7 @@ if (WEBSITE_MODE) {
 
   function wsPlayGlitchSound() {
     if (!wsAudioCtx || wsGlitchBuffers.length === 0) return;
-    if (wsSoundsAMuted) return;
+    if (wsMode === 'A' || wsSoundsAMuted) return;
     const buf    = wsGlitchBuffers[Math.floor(Math.random() * wsGlitchBuffers.length)];
     const src    = wsAudioCtx.createBufferSource();
     src.buffer   = buf;
