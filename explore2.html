@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v181-no-glitch-in-A -->
+<!-- build: explore2-v182-spacious-prefetch -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3002,6 +3002,7 @@ if (WEBSITE_MODE) {
   let wsAudioCtx        = null;
   let wsShortBuffers    = [];
   let wsSpacious1Buffers = [];
+  let wsSpacious1XhrData  = [];
   let wsSpacious1Counter = 0;
   let wsCurrentShortSrc  = null;
   let wsLPFSweepDone     = false;
@@ -3070,20 +3071,12 @@ if (WEBSITE_MODE) {
         xhr.send();
       })(WS_SHORT_BASE + i + '.wav');
     }
-    for (let i = 1; i <= 10; i++) {
-      (function(url) {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'arraybuffer';
-        xhr.onload = () => {
-          wsAudioCtx.decodeAudioData(xhr.response,
-            buf => { wsSpacious1Buffers.push(buf); },
-            err => console.warn('d93: spacious decode failed', url, err)
-          );
-        };
-        xhr.send();
-      })('https://daysof93-cdn.b-cdn.net/xplore2_drumsspacious1/drumsspacious' + i + '.wav');
-    }
+    wsSpacious1XhrData.forEach(function(data) {
+      wsAudioCtx.decodeAudioData(data.slice(0),
+        function(buf) { wsSpacious1Buffers.push(buf); },
+        function(err) { console.warn('d93: spacious decode failed', err); }
+      );
+    });
     for (let i = 1; i <= WS_SYNTH_COUNT; i++) {
       (function(url) {
         const xhr = new XMLHttpRequest();
@@ -3922,6 +3915,23 @@ if (WEBSITE_MODE) {
   });
 
   // ── Start CDN load immediately (before gesture) ───────────────────────────
+  for (let _si = 1; _si <= 10; _si++) {
+    (function(url) {
+      const _sx = new XMLHttpRequest();
+      _sx.open('GET', url, true);
+      _sx.responseType = 'arraybuffer';
+      _sx.onload = function() {
+        wsSpacious1XhrData.push(_sx.response);
+        if (wsAudioCtx) {
+          wsAudioCtx.decodeAudioData(_sx.response.slice(0),
+            function(buf) { wsSpacious1Buffers.push(buf); },
+            function(err) { console.warn('d93: spacious late decode failed', err); }
+          );
+        }
+      };
+      _sx.send();
+    })('https://daysof93-cdn.b-cdn.net/xplore2_drumsspacious1/drumsspacious' + _si + '.wav');
+  }
   wsLoadCdnImages(WS_CDN_URLS);
 }
 
