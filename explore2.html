@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v187-mesh-lpf-entry -->
+<!-- build: explore2-v188-synth-drives-mesh -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3260,6 +3260,7 @@ if (WEBSITE_MODE) {
     src.start();
     wsCurrentSynthSrc = src;
     src.onended = () => { if (wsCurrentSynthSrc === src) wsCurrentSynthSrc = null; };
+    wsMeshAngV = Math.min(1.5, wsMeshAngV + 0.15 + Math.random() * 0.25);
   }
 
   function wsSeqOnClock() {
