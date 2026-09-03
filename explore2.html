@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v171-mesh-orange-modeB -->
+<!-- build: explore2-v172-revert-orange-mesh -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3788,7 +3788,7 @@ if (WEBSITE_MODE) {
       if (wsMeshCurOpacity < 0.005) return;
 
       // Color: white on black BG, black on white BG — fast transition
-      const _tc = new THREE.Color(wsMode === 'B' ? 0xffad00 : (wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
+      const _tc = new THREE.Color((wsEntryDone && _isSolidWhite) ? 0x000000 : 0xffffff);
       wsMeshMats.forEach(m => m.color.lerp(_tc, Math.min(1, dt * 12)));
 
       // Rotation — brake during corner pull, burst on release
