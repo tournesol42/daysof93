@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v173-snapshots-v4 -->
+<!-- build: explore2-v174-mesh-slow-modeB -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3801,7 +3801,7 @@ if (WEBSITE_MODE) {
       // Undo previous corner rotation offset before spinning
       wsMeshObj.rotation.x -= wsPrevCornerRotX;
       wsMeshObj.rotation.y -= wsPrevCornerRotY;
-      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt);
+      wsMeshObj.rotateOnWorldAxis(wsMeshRotAxis, wsMeshAngV * dt * (wsMode === 'B' ? 0.25 : 1.0));
       // Apply new corner rotation — tilts mesh so corner faces screen corner
       wsPrevCornerRotX = wsCornerDY * wsCornerSpring * 0.45;
       wsPrevCornerRotY = wsCornerDX * wsCornerSpring * 0.45;
