@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DAYS OF 93</title>
-<!-- build: explore2-v191-cornerB-dwell -->
+<!-- build: explore2-v192-lag-spacious-modeB-vol -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3235,7 +3235,7 @@ if (WEBSITE_MODE) {
     const src  = wsAudioCtx.createBufferSource();
     src.buffer = buf;
     const gain = wsAudioCtx.createGain();
-    gain.gain.value = wsUserLevel * (window._d93vol ? window._d93vol() : 1);
+    gain.gain.value = wsUserLevel * (window._d93vol ? window._d93vol() : 1) * 2.5;
     src.connect(gain);
     gain.connect(wsLPF);
     src.start();
@@ -3397,7 +3397,7 @@ if (WEBSITE_MODE) {
     if (!wsModeBXhrData || !wsAudioCtx) return;
     wsAudioCtx.decodeAudioData(wsModeBXhrData.slice(0), function(buf) {
       wsModeBGainNode = wsAudioCtx.createGain();
-      wsModeBGainNode.gain.value = 1.245;
+      wsModeBGainNode.gain.value = 2.8;
       wsModeBGainNode.connect(wsMasterGain);
       wsModeBNode = wsAudioCtx.createBufferSource();
       wsModeBNode.buffer = buf;
@@ -3415,7 +3415,7 @@ if (WEBSITE_MODE) {
     }
     if (wsEntryDone) wsLongAudio.volume = Math.min(1, v * WS_LONG_VOL);
     wsMainAudio.volume  = Math.min(1, v * WS_MAIN_VOL);
-    if (wsModeBGainNode) wsModeBGainNode.gain.setTargetAtTime(v * 1.245, wsAudioCtx.currentTime, 0.08);
+    if (wsModeBGainNode) wsModeBGainNode.gain.setTargetAtTime(v * 2.8, wsAudioCtx.currentTime, 0.08);
   }
   window.wsSetMasterLevel = wsSetMasterLevel;
   window.wsSetUserLevel = function(v) {
@@ -3749,7 +3749,7 @@ if (WEBSITE_MODE) {
       } else {
         wsDriftX = 0; wsDriftY = 0;
       }
-      wsSmoothedNY += (wsMouseNY - wsSmoothedNY) * Math.min(1, dt * 0.8);
+      wsSmoothedNY += (wsMouseNY - wsSmoothedNY) * Math.min(1, dt * 0.25);
       const _mny = wsEntryDone ? wsSmoothedNY : 0;
       if (wsSynthLPF && wsAudioCtx && wsEntryDone) {
         let _lpfFreq;
