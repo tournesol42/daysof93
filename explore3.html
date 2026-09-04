@@ -1,4 +1,4 @@
-<!-- build: explore3-v02-dynamic-grid -->
+<!-- build: explore3-v03-static-grid-trimpool -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,7 +105,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v02-dynamic-grid ─────────────────────────────────
+// ── build: explore3-v03-static-grid-trimpool ──────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -113,16 +113,13 @@ function daySeed(){ const d=new Date(); return d.getFullYear()*1000+dayOfYear(d)
 function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
 const SEED = daySeed();
 
-let mouseVpX = window.innerWidth * 0.5;
-let mouseVpY = window.innerHeight * 0.55;
-let rafGrid = null;
-
 function drawField(){
   const svg=document.getElementById('field');
   const w=window.innerWidth, h=window.innerHeight;
   svg.setAttribute('viewBox','0 0 '+w+' '+h);
-  const vpX = mouseVpX;
-  const vpY = mouseVpY;
+  const camX=(seededRand(SEED+1)-0.5)*40;
+  const camTilt=(seededRand(SEED+2)-0.5)*0.02;
+  const vpX=w*0.5+camX, vpY=h*0.62;
   let L='';
   const bands=18;
   for(let i=0;i<=bands;i++){
@@ -134,7 +131,8 @@ function drawField(){
     const x=(i/cols)*w;
     L+='<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.18"/>';
   }
-  L+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+vpY+'" stroke="var(--axis-x)" stroke-width="var(--hair)" opacity="0.48"/>';
+  const ay=Math.sin(camTilt);
+  L+='<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="var(--axis-x)" stroke-width="var(--hair)" opacity="0.48"/>';
   L+='<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="var(--axis-y)" stroke-width="var(--hair)" opacity="0.42"/>';
   if(w>=720){
     const upperBand=vpY*0.72, strays=4;
@@ -155,11 +153,11 @@ function drawField(){
   svg.innerHTML=L;
 }
 drawField();
-window.addEventListener('resize', ()=>{ mouseVpX=window.innerWidth*0.5; mouseVpY=window.innerHeight*0.55; drawField(); });
+window.addEventListener('resize', drawField);
 
 // ── Videos ───────────────────────────────────────────────────────────
 const CDN = 'https://daysof93-cdn.b-cdn.net/Explore_3_TDFILES/';
-const VIDEOS = Array.from({length:14}, (_,i) => 'td'+String(i+1).padStart(2,'0'));
+const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td11','td12','td13'];
 let lastVideo = null;
 let pool = [];
 
@@ -197,12 +195,7 @@ function moveCrosshair(x,y){
   clearTimeout(chTimer);
   chTimer=setTimeout(()=>{ ch.style.opacity='0'; },2000);
 }
-document.addEventListener('mousemove', e=>{
-  moveCrosshair(e.clientX, e.clientY);
-  mouseVpX = e.clientX;
-  mouseVpY = e.clientY;
-  if(!rafGrid){ rafGrid = requestAnimationFrame(()=>{ drawField(); rafGrid=null; }); }
-});
+document.addEventListener('mousemove', e=>moveCrosshair(e.clientX,e.clientY));
 
 // ── MIDI ─────────────────────────────────────────────────────────────
 let midiAccess=null, activeInput=null;
