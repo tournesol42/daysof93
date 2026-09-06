@@ -1,4 +1,4 @@
-<!-- build: explore3-v20-safari-fallback -->
+<!-- build: explore3-v21-ios-touch -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,7 +113,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #cccccc; c
 </div>
 
 <script>
-// ── build: explore3-v20-safari-fallback ────────────────────────────────
+// ── build: explore3-v21-ios-touch ──────────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -148,6 +148,11 @@ drawField();
 window.addEventListener('resize', drawField);
 
 // ── Videos ───────────────────────────────────────────────────────────
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+if(isIOS){
+  canvas.style.display = 'none';
+  vid.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;z-index:10;pointer-events:none;';
+}
 const CDN = 'https://daysof93-cdn.b-cdn.net/Web_SBS_VP9/';
 const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td11','td12','td13'];
 let lastVideo = null;
@@ -232,9 +237,12 @@ function startCompositor(){
 
 function playVideo(name){
   lastVideo = name;
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  vid.crossOrigin = 'anonymous';
-  vid.src = CDN + name + (isSafari ? '_sbs.mp4' : '_sbs.webm');
+  if(isIOS){
+    vid.src = 'https://daysof93-cdn.b-cdn.net/Explore_3_TDFILES/' + name + '.mov';
+  } else {
+    vid.crossOrigin = 'anonymous';
+    vid.src = CDN + name + '_sbs.webm';
+  }
   vid.load();
   vid.play().catch(function(e){ console.log('d93: video play err',e); });
   startCompositor();
@@ -260,6 +268,15 @@ function moveCrosshair(x,y){
   chTimer=setTimeout(()=>{ ch.style.opacity='0'; },2000);
 }
 document.addEventListener('mousemove', e=>moveCrosshair(e.clientX,e.clientY));
+document.addEventListener('touchstart', function(e){
+  if(e.target.closest('#dev-ui')) return;
+  const name = pickVideo();
+  playVideo(name);
+  if(isRecording){
+    recEvents.push({t:Math.round(performance.now()-recStart),note:0,velocity:100,video:name});
+    updateRecStatus();
+  }
+}, {passive:true});
 
 // ── MIDI ─────────────────────────────────────────────────────────────
 let midiAccess=null, activeInput=null;
