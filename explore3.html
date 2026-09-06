@@ -1,4 +1,4 @@
-<!-- build: explore3-v10-revert-lowres -->
+<!-- build: explore3-v11-webgl-sbs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,14 +25,15 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 
 
 #td-video {
+  position: fixed; top: -9999px; left: -9999px;
+  width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
+#td-canvas {
   position: fixed;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%) translateZ(0);
-  width: auto; height: auto;
+  transform: translate(-50%, -50%);
   max-width: 100%; max-height: 100%;
   z-index: 10; pointer-events: none;
-  will-change: transform;
-  backface-visibility: hidden;
 }
 
 #ch {
@@ -94,6 +95,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 <svg id="field" xmlns="http://www.w3.org/2000/svg"></svg>
 
 <video id="td-video" playsinline muted loop></video>
+<canvas id="td-canvas"></canvas>
 
 <div id="ch">
   <div id="ch-v"></div>
@@ -112,7 +114,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v10-revert-lowres ─────────────────────────────────
+// ── build: explore3-v11-webgl-sbs ─────────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -147,24 +149,94 @@ drawField();
 window.addEventListener('resize', drawField);
 
 // ── Videos ───────────────────────────────────────────────────────────
-const CDN = 'https://daysof93-cdn.b-cdn.net/Explore_3_TDFILES/';
+const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_SBS/';
 const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td11','td12','td13'];
 let lastVideo = null;
 let pool = [];
 
 function pickVideo(){
-  if(!pool.length) pool = VIDEOS.filter(v=>v!==lastVideo).sort(()=>Math.random()-0.5);
+  if(!pool.length) pool = VIDEOS.filter(function(v){ return v!==lastVideo; }).sort(function(){ return Math.random()-0.5; });
   return pool.shift();
 }
 
+// ── WebGL SBS compositor ─────────────────────────────────────────────
+const vid    = document.getElementById('td-video');
+const canvas = document.getElementById('td-canvas');
+const gl     = canvas.getContext('webgl', {premultipliedAlpha:false, alpha:true});
+
+const VS = `
+  attribute vec2 aPos;
+  varying vec2 vUV;
+  void main(){
+    vUV = vec2(aPos.x*0.5+0.5, 0.5-aPos.y*0.5);
+    gl_Position = vec4(aPos,0.0,1.0);
+  }`;
+
+const FS = `
+  precision mediump float;
+  uniform sampler2D uTex;
+  varying vec2 vUV;
+  void main(){
+    vec2 cUV = vec2(vUV.x*0.5,        vUV.y);
+    vec2 aUV = vec2(vUV.x*0.5 + 0.5,  vUV.y);
+    vec3 color = texture2D(uTex, cUV).rgb;
+    float alpha = texture2D(uTex, aUV).r;
+    gl_FragColor = vec4(color, alpha);
+  }`;
+
+function makeShader(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s); return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, makeShader(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog); gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.uniform1i(gl.getUniformLocation(prog,'uTex'), 0);
+
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+let rafId = null;
+function startCompositor(){
+  if(rafId) return;
+  function tick(){
+    if(vid.readyState >= vid.HAVE_CURRENT_DATA){
+      const sw = vid.videoWidth / 2;
+      const sh = vid.videoHeight;
+      if(canvas.width !== sw || canvas.height !== sh){
+        canvas.width = sw; canvas.height = sh;
+        gl.viewport(0,0,sw,sh);
+      }
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
 function playVideo(name){
-  const vid = document.getElementById('td-video');
   lastVideo = name;
-  vid.innerHTML =
-    '<source src="'+CDN+name+'.mov" type=\'video/mp4; codecs="hvc1"\'>' +
-    '<source src="'+CDN+name+'.webm" type="video/webm">';
+  vid.src = CDN + name + '_sbs.mp4';
   vid.load();
-  vid.play().catch(e=>console.log('d93: video play err',e));
+  vid.play().catch(function(e){ console.log('d93: video play err',e); });
+  startCompositor();
   console.log('d93: playing', name);
 }
 
