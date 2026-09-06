@@ -1,4 +1,4 @@
-<!-- build: explore3-v08-preload-cover -->
+<!-- build: explore3-v09-doublebuffer -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,7 +82,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 
 <svg id="field" xmlns="http://www.w3.org/2000/svg"></svg>
 
-<div id="td-pool"></div>
+<video id="vid-a" playsinline muted loop></video>
+<video id="vid-b" playsinline muted loop></video>
 
 <div id="ch">
   <div id="ch-v"></div>
@@ -101,7 +102,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v08-preload-cover ─────────────────────────────────
+// ── build: explore3-v09-doublebuffer ──────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -138,43 +139,50 @@ window.addEventListener('resize', drawField);
 // ── Videos ───────────────────────────────────────────────────────────
 const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_highres/';
 const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td10','td11','td12','td13','td14'];
-let lastVideo = null;
 let pool = [];
-const videoEls = {};
-let activeVideoEl = null;
 
-(function preload(){
-  const container = document.getElementById('td-pool');
-  VIDEOS.forEach(function(name){
-    const v = document.createElement('video');
-    v.setAttribute('playsinline','');
-    v.muted = true;
-    v.loop = true;
-    v.preload = 'auto';
-    v.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:translateZ(0);z-index:10;pointer-events:none;will-change:transform;backface-visibility:hidden;display:none;';
-    v.innerHTML = '<source src="'+CDN+name+'.mov" type=\'video/mp4; codecs="hvc1"\'><source src="'+CDN+name+'.webm" type="video/webm">';
-    v.load();
-    container.appendChild(v);
-    videoEls[name] = v;
-  });
-})();
+const VID_STYLE = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:translateZ(0);z-index:10;pointer-events:none;will-change:transform;backface-visibility:hidden;display:none;';
+const vidA = document.getElementById('vid-a');
+const vidB = document.getElementById('vid-b');
+vidA.style.cssText = VID_STYLE;
+vidB.style.cssText = VID_STYLE;
+
+let current = vidA;
+let next    = vidB;
 
 function pickVideo(){
-  if(!pool.length) pool = VIDEOS.filter(function(v){ return v!==lastVideo; }).sort(function(){ return Math.random()-0.5; });
+  if(!pool.length) pool = VIDEOS.slice().sort(function(){ return Math.random()-0.5; });
   return pool.shift();
 }
 
-function playVideo(name){
-  if(activeVideoEl) activeVideoEl.style.display='none';
-  const v = videoEls[name];
-  v.style.display = 'block';
-  v.play().catch(function(e){ console.log('d93: video play err',e); });
-  activeVideoEl = v;
-  lastVideo = name;
-  console.log('d93: playing', name);
+function loadInto(el, name){
+  el.innerHTML =
+    '<source src="'+CDN+name+'.mov" type=\'video/mp4; codecs="hvc1"\'>' +
+    '<source src="'+CDN+name+'.webm" type="video/webm">';
+  el.load();
 }
 
-playVideo(pickVideo());
+function playVideo(){
+  // swap
+  current.style.display = 'none';
+  current.pause();
+  var tmp = current; current = next; next = tmp;
+  // play preloaded
+  current.style.display = 'block';
+  current.play().catch(function(e){ console.log('d93: play err',e); });
+  console.log('d93: playing buffer swap');
+  // preload next into background element
+  loadInto(next, pickVideo());
+}
+
+// init: load first into A, preload second into B, play A
+loadInto(current, pickVideo());
+current.addEventListener('canplay', function onFirst(){
+  current.removeEventListener('canplay', onFirst);
+  current.style.display = 'block';
+  current.play().catch(function(e){ console.log('d93: init play err',e); });
+  loadInto(next, pickVideo());
+}, {once:true});
 
 // ── Crosshair ─────────────────────────────────────────────────────────
 const ch=document.getElementById('ch');
@@ -202,8 +210,8 @@ let playbackTimers=[];
 function onMidiMessage(e){
   const [status,note,velocity]=e.data;
   if((status&0xf0)===0x90 && velocity>0){
-    const name=pickVideo();
-    playVideo(name);
+    playVideo();
+    const name = current.querySelector('source') ? current.querySelector('source').src.split('/').pop().replace('.mov','').replace('.webm','') : '';
     if(isRecording){
       recEvents.push({t:Math.round(performance.now()-recStart),note,velocity,video:name});
       updateRecStatus();
