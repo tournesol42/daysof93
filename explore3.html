@@ -1,4 +1,4 @@
-<!-- build: explore3-v14-grey-blackgrid -->
+<!-- build: explore3-v15-vp9-sbs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,7 +113,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #cccccc; c
 </div>
 
 <script>
-// ── build: explore3-v14-grey-blackgrid ────────────────────────────────
+// ── build: explore3-v15-vp9-sbs ───────────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -148,7 +148,7 @@ drawField();
 window.addEventListener('resize', drawField);
 
 // ── Videos ───────────────────────────────────────────────────────────
-const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_SBS/';
+const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_SBS_VP9/';
 const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td11','td12','td13'];
 let lastVideo = null;
 let pool = [];
@@ -233,7 +233,7 @@ function startCompositor(){
 function playVideo(name){
   lastVideo = name;
   vid.crossOrigin = 'anonymous';
-  vid.src = CDN + name + '_sbs.mp4';
+  vid.src = CDN + name + '_sbs.webm';
   vid.load();
   vid.play().catch(function(e){ console.log('d93: video play err',e); });
   startCompositor();
