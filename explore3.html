@@ -1,4 +1,4 @@
-<!-- build: explore3-v12-webgl-cors -->
+<!-- build: explore3-v13-black-fullpage -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,15 +8,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
-  --field: #ffffff;
-  --ink: #000000;
-  --line: #000000;
-  --axis-x: #000000;
-  --axis-y: #000000;
+  --field: #000000;
+  --ink: #aaaaaa;
+  --line: #aaaaaa;
+  --axis-x: #aaaaaa;
+  --axis-y: #aaaaaa;
   --hair: 0.75px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; cursor: none; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
 
 #field {
   position: fixed; inset: 0; width: 100%; height: 100%;
@@ -30,9 +30,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 }
 #td-canvas {
   position: fixed;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  max-width: 100%; max-height: 100%;
+  inset: 0;
+  width: 100%; height: 100%;
   z-index: 10; pointer-events: none;
 }
 
@@ -42,15 +41,15 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 }
 #ch-v {
   position: absolute; top: 0; bottom: 0; left: 50%;
-  width: 0.75px; background: rgba(0,0,0,0.30);
+  width: 0.75px; background: rgba(255,255,255,0.30);
 }
 #ch-h {
   position: absolute; left: 0; right: 0; top: 50%;
-  height: 0.75px; background: rgba(0,0,0,0.30);
+  height: 0.75px; background: rgba(255,255,255,0.30);
 }
 #ch-sq {
   position: absolute; width: 7px; height: 7px;
-  border: 0.75px solid rgba(0,0,0,0.45);
+  border: 0.75px solid rgba(255,255,255,0.45);
   transform: translate(-50%, -50%); top: 50%; left: 50%;
 }
 
@@ -114,7 +113,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v12-webgl-cors ────────────────────────────────────
+// ── build: explore3-v13-black-fullpage ────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -216,8 +215,8 @@ function startCompositor(){
   if(rafId) return;
   function tick(){
     if(vid.readyState >= vid.HAVE_CURRENT_DATA){
-      const sw = vid.videoWidth / 2;
-      const sh = vid.videoHeight;
+      const sw = window.innerWidth;
+      const sh = window.innerHeight;
       if(canvas.width !== sw || canvas.height !== sh){
         canvas.width = sw; canvas.height = sh;
         gl.viewport(0,0,sw,sh);
