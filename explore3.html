@@ -1,4 +1,4 @@
-<!-- build: explore3-v06-video-centered -->
+<!-- build: explore3-v07-highres-contain -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,10 +25,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 
 #td-video {
   position: fixed;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%) translateZ(0);
-  width: auto; height: auto;
-  max-width: 100%; max-height: 100%;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  transform: translateZ(0);
   z-index: 10; pointer-events: none;
   will-change: transform;
   backface-visibility: hidden;
@@ -111,7 +111,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v06-video-centered ────────────────────────────────
+// ── build: explore3-v07-highres-contain ───────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -146,8 +146,8 @@ drawField();
 window.addEventListener('resize', drawField);
 
 // ── Videos ───────────────────────────────────────────────────────────
-const CDN = 'https://daysof93-cdn.b-cdn.net/Explore_3_TDFILES/';
-const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td11','td12','td13'];
+const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_highres/';
+const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td10','td11','td12','td13','td14'];
 let lastVideo = null;
 let pool = [];
 
