@@ -1,4 +1,4 @@
-<!-- build: explore3-v18-lightgrey-blackgrid -->
+<!-- build: explore3-v19-canvas-native-size -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,8 +30,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #cccccc; c
 }
 #td-canvas {
   position: fixed;
-  inset: 0;
-  width: 100%; height: 100%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 10; pointer-events: none;
 }
 
@@ -113,7 +113,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #cccccc; c
 </div>
 
 <script>
-// ── build: explore3-v18-lightgrey-blackgrid ────────────────────────────
+// ── build: explore3-v19-canvas-native-size ─────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -215,8 +215,8 @@ function startCompositor(){
   if(rafId) return;
   function tick(){
     if(vid.readyState >= vid.HAVE_CURRENT_DATA){
-      const sw = window.innerWidth;
-      const sh = window.innerHeight;
+      const sw = vid.videoWidth / 2;
+      const sh = vid.videoHeight;
       if(canvas.width !== sw || canvas.height !== sh){
         canvas.width = sw; canvas.height = sh;
         gl.viewport(0,0,sw,sh);
