@@ -1,4 +1,4 @@
-<!-- build: explore3-v11-webgl-sbs -->
+<!-- build: explore3-v12-webgl-cors -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,7 +114,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v11-webgl-sbs ─────────────────────────────────────
+// ── build: explore3-v12-webgl-cors ────────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -233,6 +233,7 @@ function startCompositor(){
 
 function playVideo(name){
   lastVideo = name;
+  vid.crossOrigin = 'anonymous';
   vid.src = CDN + name + '_sbs.mp4';
   vid.load();
   vid.play().catch(function(e){ console.log('d93: video play err',e); });
