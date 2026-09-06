@@ -1,4 +1,4 @@
-<!-- build: explore3-v07-highres-contain -->
+<!-- build: explore3-v08-preload-cover -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,16 +23,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
   z-index: 1; pointer-events: none;
 }
 
-#td-video {
-  position: fixed;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: contain;
-  transform: translateZ(0);
-  z-index: 10; pointer-events: none;
-  will-change: transform;
-  backface-visibility: hidden;
-}
 
 #ch {
   position: fixed; inset: 0; pointer-events: none;
@@ -92,7 +82,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 
 <svg id="field" xmlns="http://www.w3.org/2000/svg"></svg>
 
-<video id="td-video" playsinline muted loop></video>
+<div id="td-pool"></div>
 
 <div id="ch">
   <div id="ch-v"></div>
@@ -111,7 +101,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; curs
 </div>
 
 <script>
-// ── build: explore3-v07-highres-contain ───────────────────────────────
+// ── build: explore3-v08-preload-cover ─────────────────────────────────
 
 // ── Grid ─────────────────────────────────────────────────────────────
 function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
@@ -150,20 +140,37 @@ const CDN = 'https://daysof93-cdn.b-cdn.net/Explore3_highres/';
 const VIDEOS = ['td01','td02','td03','td04','td05','td06','td07','td08','td09','td10','td11','td12','td13','td14'];
 let lastVideo = null;
 let pool = [];
+const videoEls = {};
+let activeVideoEl = null;
+
+(function preload(){
+  const container = document.getElementById('td-pool');
+  VIDEOS.forEach(function(name){
+    const v = document.createElement('video');
+    v.setAttribute('playsinline','');
+    v.muted = true;
+    v.loop = true;
+    v.preload = 'auto';
+    v.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:translateZ(0);z-index:10;pointer-events:none;will-change:transform;backface-visibility:hidden;display:none;';
+    v.innerHTML = '<source src="'+CDN+name+'.mov" type=\'video/mp4; codecs="hvc1"\'><source src="'+CDN+name+'.webm" type="video/webm">';
+    v.load();
+    container.appendChild(v);
+    videoEls[name] = v;
+  });
+})();
 
 function pickVideo(){
-  if(!pool.length) pool = VIDEOS.filter(v=>v!==lastVideo).sort(()=>Math.random()-0.5);
+  if(!pool.length) pool = VIDEOS.filter(function(v){ return v!==lastVideo; }).sort(function(){ return Math.random()-0.5; });
   return pool.shift();
 }
 
 function playVideo(name){
-  const vid = document.getElementById('td-video');
+  if(activeVideoEl) activeVideoEl.style.display='none';
+  const v = videoEls[name];
+  v.style.display = 'block';
+  v.play().catch(function(e){ console.log('d93: video play err',e); });
+  activeVideoEl = v;
   lastVideo = name;
-  vid.innerHTML =
-    '<source src="'+CDN+name+'.mov" type=\'video/mp4; codecs="hvc1"\'>' +
-    '<source src="'+CDN+name+'.webm" type="video/webm">';
-  vid.load();
-  vid.play().catch(e=>console.log('d93: video play err',e));
   console.log('d93: playing', name);
 }
 
