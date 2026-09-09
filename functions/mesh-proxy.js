@@ -1,5 +1,5 @@
 export async function onRequestGet(context) {
-  const { request } = context;
+  const { request, env } = context;
   const url = new URL(request.url);
   const filename = url.searchParams.get('file');
 
@@ -7,11 +7,16 @@ export async function onRequestGet(context) {
     return new Response('Invalid file', { status: 400 });
   }
 
-  const bunnyUrl = 'https://daysof93-cdn.b-cdn.net/meshes/' + filename;
-  const res = await fetch(bunnyUrl);
+  // Fetch from Storage API (no hotlink protection) using API key
+  const storageUrl = 'https://storage.bunnycdn.com/daysof93-videos/meshes/' + filename;
+  const res = await fetch(storageUrl, {
+    headers: {
+      'AccessKey': env.BUNNY_STORAGE_KEY,
+    },
+  });
 
   if (!res.ok) {
-    return new Response('Not found', { status: 404 });
+    return new Response('Storage error: ' + res.status, { status: 404 });
   }
 
   return new Response(res.body, {
