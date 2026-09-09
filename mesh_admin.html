@@ -1949,9 +1949,7 @@ document.getElementById('btnUploadBunny').onclick = function () {
       body: buf,
     });
   }).then(function (res) {
-    if (!res.ok) return res.text().then(function (txt) {
-      throw new Error(res.status + ': ' + txt);
-    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   }).then(function (data) {
     var cdnUrl = data.url;

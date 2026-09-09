@@ -22,8 +22,7 @@ export async function onRequestPost(context) {
   );
 
   if (!bunnyRes.ok) {
-    var bunnyBody = await bunnyRes.text();
-    return new Response('Bunny error: ' + bunnyRes.status + ' — ' + bunnyBody, { status: 502 });
+    return new Response('Bunny rejected: HTTP ' + bunnyRes.status, { status: 502 });
   }
 
   const cdnUrl = 'https://daysof93-cdn.b-cdn.net/meshes/' + filename;
