@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v23-autoclear-fix -->
+<!-- build: explore3-v24-fat-lines -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,6 +9,9 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #000; overflow: hidden; }
@@ -80,7 +83,7 @@ var S = {
   deformMode:   0,
   deformAmt:    0.0,
   deformSpeed:  1.0,
-  lineThickness: 1,
+  lineThickness: 2,
   // Preset gate
   midiTriggerPreset: false,
   presetDir: 'next',
@@ -144,6 +147,7 @@ var ch = function () { return window.innerHeight; };
 var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw(), ch());
+var lineRes = new THREE.Vector2(cw(), ch());
 
 // ── Scene ──────────────────────────────────────────────────────
 var scene  = new THREE.Scene();
@@ -303,12 +307,19 @@ function makeDefaultMesh() {
   g.add(mesh);
 
   var eg  = new THREE.EdgesGeometry(geo, 5);
-  var mat = new THREE.LineBasicMaterial({ color: S.wireColor.getHex(), transparent: true, opacity: S.opacity });
-  injectDeform(mat);
-  var lines = new THREE.LineSegments(eg, mat);
+  var lsg = new THREE.LineSegmentsGeometry();
+  lsg.setPositions(Array.from(eg.attributes.position.array));
+  var mat = new THREE.LineMaterial({
+    color: S.wireColor.getHex(),
+    linewidth: S.lineThickness,
+    resolution: lineRes,
+    transparent: true,
+    opacity: S.opacity,
+    depthWrite: true,
+    depthTest: true,
+  });
+  var lines = new THREE.LineSegments2(lsg, mat);
   lines.renderOrder = 2;
-  lines.material.depthWrite = true;
-  lines.material.depthTest  = true;
   lines.userData.edgeOverlay = true;
   g.add(lines);
   wireMats = [mat];
@@ -814,6 +825,8 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
   rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
+  lineRes.set(w, h);
+  wireMats.forEach(function (m) { if (m.isLineMaterial) m.resolution.set(w, h); });
 }
 window.addEventListener('resize', onResize);
 onResize();
@@ -856,12 +869,19 @@ function applyMeshMaterials(group) {
     if (S.meshMode === 'edge') {
       child.visible = false;
       var eg    = new THREE.EdgesGeometry(child.geometry, 15);
-      var mat   = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: S.opacity });
-      injectDeform(mat);
-      var lines = new THREE.LineSegments(eg, mat);
+      var lsg   = new THREE.LineSegmentsGeometry();
+      lsg.setPositions(Array.from(eg.attributes.position.array));
+      var mat   = new THREE.LineMaterial({
+        color: color,
+        linewidth: S.lineThickness,
+        resolution: lineRes,
+        transparent: true,
+        opacity: S.opacity,
+        depthWrite: true,
+        depthTest: true,
+      });
+      var lines = new THREE.LineSegments2(lsg, mat);
       lines.renderOrder = 2;
-      lines.material.depthWrite = true;
-      lines.material.depthTest  = true;
       lines.userData.edgeOverlay = true;
       lines.position.copy(child.position);
       lines.quaternion.copy(child.quaternion);
@@ -872,14 +892,19 @@ function applyMeshMaterials(group) {
     } else {
       child.visible = false;
       var eg  = new THREE.EdgesGeometry(child.geometry, 5);
-      var mat = new THREE.LineBasicMaterial({
-        color: S.wireColor.getHex(), transparent: true, opacity: S.opacity,
+      var lsg = new THREE.LineSegmentsGeometry();
+      lsg.setPositions(Array.from(eg.attributes.position.array));
+      var mat = new THREE.LineMaterial({
+        color: S.wireColor.getHex(),
+        linewidth: S.lineThickness,
+        resolution: lineRes,
+        transparent: true,
+        opacity: S.opacity,
+        depthWrite: true,
+        depthTest: true,
       });
-      injectDeform(mat);
-      var lines = new THREE.LineSegments(eg, mat);
+      var lines = new THREE.LineSegments2(lsg, mat);
       lines.renderOrder = 2;
-      lines.material.depthWrite = true;
-      lines.material.depthTest  = true;
       lines.userData.edgeOverlay = true;
       lines.position.copy(child.position);
       lines.quaternion.copy(child.quaternion);
