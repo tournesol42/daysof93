@@ -1124,21 +1124,28 @@ var blendNames = ['add', 'screen', 'mix'];
 
 // ── Viewer boot ────────────────────────────────────────────────
 loadPersistedPresets();
-loadPersistedMeshLib();
 
+var _snap = null;
 try {
-  var _raw = localStorage.getItem('d93_viewerState');
-  if (_raw) {
-    var _snap = JSON.parse(_raw);
-    for (var _key in _snap) {
-      if (_key.charAt(0) === '_') continue;
-      if (!(_key in S)) continue;
-      if (S[_key] && S[_key].isColor) S[_key].set(_snap[_key]);
-      else if (typeof S[_key] !== 'object') S[_key] = _snap[_key];
+  var rawState = localStorage.getItem('d93_viewerState');
+  if (rawState) {
+    _snap = JSON.parse(rawState);
+    for (var key in _snap) {
+      if (key.charAt(0) === '_') continue;
+      if (!(key in S)) continue;
+      if (S[key] && S[key].isColor) S[key].set(_snap[key]);
+      else if (typeof S[key] !== 'object') S[key] = _snap[key];
     }
     if (_snap._meshIndex !== undefined && _snap._meshIndex > 0) {
       _pendingMeshIndex = _snap._meshIndex;
     }
+  }
+} catch(e) {}
+
+loadPersistedMeshLib();
+
+if (_snap) {
+  setTimeout(function () {
     if (_snap._camX !== undefined) {
       camera.position.set(_snap._camX, _snap._camY, _snap._camZ);
       controls.target.set(_snap._tgtX, _snap._tgtY, _snap._tgtZ);
@@ -1146,11 +1153,11 @@ try {
     }
     if (currentGroup && _snap._rotX !== undefined)
       currentGroup.rotation.set(_snap._rotX, _snap._rotY, _snap._rotZ);
-  }
-} catch(e) { console.warn('d93: viewer state restore failed', e); }
+  }, 300);
+}
 
-render();
 initMIDI();
+render();
 
 })();
 </script>
