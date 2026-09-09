@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v26-halffloat -->
+<!-- build: explore3-v27-direct-render -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -800,15 +800,10 @@ function render() {
     var tmp = rtA; rtA = rtB; rtB = tmp;
 
   } else {
-    renderer.setRenderTarget(rtScene);
+    renderer.setRenderTarget(null);
     renderer.setClearColor(S.bgColor, 1);
     renderer.clear();
     renderer.render(scene, camera);
-
-    displayMat.uniforms.tIn.value = rtScene.texture;
-    postQuad.material = displayMat;
-    renderer.setRenderTarget(null);
-    renderer.render(postScene, postCamera);
   }
 
   frames++;
