@@ -1513,7 +1513,8 @@ function loadPersistedMeshLib() {
     var lib = JSON.parse(raw);
     lib.forEach(function (entry) {
       if (!entry.url) return;
-      loader.load(entry.url, function (gltf) {
+      var proxyUrl = '/mesh-proxy?file=' + encodeURIComponent(entry.url.split('/').pop());
+      loader.load(proxyUrl, function (gltf) {
         var group = gltf.scene;
         normaliseGroup(group);
         applyMeshMaterials(group);
