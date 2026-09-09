@@ -540,7 +540,9 @@ select.midi-sel {
 
 // ── Bunny CDN config ───────────────────────────────────────────
 var BUNNY_STORAGE_ZONE = 'daysof93-videos';
+var BUNNY_STORAGE_KEY  = '775feee5-edcd-4a27-bebca34f04df-b3c5-401a';
 var BUNNY_CDN_BASE     = 'https://daysof93-cdn.b-cdn.net/meshes/';
+var BUNNY_STORAGE_BASE = 'https://storage.de.bunnycdn.com/daysof93-videos/meshes/';
 
 // ── Angle helpers ──────────────────────────────────────────────
 function normalizeAngle(a) {
@@ -1944,15 +1946,17 @@ document.getElementById('btnUploadBunny').onclick = function () {
   statusEl.style.color = '#FF6B00';
 
   file.arrayBuffer().then(function (buf) {
-    return fetch('/upload-mesh?filename=' + encodeURIComponent(filename), {
-      method: 'POST',
+    return fetch(BUNNY_STORAGE_BASE + filename, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': BUNNY_STORAGE_KEY,
+        'Content-Type': 'application/octet-stream',
+      },
       body: buf,
     });
   }).then(function (res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
-  }).then(function (data) {
-    var cdnUrl = data.url;
+    var cdnUrl = BUNNY_CDN_BASE + filename;
     entry.url  = cdnUrl;
     entry.file = null;
     entry.name = filename.replace('.glb', '');
