@@ -1457,16 +1457,6 @@ function loadGLB(file) {
     normaliseGroup(group);
     var meshName = file.name.replace('.glb', '');
     meshBank.push({ name: meshName, url: null, file: file, group: group });
-    // Store GLB as base64 in localStorage for viewer
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        localStorage.setItem('d93_glb_' + (meshBank.length - 1), e.target.result);
-      } catch (err) {
-        console.warn('GLB too large for localStorage:', err);
-      }
-    };
-    reader.readAsDataURL(file);
     switchToMesh(meshBank.length - 1);
 
     clearTrail();
@@ -1521,24 +1511,21 @@ function loadPersistedMeshLib() {
     var raw = localStorage.getItem('d93_meshLib');
     if (!raw) return;
     var lib = JSON.parse(raw);
-    lib.forEach(function (entry, libIndex) {
-      var b64key = 'd93_glb_' + (libIndex + 1);
-      var b64 = localStorage.getItem(b64key);
-      if (b64) {
-        loader.load(b64, function (gltf) {
-          var group = gltf.scene;
-          var box = new THREE.Box3().setFromObject(group);
-          var centre = box.getCenter(new THREE.Vector3());
-          group.position.sub(centre);
-          group.visible = false;
-          scene.add(group);
-          applyMeshMaterials(group);
-          meshBank.push({ name: entry.name, url: entry.url, group: group });
-          updateMeshBankUI();
-        });
-      }
+    lib.forEach(function (entry) {
+      if (!entry.url) return;
+      loader.load(entry.url, function (gltf) {
+        var group = gltf.scene;
+        var box = new THREE.Box3().setFromObject(group);
+        var centre = box.getCenter(new THREE.Vector3());
+        group.position.sub(centre);
+        group.visible = false;
+        scene.add(group);
+        applyMeshMaterials(group);
+        meshBank.push({ name: entry.name, url: entry.url, group: group });
+        updateMeshBankUI();
+      });
     });
-  } catch(e) { console.warn('d93: meshlib load failed', e); }
+  } catch(e) { console.warn('meshlib load failed', e); }
 }
 
 // ── MIDI engine ────────────────────────────────────────────────
