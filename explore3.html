@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v24-fat-lines -->
+<!-- build: explore3-v25-msaa -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -171,7 +171,7 @@ var rtOpts = {
   format:    THREE.RGBAFormat,
   type:      THREE.UnsignedByteType,
 };
-var rtScene = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
+var rtScene = new THREE.WebGLMultisampleRenderTarget(cw(), ch(), rtOpts);
 var rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 var rtB     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 
