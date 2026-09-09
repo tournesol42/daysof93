@@ -1946,17 +1946,15 @@ document.getElementById('btnUploadBunny').onclick = function () {
   statusEl.style.color = '#FF6B00';
 
   file.arrayBuffer().then(function (buf) {
-    return fetch(BUNNY_STORAGE_BASE + filename, {
-      method: 'PUT',
-      headers: {
-        'AccessKey': BUNNY_STORAGE_KEY,
-        'Content-Type': 'application/octet-stream',
-      },
+    return fetch('/upload-mesh?filename=' + encodeURIComponent(filename), {
+      method: 'POST',
       body: buf,
     });
   }).then(function (res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    var cdnUrl = BUNNY_CDN_BASE + filename;
+    return res.json();
+  }).then(function (data) {
+    var cdnUrl = data.url;
     entry.url  = cdnUrl;
     entry.file = null;
     entry.name = filename.replace('.glb', '');

@@ -10,7 +10,7 @@ export async function onRequestPost(context) {
   const body = await request.arrayBuffer();
 
   const bunnyRes = await fetch(
-    'https://storage.de.bunnycdn.com/daysof93-videos/meshes/' + filename,
+    'https://storage.bunnycdn.com/daysof93-videos/meshes/' + filename,
     {
       method: 'PUT',
       headers: {
