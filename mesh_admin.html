@@ -196,9 +196,7 @@ select.midi-sel {
         <span class="cp-lbl" id="meshCountInfo" style="margin-top:3px">1 / 1</span>
       </div>
       <div class="cp">
-        <label for="bunnyFileIn" class="btn wide"
-          style="display:block;text-align:center;cursor:pointer">↑ Upload to Bunny</label>
-        <input type="file" id="bunnyFileIn" accept=".glb" style="display:none">
+        <button class="btn wide" id="btnUploadBunny" style="display:block;width:100%;text-align:center;cursor:pointer">↑ Upload to Bunny</button>
         <div id="uploadStatus" style="font-size:10px;color:#AAA;
           letter-spacing:0.1em;margin-top:3px;text-transform:uppercase">—</div>
       </div>
@@ -482,8 +480,11 @@ select.midi-sel {
         <button class="btn wide" id="btnResetCam">Reset cam</button>
         <button class="btn wide" id="btnSnap">Screenshot</button>
         <button class="btn wide" id="btnResetColor">Reset color</button>
-        <button class="btn wide" id="btnOpenViewer"
-          style="margin-bottom:3px">Open viewer</button>
+        <a href="explore3.html" target="_blank"
+           class="btn wide"
+           style="display:block;text-align:center;text-decoration:none;margin-bottom:3px">
+          Open viewer
+        </a>
       </div>
     </div>
 
@@ -542,9 +543,9 @@ select.midi-sel {
 
 // ── Bunny CDN config ───────────────────────────────────────────
 var BUNNY_STORAGE_ZONE = 'daysof93-videos';
-var BUNNY_STORAGE_KEY  = '775feee5-edcd-4a27-bebca34f04df-b3c5-401a';
+var BUNNY_STORAGE_KEY  = 'REPLACE_WITH_BUNNY_STORAGE_API_KEY';
 var BUNNY_CDN_BASE     = 'https://daysof93-cdn.b-cdn.net/meshes/';
-var BUNNY_STORAGE_BASE = 'https://storage.de.bunnycdn.com/daysof93-videos/meshes/';
+var BUNNY_STORAGE_BASE = 'https://storage.bunnycdn.com/daysof93-videos/meshes/';
 
 // ── Angle helpers ──────────────────────────────────────────────
 function normalizeAngle(a) {
@@ -621,12 +622,6 @@ var interpActive = false;
 var interpFrom   = null;
 var interpTo     = null;
 var interpT0     = 0;
-
-var _persistTimer = null;
-function debouncedPersist() {
-  clearTimeout(_persistTimer);
-  _persistTimer = setTimeout(persistViewerState, 600);
-}
 
 // MIDI — per-channel values and active flags (note-hold model)
 var midiVals = {
@@ -1137,7 +1132,6 @@ function syncDisplayUniforms() {
   displayMat.uniforms.uTnt.value.set(S.tintColor.getHex());
   displayMat.uniforms.uBgColor.value.copy(S.bgColor);
   displayMat.uniforms.uTrailMode.value = S.trailOn;
-  debouncedPersist();
 }
 
 // ── Render loop ────────────────────────────────────────────────
@@ -1458,7 +1452,7 @@ function loadGLB(file) {
 
     normaliseGroup(group);
     var meshName = file.name.replace('.glb', '');
-    meshBank.push({ name: meshName, group: group });
+    meshBank.push({ name: meshName, url: null, file: file, group: group });
     switchToMesh(meshBank.length - 1);
 
     clearTrail();
@@ -1646,7 +1640,6 @@ document.querySelectorAll('[data-mode]').forEach(function (btn) {
     S.meshMode = btn.dataset.mode;
     document.getElementById('pillMode').textContent = btn.dataset.mode === 'wire' ? 'Wire' : 'Edge';
     if (currentGroup) applyMeshMaterials(currentGroup);
-    debouncedPersist();
   };
 });
 
@@ -1663,7 +1656,6 @@ btnRot.onclick = function () {
   S.autoRot = !S.autoRot;
   btnRot.classList.toggle('on', S.autoRot);
   btnRot.textContent = S.autoRot ? 'On' : 'Off';
-  debouncedPersist();
 };
 
 // ── UI: Speed ──────────────────────────────────────────────────
@@ -1671,19 +1663,16 @@ document.getElementById('spd').oninput = function (e) {
   var v = parseFloat(e.target.value);
   S.rotSpeed = v * (Math.PI / 180);
   document.getElementById('spdVal').textContent = v.toFixed(2);
-  debouncedPersist();
 };
 
 document.getElementById('rotLag').oninput = function (e) {
   S.rotLag = parseFloat(e.target.value);
   document.getElementById('rotLagVal').textContent = S.rotLag.toFixed(2);
-  debouncedPersist();
 };
 
 document.getElementById('manScale').oninput = function (e) {
   S.manualScale = parseFloat(e.target.value);
   document.getElementById('manScaleVal').textContent = S.manualScale.toFixed(2);
-  debouncedPersist();
 };
 
 // ── UI: Axis ───────────────────────────────────────────────────
@@ -1692,7 +1681,6 @@ document.querySelectorAll('[data-axis]').forEach(function (btn) {
     document.querySelectorAll('[data-axis]').forEach(function (b) { b.classList.remove('on'); });
     btn.classList.add('on');
     S.rotAxis = btn.dataset.axis;
-    debouncedPersist();
   };
 });
 
@@ -1716,7 +1704,6 @@ document.querySelectorAll('[data-trailtype]').forEach(function (btn) {
     btn.classList.add('on');
     S.trailType = btn.dataset.trailtype;
     echoFrame = 0;
-    debouncedPersist();
   };
 });
 
@@ -1729,7 +1716,6 @@ document.getElementById('decay').oninput = function (e) {
   S.decay = parseFloat(e.target.value);
   document.getElementById('decayVal').textContent = S.decay.toFixed(3);
   document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
-  debouncedPersist();
 };
 
 var blendNames = ['add', 'screen', 'mix'];
@@ -1739,7 +1725,6 @@ document.querySelectorAll('[data-blend]').forEach(function (btn) {
     btn.classList.add('on');
     S.blendMode = parseInt(btn.dataset.blend);
     document.getElementById('blendInfo').textContent = 'Blend: ' + blendNames[S.blendMode];
-    debouncedPersist();
   };
 });
 
@@ -1778,7 +1763,6 @@ document.querySelectorAll('[data-deformmode]').forEach(function (btn) {
     document.querySelectorAll('[data-deformmode]').forEach(function (b) { b.classList.remove('on'); });
     btn.classList.add('on');
     S.deformMode = parseInt(btn.dataset.deformmode);
-    debouncedPersist();
   };
 });
 
@@ -1789,7 +1773,6 @@ document.getElementById('deformAmt').oninput = function (e) {
 document.getElementById('deformSpd').oninput = function (e) {
   S.deformSpeed = parseFloat(e.target.value);
   document.getElementById('deformSpdVal').textContent = S.deformSpeed.toFixed(1);
-  debouncedPersist();
 };
 
 // ── UI: Color math ─────────────────────────────────────────────
@@ -1812,18 +1795,15 @@ btnHueMod.onclick = function () {
   btnHueMod.classList.toggle('on', S.hueMod);
   btnHueMod.textContent = S.hueMod ? 'On' : 'Off';
   if (!S.hueMod) { huePhase = 0; displayMat.uniforms.uHue.value = S.hue; }
-  debouncedPersist();
 };
 
 document.getElementById('hueModRate').oninput = function (e) {
   S.hueModRate = parseFloat(e.target.value);
   document.getElementById('hueModRateVal').textContent = S.hueModRate.toFixed(1);
-  debouncedPersist();
 };
 document.getElementById('hueModDepth').oninput = function (e) {
   S.hueModDepth = parseInt(e.target.value);
   document.getElementById('hueModDepthVal').textContent = S.hueModDepth;
-  debouncedPersist();
 };
 
 document.querySelectorAll('[data-huewave]').forEach(function (btn) {
@@ -1873,11 +1853,6 @@ document.getElementById('btnResetColor').onclick = function () {
   syncDisplayUniforms();
 };
 
-document.getElementById('btnOpenViewer').onclick = function () {
-  persistViewerState();
-  window.open('explore3.html', '_blank');
-};
-
 // ── UI: Mesh bank ──────────────────────────────────────────────
 document.getElementById('btnMeshPrev').onclick = prevMesh;
 document.getElementById('btnMeshNext').onclick = nextMesh;
@@ -1922,43 +1897,55 @@ document.getElementById('btnTrigPreset').onclick = function () {
 };
 
 // ── UI: Bunny upload ───────────────────────────────────────────
-document.getElementById('bunnyFileIn').onchange = function (e) {
-  var file = e.target.files[0];
-  if (!file) return;
+document.getElementById('btnUploadBunny').onclick = function () {
+  var entry = meshBank[currentMeshIndex];
   var statusEl = document.getElementById('uploadStatus');
+
+  if (!entry) {
+    statusEl.textContent = 'No mesh loaded';
+    statusEl.style.color = '#FF2D21';
+    return;
+  }
+  if (entry.url) {
+    statusEl.textContent = 'Already on Bunny';
+    statusEl.style.color = '#888';
+    return;
+  }
+  if (!entry.file) {
+    statusEl.textContent = 'Reload GLB to upload';
+    statusEl.style.color = '#FF2D21';
+    return;
+  }
+
+  var file = entry.file;
+  var filename = file.name.toLowerCase().replace(/\s+/g, '_');
   statusEl.textContent = 'Uploading...';
   statusEl.style.color = '#FF6B00';
-  file.arrayBuffer().then(function (arrayBuffer) {
-    var filename = file.name.toLowerCase().replace(/\s+/g, '_');
+
+  file.arrayBuffer().then(function (buf) {
     return fetch(BUNNY_STORAGE_BASE + filename, {
       method: 'PUT',
       headers: {
         'AccessKey': BUNNY_STORAGE_KEY,
         'Content-Type': 'application/octet-stream',
       },
-      body: arrayBuffer,
-    }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var cdnUrl = BUNNY_CDN_BASE + filename;
-      statusEl.textContent = 'Done: ' + filename;
-      statusEl.style.color = '#888';
-      loader.load(cdnUrl, function (gltf) {
-        var group = gltf.scene;
-        normaliseGroup(group);
-        applyMeshMaterials(group);
-        group.visible = false;
-        scene.add(group);
-        meshBank.push({ name: filename.replace('.glb', ''), url: cdnUrl, group: group });
-        switchToMesh(meshBank.length - 1);
-        persistMeshLib();
-      });
+      body: buf,
     });
+  }).then(function (res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var cdnUrl = BUNNY_CDN_BASE + filename;
+    entry.url  = cdnUrl;
+    entry.file = null;
+    entry.name = filename.replace('.glb', '');
+    statusEl.textContent = 'Done: ' + filename;
+    statusEl.style.color = '#888';
+    persistMeshLib();
+    if (typeof updateMeshBankUI === 'function') updateMeshBankUI();
   }).catch(function (err) {
     statusEl.textContent = 'Error: ' + err.message;
     statusEl.style.color = '#FF2D21';
     console.error('Bunny upload error:', err);
   });
-  e.target.value = '';
 };
 
 // ── Boot ───────────────────────────────────────────────────────
