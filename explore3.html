@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v22-mesh-engine -->
+<!-- build: explore3-v23-autoclear-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -144,7 +144,6 @@ var ch = function () { return window.innerHeight; };
 var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw(), ch());
-renderer.autoClearColor = false;
 
 // ── Scene ──────────────────────────────────────────────────────
 var scene  = new THREE.Scene();
