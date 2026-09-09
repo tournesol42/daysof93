@@ -1006,26 +1006,25 @@ function loadPersistedMeshLib() {
     var raw = localStorage.getItem('d93_meshLib');
     if (!raw) return;
     var lib = JSON.parse(raw);
-    lib.forEach(function (entry, libIndex) {
-      var b64key = 'd93_glb_' + (libIndex + 1);
-      var b64 = localStorage.getItem(b64key);
-      if (b64) {
-        loader.load(b64, function (gltf) {
-          var group = gltf.scene;
-          var box = new THREE.Box3().setFromObject(group);
-          var centre = box.getCenter(new THREE.Vector3());
-          group.position.sub(centre);
-          group.visible = false;
-          scene.add(group);
-          applyMeshMaterials(group);
-          meshBank.push({ name: entry.name, url: entry.url, group: group });
-          if (typeof _pendingMeshIndex === 'number' &&
-              meshBank.length - 1 === _pendingMeshIndex) {
-            switchToMesh(_pendingMeshIndex);
-            _pendingMeshIndex = null;
-          }
-        });
-      }
+    lib.forEach(function (entry) {
+      if (!entry.url) return;
+      var filename = entry.url.split('/').pop();
+      var proxyUrl = '/mesh-proxy?file=' + encodeURIComponent(filename);
+      loader.load(proxyUrl, function (gltf) {
+        var group = gltf.scene;
+        var box = new THREE.Box3().setFromObject(group);
+        var centre = box.getCenter(new THREE.Vector3());
+        group.position.sub(centre);
+        group.visible = false;
+        scene.add(group);
+        applyMeshMaterials(group);
+        meshBank.push({ name: entry.name, url: entry.url, group: group });
+        if (typeof _pendingMeshIndex === 'number' &&
+            meshBank.length - 1 === _pendingMeshIndex) {
+          switchToMesh(_pendingMeshIndex);
+          _pendingMeshIndex = null;
+        }
+      });
     });
   } catch(e) { console.warn('meshlib load failed', e); }
 }
