@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v25-msaa -->
+<!-- build: explore3-v26-halffloat -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -169,7 +169,7 @@ var rtOpts = {
   minFilter: THREE.LinearFilter,
   magFilter: THREE.LinearFilter,
   format:    THREE.RGBAFormat,
-  type:      THREE.UnsignedByteType,
+  type:      THREE.HalfFloatType,
 };
 var rtScene = new THREE.WebGLMultisampleRenderTarget(cw(), ch(), rtOpts);
 var rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
