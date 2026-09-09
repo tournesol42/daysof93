@@ -1,30 +1,553 @@
 <!DOCTYPE html>
-<!-- build: explore3-v22-mesh-engine -->
+<!-- build: mesh_admin-v01 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>days of 93</title>
+<title>d93 Admin</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #000; overflow: hidden; }
-#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+body {
+  background: #D0D0D0; color: #333;
+  font-family: 'Space Mono', 'Courier New', monospace; font-size: 10px;
+  height: 100vh; display: flex; flex-direction: column;
+  overflow: hidden; user-select: none;
+}
+.hdr {
+  height: 26px; flex-shrink: 0;
+  border-bottom: 2px solid #FF6B00;
+  display: flex; align-items: center; padding: 0 14px; gap: 14px;
+  background: #C8C8C8;
+}
+.hdr-name { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #000; text-transform: uppercase; }
+.hdr-pill {
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #AAAAAA; border: 1px solid #BBBBBB; padding: 1px 6px;
+}
+.hdr-pill.active { border-color: #FF6B00; color: #FF6B00; }
+.hdr-right { font-size: 10px; color: #AAAAAA; letter-spacing: 0.14em; text-transform: uppercase; margin-left: auto; }
+
+.main {
+  flex: 1; position: relative; overflow: hidden; background: #000;
+  cursor: crosshair;
+}
+#c { display: block; width: 100%; height: 100%; }
+
+.drop-hint {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s;
+}
+.drop-hint.show { opacity: 1; }
+.dh-cross { width: 32px; height: 32px; position: relative; }
+.dh-cross::before, .dh-cross::after {
+  content: ''; position: absolute; background: #FF6B00;
+}
+.dh-cross::before { width: 1px; height: 100%; left: 50%; }
+.dh-cross::after  { width: 100%; height: 1px; top: 50%; }
+.dh-text { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: #555; }
+
+.main.drag-active { outline: 2px solid #FF6B00; outline-offset: -2px; }
+
+.ctrl {
+  flex-shrink: 0; height: 460px;
+  border-top: 2px solid #FF6B00;
+  background: #D0D0D0;
+  display: flex; flex-direction: column;
+}
+.cols { flex: 1; display: flex; min-height: 0; }
+.col {
+  border-right: 1px solid #BBBBBB; padding: 10px 12px;
+  display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+  min-width: 0;
+}
+.col:last-child { border-right: none; }
+.col::-webkit-scrollbar { width: 0; }
+.col-mesh   { width: 94px;  flex-shrink: 0; }
+.col-motion { width: 108px; flex-shrink: 0; }
+.col-trail  { width: 118px; flex-shrink: 0; }
+.col-midi   { width: 148px; flex-shrink: 0; }
+.col-color  { flex: 1; min-width: 160px; }
+.col-tint   { width: 108px; flex-shrink: 0; }
+.col-out    { width: 100px; flex-shrink: 0; }
+
+.col-sec {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.32em;
+  color: #FF6B00; text-transform: uppercase; margin-bottom: 7px; flex-shrink: 0;
+}
+.col-sub {
+  font-size: 6px; font-weight: 700; letter-spacing: 0.24em;
+  color: #999; text-transform: uppercase; margin-bottom: 4px; margin-top: 5px; flex-shrink: 0;
+}
+.cp { margin-bottom: 9px; flex-shrink: 0; }
+.cp-lbl {
+  font-size: 11px; letter-spacing: 0.06em; color: #888;
+  text-transform: uppercase; display: block; margin-bottom: 2px;
+}
+.cp-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 2px; }
+.cp-val { font-size: 16px; font-weight: 700; color: #000; line-height: 1; }
+.cp-unit { font-size: 10px; color: #AAA; }
+
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 1px;
+  background: #BBBBBB; outline: none; cursor: pointer; display: block;
+  margin: 4px 0 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 8px; height: 14px;
+  background: #FF6B00; border-radius: 0;
+}
+
+select.midi-sel {
+  font-family: inherit; font-size: 10px;
+  background: #D0D0D0; border: 1px solid #BBBBBB;
+  color: #555; padding: 2px 4px; outline: none; cursor: pointer;
+  width: 100%; margin-bottom: 4px;
+}
+
+.btn {
+  font-family: inherit; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background: none; border: 1px solid #BBBBBB;
+  color: #777; padding: 3px 6px; cursor: pointer;
+}
+.btn:hover  { border-color: #FF6B00; color: #FF6B00; }
+.btn.on     { border-color: #FF6B00; color: #FF6B00; }
+.btn.wide   { width: 100%; text-align: center; margin-bottom: 3px; }
+.btn-row    { display: flex; gap: 3px; flex-wrap: wrap; }
+
+.cswatch {
+  width: 14px; height: 14px;
+  border: 1px solid #BBBBBB; cursor: pointer; flex-shrink: 0;
+}
+.chex {
+  font-family: inherit; font-size: 8px;
+  background: none; border: none; border-bottom: 1px solid #BBBBBB;
+  color: #333; width: 56px; outline: none; padding: 0;
+}
+.color-row { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+
+.midi-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; flex-shrink: 0; }
+.midi-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+
+.transport {
+  height: 26px; flex-shrink: 0; border-top: 1px solid #BBBBBB;
+  display: flex; align-items: center; padding: 0 12px; gap: 12px;
+  background: #C8C8C8;
+}
+.tst { font-size: 10px; color: #AAAAAA; letter-spacing: 0.14em; text-transform: uppercase; }
+
+#fileIn { display: none; }
+
+.slot-strip {
+  display: flex; flex-wrap: wrap; gap: 2px;
+  overflow-y: auto; max-height: 90px;
+  align-content: flex-start; margin: 4px 0;
+}
+.slot-strip::-webkit-scrollbar { width: 0; }
+.slot-box {
+  width: 20px; height: 20px;
+  font-size: 8px; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #CCCCCC; color: #BBBBBB;
+  cursor: pointer; flex-shrink: 0;
+}
+.slot-box:hover  { border-color: #888; color: #333; }
+.slot-box.filled { border-color: #888; color: #333; background: #C8C8C8; }
+.slot-box.active { border-color: #FF6B00 !important; color: #FF6B00 !important; background: none; }
+.slot-box.filled.active { background: #C8C8C8; }
+
 </style>
 </head>
 <body>
 
-<canvas id="c"></canvas>
+<input type="file" id="fileIn" accept=".glb">
 
+<div class="hdr">
+  <span class="hdr-name">d93 Admin</span>
+  <span class="hdr-pill" id="pillTrail">Trail OFF</span>
+  <span class="hdr-pill" id="pillMode">Wire</span>
+  <span class="hdr-pill" id="pillMidi">MIDI OFF</span>
+  <span class="hdr-right" id="hdrMesh">TorusKnot · default</span>
+  <span class="hdr-right" id="hdrFps" style="margin-left:0">—</span>
+</div>
+
+<div class="main" id="main">
+  <canvas id="c"></canvas>
+  <div class="drop-hint" id="dropHint">
+    <div class="dh-cross"></div>
+    <span class="dh-text">Drop GLB to replace mesh</span>
+  </div>
+</div>
+
+<div class="ctrl">
+  <div class="cols">
+
+    <!-- MESH -->
+    <div class="col col-mesh">
+      <div class="col-sec">Mesh</div>
+      <div class="cp">
+        <label for="fileIn" class="btn wide" style="display:block;text-align:center;cursor:pointer">+ Load GLB</label>
+        <span class="cp-lbl" id="meshCountInfo" style="margin-top:3px">1 / 1</span>
+      </div>
+      <div class="cp">
+        <label for="bunnyFileIn" class="btn wide"
+          style="display:block;text-align:center;cursor:pointer">↑ Upload to Bunny</label>
+        <input type="file" id="bunnyFileIn" accept=".glb" style="display:none">
+        <div id="uploadStatus" style="font-size:10px;color:#AAA;
+          letter-spacing:0.1em;margin-top:3px;text-transform:uppercase">—</div>
+      </div>
+      <div class="bank-list" id="meshBankList"></div>
+      <div class="cp">
+        <div class="btn-row">
+          <button class="btn" id="btnMeshPrev">←</button>
+          <button class="btn" id="btnMeshRnd">Rnd</button>
+          <button class="btn" id="btnMeshNext">→</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Mode</span>
+        <div class="btn-row">
+          <button class="btn on" data-mode="wire">Wire</button>
+          <button class="btn" data-mode="edge">Edge</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Opacity</span>
+        <div class="cp-row">
+          <span class="cp-val" id="opacVal">1.00</span>
+        </div>
+        <input type="range" id="opac" min="0.05" max="1" step="0.01" value="1">
+      </div>
+    </div>
+
+    <!-- MOTION -->
+    <div class="col col-motion">
+      <div class="col-sec">Motion</div>
+      <div class="cp">
+        <span class="cp-lbl">Auto-rotate</span>
+        <div class="btn-row">
+          <button class="btn on" id="btnRot">On</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Speed</span>
+        <div class="cp-row">
+          <span class="cp-val" id="spdVal">0.40</span>
+          <span class="cp-unit">°/f</span>
+        </div>
+        <input type="range" id="spd" min="0.01" max="20" step="0.01" value="0.4">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Lag</span>
+        <div class="cp-row">
+          <span class="cp-val" id="rotLagVal">0.00</span>
+        </div>
+        <input type="range" id="rotLag" min="0" max="0.97" step="0.01" value="0">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Axis</span>
+        <div class="btn-row">
+          <button class="btn" data-axis="x">X</button>
+          <button class="btn on" data-axis="y">Y</button>
+          <button class="btn" data-axis="z">Z</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Scale</span>
+        <div class="cp-row">
+          <span class="cp-val" id="manScaleVal">1.00</span>
+          <span class="cp-unit">×</span>
+        </div>
+        <input type="range" id="manScale" min="0.05" max="5" step="0.01" value="1">
+      </div>
+    </div>
+
+    <!-- TRAIL -->
+    <div class="col col-trail">
+      <div class="col-sec">Trail</div>
+      <div class="cp">
+        <span class="cp-lbl">Enable</span>
+        <div class="btn-row">
+          <button class="btn" id="btnTrail">Off</button>
+          <button class="btn" id="btnClear">Clear</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Type</span>
+        <div class="btn-row">
+          <button class="btn on" data-trailtype="fade">Fade</button>
+          <button class="btn" data-trailtype="paint">Paint</button>
+          <button class="btn" data-trailtype="echo">Echo</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Echo every</span>
+        <div class="cp-row">
+          <span class="cp-val" id="echoVal">8</span>
+          <span class="cp-unit">f</span>
+        </div>
+        <input type="range" id="echoInterval" min="2" max="30" step="1" value="8">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Decay</span>
+        <div class="cp-row">
+          <span class="cp-val" id="decayVal">0.920</span>
+        </div>
+        <input type="range" id="decay" min="0.50" max="0.999" step="0.001" value="0.92">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Blend</span>
+        <div class="btn-row">
+          <button class="btn on" data-blend="0">Add</button>
+          <button class="btn" data-blend="1">Screen</button>
+          <button class="btn" data-blend="2">Mix</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDI -->
+    <div class="col col-midi">
+      <div class="col-sec">MIDI</div>
+
+      <div class="cp">
+        <span class="cp-lbl">Port</span>
+        <select class="midi-sel" id="midiPortSel">
+          <option value="">— none —</option>
+        </select>
+        <button class="btn wide" id="btnMidiRefresh">Refresh</button>
+      </div>
+
+      <div class="col-sub">Transform · vel→range</div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiScale">Off</button>
+        <span class="midi-lbl">Scale</span>
+      </div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiRot">Off</button>
+        <span class="midi-lbl">RotSpd</span>
+      </div>
+
+      <div class="col-sub">Deform</div>
+      <div class="cp" style="margin-bottom:4px">
+        <div class="btn-row">
+          <button class="btn on" data-deformmode="0">Twist</button>
+          <button class="btn" data-deformmode="1">Bend</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Amount</span>
+        <div class="cp-row">
+          <span class="cp-val" id="deformAmtVal">0.00</span>
+        </div>
+        <input type="range" id="deformAmt" min="0" max="2" step="0.01" value="0">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Speed</span>
+        <div class="cp-row">
+          <span class="cp-val" id="deformSpdVal">1.0</span>
+        </div>
+        <input type="range" id="deformSpd" min="0.01" max="10" step="0.01" value="1">
+      </div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiDeform">Off</button>
+        <span class="midi-lbl">Deform amt</span>
+      </div>
+
+      <div class="col-sub">Material</div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiBri">Off</button>
+        <span class="midi-lbl">Brightness</span>
+      </div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiHue">Off</button>
+        <span class="midi-lbl">Hue</span>
+      </div>
+
+      <div class="col-sub">Feedback</div>
+      <div class="midi-row">
+        <button class="btn" id="btnMidiDecay">Off</button>
+        <span class="midi-lbl">Decay</span>
+      </div>
+
+    </div>
+
+    <!-- COLOR MATH -->
+    <div class="col col-color">
+      <div class="col-sec">Color Math</div>
+      <div class="cp">
+        <span class="cp-lbl">Hue shift</span>
+        <div class="cp-row">
+          <span class="cp-val" id="hueVal">0</span>
+          <span class="cp-unit">°</span>
+        </div>
+        <input type="range" id="hue" min="0" max="360" step="1" value="0">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Brightness</span>
+        <div class="cp-row">
+          <span class="cp-val" id="brigVal">0.00</span>
+        </div>
+        <input type="range" id="brig" min="-1" max="1" step="0.01" value="0">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Contrast</span>
+        <div class="cp-row">
+          <span class="cp-val" id="contVal">1.00</span>
+          <span class="cp-unit">×</span>
+        </div>
+        <input type="range" id="cont" min="0" max="4" step="0.01" value="1">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Saturation</span>
+        <div class="cp-row">
+          <span class="cp-val" id="satVal">1.00</span>
+          <span class="cp-unit">×</span>
+        </div>
+        <input type="range" id="sat" min="0" max="4" step="0.01" value="1">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Hue mod</span>
+        <div class="btn-row">
+          <button class="btn" id="btnHueMod">Off</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Rate</span>
+        <div class="cp-row">
+          <span class="cp-val" id="hueModRateVal">1.0</span>
+          <span class="cp-unit">°/f</span>
+        </div>
+        <input type="range" id="hueModRate" min="0.1" max="15" step="0.1" value="1">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Depth</span>
+        <div class="cp-row">
+          <span class="cp-val" id="hueModDepthVal">60</span>
+          <span class="cp-unit">°</span>
+        </div>
+        <input type="range" id="hueModDepth" min="0" max="360" step="1" value="60">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Wave</span>
+        <div class="btn-row">
+          <button class="btn on" data-huewave="sine">Sin</button>
+          <button class="btn" data-huewave="tri">Tri</button>
+          <button class="btn" data-huewave="rnd">Rnd</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TINT -->
+    <div class="col col-tint">
+      <div class="col-sec">Tint</div>
+      <div class="cp">
+        <span class="cp-lbl">Wire / Line</span>
+        <div class="color-row">
+          <div class="cswatch" id="swWire" style="background:#ffffff"></div>
+          <span class="chex" id="hexWire">#FFFFFF</span>
+          <input type="color" id="inWire" value="#ffffff" style="display:none">
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Background</span>
+        <div class="color-row">
+          <div class="cswatch" id="swBg" style="background:#000000"></div>
+          <span class="chex" id="hexBg">#000000</span>
+          <input type="color" id="inBg" value="#000000" style="display:none">
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Output tint</span>
+        <div class="color-row">
+          <div class="cswatch" id="swTint" style="background:#ffffff"></div>
+          <span class="chex" id="hexTint">#FFFFFF</span>
+          <input type="color" id="inTint" value="#ffffff" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="col col-out">
+      <div class="col-sec">Output</div>
+      <div class="cp">
+        <span class="cp-lbl" id="resInfo">—</span>
+      </div>
+      <div class="cp">
+        <button class="btn wide" id="btnResetCam">Reset cam</button>
+        <button class="btn wide" id="btnSnap">Screenshot</button>
+        <button class="btn wide" id="btnResetColor">Reset color</button>
+        <a href="explore3.html" target="_blank"
+           class="btn wide"
+           style="display:block;text-align:center;text-decoration:none;margin-bottom:3px">
+          Open viewer
+        </a>
+      </div>
+    </div>
+
+    <!-- PRESETS -->
+    <div class="col col-last" style="width:120px;flex-shrink:0">
+      <div class="col-sec">Presets</div>
+      <div class="slot-strip" id="slotStrip"></div>
+      <div class="cp">
+        <div class="btn-row">
+          <button class="btn" id="btnSaveSlot"  style="flex:1">Save</button>
+          <button class="btn" id="btnClearSlot" style="flex:1;color:#AAA">Clear</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Interp</span>
+        <div class="btn-row">
+          <button class="btn" id="btnInterpOn">Off</button>
+        </div>
+        <div class="cp-row" style="margin-top:4px">
+          <span class="cp-val" id="interpDurVal">1.0</span>
+          <span class="cp-unit">s</span>
+        </div>
+        <input type="range" id="interpDur" min="0.1" max="10" step="0.1" value="1.0">
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Midi trig</span>
+        <div class="btn-row">
+          <button class="btn" id="btnTrigPreset">Off</button>
+        </div>
+      </div>
+      <div class="cp">
+        <span class="cp-lbl">Navigate</span>
+        <div class="btn-row">
+          <button class="btn on" id="btnPrSeq" data-prmode="SEQ">Seq</button>
+          <button class="btn"    id="btnPrRnd" data-prmode="RANDOM">Rnd</button>
+        </div>
+        <div class="btn-row" style="margin-top:3px">
+          <button class="btn" id="btnPresetPrev">←</button>
+          <button class="btn on" id="btnPresetNext">→</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="transport">
+    <span class="tst" id="triInfo">Tris —</span>
+    <span class="tst" id="vertInfo">Verts —</span>
+    <span class="tst" id="blendInfo">Blend: add</span>
+    <span class="tst" id="decayInfo">Decay —</span>
+  </div>
+</div>
 
 <script>
 (function () {
 
 // ── Bunny CDN config ───────────────────────────────────────────
-var BUNNY_CDN_BASE = 'https://daysof93-cdn.b-cdn.net/meshes/';
+var BUNNY_STORAGE_ZONE = 'daysof93-videos';
+var BUNNY_STORAGE_KEY  = 'REPLACE_WITH_BUNNY_STORAGE_API_KEY';
+var BUNNY_CDN_BASE     = 'https://daysof93-cdn.b-cdn.net/meshes/';
+var BUNNY_STORAGE_BASE = 'https://storage.bunnycdn.com/daysof93-videos/meshes/';
 
 // ── Angle helpers ──────────────────────────────────────────────
 function normalizeAngle(a) {
@@ -138,8 +661,9 @@ var SESSION_KEYS = new Set([
 
 // ── Renderer ───────────────────────────────────────────────────
 var canvas  = document.getElementById('c');
-var cw = function () { return window.innerWidth; };
-var ch = function () { return window.innerHeight; };
+var mainEl  = document.getElementById('main');
+var cw = function () { return mainEl.clientWidth; };
+var ch = function () { return mainEl.clientHeight; };
 
 var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -354,18 +878,16 @@ function randomMesh() {
 }
 function updateMeshBankUI() {
   var list = document.getElementById('meshBankList');
-  if (list) {
-    list.innerHTML = '';
-    meshBank.forEach(function (m, i) {
-      var row = document.createElement('div');
-      row.className = 'bank-item' + (i === currentMeshIndex ? ' active' : '');
-      row.textContent = m.name;
-      row.onclick = (function (idx) { return function () { switchToMesh(idx); }; })(i);
-      list.appendChild(row);
-    });
-  }
-  var mci = document.getElementById('meshCountInfo');
-  if (mci) mci.textContent = (currentMeshIndex + 1) + ' / ' + meshBank.length;
+  list.innerHTML = '';
+  meshBank.forEach(function (m, i) {
+    var row = document.createElement('div');
+    row.className = 'bank-item' + (i === currentMeshIndex ? ' active' : '');
+    row.textContent = m.name;
+    row.onclick = (function (idx) { return function () { switchToMesh(idx); }; })(i);
+    list.appendChild(row);
+  });
+  document.getElementById('meshCountInfo').textContent =
+    (currentMeshIndex + 1) + ' / ' + meshBank.length;
 }
 
 // ── Preset slot engine ─────────────────────────────────────────
@@ -595,11 +1117,12 @@ function syncAllUI() {
   });
 
   var pillTrail = document.getElementById('pillTrail');
-  if (pillTrail) { pillTrail.textContent = 'Trail ' + (S.trailOn ? 'ON' : 'OFF'); pillTrail.classList.toggle('active', S.trailOn); }
+  pillTrail.textContent = 'Trail ' + (S.trailOn ? 'ON' : 'OFF');
+  pillTrail.classList.toggle('active', S.trailOn);
   var pillMode = document.getElementById('pillMode');
-  if (pillMode) pillMode.textContent = S.meshMode === 'wire' ? 'Wire' : 'Edge';
-  var di = document.getElementById('decayInfo'); if (di) di.textContent = 'Decay ' + S.decay.toFixed(3);
-  var bi = document.getElementById('blendInfo'); if (bi) bi.textContent = 'Blend: ' + blendNames[S.blendMode];
+  pillMode.textContent = S.meshMode === 'wire' ? 'Wire' : 'Edge';
+  document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
+  document.getElementById('blendInfo').textContent = 'Blend: ' + blendNames[S.blendMode];
 }
 
 // ── syncDisplayUniforms ────────────────────────────────────────
@@ -804,6 +1327,7 @@ function render() {
   frames++;
   var now = performance.now();
   if (now - lastT > 600) {
+    document.getElementById('hdrFps').textContent = Math.round(frames * 1000 / (now - lastT)) + ' fps';
     frames = 0; lastT = now;
   }
 }
@@ -815,6 +1339,7 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
   rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
+  document.getElementById('resInfo').textContent = w + ' × ' + h;
 }
 window.addEventListener('resize', onResize);
 onResize();
@@ -1051,16 +1576,7 @@ function selectMIDIPort(id) {
 }
 
 function populateMIDIPorts() {
-  var sel = document.getElementById('midiPortSel');
-  if (!sel) {
-    // No UI — just connect first available port
-    if (midiAccess) {
-      var first = null;
-      midiAccess.inputs.forEach(function (input) { if (!first) first = input.id; });
-      if (first) selectMIDIPort(first);
-    }
-    return;
-  }
+  var sel     = document.getElementById('midiPortSel');
   var current = sel.value;
   while (sel.options.length > 1) sel.remove(1);
   if (!midiAccess) return;
@@ -1073,12 +1589,14 @@ function populateMIDIPorts() {
   if (current && midiAccess.inputs.has(current)) {
     sel.value = current;
   }
+  // Re-attach handler after refresh in case ports changed
   selectMIDIPort(sel.value);
 }
 
 function updateMidiPill() {
   var pill = document.getElementById('pillMidi');
-  if (pill) { pill.textContent = midiConnected ? 'MIDI ON' : 'MIDI OFF'; pill.classList.toggle('active', midiConnected); }
+  pill.textContent = midiConnected ? 'MIDI ON' : 'MIDI OFF';
+  pill.classList.toggle('active', midiConnected);
 }
 
 function initMIDI() {
@@ -1092,37 +1610,350 @@ function initMIDI() {
   });
 }
 
-// viewer — no UI bindings
-var blendNames = ['add', 'screen', 'mix'];
+// ── Drag & drop ────────────────────────────────────────────────
+mainEl.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  mainEl.classList.add('drag-active');
+  document.getElementById('dropHint').classList.add('show');
+});
+mainEl.addEventListener('dragleave', function () {
+  mainEl.classList.remove('drag-active');
+  document.getElementById('dropHint').classList.remove('show');
+});
+mainEl.addEventListener('drop', function (e) {
+  e.preventDefault();
+  mainEl.classList.remove('drag-active');
+  document.getElementById('dropHint').classList.remove('show');
+  var files = Array.prototype.slice.call(e.dataTransfer.files);
+  var file  = files.find(function (f) { return f.name.endsWith('.glb'); });
+  if (file) loadGLB(file);
+});
 
-// ── Viewer boot ────────────────────────────────────────────────
+// ── UI: Load ───────────────────────────────────────────────────
+document.getElementById('fileIn').onchange = function (e) {
+  if (e.target.files[0]) loadGLB(e.target.files[0]);
+};
+
+// ── UI: Mesh mode ──────────────────────────────────────────────
+document.querySelectorAll('[data-mode]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-mode]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.meshMode = btn.dataset.mode;
+    document.getElementById('pillMode').textContent = btn.dataset.mode === 'wire' ? 'Wire' : 'Edge';
+    if (currentGroup) applyMeshMaterials(currentGroup);
+  };
+});
+
+// ── UI: Opacity ────────────────────────────────────────────────
+document.getElementById('opac').oninput = function (e) {
+  S.opacity = parseFloat(e.target.value);
+  document.getElementById('opacVal').textContent = S.opacity.toFixed(2);
+  syncWireOpacity();
+};
+
+// ── UI: Auto-rotate ────────────────────────────────────────────
+var btnRot = document.getElementById('btnRot');
+btnRot.onclick = function () {
+  S.autoRot = !S.autoRot;
+  btnRot.classList.toggle('on', S.autoRot);
+  btnRot.textContent = S.autoRot ? 'On' : 'Off';
+};
+
+// ── UI: Speed ──────────────────────────────────────────────────
+document.getElementById('spd').oninput = function (e) {
+  var v = parseFloat(e.target.value);
+  S.rotSpeed = v * (Math.PI / 180);
+  document.getElementById('spdVal').textContent = v.toFixed(2);
+};
+
+document.getElementById('rotLag').oninput = function (e) {
+  S.rotLag = parseFloat(e.target.value);
+  document.getElementById('rotLagVal').textContent = S.rotLag.toFixed(2);
+};
+
+document.getElementById('manScale').oninput = function (e) {
+  S.manualScale = parseFloat(e.target.value);
+  document.getElementById('manScaleVal').textContent = S.manualScale.toFixed(2);
+};
+
+// ── UI: Axis ───────────────────────────────────────────────────
+document.querySelectorAll('[data-axis]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-axis]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.rotAxis = btn.dataset.axis;
+  };
+});
+
+// ── UI: Trail ──────────────────────────────────────────────────
+var btnTrail = document.getElementById('btnTrail');
+btnTrail.onclick = function () {
+  S.trailOn = !S.trailOn;
+  btnTrail.classList.toggle('on', S.trailOn);
+  btnTrail.textContent = S.trailOn ? 'On' : 'Off';
+  var pill = document.getElementById('pillTrail');
+  pill.textContent = 'Trail ' + (S.trailOn ? 'ON' : 'OFF');
+  pill.classList.toggle('active', S.trailOn);
+  if (S.trailOn) { echoFrame = 0; clearTrail(); }
+};
+
+document.getElementById('btnClear').onclick = clearTrail;
+
+document.querySelectorAll('[data-trailtype]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-trailtype]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.trailType = btn.dataset.trailtype;
+    echoFrame = 0;
+  };
+});
+
+document.getElementById('echoInterval').oninput = function (e) {
+  S.echoInterval = parseInt(e.target.value);
+  document.getElementById('echoVal').textContent = S.echoInterval;
+};
+
+document.getElementById('decay').oninput = function (e) {
+  S.decay = parseFloat(e.target.value);
+  document.getElementById('decayVal').textContent = S.decay.toFixed(3);
+  document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
+};
+
+var blendNames = ['add', 'screen', 'mix'];
+document.querySelectorAll('[data-blend]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-blend]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.blendMode = parseInt(btn.dataset.blend);
+    document.getElementById('blendInfo').textContent = 'Blend: ' + blendNames[S.blendMode];
+  };
+});
+
+// ── UI: MIDI port ──────────────────────────────────────────────
+document.getElementById('midiPortSel').onchange = function (e) {
+  selectMIDIPort(e.target.value);
+};
+document.getElementById('btnMidiRefresh').onclick = populateMIDIPorts;
+
+// ── UI: MIDI channel toggles ───────────────────────────────────
+function midiToggle(btnId, key) {
+  var btn = document.getElementById(btnId);
+  btn.onclick = function () {
+    S[key] = !S[key];
+    btn.classList.toggle('on', S[key]);
+    btn.textContent = S[key] ? 'On' : 'Off';
+  };
+}
+midiToggle('btnMidiScale',  'midiScaleOn');
+midiToggle('btnMidiRot',    'midiRotOn');
+midiToggle('btnMidiDeform', 'midiDeformOn');
+midiToggle('btnMidiBri',    'midiBriOn');
+midiToggle('btnMidiDecay',  'midiDecayOn');
+
+// Hue toggle has extra side-effect
+document.getElementById('btnMidiHue').onclick = function () {
+  S.midiHueOn = !S.midiHueOn;
+  this.classList.toggle('on', S.midiHueOn);
+  this.textContent = S.midiHueOn ? 'On' : 'Off';
+  if (!S.midiHueOn) displayMat.uniforms.uHue.value = S.hue;
+};
+
+// ── UI: Deform mode ────────────────────────────────────────────
+document.querySelectorAll('[data-deformmode]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-deformmode]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.deformMode = parseInt(btn.dataset.deformmode);
+  };
+});
+
+document.getElementById('deformAmt').oninput = function (e) {
+  S.deformAmt = parseFloat(e.target.value);
+  document.getElementById('deformAmtVal').textContent = S.deformAmt.toFixed(2);
+};
+document.getElementById('deformSpd').oninput = function (e) {
+  S.deformSpeed = parseFloat(e.target.value);
+  document.getElementById('deformSpdVal').textContent = S.deformSpeed.toFixed(1);
+};
+
+// ── UI: Color math ─────────────────────────────────────────────
+[
+  ['hue',  'hue',        'hueVal',  0],
+  ['brig', 'brightness', 'brigVal', 2],
+  ['cont', 'contrast',   'contVal', 2],
+  ['sat',  'saturation', 'satVal',  2],
+].forEach(function (cfg) {
+  document.getElementById(cfg[0]).oninput = function (e) {
+    S[cfg[1]] = parseFloat(e.target.value);
+    document.getElementById(cfg[2]).textContent = S[cfg[1]].toFixed(cfg[3]);
+  };
+});
+
+// ── UI: Hue modulator ──────────────────────────────────────────
+var btnHueMod = document.getElementById('btnHueMod');
+btnHueMod.onclick = function () {
+  S.hueMod = !S.hueMod;
+  btnHueMod.classList.toggle('on', S.hueMod);
+  btnHueMod.textContent = S.hueMod ? 'On' : 'Off';
+  if (!S.hueMod) { huePhase = 0; displayMat.uniforms.uHue.value = S.hue; }
+};
+
+document.getElementById('hueModRate').oninput = function (e) {
+  S.hueModRate = parseFloat(e.target.value);
+  document.getElementById('hueModRateVal').textContent = S.hueModRate.toFixed(1);
+};
+document.getElementById('hueModDepth').oninput = function (e) {
+  S.hueModDepth = parseInt(e.target.value);
+  document.getElementById('hueModDepthVal').textContent = S.hueModDepth;
+};
+
+document.querySelectorAll('[data-huewave]').forEach(function (btn) {
+  btn.onclick = function () {
+    document.querySelectorAll('[data-huewave]').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+    S.hueModWave = btn.dataset.huewave;
+    huePhase = 0;
+  };
+});
+
+// ── UI: Color pickers ──────────────────────────────────────────
+function bindColor(swId, hexId, inId, stateKey, onChange) {
+  var sw = document.getElementById(swId);
+  var hx = document.getElementById(hexId);
+  var ip = document.getElementById(inId);
+  sw.onclick = function () { ip.click(); };
+  ip.oninput = function () {
+    var c = ip.value;
+    sw.style.background = c;
+    hx.textContent = c.toUpperCase();
+    S[stateKey].set(c);
+    if (onChange) onChange();
+  };
+}
+bindColor('swWire', 'hexWire', 'inWire', 'wireColor', syncWireColor);
+bindColor('swBg',   'hexBg',   'inBg',   'bgColor',   null);
+bindColor('swTint', 'hexTint', 'inTint', 'tintColor', syncDisplayUniforms);
+
+// ── UI: Output ─────────────────────────────────────────────────
+document.getElementById('btnResetCam').onclick = function () {
+  camera.position.set(0, 0, 3.5);
+  controls.reset();
+};
+document.getElementById('btnSnap').onclick = function () {
+  var a = document.createElement('a');
+  a.download = 'meshexp_' + Date.now() + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+};
+document.getElementById('btnResetColor').onclick = function () {
+  S.hue = 0; S.brightness = 0; S.contrast = 1; S.saturation = 1;
+  document.getElementById('hue').value  = 0;  document.getElementById('hueVal').textContent  = '0';
+  document.getElementById('brig').value = 0;  document.getElementById('brigVal').textContent = '0.00';
+  document.getElementById('cont').value = 1;  document.getElementById('contVal').textContent = '1.00';
+  document.getElementById('sat').value  = 1;  document.getElementById('satVal').textContent  = '1.00';
+  syncDisplayUniforms();
+};
+
+// ── UI: Mesh bank ──────────────────────────────────────────────
+document.getElementById('btnMeshPrev').onclick = prevMesh;
+document.getElementById('btnMeshNext').onclick = nextMesh;
+document.getElementById('btnMeshRnd').onclick  = randomMesh;
+
+// ── UI: Presets ────────────────────────────────────────────────
+document.getElementById('btnSaveSlot').onclick  = saveToSlot;
+document.getElementById('btnClearSlot').onclick = clearSlot;
+document.getElementById('btnPresetPrev').onclick = function () {
+  S.presetDir = 'prev';
+  document.getElementById('btnPresetPrev').classList.add('on');
+  document.getElementById('btnPresetNext').classList.remove('on');
+  prevSlot();
+};
+document.getElementById('btnPresetNext').onclick = function () {
+  S.presetDir = 'next';
+  document.getElementById('btnPresetNext').classList.add('on');
+  document.getElementById('btnPresetPrev').classList.remove('on');
+  nextSlot();
+};
+document.querySelectorAll('[data-prmode]').forEach(function (btn) {
+  btn.onclick = function () {
+    presetSeqMode = btn.dataset.prmode;
+    document.querySelectorAll('[data-prmode]').forEach(function (b) {
+      b.classList.toggle('on', b === btn);
+    });
+  };
+});
+document.getElementById('btnInterpOn').onclick = function () {
+  S.interpOn = !S.interpOn;
+  this.classList.toggle('on', S.interpOn);
+  this.textContent = S.interpOn ? 'On' : 'Off';
+};
+document.getElementById('interpDur').oninput = function (e) {
+  S.interpDur = parseFloat(e.target.value);
+  document.getElementById('interpDurVal').textContent = S.interpDur.toFixed(1);
+};
+document.getElementById('btnTrigPreset').onclick = function () {
+  S.midiTriggerPreset = !S.midiTriggerPreset;
+  this.classList.toggle('on', S.midiTriggerPreset);
+  this.textContent = S.midiTriggerPreset ? 'On' : 'Off';
+};
+
+// ── UI: Bunny upload ───────────────────────────────────────────
+document.getElementById('bunnyFileIn').onchange = function (e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = 'Uploading...';
+  statusEl.style.color = '#FF6B00';
+  file.arrayBuffer().then(function (arrayBuffer) {
+    var filename = file.name.toLowerCase().replace(/\s+/g, '_');
+    return fetch(BUNNY_STORAGE_BASE + filename, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': BUNNY_STORAGE_KEY,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: arrayBuffer,
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var cdnUrl = BUNNY_CDN_BASE + filename;
+      statusEl.textContent = 'Done: ' + filename;
+      statusEl.style.color = '#888';
+      loader.load(cdnUrl, function (gltf) {
+        var group = gltf.scene;
+        normaliseGroup(group);
+        applyMeshMaterials(group);
+        group.visible = false;
+        scene.add(group);
+        meshBank.push({ name: filename.replace('.glb', ''), url: cdnUrl, group: group });
+        switchToMesh(meshBank.length - 1);
+        persistMeshLib();
+      });
+    });
+  }).catch(function (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.style.color = '#FF2D21';
+    console.error('Bunny upload error:', err);
+  });
+  e.target.value = '';
+};
+
+// ── Boot ───────────────────────────────────────────────────────
+(function buildSlotStrip() {
+  var strip = document.getElementById('slotStrip');
+  for (var i = 0; i < 100; i++) {
+    var d = document.createElement('div');
+    d.className = 'slot-box' + (i === 0 ? ' active' : '');
+    d.textContent = i + 1;
+    d.dataset.slot = i;
+    d.addEventListener('click', (function (idx) { return function () { selectSlot(idx); }; })(i));
+    strip.appendChild(d);
+  }
+})();
 loadPersistedPresets();
 loadPersistedMeshLib();
-
-try {
-  var _raw = localStorage.getItem('d93_viewerState');
-  if (_raw) {
-    var _snap = JSON.parse(_raw);
-    for (var _key in _snap) {
-      if (_key.charAt(0) === '_') continue;
-      if (!(_key in S)) continue;
-      if (S[_key] && S[_key].isColor) S[_key].set(_snap[_key]);
-      else if (typeof S[_key] !== 'object') S[_key] = _snap[_key];
-    }
-    setTimeout(function () {
-      if (_snap._camX !== undefined) {
-        camera.position.set(_snap._camX, _snap._camY, _snap._camZ);
-        controls.target.set(_snap._tgtX, _snap._tgtY, _snap._tgtZ);
-        controls.update();
-      }
-      if (currentGroup && _snap._rotX !== undefined)
-        currentGroup.rotation.set(_snap._rotX, _snap._rotY, _snap._rotZ);
-      if (_snap._meshIndex !== undefined)
-        switchToMesh(_snap._meshIndex);
-    }, 100);
-  }
-} catch(e) { console.warn('d93: viewer state restore failed', e); }
-
+document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
+updateMeshBankUI();
 render();
 initMIDI();
 
