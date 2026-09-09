@@ -122,6 +122,7 @@ var deformShaderRefs = [];
 var startTime        = performance.now();
 var meshBank         = [];
 var currentMeshIndex = -1;
+var _pendingMeshIndex = null;
 var presets       = Array.from({length: 100}, function () { return null; });
 var activeSlot    = 0;
 var presetSeqMode = 'SEQ';
@@ -1014,6 +1015,11 @@ function loadPersistedMeshLib() {
         group.visible = false;
         scene.add(group);
         meshBank.push({ name: entry.name, url: entry.url, group: group });
+        if (typeof _pendingMeshIndex === 'number' &&
+            meshBank.length - 1 === _pendingMeshIndex) {
+          switchToMesh(_pendingMeshIndex);
+          _pendingMeshIndex = null;
+        }
         updateMeshBankUI();
       });
     });
@@ -1130,17 +1136,16 @@ try {
       if (S[_key] && S[_key].isColor) S[_key].set(_snap[_key]);
       else if (typeof S[_key] !== 'object') S[_key] = _snap[_key];
     }
-    setTimeout(function () {
-      if (_snap._camX !== undefined) {
-        camera.position.set(_snap._camX, _snap._camY, _snap._camZ);
-        controls.target.set(_snap._tgtX, _snap._tgtY, _snap._tgtZ);
-        controls.update();
-      }
-      if (currentGroup && _snap._rotX !== undefined)
-        currentGroup.rotation.set(_snap._rotX, _snap._rotY, _snap._rotZ);
-      if (_snap._meshIndex !== undefined)
-        switchToMesh(_snap._meshIndex);
-    }, 100);
+    if (_snap._meshIndex !== undefined && _snap._meshIndex > 0) {
+      _pendingMeshIndex = _snap._meshIndex;
+    }
+    if (_snap._camX !== undefined) {
+      camera.position.set(_snap._camX, _snap._camY, _snap._camZ);
+      controls.target.set(_snap._tgtX, _snap._tgtY, _snap._tgtZ);
+      controls.update();
+    }
+    if (currentGroup && _snap._rotX !== undefined)
+      currentGroup.rotation.set(_snap._rotX, _snap._rotY, _snap._rotZ);
   }
 } catch(e) { console.warn('d93: viewer state restore failed', e); }
 
