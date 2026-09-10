@@ -1006,11 +1006,9 @@ function loadPersistedMeshLib() {
     var raw = localStorage.getItem('d93_meshLib');
     if (!raw) return;
     var lib = JSON.parse(raw);
-    lib.forEach(function (entry) {
+    lib.forEach(function(entry) {
       if (!entry.url) return;
-      var filename = entry.url.split('/').pop();
-      var proxyUrl = '/mesh-proxy?file=' + encodeURIComponent(filename);
-      loader.load(proxyUrl, function (gltf) {
+      loader.load(entry.url, function(gltf) {
         var group = gltf.scene;
         var box = new THREE.Box3().setFromObject(group);
         var centre = box.getCenter(new THREE.Vector3());
