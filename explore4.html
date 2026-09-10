@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v05-retina-nearest -->
+<!-- build: explore4-v06-highp-whitebg -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
-#cv { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+body { background: #fff; overflow: hidden; width: 100vw; height: 100vh; }
+#cv { position: fixed; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 #vid { display: none; }
 #hud {
   position: fixed; bottom: 16px; left: 16px;
@@ -52,13 +52,13 @@ var VS = [
 ].join('\n');
 
 var FS = [
-  'precision mediump float;',
+  'precision highp float;',
   'uniform sampler2D u_tex;',
   'varying vec2 v_uv;',
   'void main() {',
-  '  vec3 col   = texture2D(u_tex, vec2(v_uv.x * 0.5,        v_uv.y)).rgb;',
+  '  vec3 col    = texture2D(u_tex, vec2(v_uv.x * 0.5,        v_uv.y)).rgb;',
   '  float alpha = texture2D(u_tex, vec2(v_uv.x * 0.5 + 0.5, v_uv.y)).r;',
-  '  gl_FragColor = vec4(col * alpha, 1.0);',
+  '  gl_FragColor = vec4(mix(vec3(1.0), col, alpha), 1.0);',
   '}'
 ].join('\n');
 
