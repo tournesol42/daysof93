@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v02-vp9-direct -->
+<!-- build: explore4-v04-vp9-sbs-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,27 +9,20 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
-#vid {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
+#cv { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+#vid { display: none; }
 #hud {
-  position: fixed;
-  bottom: 16px; left: 16px;
+  position: fixed; bottom: 16px; left: 16px;
   font-family: 'Space Mono', monospace;
-  font-size: 11px;
-  color: rgba(255,107,0,0.8);
-  z-index: 10;
-  line-height: 1.8;
-  pointer-events: none;
+  font-size: 11px; color: rgba(255,107,0,0.8);
+  z-index: 10; line-height: 1.8; pointer-events: none;
 }
 </style>
 </head>
 <body>
 
-<video id="vid" autoplay loop playsinline muted></video>
+<canvas id="cv"></canvas>
+<video id="vid" autoplay loop playsinline muted crossorigin="anonymous"></video>
 <div id="hud">
   <div id="midi-line">MIDI: initialising…</div>
   <div id="vid-line">—</div>
@@ -38,17 +31,80 @@ body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
 <script>
 (function () {
 
-var CDN  = 'https://daysof93-cdn.b-cdn.net/Explore3_highres/';
-// td10 + td14 excluded — flickering
+var CDN  = 'https://daysof93-cdn.b-cdn.net/Web_SBS_VP9/';
 var POOL = [1,2,3,4,5,6,7,8,9,11,12,13];
 var idx  = -1;
 
+var cv       = document.getElementById('cv');
 var vid      = document.getElementById('vid');
 var midiLine = document.getElementById('midi-line');
 var vidLine  = document.getElementById('vid-line');
 
+var gl = cv.getContext('webgl') || cv.getContext('experimental-webgl');
+
+var VS = [
+  'attribute vec2 a_pos;',
+  'varying vec2 v_uv;',
+  'void main() {',
+  '  v_uv = vec2(a_pos.x * 0.5 + 0.5, 1.0 - (a_pos.y * 0.5 + 0.5));',
+  '  gl_Position = vec4(a_pos, 0.0, 1.0);',
+  '}'
+].join('\n');
+
+var FS = [
+  'precision mediump float;',
+  'uniform sampler2D u_tex;',
+  'varying vec2 v_uv;',
+  'void main() {',
+  '  vec3 col   = texture2D(u_tex, vec2(v_uv.x * 0.5,        v_uv.y)).rgb;',
+  '  float alpha = texture2D(u_tex, vec2(v_uv.x * 0.5 + 0.5, v_uv.y)).r;',
+  '  gl_FragColor = vec4(col * alpha, 1.0);',
+  '}'
+].join('\n');
+
+function compile(type, src) {
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s); return s;
+}
+var prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog); gl.useProgram(prog);
+
+var buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+var aPos = gl.getAttribLocation(prog, 'a_pos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+function resize() {
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  gl.viewport(0, 0, cv.width, cv.height);
+}
+resize();
+window.addEventListener('resize', resize);
+
+var ready = false;
+vid.addEventListener('playing', function () { ready = true; });
+
+(function tick() {
+  requestAnimationFrame(tick);
+  if (!ready || vid.readyState < 2) return;
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+})();
+
 function loadVideo(n) {
-  var name = 'td' + String(n).padStart(2,'0') + '.webm';
+  ready = false;
+  var name = 'td' + String(n).padStart(2,'0') + '_sbs.webm';
   vid.src = CDN + name;
   vid.load();
   vid.play().catch(function(){});
@@ -64,9 +120,7 @@ advance();
 
 function attachInput(input) {
   input.onmidimessage = function (e) {
-    if ((e.data[0] & 0xF0) === 0x90 && e.data[2] > 0) {
-      advance();
-    }
+    if ((e.data[0] & 0xF0) === 0x90 && e.data[2] > 0) advance();
   };
 }
 
@@ -74,18 +128,12 @@ if (navigator.requestMIDIAccess) {
   navigator.requestMIDIAccess().then(function (midi) {
     midi.inputs.forEach(attachInput);
     midi.onstatechange = function (e) {
-      if (e.port.type === 'input' && e.port.state === 'connected') {
-        attachInput(e.port);
-      }
+      if (e.port.type === 'input' && e.port.state === 'connected') attachInput(e.port);
     };
     var names = [];
     midi.inputs.forEach(function (i) { names.push(i.name); });
-    midiLine.textContent = names.length
-      ? 'MIDI: ' + names.join(', ')
-      : 'MIDI: connected (no inputs)';
-  }).catch(function (err) {
-    midiLine.textContent = 'MIDI: denied — ' + err.message;
-  });
+    midiLine.textContent = names.length ? 'MIDI: ' + names.join(', ') : 'MIDI: connected (no inputs)';
+  }).catch(function (err) { midiLine.textContent = 'MIDI: denied — ' + err.message; });
 } else {
   midiLine.textContent = 'MIDI: not supported';
 }
