@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v30-baked-presets -->
+<!-- build: explore3-v31-audio-preset-trigger -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -25,6 +25,21 @@ body { background: #000; overflow: hidden; }
 
 <script>
 (function () {
+
+// ── Audio constants ────────────────────────────────────────────
+var AUDIO_BASE = 'https://daysof93-cdn.b-cdn.net/explore3Short_sequences/';
+var AUDIO_FILES = [
+  'Norns1.wav','Norns2.wav','Norns3.wav','Norns4.wav',
+  'Norns5.wav','Norns6.wav','Norns7.wav','Norns8.wav',
+  'Norns9.wav','Norns10.wav','Norns11.wav'
+];
+
+// ── Audio state ────────────────────────────────────────────────
+var audioCtx        = null;
+var masterGain      = null;
+var currentAudioIdx = -1;
+var audioStarted    = false;
+var autoPresetInterval = null;
 
 // ── Baked mesh library ─────────────────────────────────────────
 var MESH_LIBRARY = [
@@ -1191,12 +1206,57 @@ function startAutoPreset() {
     if (presets[i]) filled.push(i);
   }
   if (filled.length < 2) return;
-  setInterval(function() {
+  autoPresetInterval = setInterval(function() {
     var idx;
     do { idx = filled[Math.floor(Math.random() * filled.length)]; }
     while (idx === activeSlot);
     loadSlot(idx);
   }, 3000);
+}
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 1.0;
+  masterGain.connect(audioCtx.destination);
+}
+
+function playNextAudio() {
+  var idx;
+  do { idx = Math.floor(Math.random() * AUDIO_FILES.length); }
+  while (idx === currentAudioIdx && AUDIO_FILES.length > 1);
+  currentAudioIdx = idx;
+
+  var url = AUDIO_BASE + AUDIO_FILES[idx];
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'arraybuffer';
+  xhr.onload = function() {
+    audioCtx.decodeAudioData(xhr.response, function(buffer) {
+      var source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(masterGain);
+      source.onended = function() {
+        triggerRandomPreset();
+        playNextAudio();
+      };
+      source.start(0);
+    });
+  };
+  xhr.send();
+}
+
+function triggerRandomPreset() {
+  var filled = [];
+  for (var i = 0; i < presets.length; i++) {
+    if (presets[i]) filled.push(i);
+  }
+  if (filled.length < 2) return;
+  var idx;
+  do { idx = filled[Math.floor(Math.random() * filled.length)]; }
+  while (idx === activeSlot);
+  loadSlot(idx);
 }
 
 // viewer — no UI bindings
@@ -1211,6 +1271,21 @@ for (var _bi = 0; _bi < BAKED_PRESETS.length; _bi++) {
 loadMeshLibrary();
 
 initMIDI();
+
+function startAudioOnGesture() {
+  initAudio();
+  audioStarted = true;
+  if (autoPresetInterval) {
+    clearInterval(autoPresetInterval);
+    autoPresetInterval = null;
+  }
+  playNextAudio();
+  document.getElementById('c').removeEventListener('click', startAudioOnGesture);
+  document.getElementById('c').removeEventListener('touchend', startAudioOnGesture);
+}
+document.getElementById('c').addEventListener('click', startAudioOnGesture);
+document.getElementById('c').addEventListener('touchend', startAudioOnGesture);
+
 render();
 
 })();
