@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v01-h264-direct -->
+<!-- build: explore4-v02-vp9-direct -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -48,7 +48,7 @@ var midiLine = document.getElementById('midi-line');
 var vidLine  = document.getElementById('vid-line');
 
 function loadVideo(n) {
-  var name = 'td' + String(n).padStart(2,'0') + '.mov';
+  var name = 'td' + String(n).padStart(2,'0') + '.webm';
   vid.src = CDN + name;
   vid.load();
   vid.play().catch(function(){});
