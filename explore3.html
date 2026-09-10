@@ -356,6 +356,7 @@ function switchToMesh(index) {
   currentMeshIndex = index;
   currentGroup = meshBank[index].group;
   scene.add(currentGroup);
+  currentGroup.visible = true;
   currentGroup.rotation.set(0, 0, 0);
   applyMeshMaterials(currentGroup);
   updateMeshBankUI();
