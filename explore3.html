@@ -15,7 +15,7 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #000; overflow: hidden; }
-#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.5s; }
 </style>
 </head>
 <body>
@@ -1154,6 +1154,7 @@ function findMeshByName(name) {
 }
 
 var pendingMeshName = null;
+var firstPresetFired = false;
 
 function loadMeshLibrary() {
   MESH_LIBRARY.forEach(function(entry) {
@@ -1168,6 +1169,14 @@ function loadMeshLibrary() {
       applyMeshMaterials(group);
       meshBank.push({ name: entry.name, url: entry.url, group: group });
       console.log('Mesh loaded:', entry.name, 'bank size:', meshBank.length, 'pending:', pendingMeshName);
+      // Fire first preset as soon as its mesh is ready
+      if (!firstPresetFired && BAKED_PRESETS[0] && entry.name === BAKED_PRESETS[0]._meshName) {
+        firstPresetFired = true;
+        switchToMesh(meshBank.length - 1);
+        loadSlot(0);
+        document.getElementById('c').style.opacity = '1';
+        setTimeout(startAutoPreset, 2000);
+      }
       if (pendingMeshName && entry.name === pendingMeshName) {
         pendingMeshName = null;
         switchToMesh(meshBank.length - 1);
@@ -1200,11 +1209,6 @@ for (var _bi = 0; _bi < BAKED_PRESETS.length; _bi++) {
 }
 
 loadMeshLibrary();
-
-setTimeout(function() {
-  loadSlot(0);
-  setTimeout(startAutoPreset, 2000);
-}, 1500);
 
 initMIDI();
 render();
