@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v36-td-overlay -->
+<!-- build: explore3-v35-xplore-videos -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -15,7 +15,7 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #c8c8c8; overflow: hidden; }
-#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; }
+#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
 .audio-dot {
   position: fixed;
   width: 176px; height: 176px;
@@ -46,10 +46,8 @@ body { background: #c8c8c8; overflow: hidden; }
 <body>
 
 <canvas id="c"></canvas>
-<canvas id="tdcv" style="position:fixed;top:0;left:0;width:100%;
-  height:100%;pointer-events:none;z-index:5;
-  image-rendering:pixelated;"></canvas>
-<video id="tdvid" loop playsinline muted crossorigin="anonymous"
+<canvas id="tdcv" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;image-rendering:pixelated;opacity:0;"></canvas>
+<video id="tdvid" playsinline muted crossorigin="anonymous"
   style="display:none"></video>
 <div class="audio-dot"    id="audioDot"></div>
 <div class="audio-square" id="audioSquare"></div>
@@ -94,7 +92,13 @@ var ENV_SCALE_MAX = 3.5;
 var ENV_ROT_MAX   = 4.0;
 
 // ── TD video compositor ────────────────────────────────────────
-var TD_CDN  = 'https://daysof93-cdn.b-cdn.net/Explore3_SBS/';
+var XPLORE_CDN = 'https://daysof93-cdn.b-cdn.net/Explore3V2_SBS/';
+var XPLORE_FILES = [
+  'xplore3_01_sbs.mp4','xplore3_02_sbs.mp4','xplore3_03_sbs.mp4',
+  'xplore3_04_sbs.mp4','xplore3_05_sbs.mp4','xplore3_06_sbs.mp4',
+  'xplore3_07_sbs.mp4','xplore3_08_sbs.mp4','xplore3_09_sbs.mp4'
+];
+var xploreIdx = 0;
 var tdCv    = document.getElementById('tdcv');
 var tdVid   = document.getElementById('tdvid');
 var tdGl    = tdCv.getContext('webgl', { alpha: true })
@@ -167,11 +171,33 @@ function resizeTD() {
 resizeTD();
 window.addEventListener('resize', resizeTD);
 
-function startTDVideo() {
-  tdVid.src = TD_CDN + 'td09_sbs.mp4';
+function playXploreNext() {
+  var file = XPLORE_FILES[xploreIdx];
+  xploreIdx = (xploreIdx + 1) % XPLORE_FILES.length;
+
+  // Fade in
+  tdCv.style.transition = 'opacity 1.0s';
+  tdCv.style.opacity    = '1';
+  tdActive = true;
+
+  tdVid.removeAttribute('loop');
+  tdVid.src = XPLORE_CDN + file;
   tdVid.load();
   tdVid.play().catch(function(){});
-  tdActive = true;
+
+  tdVid.onended = function() {
+    // Fade out over 1.5s
+    tdActive = false;
+    tdCv.style.transition = 'opacity 1.5s';
+    tdCv.style.opacity    = '0';
+    // Random pause 2–8s after fade
+    var pause = 2000 + Math.random() * 6000;
+    setTimeout(playXploreNext, pause + 1500);
+  };
+}
+
+function startXploreVideos() {
+  setTimeout(playXploreNext, 10000);
 }
 
 // ── Baked mesh library ─────────────────────────────────────────
@@ -306,7 +332,8 @@ var canvas  = document.getElementById('c');
 var cw = function () { return window.innerWidth; };
 var ch = function () { return window.innerHeight; };
 
-var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw(), ch());
 var lineRes = new THREE.Vector2(cw(), ch());
@@ -791,6 +818,7 @@ function syncDisplayUniforms() {
   displayMat.uniforms.uTnt.value.set(S.tintColor.getHex());
   displayMat.uniforms.uBgColor.value.copy(S.bgColor);
   displayMat.uniforms.uTrailMode.value = S.trailOn;
+  document.body.style.background = '#' + S.bgColor.getHexString();
 }
 
 // ── Render loop ────────────────────────────────────────────────
@@ -994,7 +1022,7 @@ function render() {
 
   } else {
     renderer.setRenderTarget(null);
-    renderer.setClearColor(S.bgColor, 1);
+    renderer.setClearColor(0x000000, 0);
     renderer.clear();
     renderer.render(scene, camera);
   }
@@ -1458,7 +1486,7 @@ document.getElementById('audioDot').onclick = function() {
   document.getElementById('audioDot').style.display = 'none';
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
-  startTDVideo();
+  startXploreVideos();
 };
 
 // Square: starts main music (context already unlocked)
