@@ -1166,6 +1166,7 @@ function loadMeshLibrary() {
       scene.add(group);
       applyMeshMaterials(group);
       meshBank.push({ name: entry.name, url: entry.url, group: group });
+      console.log('Mesh loaded:', entry.name, 'bank size:', meshBank.length, 'pending:', pendingMeshName);
       if (pendingMeshName && entry.name === pendingMeshName) {
         pendingMeshName = null;
         switchToMesh(meshBank.length - 1);
