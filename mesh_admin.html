@@ -1974,9 +1974,6 @@ document.getElementById('btnLoadCDN').onclick = function () {
   }
 })();
 loadPersistedPresets();
-// Clear stale mesh library so proxy URLs are used fresh
-localStorage.removeItem('d93_meshLib');
-localStorage.removeItem('d93_viewerState');
 loadPersistedMeshLib();
 document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
 updateMeshBankUI();
