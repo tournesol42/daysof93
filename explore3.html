@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v33-envelope-scale -->
+<!-- build: explore3-v34-dot-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -18,19 +18,20 @@ body { background: #c8c8c8; overflow: hidden; }
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; }
 .audio-dot {
   position: fixed;
-  width: 56px; height: 56px;
+  width: 22px; height: 22px;
   background: #FF6B00;
-  right: 48px;
-  top: 50%; transform: translateY(-50%);
+  right: 44px;
+  top: 50%;
+  transform: translateY(-50%);
   cursor: pointer;
   z-index: 200;
   animation: d93pulse 1.4s ease-in-out infinite;
 }
 .audio-square {
   position: fixed;
-  width: 10px; height: 10px;
+  width: 22px; height: 22px;
   background: #FF6B00;
-  bottom: 18px; right: 18px;
+  bottom: 44px; right: 44px;
   cursor: pointer;
   z-index: 200;
   display: none;
@@ -83,8 +84,8 @@ var analyserData  = null;
 var audioScale    = 1.0;
 var envAmp        = 0.0;
 var ENV_LAG       = 0.88;
-var ENV_THRESHOLD = 0.55;
-var ENV_SCALE_MAX = 2.8;
+var ENV_THRESHOLD = 0.45;
+var ENV_SCALE_MAX = 2.5;
 
 // ── Baked mesh library ─────────────────────────────────────────
 var MESH_LIBRARY = [
@@ -710,19 +711,18 @@ function render() {
 
   if (analyser && currentGroup) {
     analyser.getByteFrequencyData(analyserData);
-    var bandEnd = Math.floor(analyserData.length * 0.5);
+    var bandEnd = Math.floor(analyserData.length * 0.4);
     var sum = 0;
-    for (var ei = 0; ei < bandEnd; ei++) sum += analyserData[ei];
-    var amp = sum / (bandEnd * 255);
+    for (var ei = 8; ei < bandEnd; ei++) sum += analyserData[ei];
+    var amp = sum / ((bandEnd - 8) * 255);
     envAmp = envAmp * ENV_LAG + amp * (1.0 - ENV_LAG);
     if (envAmp > ENV_THRESHOLD) {
       var t = (envAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD);
-      audioScale += (1.0 + t * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.15;
+      audioScale += (1.0 + t * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.12;
     } else {
-      audioScale += (1.0 - audioScale) * 0.04;
+      audioScale += (1.0 - audioScale) * 0.03;
     }
     var effectiveScale = S.manualScale * audioScale;
-    if (S.midiScaleOn) effectiveScale *= midiVals.scale;
     currentGroup.scale.setScalar(effectiveScale);
   }
 
@@ -1253,7 +1253,6 @@ function loadMeshLibrary() {
         firstPresetFired = true;
         switchToMesh(meshBank.length - 1);
         loadSlot(0);
-        document.getElementById('c').style.opacity = '1';
         setTimeout(function() {
           document.getElementById('audioSquare').style.display = 'block';
         }, 20000);
