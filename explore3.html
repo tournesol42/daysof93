@@ -83,9 +83,9 @@ var analyser      = null;
 var analyserData  = null;
 var audioScale    = 1.0;
 var envAmp        = 0.0;
-var ENV_LAG       = 0.88;
-var ENV_THRESHOLD = 0.45;
-var ENV_SCALE_MAX = 2.5;
+var ENV_LAG       = 0.75;
+var ENV_THRESHOLD = 0.02;
+var ENV_SCALE_MAX = 3.5;
 
 // ── Baked mesh library ─────────────────────────────────────────
 var MESH_LIBRARY = [
@@ -710,17 +710,19 @@ function render() {
   requestAnimationFrame(render);
 
   if (analyser && currentGroup) {
-    analyser.getByteFrequencyData(analyserData);
-    var bandEnd = Math.floor(analyserData.length * 0.4);
-    var sum = 0;
-    for (var ei = 8; ei < bandEnd; ei++) sum += analyserData[ei];
-    var amp = sum / ((bandEnd - 8) * 255);
-    envAmp = envAmp * ENV_LAG + amp * (1.0 - ENV_LAG);
+    analyser.getByteTimeDomainData(analyserData);
+    var rmsSum = 0;
+    for (var ei = 0; ei < analyserData.length; ei++) {
+      var v = (analyserData[ei] - 128.0) / 128.0;
+      rmsSum += v * v;
+    }
+    var rms = Math.sqrt(rmsSum / analyserData.length);
+    envAmp = envAmp * ENV_LAG + rms * (1.0 - ENV_LAG);
     if (envAmp > ENV_THRESHOLD) {
-      var t = (envAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD);
-      audioScale += (1.0 + t * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.12;
+      var t = Math.min((envAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD), 1.0);
+      audioScale += (1.0 + t * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.15;
     } else {
-      audioScale += (1.0 - audioScale) * 0.03;
+      audioScale += (1.0 - audioScale) * 0.04;
     }
     var effectiveScale = S.manualScale * audioScale;
     currentGroup.scale.setScalar(effectiveScale);
@@ -1287,9 +1289,9 @@ function initAudio() {
   masterGain.gain.value = 1.0;
   masterGain.connect(audioCtx.destination);
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 512;
+  analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.0;
-  analyserData = new Uint8Array(analyser.frequencyBinCount);
+  analyserData = new Uint8Array(analyser.fftSize);
   masterGain.connect(analyser);
 }
 
