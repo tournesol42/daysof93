@@ -1201,10 +1201,10 @@ for (var _bi = 0; _bi < BAKED_PRESETS.length; _bi++) {
 
 loadMeshLibrary();
 
-setTimeout(function () {
+setTimeout(function() {
   loadSlot(0);
-  startAutoPreset();
-}, 2000);
+  setTimeout(startAutoPreset, 2000);
+}, 1500);
 
 initMIDI();
 render();
