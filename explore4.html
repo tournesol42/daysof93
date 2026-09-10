@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v04-vp9-sbs-fix -->
+<!-- build: explore4-v05-retina-nearest -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -80,13 +80,17 @@ gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
 var tex = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, tex);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 function resize() {
-  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  var dpr = window.devicePixelRatio || 1;
+  cv.width  = window.innerWidth  * dpr;
+  cv.height = window.innerHeight * dpr;
+  cv.style.width  = window.innerWidth  + 'px';
+  cv.style.height = window.innerHeight + 'px';
   gl.viewport(0, 0, cv.width, cv.height);
 }
 resize();
