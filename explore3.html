@@ -180,6 +180,7 @@ var echoFrame      = 0;
 var huePhase       = 0;
 var currentScale   = 1.0;
 var smoothRotSpeed = 0.007;
+var audioRotMult   = 1.0;
 
 var interpActive = false;
 var interpFrom   = null;
@@ -729,8 +730,7 @@ function render() {
     }
     currentGroup.scale.setScalar(S.manualScale * audioScale);
 
-    var rotMod = 1.0 + envT * (ENV_ROT_MAX - 1.0);
-    smoothRotSpeed = smoothRotSpeed * 0.9 + (S.rotSpeed * rotMod) * 0.1;
+    audioRotMult = 1.0 + envT * (ENV_ROT_MAX - 1.0);
   }
 
   controls.update();
@@ -815,7 +815,7 @@ function render() {
   var targetRotSpeed = (S.midiRotOn && midiActive.rot) ? midiVals.rot : S.rotSpeed;
   smoothRotSpeed += (targetRotSpeed - smoothRotSpeed) * (1.0 - S.rotLag);
   if (S.autoRot && currentGroup) {
-    currentGroup.rotation[S.rotAxis] += smoothRotSpeed;
+    currentGroup.rotation[S.rotAxis] += smoothRotSpeed * audioRotMult;
     currentGroup.rotation.x = normalizeAngle(currentGroup.rotation.x);
     currentGroup.rotation.y = normalizeAngle(currentGroup.rotation.y);
     currentGroup.rotation.z = normalizeAngle(currentGroup.rotation.z);
