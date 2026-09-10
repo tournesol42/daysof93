@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v35-xplore-videos -->
+<!-- build: explore3-v36-grid-cross -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -14,7 +14,39 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #c8c8c8; overflow: hidden; }
+body { background: #c8c8c8; overflow: hidden; cursor: none; }
+
+#d93-grid {
+  position: fixed; inset: 0;
+  z-index: 1; pointer-events: none;
+  opacity: 0; transition: opacity 1.5s;
+}
+
+#ws-ch {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 999; opacity: 0;
+  transition: opacity 0.3s;
+}
+#ws-ch-v {
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 0.75px;
+  background: rgba(255,107,0,0.55);
+}
+#ws-ch-h {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 0.75px;
+  background: rgba(255,107,0,0.55);
+}
+#ws-ch-sq {
+  position: absolute;
+  width: 7px; height: 7px;
+  border: 0.75px solid rgba(255,107,0,0.75);
+  transform: translate(-50%, -50%);
+  top: 50%; left: 50%;
+}
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
 .audio-dot {
   position: fixed;
@@ -46,6 +78,15 @@ body { background: #c8c8c8; overflow: hidden; }
 <body>
 
 <canvas id="c"></canvas>
+
+<svg id="d93-grid"></svg>
+
+<div id="ws-ch">
+  <div id="ws-ch-v"></div>
+  <div id="ws-ch-h"></div>
+  <div id="ws-ch-sq"></div>
+</div>
+
 <canvas id="tdcv" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;image-rendering:pixelated;opacity:0;"></canvas>
 <video id="tdvid" playsinline muted crossorigin="anonymous"
   style="display:none"></video>
@@ -1378,6 +1419,7 @@ function loadMeshLibrary() {
         firstPresetFired = true;
         switchToMesh(meshBank.length - 1);
         loadSlot(0);
+        document.getElementById('d93-grid').style.opacity = '1';
         setTimeout(function() {
           document.getElementById('audioSquare').style.display = 'block';
         }, 20000);
@@ -1475,6 +1517,62 @@ var blendNames = ['add', 'screen', 'mix'];
 for (var _bi = 0; _bi < BAKED_PRESETS.length; _bi++) {
   if (BAKED_PRESETS[_bi]) presets[_bi] = BAKED_PRESETS[_bi];
 }
+
+// ── Perspective grid ───────────────────────────────────────────
+function buildGrid() {
+  var svg = document.getElementById('d93-grid');
+  var w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  var vpX = w * 0.5, vpY = h * 0.60;
+  var lines = '';
+  var bands = 18;
+  for (var i = 0; i <= bands; i++) {
+    var t = i / bands;
+    var y = vpY + Math.pow(t, 1.8) * (h - vpY);
+    var op = (0.50 * (1 - t * 0.5)).toFixed(3);
+    lines += '<line x1="0" y1="' + y.toFixed(1) + '" x2="' + w +
+             '" y2="' + y.toFixed(1) + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="' + op + '"/>';
+  }
+  var cols = 16;
+  for (var i = 0; i <= cols; i++) {
+    var x = (i / cols) * w;
+    var x2 = vpX + (x - vpX) * 0.12;
+    lines += '<line x1="' + x.toFixed(1) + '" y1="' + h + '" x2="' +
+             x2.toFixed(1) + '" y2="' + vpY.toFixed(1) +
+             '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.40"/>';
+  }
+  lines += '<line x1="0" y1="' + vpY.toFixed(1) + '" x2="' + w +
+           '" y2="' + vpY.toFixed(1) + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.50"/>';
+  lines += '<line x1="' + vpX.toFixed(1) + '" y1="0" x2="' + vpX.toFixed(1) +
+           '" y2="' + h + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.45"/>';
+  svg.innerHTML = lines;
+}
+
+buildGrid();
+window.addEventListener('resize', buildGrid);
+
+// ── Orange crosshair ───────────────────────────────────────────
+var wsCh    = document.getElementById('ws-ch');
+var wsChV   = document.getElementById('ws-ch-v');
+var wsChH   = document.getElementById('ws-ch-h');
+var wsChSq  = document.getElementById('ws-ch-sq');
+var wsChTimer = null;
+
+function moveCrosshair(x, y) {
+  wsChV.style.left  = x + 'px';
+  wsChH.style.top   = y + 'px';
+  wsChSq.style.left = x + 'px';
+  wsChSq.style.top  = y + 'px';
+  wsCh.style.opacity = '1';
+  clearTimeout(wsChTimer);
+  wsChTimer = setTimeout(function() { wsCh.style.opacity = '0'; }, 2000);
+}
+
+window.addEventListener('mousemove', function(e) {
+  moveCrosshair(e.clientX, e.clientY);
+});
 
 loadMeshLibrary();
 
