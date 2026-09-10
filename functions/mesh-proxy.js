@@ -8,7 +8,7 @@ export async function onRequestGet(context) {
   }
 
   // Fetch from Storage API (no hotlink protection) using API key
-  const storageUrl = 'https://storage.bunnycdn.com/daysof93-videos/meshes/' + filename;
+  const storageUrl = 'https://storage.bunnycdn.com/daysof93-videos/Explore3_meshes/' + filename;
   const res = await fetch(storageUrl, {
     headers: {
       'AccessKey': env.BUNNY_STORAGE_KEY,

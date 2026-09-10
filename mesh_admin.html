@@ -196,9 +196,25 @@ select.midi-sel {
         <span class="cp-lbl" id="meshCountInfo" style="margin-top:3px">1 / 1</span>
       </div>
       <div class="cp">
-        <button class="btn wide" id="btnUploadBunny" style="display:block;width:100%;text-align:center;cursor:pointer">↑ Upload to Bunny</button>
-        <div id="uploadStatus" style="font-size:10px;color:#AAA;
-          letter-spacing:0.1em;margin-top:3px;text-transform:uppercase">—</div>
+        <span class="cp-lbl">CDN Meshes</span>
+        <select id="cdnMeshSel" style="font-family:inherit;font-size:10px;
+          background:none;border:none;border-bottom:1px solid #BBBBBB;
+          color:#333;outline:none;cursor:pointer;width:100%;padding:2px 0">
+          <option value="">— select —</option>
+          <option value="days93_state1.glb">days93_state1</option>
+          <option value="days93_state11.glb">days93_state11</option>
+          <option value="days93_state12.glb">days93_state12</option>
+          <option value="days93_state13.glb">days93_state13</option>
+          <option value="days93_state14.glb">days93_state14</option>
+          <option value="days93_state15.glb">days93_state15</option>
+          <option value="days93_state16.glb">days93_state16</option>
+          <option value="days93_state17.glb">days93_state17</option>
+          <option value="days93_state18.glb">days93_state18</option>
+          <option value="do93_cad.glb">do93_cad</option>
+          <option value="do93_cad2.glb">do93_cad2</option>
+        </select>
+        <button class="btn wide" id="btnLoadCDN"
+          style="margin-top:4px">Load</button>
       </div>
       <div class="bank-list" id="meshBankList"></div>
       <div class="cp">
@@ -539,10 +555,7 @@ select.midi-sel {
 (function () {
 
 // ── Bunny CDN config ───────────────────────────────────────────
-var BUNNY_STORAGE_ZONE = 'daysof93-videos';
-var BUNNY_STORAGE_KEY  = '775feee5-edcd-4a27-bebca34f04df-b3c5-401a';
-var BUNNY_CDN_BASE     = 'https://daysof93-cdn.b-cdn.net/meshes/';
-var BUNNY_STORAGE_BASE = 'https://storage.de.bunnycdn.com/daysof93-videos/meshes/';
+var BUNNY_CDN_BASE = 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/';
 
 // ── Angle helpers ──────────────────────────────────────────────
 function normalizeAngle(a) {
@@ -1513,7 +1526,9 @@ function loadPersistedMeshLib() {
     var lib = JSON.parse(raw);
     lib.forEach(function (entry) {
       if (!entry.url) return;
-      loader.load(entry.url, function (gltf) {
+      var filename = entry.url.split('/').pop();
+      var proxyUrl = '/mesh-proxy?file=' + encodeURIComponent(filename);
+      loader.load(proxyUrl, function (gltf) {
         var group = gltf.scene;
         var box = new THREE.Box3().setFromObject(group);
         var centre = box.getCenter(new THREE.Vector3());
@@ -1921,53 +1936,28 @@ document.getElementById('btnTrigPreset').onclick = function () {
   this.textContent = S.midiTriggerPreset ? 'On' : 'Off';
 };
 
-// ── UI: Bunny upload ───────────────────────────────────────────
-document.getElementById('btnUploadBunny').onclick = function () {
-  var entry = meshBank[currentMeshIndex];
-  var statusEl = document.getElementById('uploadStatus');
-
-  if (!entry) {
-    statusEl.textContent = 'No mesh loaded';
-    statusEl.style.color = '#FF2D21';
-    return;
+// ── UI: CDN mesh load ──────────────────────────────────────────
+document.getElementById('btnLoadCDN').onclick = function () {
+  var sel = document.getElementById('cdnMeshSel');
+  var filename = sel.value;
+  if (!filename) return;
+  var url = BUNNY_CDN_BASE + filename;
+  var name = filename.replace('.glb', '');
+  for (var i = 0; i < meshBank.length; i++) {
+    if (meshBank[i].url === url) { switchToMesh(i); return; }
   }
-  if (entry.url) {
-    statusEl.textContent = 'Already on Bunny';
-    statusEl.style.color = '#888';
-    return;
-  }
-  if (!entry.file) {
-    statusEl.textContent = 'Reload GLB to upload';
-    statusEl.style.color = '#FF2D21';
-    return;
-  }
-
-  var file = entry.file;
-  var filename = file.name.toLowerCase().replace(/\s+/g, '_');
-  statusEl.textContent = 'Uploading...';
-  statusEl.style.color = '#FF6B00';
-
-  file.arrayBuffer().then(function (buf) {
-    return fetch('/upload-mesh?filename=' + encodeURIComponent(filename), {
-      method: 'POST',
-      body: buf,
-    });
-  }).then(function (res) {
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
-  }).then(function (data) {
-    var cdnUrl = data.url;
-    entry.url  = cdnUrl;
-    entry.file = null;
-    entry.name = filename.replace('.glb', '');
-    statusEl.textContent = 'Done: ' + filename;
-    statusEl.style.color = '#888';
+  var proxyUrl = '/mesh-proxy?file=' + encodeURIComponent(filename);
+  loader.load(proxyUrl, function (gltf) {
+    var group = gltf.scene;
+    var box = new THREE.Box3().setFromObject(group);
+    var centre = box.getCenter(new THREE.Vector3());
+    group.position.sub(centre);
+    scene.add(group);
+    applyMeshMaterials(group);
+    meshBank.push({ name: name, url: url, group: group });
+    switchToMesh(meshBank.length - 1);
     persistMeshLib();
-    if (typeof updateMeshBankUI === 'function') updateMeshBankUI();
-  }).catch(function (err) {
-    statusEl.textContent = 'Error: ' + err.message;
-    statusEl.style.color = '#FF2D21';
-    console.error('Bunny upload error:', err);
+    updateMeshBankUI();
   });
 };
 
@@ -1984,6 +1974,9 @@ document.getElementById('btnUploadBunny').onclick = function () {
   }
 })();
 loadPersistedPresets();
+// Clear stale mesh library so proxy URLs are used fresh
+localStorage.removeItem('d93_meshLib');
+localStorage.removeItem('d93_viewerState');
 loadPersistedMeshLib();
 document.getElementById('decayInfo').textContent = 'Decay ' + S.decay.toFixed(3);
 updateMeshBankUI();
