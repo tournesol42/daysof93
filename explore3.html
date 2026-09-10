@@ -86,6 +86,7 @@ var envAmp        = 0.0;
 var ENV_LAG       = 0.75;
 var ENV_THRESHOLD = 0.02;
 var ENV_SCALE_MAX = 3.5;
+var ENV_ROT_MAX   = 4.0;
 
 // ── Baked mesh library ─────────────────────────────────────────
 var MESH_LIBRARY = [
@@ -717,15 +718,19 @@ function render() {
       rmsSum += v * v;
     }
     var rms = Math.sqrt(rmsSum / analyserData.length);
-    envAmp = envAmp * ENV_LAG + rms * (1.0 - ENV_LAG);
+    var lag = rms > envAmp ? 0.45 : ENV_LAG;
+    envAmp = envAmp * lag + rms * (1.0 - lag);
+    var envT = 0.0;
     if (envAmp > ENV_THRESHOLD) {
-      var t = Math.min((envAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD), 1.0);
-      audioScale += (1.0 + t * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.15;
+      envT = Math.min((envAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD), 1.0);
+      audioScale += (1.0 + envT * (ENV_SCALE_MAX - 1.0) - audioScale) * 0.15;
     } else {
       audioScale += (1.0 - audioScale) * 0.04;
     }
-    var effectiveScale = S.manualScale * audioScale;
-    currentGroup.scale.setScalar(effectiveScale);
+    currentGroup.scale.setScalar(S.manualScale * audioScale);
+
+    var rotMod = 1.0 + envT * (ENV_ROT_MAX - 1.0);
+    smoothRotSpeed = smoothRotSpeed * 0.9 + (S.rotSpeed * rotMod) * 0.1;
   }
 
   controls.update();
