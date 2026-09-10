@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v35-presets-v2 -->
+<!-- build: explore3-v36-td-overlay -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -46,6 +46,11 @@ body { background: #c8c8c8; overflow: hidden; }
 <body>
 
 <canvas id="c"></canvas>
+<canvas id="tdcv" style="position:fixed;top:0;left:0;width:100%;
+  height:100%;pointer-events:none;z-index:5;
+  image-rendering:pixelated;"></canvas>
+<video id="tdvid" loop playsinline muted crossorigin="anonymous"
+  style="display:none"></video>
 <div class="audio-dot"    id="audioDot"></div>
 <div class="audio-square" id="audioSquare"></div>
 
@@ -87,6 +92,87 @@ var ENV_LAG       = 0.75;
 var ENV_THRESHOLD = 0.02;
 var ENV_SCALE_MAX = 3.5;
 var ENV_ROT_MAX   = 4.0;
+
+// ── TD video compositor ────────────────────────────────────────
+var TD_CDN  = 'https://daysof93-cdn.b-cdn.net/Explore3_SBS/';
+var tdCv    = document.getElementById('tdcv');
+var tdVid   = document.getElementById('tdvid');
+var tdGl    = tdCv.getContext('webgl', { alpha: true })
+           || tdCv.getContext('experimental-webgl', { alpha: true });
+var tdReady  = false;
+var tdActive = false;
+
+(function initTDCompositor() {
+  var VS = [
+    'attribute vec2 a_pos;',
+    'varying vec2 v_uv;',
+    'void main() {',
+    '  v_uv = vec2(a_pos.x*0.5+0.5, 1.0-(a_pos.y*0.5+0.5));',
+    '  gl_Position = vec4(a_pos, 0.0, 1.0);',
+    '}'
+  ].join('\n');
+
+  var FS = [
+    'precision highp float;',
+    'uniform sampler2D u_tex;',
+    'varying vec2 v_uv;',
+    'void main() {',
+    '  vec3 col   = texture2D(u_tex, vec2(v_uv.x*0.5,       v_uv.y)).rgb;',
+    '  float alph = texture2D(u_tex, vec2(v_uv.x*0.5+0.5,  v_uv.y)).r;',
+    '  gl_FragColor = vec4(col, alph);',
+    '}'
+  ].join('\n');
+
+  function compileShader(type, src) {
+    var s = tdGl.createShader(type);
+    tdGl.shaderSource(s, src); tdGl.compileShader(s); return s;
+  }
+  var prog = tdGl.createProgram();
+  tdGl.attachShader(prog, compileShader(tdGl.VERTEX_SHADER,   VS));
+  tdGl.attachShader(prog, compileShader(tdGl.FRAGMENT_SHADER, FS));
+  tdGl.linkProgram(prog); tdGl.useProgram(prog);
+
+  var buf = tdGl.createBuffer();
+  tdGl.bindBuffer(tdGl.ARRAY_BUFFER, buf);
+  tdGl.bufferData(tdGl.ARRAY_BUFFER,
+    new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), tdGl.STATIC_DRAW);
+  var aPos = tdGl.getAttribLocation(prog, 'a_pos');
+  tdGl.enableVertexAttribArray(aPos);
+  tdGl.vertexAttribPointer(aPos, 2, tdGl.FLOAT, false, 0, 0);
+
+  var tex = tdGl.createTexture();
+  tdGl.bindTexture(tdGl.TEXTURE_2D, tex);
+  tdGl.texParameteri(tdGl.TEXTURE_2D, tdGl.TEXTURE_MIN_FILTER, tdGl.NEAREST);
+  tdGl.texParameteri(tdGl.TEXTURE_2D, tdGl.TEXTURE_MAG_FILTER, tdGl.NEAREST);
+  tdGl.texParameteri(tdGl.TEXTURE_2D, tdGl.TEXTURE_WRAP_S, tdGl.CLAMP_TO_EDGE);
+  tdGl.texParameteri(tdGl.TEXTURE_2D, tdGl.TEXTURE_WRAP_T, tdGl.CLAMP_TO_EDGE);
+
+  tdVid.addEventListener('playing', function() { tdReady = true; });
+
+  (function tdTick() {
+    requestAnimationFrame(tdTick);
+    if (!tdActive || !tdReady || tdVid.readyState < 2) return;
+    tdGl.texImage2D(tdGl.TEXTURE_2D, 0, tdGl.RGBA,
+                    tdGl.RGBA, tdGl.UNSIGNED_BYTE, tdVid);
+    tdGl.drawArrays(tdGl.TRIANGLE_STRIP, 0, 4);
+  })();
+})();
+
+function resizeTD() {
+  var dpr = window.devicePixelRatio || 1;
+  tdCv.width  = window.innerWidth  * dpr;
+  tdCv.height = window.innerHeight * dpr;
+  tdGl.viewport(0, 0, tdCv.width, tdCv.height);
+}
+resizeTD();
+window.addEventListener('resize', resizeTD);
+
+function startTDVideo() {
+  tdVid.src = TD_CDN + 'td09_sbs.mp4';
+  tdVid.load();
+  tdVid.play().catch(function(){});
+  tdActive = true;
+}
 
 // ── Baked mesh library ─────────────────────────────────────────
 var MESH_LIBRARY = [
@@ -1372,6 +1458,7 @@ document.getElementById('audioDot').onclick = function() {
   document.getElementById('audioDot').style.display = 'none';
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
+  startTDVideo();
 };
 
 // Square: starts main music (context already unlocked)
