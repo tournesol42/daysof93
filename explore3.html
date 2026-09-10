@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v28-conditional-linemat -->
+<!-- build: explore3-v29-no-preservebuffer -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -15,7 +15,7 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #000; overflow: hidden; }
-#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 </style>
 </head>
 <body>
@@ -145,7 +145,7 @@ var canvas  = document.getElementById('c');
 var cw = function () { return window.innerWidth; };
 var ch = function () { return window.innerHeight; };
 
-var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw(), ch());
 var lineRes = new THREE.Vector2(cw(), ch());
