@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v29-no-preservebuffer -->
+<!-- build: explore3-v30-baked-presets -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -25,6 +25,25 @@ body { background: #000; overflow: hidden; }
 
 <script>
 (function () {
+
+// ── Baked mesh library ─────────────────────────────────────────
+var MESH_LIBRARY = [
+  { name: 'Default',        url: null },
+  { name: 'days93_state1',  url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state1.glb' },
+  { name: 'days93_state11', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state11.glb' },
+  { name: 'days93_state12', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state12.glb' },
+  { name: 'days93_state13', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state13.glb' },
+  { name: 'days93_state14', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state14.glb' },
+  { name: 'days93_state15', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state15.glb' },
+  { name: 'days93_state16', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state16.glb' },
+  { name: 'days93_state17', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state17.glb' },
+  { name: 'days93_state18', url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/days93_state18.glb' },
+  { name: 'do93_cad',       url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/do93_cad.glb' },
+  { name: 'do93_cad2',      url: 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/do93_cad2.glb' },
+];
+
+// ── Baked presets ─────────────────────────────────────────────
+var BAKED_PRESETS = [{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"y","rotSpeed":0.008377580409572781,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":1,"wireColor":"#ffffff","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":1,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":1,"rotLag":0.21,"interpOn":false,"interpDur":1,"_camX":0.7628652724803089,"_camY":1.9007871091544946,"_camZ":4.489050602812826,"_tgtX":0.5387614810859743,"_tgtY":-0.41888981148766063,"_tgtZ":0.05192703747891,"_rotX":0,"_rotY":-2.308146357845253,"_rotZ":0,"_scaleX":1,"_scaleY":1,"_scaleZ":1,"_meshIndex":1,"_meshName":"days93_state1"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"y","rotSpeed":0.004014257279586958,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":1,"wireColor":"#ffffff","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":1,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":1,"rotLag":0.21,"interpOn":false,"interpDur":1,"_camX":-1.2798461039301297,"_camY":-1.3056212398473674,"_camZ":5.255378559802654,"_tgtX":-0.12105290239618652,"_tgtY":-0.3162115770322865,"_tgtZ":-0.08485002252273657,"_rotX":0,"_rotY":1.241565370097765,"_rotZ":0,"_scaleX":1,"_scaleY":1,"_scaleZ":1,"_meshIndex":2,"_meshName":"days93_state11"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"x","rotSpeed":0.033510321638291124,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":1,"wireColor":"#888888","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":1,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.29,"rotLag":0.21,"interpOn":false,"interpDur":1,"_camX":4.019242882617994,"_camY":-2.6734786011741116,"_camZ":3.3260529601304674,"_tgtX":1.0184035396057973,"_tgtY":-1.1385215533491762,"_tgtZ":-1.087408784921924,"_rotX":2.5970499269675984,"_rotY":-1.5864910343975496,"_rotZ":0,"_scaleX":0.29,"_scaleY":0.29,"_scaleZ":0.29,"_meshIndex":3,"_meshName":"days93_state12"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"x","rotSpeed":0.00890117918517108,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":1,"wireColor":"#888888","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.94,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":0.9937877407880206,"_camY":-0.22049495963323545,"_camZ":5.273718565181056,"_tgtX":0.9831654150327007,"_tgtY":-0.2204949596332358,"_tgtZ":-0.0019599344089815548,"_rotX":-1.2911364029837262,"_rotY":0,"_rotZ":0,"_scaleX":0.94,"_scaleY":0.94,"_scaleZ":0.94,"_meshIndex":4,"_meshName":"days93_state13"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"x","rotSpeed":0.00890117918517108,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":1,"wireColor":"#888888","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.94,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-8.5615409790093,"_camY":-3.4275007227325283,"_camZ":3.4028463633463737,"_tgtX":-2.7273459154426987,"_tgtY":0.9741715494415448,"_tgtZ":-0.6785349785775274,"_rotX":3.0180815201901927,"_rotY":0,"_rotZ":0,"_scaleX":0.94,"_scaleY":0.94,"_scaleZ":0.94,"_meshIndex":4,"_meshName":"days93_state13"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"y","rotSpeed":0.11850785621041497,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":0.52,"wireColor":"#1a1a19","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.94,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-1.0647595405785145e-41,"_camY":2.143131898507868e-16,"_camZ":3.5,"_tgtX":-8.684749354671797e-90,"_tgtY":7.901473344096547e-90,"_tgtZ":-3.893001982281365e-90,"_rotX":0,"_rotY":-1.6087863268466607,"_rotZ":0,"_scaleX":0.94,"_scaleY":0.94,"_scaleZ":0.94,"_meshIndex":5,"_meshName":"days93_state15"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"y","rotSpeed":0.23369958684204073,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":0.52,"wireColor":"#1a1a19","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.94,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-1.6974178665913742,"_camY":-0.888835313916899,"_camZ":10.092729296125638,"_tgtX":0.1999807136380801,"_tgtY":0.19452413427082993,"_tgtZ":0.05052600368439514,"_rotX":2.5367197124903167,"_rotY":0.6876597252858598,"_rotZ":0,"_scaleX":0.94,"_scaleY":0.94,"_scaleZ":0.94,"_meshIndex":6,"_meshName":"days93_state15"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"x","rotSpeed":0.01658062789394613,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":0.52,"wireColor":"#ffffff","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":2.663038352688474,"_camY":5.256677081301044,"_camZ":1.8854166683112088,"_tgtX":0.7194003756103167,"_tgtY":2.2601066187804135,"_tgtZ":-0.889934365543476,"_rotX":-2.738887017512947,"_rotY":-1.4158110892177578,"_rotZ":0,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":7,"_meshName":"days93_state16"},{"trailOn":false,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"x","rotSpeed":0.01658062789394613,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":0.52,"wireColor":"#ffffff","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":0.9541043275518271,"_camY":3.467238975557931,"_camZ":1.8355094535246859,"_tgtX":-0.15143713316225832,"_tgtY":1.7627894199632834,"_tgtZ":0.256889529368578,"_rotX":-0.15143640143136744,"_rotY":-1.4158110892177578,"_rotZ":0,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":7,"_meshName":"days93_state16"},{"trailOn":true,"trailType":"fade","echoInterval":8,"autoRot":true,"rotAxis":"y","rotSpeed":0.00890117918517108,"meshMode":"wire","blendMode":0,"decay":0.92,"opacity":0.52,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":0.48317227020762443,"_camY":1.702966432356796,"_camZ":0.9223203306300971,"_tgtX":0.48317227020762443,"_tgtY":1.702966432356796,"_tgtZ":-1.0732110657302899e-16,"_rotX":0.6120287910324725,"_rotY":2.875080876810236,"_rotZ":2.4525366649024245,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":8,"_meshName":"days93_state18"},{"trailOn":false,"trailType":"echo","echoInterval":30,"autoRot":true,"rotAxis":"y","rotSpeed":0.0033161255787892262,"meshMode":"wire","blendMode":0,"decay":0.922,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":0.38582812544804845,"_camY":-1.4167730579038254,"_camZ":1.3902501146037638,"_tgtX":0.38582812544804845,"_tgtY":-1.4167730579038254,"_tgtZ":8.877837327407408e-17,"_rotX":0,"_rotY":-1.30387730652324,"_rotZ":0,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":10,"_meshName":"do93_cad"},{"trailOn":false,"trailType":"echo","echoInterval":30,"autoRot":true,"rotAxis":"x","rotSpeed":0.0033161255787892262,"meshMode":"wire","blendMode":0,"decay":0.922,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-0.08657611332780185,"_camY":-1.6951264476861256,"_camZ":1.0583646991979534,"_tgtX":0.38582812544804845,"_tgtY":-1.4167730579038254,"_tgtZ":8.877837327407408e-17,"_rotX":1.7442820544431394,"_rotY":-0.4748459118259296,"_rotZ":0,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":10,"_meshName":"do93_cad"},{"trailOn":true,"trailType":"echo","echoInterval":30,"autoRot":true,"rotAxis":"z","rotSpeed":0.0033161255787892262,"meshMode":"wire","blendMode":0,"decay":0.922,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-0.08657611767561979,"_camY":-1.6951264493038463,"_camZ":1.0583646968318239,"_tgtX":0.38582812544804845,"_tgtY":-1.4167730579038254,"_tgtZ":8.877837327407408e-17,"_rotX":2.8651325000738455,"_rotY":-0.4748459118259296,"_rotZ":1.1440633246822867,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":10,"_meshName":"do93_cad"},{"trailOn":true,"trailType":"paint","echoInterval":19,"autoRot":true,"rotAxis":"x","rotSpeed":0.0033161255787892262,"meshMode":"wire","blendMode":0,"decay":0.929,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-0.08657611767561979,"_camY":-1.6951264493038463,"_camZ":1.0583646968318239,"_tgtX":0.38582812544804845,"_tgtY":-1.4167730579038254,"_tgtZ":8.877837327407408e-17,"_rotX":-2.652027798405477,"_rotY":-0.4748459118259296,"_rotZ":-1.08018427405942,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":10,"_meshName":"do93_cad"},{"trailOn":false,"trailType":"paint","echoInterval":19,"autoRot":true,"rotAxis":"y","rotSpeed":0.007330382858376184,"meshMode":"wire","blendMode":0,"decay":0.929,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-0.006832097211090926,"_camY":-1.6856478603565883,"_camZ":0.6118861515332892,"_tgtX":-0.006832097211090926,"_tgtY":-1.6856478603565883,"_tgtZ":1.0570629442095313e-16,"_rotX":1.1897909510845464,"_rotY":2.3897048118306325,"_rotZ":0,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":11,"_meshName":"do93_cad2"},{"trailOn":false,"trailType":"paint","echoInterval":19,"autoRot":true,"rotAxis":"z","rotSpeed":0.0013962634015954637,"meshMode":"wire","blendMode":0,"decay":0.929,"opacity":1,"wireColor":"#1f2020","bgColor":"#c8c8c8","tintColor":"#ffffff","hue":0,"brightness":0,"contrast":1,"saturation":1,"hueMod":false,"hueModRate":1,"hueModDepth":60,"hueModWave":"sine","midiScaleOn":false,"midiRotOn":false,"midiDeformOn":false,"midiBriOn":false,"midiHueOn":false,"midiDecayOn":false,"midiScaleMin":0.25,"midiScaleMax":2,"midiRotMin":0,"midiRotMax":0.07,"midiDeformMin":0,"midiDeformMax":2,"midiBriMin":-1,"midiBriMax":1,"midiHueMin":0,"midiHueMax":360,"midiDecayMin":0.5,"midiDecayMax":0.999,"deformMode":0,"deformAmt":0,"deformSpeed":0.59,"lineThickness":1,"midiTriggerPreset":false,"presetDir":"next","manualScale":0.13,"rotLag":0.4,"interpOn":false,"interpDur":1,"_camX":-0.0819104834674522,"_camY":-1.7922775463943967,"_camZ":0.6118861515332892,"_tgtX":-0.0819104834674522,"_tgtY":-1.7922775463943967,"_tgtZ":1.0570629442095313e-16,"_rotX":1.1897909510845464,"_rotY":-0.27227136331112467,"_rotZ":-1.0026334776290973,"_scaleX":0.13,"_scaleY":0.13,"_scaleZ":0.13,"_meshIndex":11,"_meshName":"do93_cad2"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null] ;
 
 // ── Bunny CDN config ───────────────────────────────────────────
 var BUNNY_CDN_BASE = 'https://daysof93-cdn.b-cdn.net/Explore3_meshes/';
@@ -127,18 +146,7 @@ var presets       = Array.from({length: 100}, function () { return null; });
 var activeSlot    = 0;
 var presetSeqMode = 'SEQ';
 
-var SESSION_KEYS = new Set([
-  'midiScaleOn',  'midiScaleMin',  'midiScaleMax',
-  'midiBriOn',    'midiBriMin',    'midiBriMax',
-  'midiRotOn',    'midiRotMin',    'midiRotMax',
-  'midiHueOn',    'midiHueMin',    'midiHueMax',
-  'midiDecayOn',  'midiDecayMin',  'midiDecayMax',
-  'midiDeformOn', 'midiDeformMin', 'midiDeformMax',
-  'midiTriggerPreset',
-  'presetDir',
-  'interpOn',
-  'interpDur',
-]);
+var SESSION_KEYS = new Set([]); // viewer: restore all values from preset
 
 // ── Renderer ───────────────────────────────────────────────────
 var canvas  = document.getElementById('c');
@@ -443,11 +451,18 @@ function clearSlot() {
   renderSlots();
 }
 function applySnapImmediate(p) {
-  // Apply only non-interpolatable keys: mesh index, materials
-  if (p._meshIndex !== undefined && p._meshIndex !== currentMeshIndex) {
-    switchToMesh(p._meshIndex);
-  } else {
-    if (currentGroup) applyMeshMaterials(currentGroup);
+  var targetIdx = -1;
+  if (p._meshName) {
+    targetIdx = findMeshByName(p._meshName);
+    if (targetIdx < 0) pendingMeshName = p._meshName;
+  }
+  if (targetIdx < 0 && p._meshIndex !== undefined) {
+    targetIdx = p._meshIndex;
+  }
+  if (targetIdx >= 0 && targetIdx !== currentMeshIndex) {
+    switchToMesh(targetIdx);
+  } else if (currentGroup) {
+    applyMeshMaterials(currentGroup);
   }
   syncDisplayUniforms();
   renderer.setClearColor(S.bgColor, 1);
@@ -1130,42 +1145,64 @@ function initMIDI() {
   });
 }
 
+function findMeshByName(name) {
+  for (var i = 0; i < meshBank.length; i++) {
+    if (meshBank[i].name === name) return i;
+  }
+  return -1;
+}
+
+var pendingMeshName = null;
+
+function loadMeshLibrary() {
+  MESH_LIBRARY.forEach(function(entry) {
+    if (!entry.url) return;
+    loader.load(entry.url, function(gltf) {
+      var group = gltf.scene;
+      var box = new THREE.Box3().setFromObject(group);
+      var centre = box.getCenter(new THREE.Vector3());
+      group.position.sub(centre);
+      group.visible = false;
+      scene.add(group);
+      applyMeshMaterials(group);
+      meshBank.push({ name: entry.name, url: entry.url, group: group });
+      if (pendingMeshName && entry.name === pendingMeshName) {
+        pendingMeshName = null;
+        switchToMesh(meshBank.length - 1);
+      }
+    });
+  });
+}
+
+function startAutoPreset() {
+  var filled = [];
+  for (var i = 0; i < presets.length; i++) {
+    if (presets[i]) filled.push(i);
+  }
+  if (filled.length < 2) return;
+  setInterval(function() {
+    var idx;
+    do { idx = filled[Math.floor(Math.random() * filled.length)]; }
+    while (idx === activeSlot);
+    loadSlot(idx);
+  }, 3000);
+}
+
 // viewer — no UI bindings
 var blendNames = ['add', 'screen', 'mix'];
 
 // ── Viewer boot ────────────────────────────────────────────────
-loadPersistedPresets();
-
-var _snap = null;
-try {
-  var rawState = localStorage.getItem('d93_viewerState');
-  if (rawState) {
-    _snap = JSON.parse(rawState);
-    for (var key in _snap) {
-      if (key.charAt(0) === '_') continue;
-      if (!(key in S)) continue;
-      if (S[key] && S[key].isColor) S[key].set(_snap[key]);
-      else if (typeof S[key] !== 'object') S[key] = _snap[key];
-    }
-    if (_snap._meshIndex !== undefined && _snap._meshIndex > 0) {
-      _pendingMeshIndex = _snap._meshIndex;
-    }
-  }
-} catch(e) {}
-
-loadPersistedMeshLib();
-
-if (_snap) {
-  setTimeout(function () {
-    if (_snap._camX !== undefined) {
-      camera.position.set(_snap._camX, _snap._camY, _snap._camZ);
-      controls.target.set(_snap._tgtX, _snap._tgtY, _snap._tgtZ);
-      controls.update();
-    }
-    if (currentGroup && _snap._rotX !== undefined)
-      currentGroup.rotation.set(_snap._rotX, _snap._rotY, _snap._rotZ);
-  }, 300);
+// Load baked presets into the presets array
+for (var _bi = 0; _bi < BAKED_PRESETS.length; _bi++) {
+  if (BAKED_PRESETS[_bi]) presets[_bi] = BAKED_PRESETS[_bi];
 }
+
+loadMeshLibrary();
+
+setTimeout(function () {
+  loadSlot(0);
+  startAutoPreset();
+}, 2000);
 
 initMIDI();
 render();
