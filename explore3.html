@@ -1006,8 +1006,10 @@ function loadPersistedMeshLib() {
     var raw = localStorage.getItem('d93_meshLib');
     if (!raw) return;
     var lib = JSON.parse(raw);
-    lib.forEach(function(entry) {
-      if (!entry.url) return;
+    var toLoad = lib.filter(function(e) { return e.url; });
+    var loaded = 0;
+    var total = toLoad.length;
+    toLoad.forEach(function(entry) {
       loader.load(entry.url, function(gltf) {
         var group = gltf.scene;
         var box = new THREE.Box3().setFromObject(group);
@@ -1017,9 +1019,17 @@ function loadPersistedMeshLib() {
         scene.add(group);
         applyMeshMaterials(group);
         meshBank.push({ name: entry.name, url: entry.url, group: group });
-        if (typeof _pendingMeshIndex === 'number' &&
-            meshBank.length - 1 === _pendingMeshIndex) {
-          switchToMesh(_pendingMeshIndex);
+        loaded++;
+        if (typeof _pendingMeshIndex === 'number') {
+          if (meshBank.length - 1 === _pendingMeshIndex || loaded === total) {
+            switchToMesh(_pendingMeshIndex);
+            _pendingMeshIndex = null;
+          }
+        }
+      }, undefined, function(err) {
+        loaded++;
+        if (typeof _pendingMeshIndex === 'number' && loaded === total) {
+          switchToMesh(Math.min(_pendingMeshIndex, meshBank.length - 1));
           _pendingMeshIndex = null;
         }
       });
