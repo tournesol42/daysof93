@@ -1488,6 +1488,7 @@ function persistPresets() {
 function persistMeshLib() {
   var lib = meshBank.map(function (m) { return { name: m.name, url: m.url || null }; });
   localStorage.setItem('d93_meshLib', JSON.stringify(lib));
+  console.log('d93_meshLib saved:', localStorage.getItem('d93_meshLib'));
 }
 
 function persistViewerState() {
@@ -1504,6 +1505,7 @@ function persistViewerState() {
   snap._rotZ = currentGroup ? currentGroup.rotation.z : 0;
   snap._meshIndex = currentMeshIndex;
   localStorage.setItem('d93_viewerState', JSON.stringify(snap));
+  console.log('d93_viewerState saved:', localStorage.getItem('d93_viewerState'));
 }
 
 function loadPersistedPresets() {
