@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v51-mj-movement -->
+<!-- build: explore3-v52-crosshair-wire-dark -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -386,8 +386,8 @@ var meshBSpeedMult  = 0.3;
 var chTarget      = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chPos         = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chVel         = { x: 0, y: 0 };
-var CH_STIFFNESS  = 0.07;
-var CH_DAMPING    = 0.72;
+var CH_STIFFNESS  = 0.10;
+var CH_DAMPING    = 0.88;
 var gridSkewX     = 0, gridSkewY = 0;
 var prevGridSkewX = 0, prevGridSkewY = 0;
 
@@ -415,6 +415,7 @@ var mjActive      = false;
 var mjImg         = null;
 var mjPosX = 0, mjPosY = 0;
 var mjVelX = 0, mjVelY = 0;
+var _mjBlack = new THREE.Color(0x000000);
 var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
@@ -1038,10 +1039,9 @@ function render() {
   }
 
   // ── Crosshair lag ──────────────────────────────────────────────
-  var _chDist = Math.sqrt((chTarget.x-chPos.x)*(chTarget.x-chPos.x)+(chTarget.y-chPos.y)*(chTarget.y-chPos.y));
-  var _chStiff = CH_STIFFNESS + Math.min(_chDist / 120, 1.0) * 0.20;
-  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * _chStiff;
-  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * _chStiff;
+  chVel.y += 0.008;
+  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * CH_STIFFNESS;
+  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * CH_STIFFNESS;
   chPos.x += chVel.x;
   chPos.y += chVel.y;
   wsChV.style.left  = chPos.x + 'px';
@@ -1195,6 +1195,16 @@ function render() {
     if (Math.abs(mjPosX) > 130) mjVelX *= -1;
     if (Math.abs(mjPosY) > 90)  mjVelY *= -1;
     mjImg.style.transform = 'translate(' + mjPosX.toFixed(1) + 'px,' + mjPosY.toFixed(1) + 'px)';
+    // Wire darkening: spike above base pushes lines toward pure black
+    var _dkT = mjSpikeLevel > mjBaseOpacity
+      ? Math.min((mjSpikeLevel - mjBaseOpacity) / (1.0 - mjBaseOpacity + 0.001), 1.0)
+      : 0.0;
+    if (_dkT > 0.005) {
+      var _wc = S.wireColor.clone().lerp(_mjBlack, _dkT * 0.90);
+      wireMats.forEach(function(m) { if (m.color) m.color.copy(_wc); });
+    } else {
+      wireMats.forEach(function(m) { if (m.color) m.color.copy(S.wireColor); });
+    }
   }
 
   frames++;
