@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v49-no-shapes -->
+<!-- build: explore3-v50-mj-images -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -48,6 +48,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
   top: 50%; left: 50%;
 }
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
+#mj-img { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; z-index: 4; display: none; }
 .audio-dot {
   position: fixed;
   width: 176px; height: 176px;
@@ -78,6 +79,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 <body>
 
 <canvas id="c"></canvas>
+<img id="mj-img" src="" alt="" />
 
 <svg id="d93-grid"></svg>
 
@@ -402,6 +404,15 @@ var drumsAudioBuffer    = null;
 var drumsMidiEvents     = [];
 var drumsStarted        = false;
 var drumsAudioSrc       = null;
+
+// ── MJ image system ────────────────────────────────────────────
+var MJ_BASE       = 'https://daysof93-cdn.b-cdn.net/explore3_MJ/';
+var MJ_FILES      = ['mj1.jpeg','mj2.jpeg','mj3.jpeg','mj4.jpeg','mj5.jpeg','mj6.jpeg'];
+var mjCurrentIdx  = 0;
+var mjBaseOpacity = 0.0;
+var mjSpikeLevel  = 0.0;
+var mjActive      = false;
+var mjImg         = null;
 var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
@@ -1173,6 +1184,12 @@ function render() {
   }
 
 
+  // ── MJ image opacity modulation ────────────────────────────────
+  if (mjActive && mjImg) {
+    mjSpikeLevel += (mjBaseOpacity - mjSpikeLevel) * 0.025;
+    mjImg.style.opacity = mjSpikeLevel.toFixed(3);
+  }
+
   frames++;
   var now = performance.now();
   if (now - lastT > 600) {
@@ -1732,6 +1749,7 @@ function scheduleMidiLoop(loopStartTimeSec) {
   drumsMidiEvents.forEach(function (ev) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
     setTimeout(triggerMeshB, delay);
+    setTimeout(onMJMidiTrigger, delay);
   });
   var msUntilNext = Math.max(0, (loopStartTimeSec + drumsDurationSec - now) * 1000 - 100);
   setTimeout(function () { scheduleMidiLoop(loopStartTimeSec + drumsDurationSec); }, msUntilNext);
@@ -1784,6 +1802,32 @@ function startInvertBurst() {
     }, duration);
   }
   nextFlicker();
+}
+
+// ── MJ image functions ─────────────────────────────────────────
+function startMJSystem() {
+  if (mjActive) return;
+  mjActive      = true;
+  mjImg         = document.getElementById('mj-img');
+  mjImg.src     = MJ_BASE + MJ_FILES[mjCurrentIdx];
+  mjImg.style.display = 'block';
+  mjBaseOpacity = 0.12;
+  mjSpikeLevel  = 0.12;
+}
+
+function onMJMidiTrigger() {
+  if (!mjActive) return;
+  // Sample & hold: random 0–0.4
+  mjBaseOpacity = Math.random() * 0.4;
+  // 2-input switch: 80% → input 2 (nothing), 20% → input 1 (spike)
+  if (Math.random() < 0.20) {
+    mjSpikeLevel = 1.0;
+  }
+}
+
+function mjSetImage(idx) {
+  mjCurrentIdx = ((idx % 6) + 6) % 6;
+  if (mjImg) mjImg.src = MJ_BASE + MJ_FILES[mjCurrentIdx];
 }
 
 // viewer — no UI bindings
@@ -1875,8 +1919,17 @@ document.getElementById('audioDot').onclick = function() {
   document.getElementById('audioDot').style.display = 'none';
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
+  startMJSystem();
   // startXploreVideos();
 };
+
+// ── MJ image keyboard selection ────────────────────────────────
+window.addEventListener('keydown', function(e) {
+  var k = e.key;
+  if (k >= '1' && k <= '6') { mjSetImage(parseInt(k) - 1); return; }
+  if (k === 'ArrowUp')      { mjSetImage(mjCurrentIdx - 1); return; }
+  if (k === 'ArrowDown')    { mjSetImage(mjCurrentIdx + 1); return; }
+});
 
 // Square: starts main music (context already unlocked)
 document.getElementById('audioSquare').onclick = function() {
