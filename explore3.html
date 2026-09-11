@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v39-sceneb-blackcrosshair -->
+<!-- build: explore3-v40-crosshair-lag-meshb-mod -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -376,7 +376,17 @@ var meshBOpacity   = 0.45;
 var meshBScale     = 1.0;
 var meshBRotSpeedX = 0.009;
 var meshBRotSpeedY = 0.006;
-var meshBMeshIndex = -1;
+var meshBMeshIndex  = -1;
+var meshBSpeedMult  = 0.3;
+
+// ── Crosshair lag + modulation globals ─────────────────────────
+var chTarget      = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+var chPos         = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+var chVel         = { x: 0, y: 0 };
+var CH_STIFFNESS  = 0.07;
+var CH_DAMPING    = 0.80;
+var gridSkewX     = 0, gridSkewY = 0;
+var prevGridSkewX = 0, prevGridSkewY = 0;
 
 // ── Drums system ────────────────────────────────────────────────
 var DRUMS_BASE          = 'https://daysof93-cdn.b-cdn.net/Explore3_syncopated_drums/';
@@ -1007,9 +1017,37 @@ function render() {
     currentGroup.rotation.z = normalizeAngle(currentGroup.rotation.z);
   }
 
+  // ── Crosshair lag ──────────────────────────────────────────────
+  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * CH_STIFFNESS;
+  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * CH_STIFFNESS;
+  chPos.x += chVel.x;
+  chPos.y += chVel.y;
+  wsChV.style.left  = chPos.x + 'px';
+  wsChH.style.top   = chPos.y + 'px';
+  wsChSq.style.left = chPos.x + 'px';
+  wsChSq.style.top  = chPos.y + 'px';
+
+  // ── MeshB rotation speed from crosshair Y ──────────────────────
+  var yNorm = 1.0 - (chPos.y / window.innerHeight);
+  var meshBSpeedTarget = yNorm > 0.8
+    ? 1.0 + (yNorm - 0.8) * 15.0
+    : yNorm * 1.25;
+  meshBSpeedMult += (meshBSpeedTarget - meshBSpeedMult) * 0.06;
+
   if (meshBGroup.visible) {
-    meshBGroup.rotation.x = normalizeAngle(meshBGroup.rotation.x + meshBRotSpeedX);
-    meshBGroup.rotation.y = normalizeAngle(meshBGroup.rotation.y + meshBRotSpeedY);
+    meshBGroup.rotation.x = normalizeAngle(meshBGroup.rotation.x + meshBRotSpeedX * meshBSpeedMult);
+    meshBGroup.rotation.y = normalizeAngle(meshBGroup.rotation.y + meshBRotSpeedY * meshBSpeedMult);
+  }
+
+  // ── Grid skew from crosshair — lagged ──────────────────────────
+  var gTargX = (chPos.x / window.innerWidth  - 0.5) * window.innerWidth  * 0.06;
+  var gTargY = (chPos.y / window.innerHeight - 0.6) * window.innerHeight * 0.04;
+  gridSkewX += (gTargX - gridSkewX) * 0.03;
+  gridSkewY += (gTargY - gridSkewY) * 0.03;
+  if (Math.abs(gridSkewX - prevGridSkewX) > 0.15 || Math.abs(gridSkewY - prevGridSkewY) > 0.15) {
+    buildGrid();
+    prevGridSkewX = gridSkewX;
+    prevGridSkewY = gridSkewY;
   }
 
   // Deform amount
@@ -1703,7 +1741,7 @@ function buildGrid() {
   svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   svg.setAttribute('width', w);
   svg.setAttribute('height', h);
-  var vpX = w * 0.5, vpY = h * 0.60;
+  var vpX = w * 0.5 + gridSkewX, vpY = h * 0.60 + gridSkewY;
   var lines = '';
   var bands = 18;
   for (var i = 0; i <= bands; i++) {
@@ -1739,10 +1777,8 @@ var wsChSq  = document.getElementById('ws-ch-sq');
 var wsChTimer = null;
 
 function moveCrosshair(x, y) {
-  wsChV.style.left  = x + 'px';
-  wsChH.style.top   = y + 'px';
-  wsChSq.style.left = x + 'px';
-  wsChSq.style.top  = y + 'px';
+  chTarget.x = x;
+  chTarget.y = y;
   wsCh.style.opacity = '1';
   clearTimeout(wsChTimer);
   wsChTimer = setTimeout(function() { wsCh.style.opacity = '0'; }, 2000);
