@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v36-grid-cross -->
+<!-- build: explore3-v37-grid-orange -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -18,7 +18,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 
 #d93-grid {
   position: fixed; inset: 0;
-  z-index: 1; pointer-events: none;
+  z-index: 4; pointer-events: none;
   opacity: 0; transition: opacity 1.5s;
 }
 
@@ -1531,9 +1531,9 @@ function buildGrid() {
   for (var i = 0; i <= bands; i++) {
     var t = i / bands;
     var y = vpY + Math.pow(t, 1.8) * (h - vpY);
-    var op = (0.50 * (1 - t * 0.5)).toFixed(3);
+    var op = (0.32 * (1 - t * 0.5)).toFixed(3);
     lines += '<line x1="0" y1="' + y.toFixed(1) + '" x2="' + w +
-             '" y2="' + y.toFixed(1) + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="' + op + '"/>';
+             '" y2="' + y.toFixed(1) + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="' + op + '"/>';
   }
   var cols = 16;
   for (var i = 0; i <= cols; i++) {
@@ -1541,12 +1541,12 @@ function buildGrid() {
     var x2 = vpX + (x - vpX) * 0.12;
     lines += '<line x1="' + x.toFixed(1) + '" y1="' + h + '" x2="' +
              x2.toFixed(1) + '" y2="' + vpY.toFixed(1) +
-             '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.40"/>';
+             '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.26"/>';
   }
   lines += '<line x1="0" y1="' + vpY.toFixed(1) + '" x2="' + w +
-           '" y2="' + vpY.toFixed(1) + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.50"/>';
+           '" y2="' + vpY.toFixed(1) + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.32"/>';
   lines += '<line x1="' + vpX.toFixed(1) + '" y1="0" x2="' + vpX.toFixed(1) +
-           '" y2="' + h + '" stroke="rgba(0,0,0,1)" stroke-width="0.75" opacity="0.45"/>';
+           '" y2="' + h + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.28"/>';
   svg.innerHTML = lines;
 }
 
@@ -1584,7 +1584,7 @@ document.getElementById('audioDot').onclick = function() {
   document.getElementById('audioDot').style.display = 'none';
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
-  startXploreVideos();
+  // startXploreVideos();
 };
 
 // Square: starts main music (context already unlocked)
