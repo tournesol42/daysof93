@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v42-td-opacity-boost -->
+<!-- build: explore3-v43-invert-burst -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -213,6 +213,7 @@ resizeTD();
 window.addEventListener('resize', resizeTD);
 
 function playXploreNext() {
+  startInvertBurst();
   var file = XPLORE_FILES[xploreIdx];
   xploreIdx = (xploreIdx + 1) % XPLORE_FILES.length;
 
@@ -405,6 +406,8 @@ var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
 var tdOpacity        = 0.0;
+var invertPhase      = 'off'; // 'off' | 'on' | 'fade'
+var invertT          = 0.0;
 
 // ── Renderer ───────────────────────────────────────────────────
 var canvas  = document.getElementById('c');
@@ -1167,6 +1170,27 @@ function render() {
     tdCv.style.opacity = tdOpacity.toFixed(3);
   }
 
+  // ── Invert burst: applied last so it overrides syncDisplayUniforms ──
+  if (invertPhase === 'on') {
+    document.body.style.background = '#000000';
+    wireMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
+    meshBMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
+  } else if (invertPhase === 'fade') {
+    invertT += (0 - invertT) * 0.15;
+    var _iBg = new THREE.Color(0x000000).lerp(S.bgColor, 1.0 - invertT);
+    document.body.style.background = '#' + _iBg.getHexString();
+    var _iWc = new THREE.Color(0xffffff).lerp(S.wireColor, 1.0 - invertT);
+    wireMats.forEach(function(m) { if (m.color) m.color.copy(_iWc); });
+    meshBMats.forEach(function(m) {
+      if (m.color) m.color.set(0xffffff).lerp(new THREE.Color(meshBColor), 1.0 - invertT);
+    });
+    if (invertT < 0.03) {
+      invertPhase = 'off';
+      syncWireColor();
+      meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
+    }
+  }
+
   frames++;
   var now = performance.now();
   if (now - lastT > 600) {
@@ -1751,6 +1775,41 @@ function startDrumsSystem() {
     scheduleMidiLoop(audioCtx.currentTime);
     console.log('d93: drums started, loop', drumsDurationSec.toFixed(1) + 's');
   });
+}
+
+// ── Invert burst ───────────────────────────────────────────────
+function startInvertBurst() {
+  if (invertPhase !== 'off') return; // don't stack bursts
+  var count = 1 + Math.floor(Math.random() * 6);
+  var i = 0;
+  function nextFlicker() {
+    if (i >= count) {
+      invertPhase = 'off';
+      syncWireColor();
+      meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
+      return;
+    }
+    var duration = 250 + Math.random() * 750;
+    invertPhase = 'on';
+    invertT = 1.0;
+    i++;
+    setTimeout(function() {
+      if (duration > 750) {
+        invertPhase = 'fade';
+        setTimeout(function() {
+          var gap = 80 + Math.random() * 220;
+          setTimeout(nextFlicker, gap);
+        }, 380);
+      } else {
+        invertPhase = 'off';
+        syncWireColor();
+        meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
+        var gap = 80 + Math.random() * 220;
+        setTimeout(nextFlicker, gap);
+      }
+    }, duration);
+  }
+  nextFlicker();
 }
 
 // viewer — no UI bindings
