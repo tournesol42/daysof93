@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v45-burst-fix-meshb-geo -->
+<!-- build: explore3-v46-remove-tdvid-invert -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -213,7 +213,6 @@ resizeTD();
 window.addEventListener('resize', resizeTD);
 
 function playXploreNext() {
-  startInvertBurst();
   var file = XPLORE_FILES[xploreIdx];
   xploreIdx = (xploreIdx + 1) % XPLORE_FILES.length;
 
@@ -902,14 +901,9 @@ function syncDisplayUniforms() {
   displayMat.uniforms.uCon.value = S.contrast;
   displayMat.uniforms.uSat.value = S.saturation;
   displayMat.uniforms.uTnt.value.set(S.tintColor.getHex());
-  if (invertPhase === 'on') {
-    displayMat.uniforms.uBgColor.value.set(0, 0, 0);
-    document.body.style.background = '#000000';
-  } else {
-    displayMat.uniforms.uBgColor.value.copy(S.bgColor);
-    document.body.style.background = '#' + S.bgColor.getHexString();
-  }
+  displayMat.uniforms.uBgColor.value.copy(S.bgColor);
   displayMat.uniforms.uTrailMode.value = S.trailOn;
+  document.body.style.background = '#' + S.bgColor.getHexString();
 }
 
 // ── Render loop ────────────────────────────────────────────────
@@ -1176,11 +1170,6 @@ function render() {
     tdCv.style.opacity = tdOpacity.toFixed(3);
   }
 
-  // ── Invert burst: wire + meshB color override (bg handled by syncDisplayUniforms) ──
-  if (invertPhase === 'on') {
-    wireMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
-    meshBMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
-  }
 
   frames++;
   var now = performance.now();
@@ -1763,7 +1752,7 @@ function startDrumsSystem() {
     drumsAudioSrc.connect(drumsAnalyser);
     drumsAudioSrc.connect(audioCtx.destination);
     drumsAudioSrc.start(0);
-    startXploreVideos();
+    // startXploreVideos(); // TD videos disabled
     scheduleMidiLoop(audioCtx.currentTime);
     console.log('d93: drums started, loop', drumsDurationSec.toFixed(1) + 's');
   });
