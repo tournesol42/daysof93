@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v40-crosshair-lag-meshb-mod -->
+<!-- build: explore3-v41-drums-env-td-opacity -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -384,7 +384,7 @@ var chTarget      = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chPos         = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chVel         = { x: 0, y: 0 };
 var CH_STIFFNESS  = 0.07;
-var CH_DAMPING    = 0.80;
+var CH_DAMPING    = 0.72;
 var gridSkewX     = 0, gridSkewY = 0;
 var prevGridSkewX = 0, prevGridSkewY = 0;
 
@@ -401,6 +401,10 @@ var drumsAudioBuffer    = null;
 var drumsMidiEvents     = [];
 var drumsStarted        = false;
 var drumsAudioSrc       = null;
+var drumsAnalyser    = null;
+var drumsAnalyserData = null;
+var drumsEnvAmp      = 0.0;
+var tdOpacity        = 0.0;
 
 // ── Renderer ───────────────────────────────────────────────────
 var canvas  = document.getElementById('c');
@@ -1030,7 +1034,7 @@ function render() {
   // ── MeshB rotation speed from crosshair Y ──────────────────────
   var yNorm = 1.0 - (chPos.y / window.innerHeight);
   var meshBSpeedTarget = yNorm > 0.8
-    ? 1.0 + (yNorm - 0.8) * 15.0
+    ? 1.0 + (yNorm - 0.8) * 50.0
     : yNorm * 1.25;
   meshBSpeedMult += (meshBSpeedTarget - meshBSpeedMult) * 0.06;
 
@@ -1143,6 +1147,24 @@ function render() {
     renderer.autoClear = false;
     renderer.render(sceneB, camera);
     renderer.autoClear = true;
+  }
+
+  // ── Drums envelope → TD video opacity ──────────────────────────
+  if (drumsAnalyser) {
+    drumsAnalyser.getByteTimeDomainData(drumsAnalyserData);
+    var _dRms = 0;
+    for (var _di = 0; _di < drumsAnalyserData.length; _di++) {
+      var _dv = (drumsAnalyserData[_di] - 128.0) / 128.0;
+      _dRms += _dv * _dv;
+    }
+    _dRms = Math.sqrt(_dRms / drumsAnalyserData.length);
+    var _dLag = _dRms > drumsEnvAmp ? 0.45 : ENV_LAG;
+    drumsEnvAmp = drumsEnvAmp * _dLag + _dRms * (1.0 - _dLag);
+    var _dEnvT = drumsEnvAmp > ENV_THRESHOLD
+      ? Math.min((drumsEnvAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD), 1.0)
+      : 0.0;
+    tdOpacity += (_dEnvT - tdOpacity) * 0.08;
+    tdCv.style.opacity = tdOpacity.toFixed(3);
   }
 
   frames++;
@@ -1718,8 +1740,14 @@ function startDrumsSystem() {
     drumsAudioSrc = audioCtx.createBufferSource();
     drumsAudioSrc.buffer = buf;
     drumsAudioSrc.loop = true;
+    drumsAnalyser = audioCtx.createAnalyser();
+    drumsAnalyser.fftSize = 2048;
+    drumsAnalyser.smoothingTimeConstant = 0.0;
+    drumsAnalyserData = new Uint8Array(drumsAnalyser.fftSize);
+    drumsAudioSrc.connect(drumsAnalyser);
     drumsAudioSrc.connect(audioCtx.destination);
     drumsAudioSrc.start(0);
+    startXploreVideos();
     scheduleMidiLoop(audioCtx.currentTime);
     console.log('d93: drums started, loop', drumsDurationSec.toFixed(1) + 's');
   });
