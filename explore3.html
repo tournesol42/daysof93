@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v53-crosshair-fix-wire-opacity -->
+<!-- build: explore3-v54-direct-crosshair-blur-thick -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -416,6 +416,7 @@ var mjImg         = null;
 var mjPosX = 0, mjPosY = 0;
 var mjVelX = 0, mjVelY = 0;
 var _mjBlack = new THREE.Color(0x000000);
+var mjThickT  = 0.0;
 var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
@@ -1038,15 +1039,9 @@ function render() {
     currentGroup.rotation.z = normalizeAngle(currentGroup.rotation.z);
   }
 
-  // ── Crosshair lag ──────────────────────────────────────────────
-  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * CH_STIFFNESS;
-  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * CH_STIFFNESS;
-  chPos.x += chVel.x;
-  chPos.y += chVel.y;
-  wsChV.style.left  = chPos.x + 'px';
-  wsChH.style.top   = chPos.y + 'px';
-  wsChSq.style.left = chPos.x + 'px';
-  wsChSq.style.top  = chPos.y + 'px';
+  // ── Crosshair: direct (chPos kept for meshB/grid modulation) ───
+  chPos.x = chTarget.x;
+  chPos.y = chTarget.y;
 
   // ── MeshB rotation speed from crosshair Y ──────────────────────
   var yNorm = 1.0 - (chPos.y / window.innerHeight);
@@ -1198,6 +1193,7 @@ function render() {
     var _dkT = mjSpikeLevel > mjBaseOpacity
       ? Math.min((mjSpikeLevel - mjBaseOpacity) / (1.0 - mjBaseOpacity + 0.001), 1.0)
       : 0.0;
+    mjThickT += (_dkT - mjThickT) * 0.06;
     if (_dkT > 0.005) {
       var _wc = S.wireColor.clone().lerp(_mjBlack, _dkT * 0.70);
       wireMats.forEach(function(m) {
@@ -1212,6 +1208,9 @@ function render() {
         m.transparent = S.opacity < 1;
       });
     }
+    canvas.style.filter = mjThickT > 0.01
+      ? 'blur(' + (mjThickT * 0.65).toFixed(2) + 'px)'
+      : '';
   }
 
   frames++;
@@ -1924,6 +1923,10 @@ var wsChTimer = null;
 function moveCrosshair(x, y) {
   chTarget.x = x;
   chTarget.y = y;
+  wsChV.style.left  = x + 'px';
+  wsChH.style.top   = y + 'px';
+  wsChSq.style.left = x + 'px';
+  wsChSq.style.top  = y + 'px';
   wsCh.style.opacity = '1';
   clearTimeout(wsChTimer);
   wsChTimer = setTimeout(function() { wsCh.style.opacity = '0'; }, 2000);
