@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v43-invert-burst -->
+<!-- build: explore3-v44-invert-fix-mute -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -225,6 +225,7 @@ function playXploreNext() {
   tdVid.removeAttribute('loop');
   tdVid.src = XPLORE_CDN + file;
   tdVid.load();
+  tdVid.muted = true;
   tdVid.play().catch(function(){});
 
   tdVid.onended = function() {
@@ -1175,6 +1176,8 @@ function render() {
     document.body.style.background = '#000000';
     wireMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
     meshBMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
+  } else if (invertPhase === 'off') {
+    document.body.style.background = '#' + S.bgColor.getHexString();
   } else if (invertPhase === 'fade') {
     invertT += (0 - invertT) * 0.15;
     var _iBg = new THREE.Color(0x000000).lerp(S.bgColor, 1.0 - invertT);
