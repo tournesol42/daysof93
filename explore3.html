@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v46-remove-tdvid-invert -->
+<!-- build: explore3-v47-particles -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -606,6 +606,13 @@ function makeDefaultMesh() {
 makeDefaultMesh();
 meshBGroup.visible = false;
 sceneB.add(meshBGroup);
+var particleGroup = new THREE.Group();
+var particleMesh  = null;
+var particleMat   = new THREE.PointsMaterial({
+  color: 0x000000, size: 0.032, sizeAttenuation: true,
+  transparent: true, opacity: 0.82
+});
+sceneB.add(particleGroup);
 
 function setMeshInfo(tris, verts, name) {
   var el;
@@ -624,6 +631,7 @@ function switchToMesh(index) {
   currentGroup.visible = true;
   currentGroup.rotation.set(0, 0, 0);
   applyMeshMaterials(currentGroup);
+  updateParticles(currentGroup);
   updateMeshBankUI();
   var hdrMeshEl = document.getElementById('hdrMesh');
   if (hdrMeshEl) hdrMeshEl.textContent = meshBank[index].name;
@@ -1025,8 +1033,10 @@ function render() {
   }
 
   // ── Crosshair lag ──────────────────────────────────────────────
-  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * CH_STIFFNESS;
-  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * CH_STIFFNESS;
+  var _chDist = Math.sqrt((chTarget.x-chPos.x)*(chTarget.x-chPos.x)+(chTarget.y-chPos.y)*(chTarget.y-chPos.y));
+  var _chStiff = CH_STIFFNESS + Math.min(_chDist / 120, 1.0) * 0.20;
+  chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * _chStiff;
+  chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * _chStiff;
   chPos.x += chVel.x;
   chPos.y += chVel.y;
   wsChV.style.left  = chPos.x + 'px';
@@ -1044,6 +1054,14 @@ function render() {
   if (meshBGroup.visible) {
     meshBGroup.rotation.x = normalizeAngle(meshBGroup.rotation.x + meshBRotSpeedX * meshBSpeedMult);
     meshBGroup.rotation.y = normalizeAngle(meshBGroup.rotation.y + meshBRotSpeedY * meshBSpeedMult);
+  }
+
+  // ── Particle system: independent rotation + audio-reactive spread ──
+  if (particleMesh) {
+    particleGroup.rotation.x = normalizeAngle(particleGroup.rotation.x + 0.0031);
+    particleGroup.rotation.y = normalizeAngle(particleGroup.rotation.y - 0.0047);
+    var pSpread = 2.1 + (audioScale - 1.0) * 0.6;
+    particleGroup.scale.setScalar(pSpread);
   }
 
   // ── Grid skew from crosshair — lagged ──────────────────────────
@@ -1654,6 +1672,29 @@ function triggerMeshB() {
     tries++;
   } while (idx === currentMeshIndex && tries < 20);
   cloneMeshToB(idx);
+}
+
+// ── Particle system ────────────────────────────────────────────
+function updateParticles(group) {
+  if (particleMesh) {
+    particleGroup.remove(particleMesh);
+    particleMesh.geometry.dispose();
+    particleMesh = null;
+  }
+  var positions = [];
+  group.traverse(function(child) {
+    if (!child.isMesh || child.userData.edgeOverlay) return;
+    var pos = child.geometry.attributes.position;
+    if (!pos) return;
+    for (var vi = 0; vi < pos.count; vi += 3) { // every 3rd vertex
+      positions.push(pos.getX(vi), pos.getY(vi), pos.getZ(vi));
+    }
+  });
+  if (positions.length === 0) return;
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  particleMesh = new THREE.Points(geo, particleMat);
+  particleGroup.add(particleMesh);
 }
 
 // ── Minimal MIDI parser – note-on events only ──────────────────
