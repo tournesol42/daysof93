@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v38-meshb-drums -->
+<!-- build: explore3-v39-sceneb-blackcrosshair -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -32,18 +32,18 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
   position: absolute;
   top: 0; bottom: 0; left: 50%;
   width: 0.75px;
-  background: rgba(255,107,0,0.55);
+  background: rgba(0,0,0,0.55);
 }
 #ws-ch-h {
   position: absolute;
   left: 0; right: 0; top: 50%;
   height: 0.75px;
-  background: rgba(255,107,0,0.55);
+  background: rgba(0,0,0,0.55);
 }
 #ws-ch-sq {
   position: absolute;
   width: 7px; height: 7px;
-  border: 0.75px solid rgba(255,107,0,0.75);
+  border: 0.75px solid rgba(0,0,0,0.75);
   transform: translate(-50%, -50%);
   top: 50%; left: 50%;
 }
@@ -405,6 +405,7 @@ var lineRes = new THREE.Vector2(cw(), ch());
 
 // ── Scene ──────────────────────────────────────────────────────
 var scene  = new THREE.Scene();
+var sceneB = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(50, cw() / ch(), 0.001, 1000);
 camera.position.set(0, 0, 3.5);
 
@@ -587,7 +588,7 @@ function makeDefaultMesh() {
 }
 makeDefaultMesh();
 meshBGroup.visible = false;
-scene.add(meshBGroup);
+sceneB.add(meshBGroup);
 
 function setMeshInfo(tris, verts, name) {
   var el;
@@ -1099,6 +1100,13 @@ function render() {
     renderer.render(scene, camera);
   }
 
+  // MeshB renders outside trail pipeline — no trail accumulation
+  if (meshBGroup.visible) {
+    renderer.autoClear = false;
+    renderer.render(sceneB, camera);
+    renderer.autoClear = true;
+  }
+
   frames++;
   var now = performance.now();
   if (now - lastT > 600) {
@@ -1553,11 +1561,11 @@ function cloneMeshToB(bankIdx) {
     if (child.isLineSegments2) {
       mat = new THREE.LineMaterial({
         color: meshBColor, linewidth: 1, resolution: lineRes,
-        transparent: true, opacity: meshBOpacity, depthWrite: true, depthTest: true
+        transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false
       });
       ls = new THREE.LineSegments2(child.geometry, mat);
     } else {
-      mat = new THREE.LineBasicMaterial({ color: meshBColor, transparent: true, opacity: meshBOpacity });
+      mat = new THREE.LineBasicMaterial({ color: meshBColor, transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false });
       ls = new THREE.LineSegments(child.geometry, mat);
     }
     ls.renderOrder = 2;
