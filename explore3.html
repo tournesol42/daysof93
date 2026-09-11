@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v56-93-grey-meshb-thick -->
+<!-- build: explore3-v55-93-text-blur-boost -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -49,9 +49,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 }
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
 #mj-img { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; z-index: 4; display: none; }
-#text-93-grey { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; font-size: min(68vw, 118vh); color: #909090; line-height: 1; pointer-events: none; z-index: 5; user-select: none; letter-spacing: 0.04em; opacity: 0; transition: opacity 0.5s; }
 #text-93 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; font-size: min(34vw, 60vh); color: #000000; line-height: 1; pointer-events: none; z-index: 5; user-select: none; letter-spacing: 0.04em; }
-#text-93 span { display: inline-block; }
 .audio-dot {
   position: fixed;
   width: 176px; height: 176px;
@@ -82,8 +80,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 <body>
 
 <canvas id="c"></canvas>
-<div id="text-93-grey">93</div>
-<div id="text-93"><span id="ch-9">9</span><span id="ch-3">3</span></div>
+<div id="text-93">93</div>
 <img id="mj-img" src="" alt="" />
 
 <svg id="d93-grid"></svg>
@@ -380,7 +377,7 @@ var SESSION_KEYS = new Set([]); // viewer: restore all values from preset
 var meshBGroup     = new THREE.Group();
 var meshBMats      = [];
 var meshBColor     = 0xff6b00;
-var meshBOpacity   = 0.92;
+var meshBOpacity   = 0.45;
 var meshBScale     = 1.0;
 var meshBRotSpeedX = 0.009;
 var meshBRotSpeedY = 0.006;
@@ -420,13 +417,8 @@ var mjActive      = false;
 var mjImg         = null;
 var mjPosX = 0, mjPosY = 0;
 var mjVelX = 0, mjVelY = 0;
-var _mjBlack     = new THREE.Color(0x000000);
-var mjThickT     = 0.0;
-var ch9El        = document.getElementById('ch-9');
-var ch3El        = document.getElementById('ch-3');
-var textGrey93El = document.getElementById('text-93-grey');
-var _lv9 = new THREE.Vector3();
-var _lv3 = new THREE.Vector3();
+var _mjBlack = new THREE.Color(0x000000);
+var mjThickT  = 0.0;
 var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
@@ -1223,25 +1215,6 @@ function render() {
       : '';
   }
 
-  // ── Letter vertex animation ────────────────────────────────────
-  if (ch9El && ch3El && currentGroup) {
-    var _meshF = false;
-    currentGroup.traverse(function(child) {
-      if (_meshF || !child.isMesh || child.userData.edgeOverlay) return;
-      var _pa = child.geometry && child.geometry.attributes.position;
-      if (!_pa || _pa.count < 2) return;
-      _meshF = true;
-      _lv9.fromBufferAttribute(_pa, 0);
-      _lv9.applyMatrix4(currentGroup.matrixWorld);
-      _lv9.project(camera);
-      ch9El.style.transform = 'translate(' + (_lv9.x * 12).toFixed(1) + 'px,' + (-_lv9.y * 9).toFixed(1) + 'px)';
-      _lv3.fromBufferAttribute(_pa, Math.floor(_pa.count * 0.38));
-      _lv3.applyMatrix4(currentGroup.matrixWorld);
-      _lv3.project(camera);
-      ch3El.style.transform = 'translate(' + (_lv3.x * 12).toFixed(1) + 'px,' + (-_lv3.y * 9).toFixed(1) + 'px)';
-    });
-  }
-
   frames++;
   var now = performance.now();
   if (now - lastT > 600) {
@@ -1693,18 +1666,17 @@ function cloneMeshToB(bankIdx) {
   var srcGroup = meshBank[bankIdx].group;
   srcGroup.traverse(function (child) {
     if (!child.userData || !child.userData.edgeOverlay) return;
-    var mat, ls, _lsGeo;
-    mat = new THREE.LineMaterial({
-      color: meshBColor, linewidth: 2.5, resolution: lineRes,
-      transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false
-    });
+    var mat, ls;
     if (child.isLineSegments2) {
-      _lsGeo = child.geometry.clone();
+      mat = new THREE.LineMaterial({
+        color: meshBColor, linewidth: 1, resolution: lineRes,
+        transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false
+      });
+      ls = new THREE.LineSegments2(child.geometry.clone(), mat);
     } else {
-      _lsGeo = new THREE.LineSegmentsGeometry();
-      _lsGeo.setPositions(child.geometry.attributes.position.array);
+      mat = new THREE.LineBasicMaterial({ color: meshBColor, transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false });
+      ls = new THREE.LineSegments(child.geometry.clone(), mat);
     }
-    ls = new THREE.LineSegments2(_lsGeo, mat);
     ls.renderOrder = 2;
     ls.position.copy(child.position);
     ls.quaternion.copy(child.quaternion);
@@ -1966,10 +1938,6 @@ window.addEventListener('mousemove', function(e) {
   moveCrosshair(e.clientX, e.clientY);
   if (!drumsStarted && e.clientX < window.innerWidth * 0.18 && e.clientY > window.innerHeight * 0.82) {
     startDrumsSystem();
-  }
-  if (textGrey93El) {
-    textGrey93El.style.opacity = (e.clientX < window.innerWidth * 0.5 && e.clientY > window.innerHeight * 0.5)
-      ? '0.55' : '0';
   }
 });
 
