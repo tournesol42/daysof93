@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- build: explore3-v54-direct-crosshair-blur-thick -->
+<!-- build: explore3-v55-93-text-blur-boost -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>days of 93</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -49,6 +49,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 }
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
 #mj-img { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; z-index: 4; display: none; }
+#text-93 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; font-size: min(34vw, 60vh); color: #000000; line-height: 1; pointer-events: none; z-index: 5; user-select: none; letter-spacing: 0.04em; }
 .audio-dot {
   position: fixed;
   width: 176px; height: 176px;
@@ -79,6 +80,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 <body>
 
 <canvas id="c"></canvas>
+<div id="text-93">93</div>
 <img id="mj-img" src="" alt="" />
 
 <svg id="d93-grid"></svg>
@@ -1209,7 +1211,7 @@ function render() {
       });
     }
     canvas.style.filter = mjThickT > 0.01
-      ? 'blur(' + (mjThickT * 0.65).toFixed(2) + 'px)'
+      ? 'blur(' + (mjThickT * 1.8).toFixed(2) + 'px)'
       : '';
   }
 
