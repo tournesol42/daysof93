@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v52-crosshair-wire-dark -->
+<!-- build: explore3-v53-crosshair-fix-wire-opacity -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -386,8 +386,8 @@ var meshBSpeedMult  = 0.3;
 var chTarget      = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chPos         = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
 var chVel         = { x: 0, y: 0 };
-var CH_STIFFNESS  = 0.10;
-var CH_DAMPING    = 0.88;
+var CH_STIFFNESS  = 0.08;
+var CH_DAMPING    = 0.93;
 var gridSkewX     = 0, gridSkewY = 0;
 var prevGridSkewX = 0, prevGridSkewY = 0;
 
@@ -1039,7 +1039,6 @@ function render() {
   }
 
   // ── Crosshair lag ──────────────────────────────────────────────
-  chVel.y += 0.008;
   chVel.x = chVel.x * CH_DAMPING + (chTarget.x - chPos.x) * CH_STIFFNESS;
   chVel.y = chVel.y * CH_DAMPING + (chTarget.y - chPos.y) * CH_STIFFNESS;
   chPos.x += chVel.x;
@@ -1200,10 +1199,18 @@ function render() {
       ? Math.min((mjSpikeLevel - mjBaseOpacity) / (1.0 - mjBaseOpacity + 0.001), 1.0)
       : 0.0;
     if (_dkT > 0.005) {
-      var _wc = S.wireColor.clone().lerp(_mjBlack, _dkT * 0.90);
-      wireMats.forEach(function(m) { if (m.color) m.color.copy(_wc); });
+      var _wc = S.wireColor.clone().lerp(_mjBlack, _dkT * 0.70);
+      wireMats.forEach(function(m) {
+        if (m.color) m.color.copy(_wc);
+        m.opacity = Math.min(1.0, S.opacity + (1.0 - S.opacity) * _dkT * 0.95);
+        m.transparent = true;
+      });
     } else {
-      wireMats.forEach(function(m) { if (m.color) m.color.copy(S.wireColor); });
+      wireMats.forEach(function(m) {
+        if (m.color) m.color.copy(S.wireColor);
+        m.opacity = S.opacity;
+        m.transparent = S.opacity < 1;
+      });
     }
   }
 
