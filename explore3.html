@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v41-drums-env-td-opacity -->
+<!-- build: explore3-v42-td-opacity-boost -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1161,7 +1161,7 @@ function render() {
     var _dLag = _dRms > drumsEnvAmp ? 0.45 : ENV_LAG;
     drumsEnvAmp = drumsEnvAmp * _dLag + _dRms * (1.0 - _dLag);
     var _dEnvT = drumsEnvAmp > ENV_THRESHOLD
-      ? Math.min((drumsEnvAmp - ENV_THRESHOLD) / (1.0 - ENV_THRESHOLD), 1.0)
+      ? Math.min((drumsEnvAmp - ENV_THRESHOLD) / (0.12 - ENV_THRESHOLD), 1.0)
       : 0.0;
     tdOpacity += (_dEnvT - tdOpacity) * 0.08;
     tdCv.style.opacity = tdOpacity.toFixed(3);
