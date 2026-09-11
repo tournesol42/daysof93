@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v50-mj-images -->
+<!-- build: explore3-v51-mj-movement -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -413,6 +413,8 @@ var mjBaseOpacity = 0.0;
 var mjSpikeLevel  = 0.0;
 var mjActive      = false;
 var mjImg         = null;
+var mjPosX = 0, mjPosY = 0;
+var mjVelX = 0, mjVelY = 0;
 var drumsAnalyser    = null;
 var drumsAnalyserData = null;
 var drumsEnvAmp      = 0.0;
@@ -1188,6 +1190,11 @@ function render() {
   if (mjActive && mjImg) {
     mjSpikeLevel += (mjBaseOpacity - mjSpikeLevel) * 0.025;
     mjImg.style.opacity = mjSpikeLevel.toFixed(3);
+    mjPosX += mjVelX;
+    mjPosY += mjVelY;
+    if (Math.abs(mjPosX) > 130) mjVelX *= -1;
+    if (Math.abs(mjPosY) > 90)  mjVelY *= -1;
+    mjImg.style.transform = 'translate(' + mjPosX.toFixed(1) + 'px,' + mjPosY.toFixed(1) + 'px)';
   }
 
   frames++;
@@ -1809,19 +1816,35 @@ function startMJSystem() {
   if (mjActive) return;
   mjActive      = true;
   mjImg         = document.getElementById('mj-img');
+  mjCurrentIdx  = 2; // start with mj3
   mjImg.src     = MJ_BASE + MJ_FILES[mjCurrentIdx];
   mjImg.style.display = 'block';
-  mjBaseOpacity = 0.12;
-  mjSpikeLevel  = 0.12;
+  mjBaseOpacity = 0.0;
+  mjSpikeLevel  = 0.0;
+  mjVelX = (Math.random() - 0.5) * 0.30;
+  mjVelY = (Math.random() - 0.5) * 0.30;
 }
 
 function onMJMidiTrigger() {
   if (!mjActive) return;
-  // Sample & hold: random 0–0.4
-  mjBaseOpacity = Math.random() * 0.4;
-  // 2-input switch: 80% → input 2 (nothing), 20% → input 1 (spike)
+  // Sample & hold with probability weighting
+  var _r = Math.random();
+  if (_r < 0.70) {
+    mjBaseOpacity = 0.0;
+  } else if (_r < 0.90) {
+    mjBaseOpacity = 0.01 + Math.random() * 0.29; // 1–30%
+  } else {
+    mjBaseOpacity = 0.30 + Math.random() * 0.10; // 30–40%
+  }
+  // 2-input switch: 80% nothing, 20% spike
   if (Math.random() < 0.20) {
     mjSpikeLevel = 1.0;
+    // Switch randomly between mj3 (idx 2) and mj5 (idx 4)
+    mjCurrentIdx = Math.random() < 0.5 ? 2 : 4;
+    mjImg.src = MJ_BASE + MJ_FILES[mjCurrentIdx];
+    // New drift direction on image change
+    mjVelX = (Math.random() - 0.5) * 0.30;
+    mjVelY = (Math.random() - 0.5) * 0.30;
   }
 }
 
