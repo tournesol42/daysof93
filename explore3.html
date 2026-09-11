@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v44-invert-fix-mute -->
+<!-- build: explore3-v45-burst-fix-meshb-geo -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -902,9 +902,14 @@ function syncDisplayUniforms() {
   displayMat.uniforms.uCon.value = S.contrast;
   displayMat.uniforms.uSat.value = S.saturation;
   displayMat.uniforms.uTnt.value.set(S.tintColor.getHex());
-  displayMat.uniforms.uBgColor.value.copy(S.bgColor);
+  if (invertPhase === 'on') {
+    displayMat.uniforms.uBgColor.value.set(0, 0, 0);
+    document.body.style.background = '#000000';
+  } else {
+    displayMat.uniforms.uBgColor.value.copy(S.bgColor);
+    document.body.style.background = '#' + S.bgColor.getHexString();
+  }
   displayMat.uniforms.uTrailMode.value = S.trailOn;
-  document.body.style.background = '#' + S.bgColor.getHexString();
 }
 
 // ── Render loop ────────────────────────────────────────────────
@@ -1171,27 +1176,10 @@ function render() {
     tdCv.style.opacity = tdOpacity.toFixed(3);
   }
 
-  // ── Invert burst: applied last so it overrides syncDisplayUniforms ──
+  // ── Invert burst: wire + meshB color override (bg handled by syncDisplayUniforms) ──
   if (invertPhase === 'on') {
-    document.body.style.background = '#000000';
     wireMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
     meshBMats.forEach(function(m) { if (m.color) m.color.set(0xffffff); });
-  } else if (invertPhase === 'off') {
-    document.body.style.background = '#' + S.bgColor.getHexString();
-  } else if (invertPhase === 'fade') {
-    invertT += (0 - invertT) * 0.15;
-    var _iBg = new THREE.Color(0x000000).lerp(S.bgColor, 1.0 - invertT);
-    document.body.style.background = '#' + _iBg.getHexString();
-    var _iWc = new THREE.Color(0xffffff).lerp(S.wireColor, 1.0 - invertT);
-    wireMats.forEach(function(m) { if (m.color) m.color.copy(_iWc); });
-    meshBMats.forEach(function(m) {
-      if (m.color) m.color.set(0xffffff).lerp(new THREE.Color(meshBColor), 1.0 - invertT);
-    });
-    if (invertT < 0.03) {
-      invertPhase = 'off';
-      syncWireColor();
-      meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
-    }
   }
 
   frames++;
@@ -1637,6 +1625,7 @@ function triggerRandomPreset() {
 
 // ── MeshB: clone geometry from meshBank ────────────────────────
 function cloneMeshToB(bankIdx) {
+  meshBGroup.children.slice().forEach(function(c) { if (c.geometry) c.geometry.dispose(); });
   meshBMats.forEach(function (m) { m.dispose(); });
   meshBMats = [];
   while (meshBGroup.children.length) meshBGroup.remove(meshBGroup.children[0]);
@@ -1650,10 +1639,10 @@ function cloneMeshToB(bankIdx) {
         color: meshBColor, linewidth: 1, resolution: lineRes,
         transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false
       });
-      ls = new THREE.LineSegments2(child.geometry, mat);
+      ls = new THREE.LineSegments2(child.geometry.clone(), mat);
     } else {
       mat = new THREE.LineBasicMaterial({ color: meshBColor, transparent: true, opacity: meshBOpacity, depthWrite: false, depthTest: false });
-      ls = new THREE.LineSegments(child.geometry, mat);
+      ls = new THREE.LineSegments(child.geometry.clone(), mat);
     }
     ls.renderOrder = 2;
     ls.position.copy(child.position);
@@ -1782,7 +1771,7 @@ function startDrumsSystem() {
 
 // ── Invert burst ───────────────────────────────────────────────
 function startInvertBurst() {
-  if (invertPhase !== 'off') return; // don't stack bursts
+  if (invertPhase !== 'off') return;
   var count = 1 + Math.floor(Math.random() * 6);
   var i = 0;
   function nextFlicker() {
@@ -1792,24 +1781,14 @@ function startInvertBurst() {
       meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
       return;
     }
-    var duration = 250 + Math.random() * 750;
     invertPhase = 'on';
-    invertT = 1.0;
     i++;
+    var duration = 80 + Math.random() * 170; // 80–250ms snappy flash
     setTimeout(function() {
-      if (duration > 750) {
-        invertPhase = 'fade';
-        setTimeout(function() {
-          var gap = 80 + Math.random() * 220;
-          setTimeout(nextFlicker, gap);
-        }, 380);
-      } else {
-        invertPhase = 'off';
-        syncWireColor();
-        meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
-        var gap = 80 + Math.random() * 220;
-        setTimeout(nextFlicker, gap);
-      }
+      invertPhase = 'off';
+      syncWireColor();
+      meshBMats.forEach(function(m) { if (m.color) m.color.set(meshBColor); });
+      setTimeout(nextFlicker, 280 + Math.random() * 200); // 280–480ms visible gap
     }, duration);
   }
   nextFlicker();
