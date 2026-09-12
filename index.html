@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v202-breathe-restored -->
+<!-- build: v203-explore3-dot -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -406,6 +406,25 @@
   @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
   @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
   @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
+  #explore3-btn {
+    display: block;
+    position: fixed;
+    left: calc(31.8vw - 14px + 50px);
+    top: calc(50vh + 7.22vw - 14px + 40px);
+    right: auto; bottom: auto;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #E85500;
+    text-decoration: none;
+    z-index: 51;
+    animation: dot-slow 2.4s ease-in-out infinite;
+  }
+  @media (min-width: 720px) {
+    #explore3-btn {
+      left: calc(50vw - 12.87vh - 14px + 50px);
+      top: calc(55.1vh - 14px + 40px);
+    }
+  }
 </style>
 </head>
 <body>
@@ -1355,6 +1374,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 </script>
 
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
+<a href="https://daysof93.com/explore3" id="explore3-btn" aria-label="Explore 3"></a>
 <script>
 setTimeout(function() {
   var dot = document.getElementById('explore-btn');
