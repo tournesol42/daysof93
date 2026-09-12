@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v63-midicc-event -->
+<!-- build: explore3-v64-speed-color-faders -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -402,6 +402,9 @@ var GRAV_GM         = 0.00042;
 var GRAV_Z_VEL      = 0.006;
 var GRAV_SIZE_RANGE = 0.065;
 var GRAV_SPAWN_SC   = 1.4;
+var GRAV_SPEED      = 1.0;
+var _RAL = ['#EE7C0E','#FF2B00','#D5D6D2','#898D8D','#2B2B2C','#FAC300','#F4F4F4','#FE0000'];
+function _ralPick(v) { return _RAL[Math.min(7, Math.floor(v * 8))]; }
 var gravParticles   = [];
 var gravSpawnPool   = [];
 var gravMesh        = null;
@@ -1948,12 +1951,15 @@ function spawnGravParticle(p) {
 // F4(CC3)=box size       F5(CC4)=density   F6(CC5)=spawn radius
 window.addEventListener('midicc', function(e) {
   var cc = e.detail.cc, v = e.detail.mapped;
-  if (cc === 0) GRAV_GM         = 0.00005 + v * 0.00195;
-  if (cc === 1) GRAV_Z_VEL      = v * 0.025;
+  if (cc === 0) GRAV_GM    = 0.00005 + v * 0.00195;
+  if (cc === 1) GRAV_Z_VEL = v * 0.025;
   if (cc === 2 && gravMesh) gravMesh.material.opacity = v;
-  if (cc === 3) GRAV_SIZE_RANGE  = v * 0.15;
+  if (cc === 3) GRAV_SPEED = 0.05 + v * 2.95;  // very slow → fast
   if (cc === 4 && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * v));
-  if (cc === 5) GRAV_SPAWN_SC   = 0.5 + v * 3.0;
+  // F6 BG colour, F7 mesh engine 1 colour, F8 particle colour
+  if (cc === 5) { S.bgColor.set(_ralPick(v)); }
+  if (cc === 6) { S.wireColor.set(_ralPick(v)); wireMats.forEach(function(m){ if(m.color) m.color.copy(S.wireColor); }); }
+  if (cc === 7 && gravMesh) { gravMesh.material.color.set(_ralPick(v)); }
 });
 
 function initGravParticles() {
@@ -1986,9 +1992,11 @@ function updateGravParticles() {
     _gravDir.set(-p.pos.x, -p.pos.y, -p.pos.z);
     var r = _gravDir.length(); if (r < 0.06) r = 0.06;
     _gravDir.normalize().multiplyScalar(GRAV_GM / (r*r));
-    p.vel.add(_gravDir);
-    p.pos.add(p.vel);
-    p.rot.x += p.rotVel.x; p.rot.y += p.rotVel.y; p.rot.z += p.rotVel.z;
+    p.vel.addScaledVector(_gravDir, GRAV_SPEED);
+    p.pos.addScaledVector(p.vel, GRAV_SPEED);
+    p.rot.x += p.rotVel.x * GRAV_SPEED;
+    p.rot.y += p.rotVel.y * GRAV_SPEED;
+    p.rot.z += p.rotVel.z * GRAV_SPEED;
     var na = p.age / p.lifespan;
     var sf = na < 0.08 ? na/0.08 : na > 0.85 ? (1-na)/0.15 : 1.0;
     gravDummy.position.copy(p.pos);
