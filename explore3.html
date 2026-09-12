@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v60-grid-mute-fader-fix -->
+<!-- build: explore3-v61-fader-range-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -15,12 +15,13 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --grav-gm:       0.00042;
-  --grav-z-vel:    0.006;
-  --grav-opacity:  0.65;
-  --grav-size:     0.065;
-  --grav-decimate: 1.0;
-  --grav-spawn-sc: 1.4;
+  /* All grav vars 0–1. Set MIDI fader min=0 max=1 for all. */
+  --grav-gm:       0.20;   /* → GRAV_GM:       0.00005 + v*0.00195  */
+  --grav-z-vel:    0.24;   /* → GRAV_Z_VEL:    v*0.025             */
+  --grav-opacity:  0.65;   /* → opacity:       direct              */
+  --grav-size:     0.43;   /* → GRAV_SIZE_RANGE: v*0.15            */
+  --grav-decimate: 1.00;   /* → particle count: fraction           */
+  --grav-spawn-sc: 0.30;   /* → GRAV_SPAWN_SC: 0.5 + v*3.0        */
 }
 body { background: #c8c8c8; overflow: hidden; cursor: none; }
 
@@ -1966,10 +1967,14 @@ function updateGravParticles() {
   // Read MIDI CSS vars
   var _cs = getComputedStyle(document.documentElement);
   var _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-gm'));        if (!isNaN(_v)) GRAV_GM        = _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-z-vel'));     if (!isNaN(_v)) GRAV_Z_VEL     = _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-size'));      if (!isNaN(_v)) GRAV_SIZE_RANGE = _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-spawn-sc'));  if (!isNaN(_v)) GRAV_SPAWN_SC  = _v;
+  _v = parseFloat(_cs.getPropertyValue('--grav-gm'));
+  if (!isNaN(_v)) GRAV_GM = 0.00005 + _v * 0.00195;
+  _v = parseFloat(_cs.getPropertyValue('--grav-z-vel'));
+  if (!isNaN(_v)) GRAV_Z_VEL = _v * 0.025;
+  _v = parseFloat(_cs.getPropertyValue('--grav-size'));
+  if (!isNaN(_v)) GRAV_SIZE_RANGE = _v * 0.15;
+  _v = parseFloat(_cs.getPropertyValue('--grav-spawn-sc'));
+  if (!isNaN(_v)) GRAV_SPAWN_SC = 0.5 + _v * 3.0;
   _v = parseFloat(_cs.getPropertyValue('--grav-opacity'));
   if (!isNaN(_v) && gravMesh) gravMesh.material.opacity = _v;
   _v = parseFloat(_cs.getPropertyValue('--grav-decimate'));
