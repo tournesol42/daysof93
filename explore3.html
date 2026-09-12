@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v55-93-text-blur-boost -->
+<!-- build: explore3-v56-midi-console -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1988,5 +1988,89 @@ render();
 
 })();
 </script>
+<!-- MIDI CONSOLE — DEV -->
+<script>
+(function(){
+'use strict';
+const N=8,SK='do93_midi';
+let F=Array.from({length:N},(_,i)=>({cc:i,label:'F'+(i+1),target:'',value:64,min:0,max:1}));
+try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
+let open=false,eIdx=null,midi=false,drag=null;
+const sv=()=>{try{localStorage.setItem(SK,JSON.stringify(F));}catch{}};
+const fmt=f=>(f.min+(f.value/127)*(f.max-f.min)).toFixed(3);
+const applyF=f=>{if(f.target?.startsWith('--'))document.documentElement.style.setProperty(f.target,+fmt(f));};
+F.forEach(applyF);
+const btn=document.createElement('div');
+Object.assign(btn.style,{position:'fixed',bottom:'14px',left:'14px',zIndex:'999999',fontFamily:'monospace',fontSize:'9px',letterSpacing:'.2em',padding:'4px 11px',cursor:'pointer',userSelect:'none',border:'1px solid rgba(255,255,255,.1)'});
+const box=document.createElement('div');
+Object.assign(box.style,{position:'fixed',bottom:'44px',left:'14px',zIndex:'999999',width:'444px',background:'rgba(8,8,8,.97)',border:'1px solid rgba(255,255,255,.09)',padding:'10px',fontFamily:'monospace',display:'none'});
+document.body.appendChild(btn);document.body.appendChild(box);
+function updViz(i){
+  const f=F[i],p=(f.value/127)*100,act=!!f.target;
+  const fill=box.querySelector('[data-fill="'+i+'"]');
+  const hdl=box.querySelector('[data-hdl="'+i+'"]');
+  const val=box.querySelector('[data-fval="'+i+'"]');
+  const lbl=box.querySelector('[data-lbl="'+i+'"]');
+  if(fill){fill.style.height=p+'%';fill.style.background=act?'#ffad00':'rgba(255,255,255,.2)';}
+  if(hdl){hdl.style.bottom='calc('+p+'% - 3px)';hdl.style.background=act?'#ffad00':'#aaa';}
+  if(val)val.textContent=fmt(f);
+  if(lbl){lbl.style.color=act?'#ffad00':'rgba(255,255,255,.3)';lbl.style.borderBottom=eIdx===i?'1px solid #ffad00':'1px solid transparent';}
+}
+document.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const trk=box.querySelector('[data-trk="'+drag.idx+'"]');
+  if(!trk)return;
+  const r=trk.getBoundingClientRect();
+  if(!r.height)return;
+  F[drag.idx].value=Math.max(0,Math.min(127,Math.round(drag.sv+(drag.sy-e.clientY)/r.height*127)));
+  applyF(F[drag.idx]);sv();updViz(drag.idx);
+});
+document.addEventListener('mouseup',()=>{drag=null;});
+function buildFaders(){
+  return F.map((f,i)=>{const p=(f.value/127)*100,act=!!f.target;
+    return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0"><div data-trk="${i}" style="position:relative;height:96px;width:16px;background:rgba(255,255,255,.06);border-radius:2px;cursor:ns-resize;user-select:none"><div data-fill="${i}" style="position:absolute;bottom:0;left:0;right:0;height:${p}%;background:${act?'#ffad00':'rgba(255,255,255,.2)'};border-radius:2px;pointer-events:none"></div><div data-hdl="${i}" style="position:absolute;bottom:calc(${p}% - 3px);left:-3px;right:-3px;height:6px;background:${act?'#ffad00':'#aaa'};border-radius:1px;pointer-events:none"></div></div><div data-fval="${i}" style="font-size:9px;color:rgba(255,255,255,.45)">${fmt(f)}</div><div data-lbl="${i}" style="font-size:8px;color:${act?'#ffad00':'rgba(255,255,255,.3)'};cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:1px 2px;border-bottom:${eIdx===i?'1px solid #ffad00':'1px solid transparent'}">${f.label||'F'+(i+1)}</div><div style="font-size:7px;color:rgba(255,255,255,.18)">CC${f.cc}</div></div>`;
+  }).join('');
+}
+function bindFaders(){
+  box.querySelectorAll('[data-trk]').forEach(el=>{el.onmousedown=e=>{drag={idx:+el.dataset.trk,sy:e.clientY,sv:F[+el.dataset.trk].value};e.preventDefault();};});
+  box.querySelectorAll('[data-lbl]').forEach(el=>{el.onclick=()=>{eIdx=eIdx===+el.dataset.lbl?null:+el.dataset.lbl;rEdit();F.forEach((_,j)=>updViz(j));};});
+}
+function rEdit(){
+  const ec=box.querySelector('#mc-edit');if(!ec)return;
+  const ef=eIdx!==null?F[eIdx]:null;
+  ec.innerHTML=ef?`<div style="background:rgba(255,173,0,.05);border:1px solid rgba(255,173,0,.15);padding:8px;margin-bottom:8px"><div style="font-size:7px;color:rgba(255,173,0,.45);letter-spacing:.22em;margin-bottom:6px">FADER ${eIdx+1} — ASSIGN</div><div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;gap:8px;align-items:center"><span style="font-size:8px;color:rgba(255,255,255,.25);width:40px">LABEL</span><input id="mc-el" value="${ef.label}" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.13);color:#fff;font-family:monospace;font-size:9px;padding:2px 5px;outline:none"></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:8px;color:rgba(255,255,255,.25);width:40px">TARGET</span><input id="mc-et" value="${ef.target}" placeholder="--css-variable" style="flex:1;background:transparent;border:1px solid rgba(255,173,0,.3);color:#ffad00;font-family:monospace;font-size:9px;padding:2px 5px;outline:none"></div><div style="display:flex;gap:10px"><div style="display:flex;gap:6px;align-items:center"><span style="font-size:8px;color:rgba(255,255,255,.25);width:28px">MIN</span><input id="mc-emn" type="number" step="0.01" value="${ef.min}" style="width:52px;background:transparent;border:1px solid rgba(255,255,255,.13);color:#fff;font-family:monospace;font-size:9px;padding:2px 5px;outline:none"></div><div style="display:flex;gap:6px;align-items:center"><span style="font-size:8px;color:rgba(255,255,255,.25);width:28px">MAX</span><input id="mc-emx" type="number" step="0.01" value="${ef.max}" style="width:52px;background:transparent;border:1px solid rgba(255,255,255,.13);color:#fff;font-family:monospace;font-size:9px;padding:2px 5px;outline:none"></div></div></div></div>`:'';
+  if(ef){
+    const el=box.querySelector('#mc-el');if(el)el.oninput=e=>{F[eIdx].label=e.target.value;sv();updViz(eIdx);};
+    const et=box.querySelector('#mc-et');if(et)et.oninput=e=>{F[eIdx].target=e.target.value;applyF(F[eIdx]);sv();updViz(eIdx);};
+    const emn=box.querySelector('#mc-emn');if(emn)emn.oninput=e=>{F[eIdx].min=+e.target.value||0;applyF(F[eIdx]);sv();};
+    const emx=box.querySelector('#mc-emx');if(emx)emx.oninput=e=>{F[eIdx].max=+e.target.value||1;applyF(F[eIdx]);sv();};
+  }
+}
+function rPanel(){
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)"><span style="font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.2em">NANOKONTROL2 · CH 1 · CC 0–7</span><span id="mc-st" style="font-size:8px;letter-spacing:.15em;color:${midi?'rgba(0,255,100,.7)':'rgba(255,100,100,.5)'}">${midi?'CONNECTED':'NO DEVICE'}</span></div><div id="mc-faders" style="display:flex;gap:7px;margin-bottom:10px">${buildFaders()}</div><div id="mc-edit"></div><div style="display:flex;gap:6px"><button id="mc-snap" style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.11);color:#fff;font-family:monospace;font-size:8px;letter-spacing:.14em;padding:5px 0;cursor:pointer">SNAPSHOT</button><button id="mc-save" style="flex:1;background:rgba(255,173,0,.1);border:1px solid rgba(255,173,0,.3);color:#ffad00;font-family:monospace;font-size:8px;letter-spacing:.14em;padding:5px 0;cursor:pointer">SAVE JSON</button></div>`;
+  bindFaders();rEdit();
+  const mkSnap=()=>({timestamp:new Date().toISOString(),controller:'nanoKONTROL2',faders:F.map(f=>({cc:f.cc,label:f.label,target:f.target,rawValue:f.value,mappedValue:+fmt(f),min:f.min,max:f.max}))});
+  box.querySelector('#mc-snap').onclick=()=>{console.log('MIDI Snapshot:\n'+JSON.stringify(mkSnap(),null,2));};
+  box.querySelector('#mc-save').onclick=async()=>{
+    const blob=new Blob([JSON.stringify(mkSnap(),null,2)],{type:'application/json'});
+    if('showSaveFilePicker'in window){try{const h=await window.showSaveFilePicker({suggestedName:`midi-snapshot-${Date.now()}.json`,types:[{description:'JSON',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(blob);await w.close();return;}catch{}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`midi-snapshot-${Date.now()}.json`;a.click();
+  };
+}
+function updBtn(){btn.style.background=open?'rgba(255,173,0,.9)':'rgba(20,20,20,.9)';btn.style.color=open?'#000':'#555';btn.textContent=midi?'◆ MIDI':'◇ MIDI';}
+btn.onclick=()=>{open=!open;box.style.display=open?'block':'none';updBtn();if(open)rPanel();};
+document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='m')btn.click();});
+updBtn();
+if(navigator.requestMIDIAccess){
+  navigator.requestMIDIAccess().then(acc=>{
+    const h=msg=>{const[s,cc,val]=msg.data;if((s&0xF0)===0xB0&&cc<N){F[cc].value=val;applyF(F[cc]);sv();if(!midi){midi=true;updBtn();}if(open){const st=box.querySelector('#mc-st');if(st){st.textContent='CONNECTED';st.style.color='rgba(0,255,100,.7)';}updViz(cc);}else updBtn();}};
+    for(const inp of acc.inputs.values())inp.onmidimessage=h;
+    acc.onstatechange=e=>{if(e.port.type==='input')e.port.onmidimessage=h;};
+    midi=[...acc.inputs.values()].length>0;updBtn();
+  }).catch(()=>{});
+}
+})();
+</script>
+<!-- /MIDI CONSOLE -->
 </body>
 </html>
