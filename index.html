@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v203-explore3-dot -->
+<!-- build: v204-explore3-dot-delayed -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -407,12 +407,12 @@
   @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
   @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
   #explore3-btn {
-    display: block;
+    display: none;
     position: fixed;
-    left: calc(31.8vw - 14px + 50px);
-    top: calc(50vh + 7.22vw - 14px + 40px);
+    left: calc(31.8vw - 14px + 110px);
+    top: calc(50vh + 7.22vw - 14px + 110px);
     right: auto; bottom: auto;
-    width: 56px; height: 56px;
+    width: 84px; height: 84px;
     border-radius: 50%;
     background: #E85500;
     text-decoration: none;
@@ -421,8 +421,8 @@
   }
   @media (min-width: 720px) {
     #explore3-btn {
-      left: calc(50vw - 12.87vh - 14px + 50px);
-      top: calc(55.1vh - 14px + 40px);
+      left: calc(50vw - 12.87vh - 14px + 110px);
+      top: calc(55.1vh - 14px + 110px);
     }
   }
 </style>
@@ -1379,6 +1379,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 setTimeout(function() {
   var dot = document.getElementById('explore-btn');
   dot.classList.add('visible');
+  setTimeout(function() {
+    document.getElementById('explore3-btn').style.display = 'block';
+  }, 2000);
   // Phase 2: slow opacity pulse after 2s solid
   setTimeout(function() { dot.classList.add('phase2'); }, 2000);
   // Phase 3: grow to 2× + fast pulse after ~3.5s of slow pulse
