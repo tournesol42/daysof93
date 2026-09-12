@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v65-color-persist-speed-fix -->
+<!-- build: explore3-v66-defaults-93glitch -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -58,7 +58,7 @@ body { background: #c8c8c8; overflow: hidden; cursor: none; }
 }
 #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity 0.8s; z-index: 3; }
 #mj-img { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; z-index: 4; display: none; }
-#text-93 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; font-size: min(34vw, 60vh); color: #000000; line-height: 1; pointer-events: none; z-index: 5; user-select: none; letter-spacing: 0.04em; }
+#text-93 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; font-size: min(34vw, 60vh); color: #000000; line-height: 1; pointer-events: none; z-index: 5; user-select: none; letter-spacing: 0.04em; opacity: 0; }
 .audio-dot {
   position: fixed;
   width: 176px; height: 176px;
@@ -2090,6 +2090,40 @@ window.addEventListener('mousemove', function(e) {
 });
 
 // ── Trail burst: random on/off independent of presets ──────────
+// ── Bake MIDI snapshot 2026-09-12 as startup defaults ──────────
+function applyMidiDefaults() {
+  GRAV_GM    = 0.00005 + 0.299 * 0.00195;
+  GRAV_Z_VEL = 0.748 * 0.025;
+  GRAV_SPEED = 0.05 + 0.008 * 2.95;
+  if (gravMesh) {
+    gravMesh.material.opacity = 0.614;
+    gravMesh.count = Math.floor(GRAV_COUNT * 0.701);
+    gravMesh.material.color.set(_ralPick(1.0));
+  }
+  if (!_midiBgColor)   _midiBgColor   = new THREE.Color();
+  if (!_midiWireColor) _midiWireColor = new THREE.Color();
+  _midiBgColor.set(_ralPick(0.638));
+  _midiWireColor.set(_ralPick(1.0));
+}
+
+// ── 93 glitch: rare, fast, electronic ──────────────────────────
+function triggerText93Glitch() {
+  var el = document.getElementById('text-93');
+  if (!el) return;
+  var count = 2 + Math.floor(Math.random() * 4);
+  var t = 0;
+  for (var i = 0; i < count; i++) {
+    var onMs  = 30 + Math.floor(Math.random() * 55);
+    var offMs = 20 + Math.floor(Math.random() * 45);
+    (function(_t, _on) {
+      setTimeout(function() { el.style.opacity = '1'; }, _t);
+      setTimeout(function() { el.style.opacity = '0'; }, _t + _on);
+    })(t, onMs);
+    t += onMs + offMs;
+  }
+  setTimeout(triggerText93Glitch, 15000 + Math.random() * 30000);
+}
+
 function scheduleTrailBurst() {
   setTimeout(function() {
     S.trailOn = true;
@@ -2102,8 +2136,10 @@ function scheduleTrailBurst() {
 
 loadDrumsSystem();
 initGravParticles();
+applyMidiDefaults();
 loadMeshLibrary();
 scheduleTrailBurst();
+setTimeout(triggerText93Glitch, 8000 + Math.random() * 5000);
 
 initMIDI();
 
