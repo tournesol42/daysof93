@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v59-gravity-fix -->
+<!-- build: explore3-v60-grid-mute-fader-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1964,15 +1964,15 @@ function initGravParticles() {
 
 function updateGravParticles() {
   // Read MIDI CSS vars
-  var st = document.documentElement.style;
+  var _cs = getComputedStyle(document.documentElement);
   var _v;
-  _v = parseFloat(st.getPropertyValue('--grav-gm'));       if (!isNaN(_v)) GRAV_GM         = _v;
-  _v = parseFloat(st.getPropertyValue('--grav-z-vel'));    if (!isNaN(_v)) GRAV_Z_VEL      = _v;
-  _v = parseFloat(st.getPropertyValue('--grav-size'));     if (!isNaN(_v)) GRAV_SIZE_RANGE  = _v;
-  _v = parseFloat(st.getPropertyValue('--grav-spawn-sc')); if (!isNaN(_v)) GRAV_SPAWN_SC   = _v;
-  _v = parseFloat(st.getPropertyValue('--grav-opacity'));
+  _v = parseFloat(_cs.getPropertyValue('--grav-gm'));        if (!isNaN(_v)) GRAV_GM        = _v;
+  _v = parseFloat(_cs.getPropertyValue('--grav-z-vel'));     if (!isNaN(_v)) GRAV_Z_VEL     = _v;
+  _v = parseFloat(_cs.getPropertyValue('--grav-size'));      if (!isNaN(_v)) GRAV_SIZE_RANGE = _v;
+  _v = parseFloat(_cs.getPropertyValue('--grav-spawn-sc'));  if (!isNaN(_v)) GRAV_SPAWN_SC  = _v;
+  _v = parseFloat(_cs.getPropertyValue('--grav-opacity'));
   if (!isNaN(_v) && gravMesh) gravMesh.material.opacity = _v;
-  _v = parseFloat(st.getPropertyValue('--grav-decimate'));
+  _v = parseFloat(_cs.getPropertyValue('--grav-decimate'));
   if (!isNaN(_v) && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * _v));
 
   for (var i = 0; i < GRAV_COUNT; i++) {
@@ -2020,7 +2020,7 @@ function buildGrid() {
     var y = vpY + Math.pow(t, 1.8) * (h - vpY);
     var op = (0.32 * (1 - t * 0.5)).toFixed(3);
     lines += '<line x1="0" y1="' + y.toFixed(1) + '" x2="' + w +
-             '" y2="' + y.toFixed(1) + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="' + op + '"/>';
+             '" y2="' + y.toFixed(1) + '" stroke="rgba(0,0,0,0.08)" stroke-width="0.75" opacity="' + op + '"/>';
   }
   var cols = 16;
   for (var i = 0; i <= cols; i++) {
@@ -2028,12 +2028,12 @@ function buildGrid() {
     var x2 = vpX + (x - vpX) * 0.12;
     lines += '<line x1="' + x.toFixed(1) + '" y1="' + h + '" x2="' +
              x2.toFixed(1) + '" y2="' + vpY.toFixed(1) +
-             '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.26"/>';
+             '" stroke="rgba(0,0,0,0.08)" stroke-width="0.75" opacity="0.26"/>';
   }
   lines += '<line x1="0" y1="' + vpY.toFixed(1) + '" x2="' + w +
-           '" y2="' + vpY.toFixed(1) + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.32"/>';
+           '" y2="' + vpY.toFixed(1) + '" stroke="rgba(0,0,0,0.08)" stroke-width="0.75" opacity="0.32"/>';
   lines += '<line x1="' + vpX.toFixed(1) + '" y1="0" x2="' + vpX.toFixed(1) +
-           '" y2="' + h + '" stroke="rgba(255,107,0,1)" stroke-width="0.75" opacity="0.28"/>';
+           '" y2="' + h + '" stroke="rgba(0,0,0,0.08)" stroke-width="0.75" opacity="0.28"/>';
   svg.innerHTML = lines;
 }
 
