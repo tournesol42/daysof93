@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v62-grav-direct-fader -->
+<!-- build: explore3-v63-midicc-event -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1943,15 +1943,18 @@ function spawnGravParticle(p) {
   p.rotVel.set((Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04);
 }
 
-// Direct MIDI → gravity param callback (called from applyF in MIDI IIFE)
-window._onGravFader = function(target, v) {
-  if (target === '--grav-gm')        GRAV_GM         = 0.00005 + v * 0.00195;
-  if (target === '--grav-z-vel')     GRAV_Z_VEL      = v * 0.025;
-  if (target === '--grav-size')      GRAV_SIZE_RANGE  = v * 0.15;
-  if (target === '--grav-spawn-sc')  GRAV_SPAWN_SC   = 0.5 + v * 3.0;
-  if (target === '--grav-opacity'  && gravMesh) gravMesh.material.opacity = v;
-  if (target === '--grav-decimate' && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * v));
-};
+// MIDI fader → gravity params via CustomEvent (CC 0–5, min=0 max=1 on all)
+// F1(CC0)=orbital tight  F2(CC1)=Z spread  F3(CC2)=opacity
+// F4(CC3)=box size       F5(CC4)=density   F6(CC5)=spawn radius
+window.addEventListener('midicc', function(e) {
+  var cc = e.detail.cc, v = e.detail.mapped;
+  if (cc === 0) GRAV_GM         = 0.00005 + v * 0.00195;
+  if (cc === 1) GRAV_Z_VEL      = v * 0.025;
+  if (cc === 2 && gravMesh) gravMesh.material.opacity = v;
+  if (cc === 3) GRAV_SIZE_RANGE  = v * 0.15;
+  if (cc === 4 && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * v));
+  if (cc === 5) GRAV_SPAWN_SC   = 0.5 + v * 3.0;
+});
 
 function initGravParticles() {
   sceneB.add(gravGroup);
@@ -2138,6 +2141,7 @@ Object.assign(box.style,{position:'fixed',bottom:'44px',left:'14px',zIndex:'9999
 document.body.appendChild(btn);document.body.appendChild(box);
 function onFV(i,v){
   F[i].value=v;applyF(F[i]);svF();updViz(i);
+  window.dispatchEvent(new CustomEvent('midicc',{detail:{cc:i,raw:v,mapped:+fmt(F[i]),label:F[i].label}}));
   if(recState==='recording')recEvts.push({t:Date.now()-recStart,cc:i,v});
 }
 function startRec(){
