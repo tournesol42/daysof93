@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v66-defaults-93glitch -->
+<!-- build: explore3-v67-wirecolor-93freq -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1260,6 +1260,7 @@ function render() {
     document.body.style.background = '#' + _midiBgColor.getHexString();
   }
   if (_midiWireColor) {
+    S.wireColor.copy(_midiWireColor);
     wireMats.forEach(function(m) { if (m.color) m.color.copy(_midiWireColor); });
   }
 
@@ -2110,18 +2111,18 @@ function applyMidiDefaults() {
 function triggerText93Glitch() {
   var el = document.getElementById('text-93');
   if (!el) return;
-  var count = 2 + Math.floor(Math.random() * 4);
+  var count = 3 + Math.floor(Math.random() * 5);
   var t = 0;
   for (var i = 0; i < count; i++) {
-    var onMs  = 30 + Math.floor(Math.random() * 55);
-    var offMs = 20 + Math.floor(Math.random() * 45);
+    var onMs  = 40 + Math.floor(Math.random() * 70);
+    var offMs = 20 + Math.floor(Math.random() * 40);
     (function(_t, _on) {
       setTimeout(function() { el.style.opacity = '1'; }, _t);
       setTimeout(function() { el.style.opacity = '0'; }, _t + _on);
     })(t, onMs);
     t += onMs + offMs;
   }
-  setTimeout(triggerText93Glitch, 15000 + Math.random() * 30000);
+  setTimeout(triggerText93Glitch, 5000 + Math.random() * 10000);
 }
 
 function scheduleTrailBurst() {
