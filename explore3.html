@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v57-mj-muted -->
+<!-- build: explore3-v58-gravity-optionb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -14,6 +14,14 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --grav-gm:       0.00042;
+  --grav-z-vel:    0.006;
+  --grav-opacity:  0.65;
+  --grav-size:     0.065;
+  --grav-decimate: 1.0;
+  --grav-spawn-sc: 1.4;
+}
 body { background: #c8c8c8; overflow: hidden; cursor: none; }
 
 #d93-grid {
@@ -382,6 +390,24 @@ var meshBScale     = 1.0;
 var meshBRotSpeedX = 0.009;
 var meshBRotSpeedY = 0.006;
 var meshBMeshIndex  = -1;
+
+// ── Gravity particle system (Option B — mesh vertex spawn) ──────
+// MIDI fader targets: --grav-gm (F1) --grav-z-vel (F2) --grav-opacity (F3)
+//                     --grav-size (F4) --grav-decimate (F5) --grav-spawn-sc (F6)
+// Suggested fader ranges: gm=0.0001–0.002  z-vel=0–0.025  opacity=0–1
+//                         size=0–0.15  decimate=0–1  spawn-sc=0.5–3.5
+var GRAV_COUNT      = 350;
+var GRAV_GM         = 0.00042;
+var GRAV_Z_VEL      = 0.006;
+var GRAV_SIZE_RANGE = 0.065;
+var GRAV_SPAWN_SC   = 1.4;
+var gravParticles   = [];
+var gravSpawnPool   = [];
+var gravMesh        = null;
+var gravGroup       = new THREE.Group();
+var gravDummy       = new THREE.Object3D();
+var _gravDir        = new THREE.Vector3();
+sceneB.add(gravGroup);
 var meshBSpeedMult  = 0.3;
 
 // ── Crosshair lag + modulation globals ─────────────────────────
@@ -440,6 +466,11 @@ var lineRes = new THREE.Vector2(cw(), ch());
 // ── Scene ──────────────────────────────────────────────────────
 var scene  = new THREE.Scene();
 var sceneB = new THREE.Scene();
+var _gAmb  = new THREE.AmbientLight(0x303845, 1.0);
+var _gDir  = new THREE.DirectionalLight(0xffffff, 1.8);
+_gDir.position.set(4, 6, 3);
+sceneB.add(_gAmb);
+sceneB.add(_gDir);
 var camera = new THREE.PerspectiveCamera(50, cw() / ch(), 0.001, 1000);
 camera.position.set(0, 0, 3.5);
 
@@ -641,6 +672,7 @@ function switchToMesh(index) {
   currentGroup.visible = true;
   currentGroup.rotation.set(0, 0, 0);
   applyMeshMaterials(currentGroup);
+  updateGravSpawnPool();
   updateMeshBankUI();
   var hdrMeshEl = document.getElementById('hdrMesh');
   if (hdrMeshEl) hdrMeshEl.textContent = meshBank[index].name;
@@ -1214,6 +1246,8 @@ function render() {
       ? 'blur(' + (mjThickT * 1.8).toFixed(2) + 'px)'
       : '';
   }
+
+  if (gravMesh) updateGravParticles();
 
   frames++;
   var now = performance.now();
@@ -1871,6 +1905,97 @@ function mjSetImage(idx) {
   if (mjImg) mjImg.src = MJ_BASE + MJ_FILES[mjCurrentIdx];
 }
 
+// ── Gravity: collect spawn pool from current mesh vertices ──────
+function updateGravSpawnPool() {
+  gravSpawnPool = [];
+  if (!currentGroup) return;
+  currentGroup.traverse(function(child) {
+    if (!child.isMesh || child.userData.edgeOverlay || !child.geometry) return;
+    var pa = child.geometry.attributes.position;
+    if (!pa) return;
+    for (var vi = 0; vi < pa.count; vi += 2) {
+      gravSpawnPool.push(pa.getX(vi), pa.getY(vi), pa.getZ(vi));
+    }
+  });
+}
+
+function spawnGravParticle(p) {
+  var sx, sy, sz;
+  if (gravSpawnPool.length >= 3) {
+    var si = Math.floor(Math.random() * (gravSpawnPool.length / 3)) * 3;
+    sx = gravSpawnPool[si]   * GRAV_SPAWN_SC;
+    sy = gravSpawnPool[si+1] * GRAV_SPAWN_SC;
+    sz = gravSpawnPool[si+2] * GRAV_SPAWN_SC * 0.6;
+  } else {
+    var a = Math.random() * Math.PI * 2;
+    var r = Math.sqrt(Math.random()) * 1.8;
+    sx = Math.cos(a)*r; sy = Math.sin(a)*r; sz = 0;
+  }
+  p.pos.set(sx, sy, sz);
+  var ang = Math.atan2(sy, sx);
+  var r3  = Math.max(p.pos.length(), 0.12);
+  var cs  = Math.sqrt(GRAV_GM / r3) * (0.75 + Math.random() * 0.5);
+  p.vel.set(-Math.sin(ang)*cs, Math.cos(ang)*cs, (Math.random()-0.5)*GRAV_Z_VEL);
+  p.age      = 0;
+  p.lifespan = 8 + Math.random() * 10;
+  p.baseSize = 0.018 + Math.random() * GRAV_SIZE_RANGE;
+  p.rot.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
+  p.rotVel.set((Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04);
+}
+
+function initGravParticles() {
+  var geo = new THREE.BoxGeometry(1, 1, 1);
+  var mat = new THREE.MeshPhongMaterial({
+    color: 0x9ba8b8, shininess: 55, specular: 0x334455,
+    transparent: true, opacity: 0.65
+  });
+  gravMesh = new THREE.InstancedMesh(geo, mat, GRAV_COUNT);
+  gravMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  gravGroup.add(gravMesh);
+  for (var i = 0; i < GRAV_COUNT; i++) {
+    var p = { pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+              rot: new THREE.Euler(), rotVel: new THREE.Vector3(),
+              age: 0, lifespan: 12, baseSize: 0.04 };
+    spawnGravParticle(p);
+    p.age = Math.random() * p.lifespan;
+    gravParticles.push(p);
+  }
+}
+
+function updateGravParticles() {
+  // Read MIDI CSS vars
+  var st = document.documentElement.style;
+  var _v;
+  _v = parseFloat(st.getPropertyValue('--grav-gm'));       if (!isNaN(_v)) GRAV_GM         = _v;
+  _v = parseFloat(st.getPropertyValue('--grav-z-vel'));    if (!isNaN(_v)) GRAV_Z_VEL      = _v;
+  _v = parseFloat(st.getPropertyValue('--grav-size'));     if (!isNaN(_v)) GRAV_SIZE_RANGE  = _v;
+  _v = parseFloat(st.getPropertyValue('--grav-spawn-sc')); if (!isNaN(_v)) GRAV_SPAWN_SC   = _v;
+  _v = parseFloat(st.getPropertyValue('--grav-opacity'));
+  if (!isNaN(_v) && gravMesh) gravMesh.material.opacity = _v;
+  _v = parseFloat(st.getPropertyValue('--grav-decimate'));
+  if (!isNaN(_v) && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * _v));
+
+  for (var i = 0; i < GRAV_COUNT; i++) {
+    var p = gravParticles[i];
+    p.age += 0.01667;
+    if (p.age >= p.lifespan) { spawnGravParticle(p); }
+    _gravDir.set(-p.pos.x, -p.pos.y, -p.pos.z);
+    var r = _gravDir.length(); if (r < 0.06) r = 0.06;
+    _gravDir.normalize().multiplyScalar(GRAV_GM / (r*r));
+    p.vel.add(_gravDir);
+    p.pos.add(p.vel);
+    p.rot.x += p.rotVel.x; p.rot.y += p.rotVel.y; p.rot.z += p.rotVel.z;
+    var na = p.age / p.lifespan;
+    var sf = na < 0.08 ? na/0.08 : na > 0.85 ? (1-na)/0.15 : 1.0;
+    gravDummy.position.copy(p.pos);
+    gravDummy.rotation.copy(p.rot);
+    gravDummy.scale.setScalar(p.baseSize * sf);
+    gravDummy.updateMatrix();
+    gravMesh.setMatrixAt(i, gravDummy.matrix);
+  }
+  gravMesh.instanceMatrix.needsUpdate = true;
+}
+
 // viewer — no UI bindings
 var blendNames = ['add', 'screen', 'mix'];
 
@@ -1953,6 +2078,7 @@ function scheduleTrailBurst() {
 }
 
 loadDrumsSystem();
+initGravParticles();
 loadMeshLibrary();
 scheduleTrailBurst();
 
