@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v58-gravity-optionb -->
+<!-- build: explore3-v59-gravity-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -407,7 +407,6 @@ var gravMesh        = null;
 var gravGroup       = new THREE.Group();
 var gravDummy       = new THREE.Object3D();
 var _gravDir        = new THREE.Vector3();
-sceneB.add(gravGroup);
 var meshBSpeedMult  = 0.3;
 
 // ── Crosshair lag + modulation globals ─────────────────────────
@@ -1944,6 +1943,7 @@ function spawnGravParticle(p) {
 }
 
 function initGravParticles() {
+  sceneB.add(gravGroup);
   var geo = new THREE.BoxGeometry(1, 1, 1);
   var mat = new THREE.MeshPhongMaterial({
     color: 0x9ba8b8, shininess: 55, specular: 0x334455,
