@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v61-fader-range-fix -->
+<!-- build: explore3-v62-grav-direct-fader -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1943,6 +1943,16 @@ function spawnGravParticle(p) {
   p.rotVel.set((Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04);
 }
 
+// Direct MIDI → gravity param callback (called from applyF in MIDI IIFE)
+window._onGravFader = function(target, v) {
+  if (target === '--grav-gm')        GRAV_GM         = 0.00005 + v * 0.00195;
+  if (target === '--grav-z-vel')     GRAV_Z_VEL      = v * 0.025;
+  if (target === '--grav-size')      GRAV_SIZE_RANGE  = v * 0.15;
+  if (target === '--grav-spawn-sc')  GRAV_SPAWN_SC   = 0.5 + v * 3.0;
+  if (target === '--grav-opacity'  && gravMesh) gravMesh.material.opacity = v;
+  if (target === '--grav-decimate' && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * v));
+};
+
 function initGravParticles() {
   sceneB.add(gravGroup);
   var geo = new THREE.BoxGeometry(1, 1, 1);
@@ -1965,20 +1975,6 @@ function initGravParticles() {
 
 function updateGravParticles() {
   // Read MIDI CSS vars
-  var _cs = getComputedStyle(document.documentElement);
-  var _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-gm'));
-  if (!isNaN(_v)) GRAV_GM = 0.00005 + _v * 0.00195;
-  _v = parseFloat(_cs.getPropertyValue('--grav-z-vel'));
-  if (!isNaN(_v)) GRAV_Z_VEL = _v * 0.025;
-  _v = parseFloat(_cs.getPropertyValue('--grav-size'));
-  if (!isNaN(_v)) GRAV_SIZE_RANGE = _v * 0.15;
-  _v = parseFloat(_cs.getPropertyValue('--grav-spawn-sc'));
-  if (!isNaN(_v)) GRAV_SPAWN_SC = 0.5 + _v * 3.0;
-  _v = parseFloat(_cs.getPropertyValue('--grav-opacity'));
-  if (!isNaN(_v) && gravMesh) gravMesh.material.opacity = _v;
-  _v = parseFloat(_cs.getPropertyValue('--grav-decimate'));
-  if (!isNaN(_v) && gravMesh) gravMesh.count = Math.max(1, Math.floor(GRAV_COUNT * _v));
 
   for (var i = 0; i < GRAV_COUNT; i++) {
     var p = gravParticles[i];
@@ -2133,7 +2129,7 @@ let recState='idle',recStart=0,recEvts=[],playTmrs=[];
 const svF=()=>{try{localStorage.setItem(SK,JSON.stringify(F));}catch{}};
 const svP=()=>{try{localStorage.setItem(SPK,JSON.stringify(presets));}catch{}};
 const fmt=f=>(f.min+(f.value/127)*(f.max-f.min)).toFixed(3);
-const applyF=f=>{if(f.target?.startsWith('--'))document.documentElement.style.setProperty(f.target,+fmt(f));};
+const applyF=f=>{const _fv=+fmt(f);if(f.target?.startsWith('--'))document.documentElement.style.setProperty(f.target,_fv);if(typeof window._onGravFader==='function')window._onGravFader(f.target,_fv);};
 F.forEach(applyF);
 const btn=document.createElement('div');
 Object.assign(btn.style,{position:'fixed',bottom:'14px',left:'14px',zIndex:'999999',fontFamily:'monospace',fontSize:'9px',letterSpacing:'.2em',padding:'4px 11px',cursor:'pointer',userSelect:'none',border:'1px solid rgba(255,255,255,.1)'});
