@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v67-wirecolor-93freq -->
+<!-- build: explore3-v68-midi-snapshot2-loop -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2093,18 +2093,18 @@ window.addEventListener('mousemove', function(e) {
 // ── Trail burst: random on/off independent of presets ──────────
 // ── Bake MIDI snapshot 2026-09-12 as startup defaults ──────────
 function applyMidiDefaults() {
-  GRAV_GM    = 0.00005 + 0.299 * 0.00195;
+  GRAV_GM    = 0.00005 + 0.110 * 0.00195;
   GRAV_Z_VEL = 0.748 * 0.025;
-  GRAV_SPEED = 0.05 + 0.008 * 2.95;
+  GRAV_SPEED = 0.05  + 0.197 * 2.95;
   if (gravMesh) {
-    gravMesh.material.opacity = 0.614;
+    gravMesh.material.opacity = 0.488;
     gravMesh.count = Math.floor(GRAV_COUNT * 0.701);
-    gravMesh.material.color.set(_ralPick(1.0));
+    gravMesh.material.color.set(_ralPick(0.992));
   }
   if (!_midiBgColor)   _midiBgColor   = new THREE.Color();
   if (!_midiWireColor) _midiWireColor = new THREE.Color();
-  _midiBgColor.set(_ralPick(0.638));
-  _midiWireColor.set(_ralPick(1.0));
+  _midiBgColor.set(_ralPick(0.677));
+  _midiWireColor.set(_ralPick(0.583));
 }
 
 // ── 93 glitch: rare, fast, electronic ──────────────────────────
@@ -2218,9 +2218,13 @@ function startPlay(){
   const{dur,evts}=presets[selP].rec;
   recState='playing';
   playTmrs=evts.map(e=>setTimeout(()=>onFV(e.cc,e.v),e.t));
-  playTmrs.push(setTimeout(()=>{recState='idle';updHeader();updTransport();},dur+50));
+  playTmrs.push(setTimeout(()=>{if(recState==='playing'){startPlay();}else{recState='idle';updHeader();updTransport();}},dur+50));
   updHeader();updTransport();
 }
+// Auto-start P1 loop on page load
+setTimeout(function(){
+  if(presets[0]&&presets[0].rec){selP=0;startPlay();}
+},3000);
 function saveToPreset(){
   if(selP===null)return;
   presets[selP].faders=F.map(f=>({...f}));svP();updPresets();
