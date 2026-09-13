@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v72-baked-p1-recording -->
+<!-- build: explore3-v73-cam-synthetic-drag -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1739,16 +1739,20 @@ function cloneMeshToB(bankIdx) {
   meshBMeshIndex = bankIdx;
 }
 
-// ── MIDI gate → random camera orbit (autoRotate + damping = same feel as drag+release) ──
-var _gateCamTimer = null;
-function fireMidiGateCamera() {
-  // 2-frame burst at high speed → instant large sphericalDelta → damping decays naturally
-  controls.autoRotateSpeed = (Math.random() < 0.5 ? 1 : -1) * (8 + Math.random() * 15);
-  controls.autoRotate = true;
-  clearTimeout(_gateCamTimer);
-  _gateCamTimer = setTimeout(function() {
-    controls.autoRotate = false;
-  }, 33);
+// ── Camera kick: synthetic drag → OrbitControls → natural damped orbit ──
+function _camKick() {
+  var el = document.getElementById('c');
+  if (!el) return;
+  var cx = el.clientWidth  * 0.5;
+  var cy = el.clientHeight * 0.5;
+  var dx = (Math.random() < 0.5 ? 1 : -1) * (80 + Math.random() * 160);
+  var dy = (Math.random() - 0.5) * 100;
+  el.dispatchEvent(new MouseEvent('mousedown', {bubbles:true, button:0, buttons:1, clientX:cx,    clientY:cy}));
+  el.dispatchEvent(new MouseEvent('mousemove', {bubbles:true, button:0, buttons:1, clientX:cx+dx, clientY:cy+dy}));
+  el.dispatchEvent(new MouseEvent('mouseup',   {bubbles:true, button:0, buttons:0, clientX:cx+dx, clientY:cy+dy}));
+}
+function scheduleCamKick() {
+  setTimeout(function() { _camKick(); scheduleCamKick(); }, 5000 + Math.random() * 7000);
 }
 
 function triggerMeshB() {
@@ -1836,7 +1840,7 @@ function scheduleMidiLoop(loopStartTimeSec) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
     setTimeout(triggerMeshB, delay);
     setTimeout(onMJMidiTrigger, delay);
-    if (Math.random() < 0.20) setTimeout(fireMidiGateCamera, delay);
+    if (Math.random() < 0.30) setTimeout(_camKick, delay);
   });
   var msUntilNext = Math.max(0, (loopStartTimeSec + drumsDurationSec - now) * 1000 - 100);
   setTimeout(function () { scheduleMidiLoop(loopStartTimeSec + drumsDurationSec); }, msUntilNext);
@@ -2151,6 +2155,7 @@ function scheduleTrailBurst() {
 loadDrumsSystem();
 initGravParticles();
 applyMidiDefaults();
+scheduleCamKick();
 loadMeshLibrary();
 scheduleTrailBurst();
 setTimeout(triggerText93Glitch, 8000 + Math.random() * 5000);
