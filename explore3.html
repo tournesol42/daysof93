@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v69-loop-reset-frame -->
+<!-- build: explore3-v70-gate-camera-orbit -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1739,6 +1739,17 @@ function cloneMeshToB(bankIdx) {
   meshBMeshIndex = bankIdx;
 }
 
+// ── MIDI gate → random camera orbit (autoRotate + damping = same feel as drag+release) ──
+var _gateCamTimer = null;
+function fireMidiGateCamera() {
+  controls.autoRotateSpeed = (Math.random() < 0.5 ? 1 : -1) * (2 + Math.random() * 6);
+  controls.autoRotate = true;
+  clearTimeout(_gateCamTimer);
+  _gateCamTimer = setTimeout(function() {
+    controls.autoRotate = false;
+  }, 600 + Math.random() * 1200);
+}
+
 function triggerMeshB() {
   if (meshBank.length < 2) return;
   var idx, tries = 0;
@@ -1824,6 +1835,7 @@ function scheduleMidiLoop(loopStartTimeSec) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
     setTimeout(triggerMeshB, delay);
     setTimeout(onMJMidiTrigger, delay);
+    if (Math.random() < 0.20) setTimeout(fireMidiGateCamera, delay);
   });
   var msUntilNext = Math.max(0, (loopStartTimeSec + drumsDurationSec - now) * 1000 - 100);
   setTimeout(function () { scheduleMidiLoop(loopStartTimeSec + drumsDurationSec); }, msUntilNext);
