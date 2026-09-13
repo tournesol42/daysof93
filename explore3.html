@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v74-cam-recorder -->
+<!-- build: explore3-v75-cam-rec-keyfix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1766,7 +1766,7 @@ var _camRecStart  = 0;
 var _camPlayStart = performance.now();
 
 window.addEventListener('keydown', function(e) {
-  if (!e.altKey || e.key !== 'r') return;
+  if (!e.altKey || e.code !== 'KeyR') return;
   if (_camRec === null) {
     _camRec = [];
     _camRecStart = performance.now();
