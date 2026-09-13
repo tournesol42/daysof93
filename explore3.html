@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v68-midi-snapshot2-loop -->
+<!-- build: explore3-v69-loop-reset-frame -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2217,6 +2217,8 @@ function startPlay(){
   stopAll();
   const{dur,evts}=presets[selP].rec;
   recState='playing';
+  // Reset frame: fire known-good values at t=0 before recording events
+  onFV(5,86);  // CC5 BG colour → yellow (mapped 0.677)
   playTmrs=evts.map(e=>setTimeout(()=>onFV(e.cc,e.v),e.t));
   playTmrs.push(setTimeout(()=>{if(recState==='playing'){startPlay();}else{recState='idle';updHeader();updTransport();}},dur+50));
   updHeader();updTransport();
