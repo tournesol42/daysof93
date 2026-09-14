@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v86-seq-reverb -->
+<!-- build: explore3-v87-zone-reverb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1709,7 +1709,7 @@ function createReverbIR(ctx, duration, decay) {
 
 function sampleHoldReverbSend() {
   if (!seqReverbSend || !drumsStarted) return;
-  var v = Math.pow(Math.random(), 4) * 0.4;
+  var v = Math.pow(Math.random(), 4) * 0.8;
   seqReverbSend.gain.setValueAtTime(v, audioCtx.currentTime);
 }
 
@@ -2216,7 +2216,7 @@ function moveCrosshair(x, y) {
 
 window.addEventListener('mousemove', function(e) {
   moveCrosshair(e.clientX, e.clientY);
-  if (!drumsStarted && e.clientX < window.innerWidth * 0.18 && e.clientY > window.innerHeight * 0.82) {
+  if (!drumsStarted && e.clientX < window.innerWidth * 0.35 && e.clientY > window.innerHeight * 0.65) {
     startDrumsSystem();
     atmosStarted = true;
   }
