@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v87-zone-reverb -->
+<!-- build: explore3-v88-master-lpf -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -132,6 +132,13 @@ var MUSIC_FILES = [
 // ── Audio state ────────────────────────────────────────────────
 var audioCtx     = null;
 var masterGain   = null;
+var masterLPF      = null;
+var drumMouseGain  = null;
+var drumMouseActive = false;
+var drumVolTarget  = 1.0;
+var drumVolSmooth  = 1.0;
+var lpfTarget      = 20000;
+var lpfSmooth      = 20000;
 var seqReverbSend = null;
 var seqConvolver  = null;
 var seqIdx       = -1;
@@ -979,6 +986,13 @@ var SMOOTH = 0.06;
 function render() {
   requestAnimationFrame(render);
 
+  if (drumMouseActive && drumMouseGain && masterLPF) {
+    drumVolSmooth += (drumVolTarget - drumVolSmooth) * 0.05;
+    lpfSmooth     += (lpfTarget     - lpfSmooth)     * 0.05;
+    drumMouseGain.gain.value    = drumVolSmooth;
+    masterLPF.frequency.value   = lpfSmooth;
+  }
+
   if (analyser && currentGroup) {
     analyser.getByteTimeDomainData(analyserData);
     var rmsSum = 0;
@@ -1690,6 +1704,15 @@ function initAudio() {
   seqConvolver.buffer = createReverbIR(audioCtx, 8.0, 1.2);
   seqReverbSend.connect(seqConvolver);
   seqConvolver.connect(audioCtx.destination);
+  masterLPF = audioCtx.createBiquadFilter();
+  masterLPF.type = 'lowpass';
+  masterLPF.frequency.value = Math.min(20000, audioCtx.sampleRate * 0.499);
+  masterLPF.Q.value = 0.5;
+  masterLPF.connect(audioCtx.destination);
+  masterGain.disconnect(audioCtx.destination);
+  masterGain.connect(masterLPF);
+  seqConvolver.disconnect(audioCtx.destination);
+  seqConvolver.connect(masterLPF);
 }
 
 function createReverbIR(ctx, duration, decay) {
@@ -1942,6 +1965,12 @@ function startDrumsSystem() {
     drumsAudioSrc.connect(drumsGain);
     drumsGain.connect(audioCtx.destination);
     drumsAudioSrc.start(0);
+    drumMouseGain = audioCtx.createGain();
+    drumMouseGain.gain.value = 1.0;
+    drumsGain.disconnect(audioCtx.destination);
+    drumsGain.connect(drumMouseGain);
+    drumMouseGain.connect(masterLPF);
+    setTimeout(function() { drumMouseActive = true; }, 8000);
     if (!arpSource) {
       var xhrArp = new XMLHttpRequest();
       xhrArp.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3', true);
@@ -1954,7 +1983,7 @@ function startDrumsSystem() {
           arpSource.buffer = buf;
           arpSource.loop = true;
           arpSource.connect(arpGain);
-          arpGain.connect(audioCtx.destination);
+          arpGain.connect(masterLPF);
           arpSource.start(0);
           setTimeout(function() {
             arpGain.gain.setValueAtTime(arpGain.gain.value * 1.778, audioCtx.currentTime);
@@ -2216,6 +2245,11 @@ function moveCrosshair(x, y) {
 
 window.addEventListener('mousemove', function(e) {
   moveCrosshair(e.clientX, e.clientY);
+  var ny = e.clientY / window.innerHeight;
+  drumVolTarget = 1.0 + (3.162 - 1.0) * (1.0 - ny);
+  lpfTarget = ny > 0.5
+    ? 20000 - (20000 - 800) * ((ny - 0.5) / 0.5)
+    : Math.min(20000, audioCtx ? audioCtx.sampleRate * 0.499 : 20000);
   if (!drumsStarted && e.clientX < window.innerWidth * 0.35 && e.clientY > window.innerHeight * 0.65) {
     startDrumsSystem();
     atmosStarted = true;
