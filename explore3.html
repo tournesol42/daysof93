@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v85-arp-drums -->
+<!-- build: explore3-v86-seq-reverb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -132,6 +132,8 @@ var MUSIC_FILES = [
 // ── Audio state ────────────────────────────────────────────────
 var audioCtx     = null;
 var masterGain   = null;
+var seqReverbSend = null;
+var seqConvolver  = null;
 var seqIdx       = -1;
 var musicIdx     = -1;
 var musicStarted = false;
@@ -1682,6 +1684,33 @@ function initAudio() {
   analyser.smoothingTimeConstant = 0.0;
   analyserData = new Uint8Array(analyser.fftSize);
   masterGain.connect(analyser);
+  seqReverbSend = audioCtx.createGain();
+  seqReverbSend.gain.value = 0;
+  seqConvolver = audioCtx.createConvolver();
+  seqConvolver.buffer = createReverbIR(audioCtx, 8.0, 1.2);
+  seqReverbSend.connect(seqConvolver);
+  seqConvolver.connect(audioCtx.destination);
+}
+
+function createReverbIR(ctx, duration, decay) {
+  var rate = ctx.sampleRate;
+  var length = Math.ceil(rate * duration);
+  var preDelay = Math.floor(rate * 0.04);
+  var ir = ctx.createBuffer(2, length, rate);
+  for (var c = 0; c < 2; c++) {
+    var ch = ir.getChannelData(c);
+    for (var i = preDelay; i < length; i++) {
+      var t = (i - preDelay) / (length - preDelay);
+      ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+    }
+  }
+  return ir;
+}
+
+function sampleHoldReverbSend() {
+  if (!seqReverbSend || !drumsStarted) return;
+  var v = Math.pow(Math.random(), 4) * 0.4;
+  seqReverbSend.gain.setValueAtTime(v, audioCtx.currentTime);
 }
 
 function loadAndPlay(base, files, indexRef, onEnded) {
@@ -1698,6 +1727,9 @@ function loadAndPlay(base, files, indexRef, onEnded) {
       var src = audioCtx.createBufferSource();
       src.buffer = buffer;
       src.connect(masterGain);
+      if (seqReverbSend && base === SEQ_BASE) {
+        src.connect(seqReverbSend);
+      }
       src.onended = onEnded;
       src.start(0);
     });
@@ -1879,6 +1911,7 @@ function scheduleMidiLoop(loopStartTimeSec) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
     setTimeout(triggerMeshB, delay);
     setTimeout(onMJMidiTrigger, delay);
+    setTimeout(sampleHoldReverbSend, delay);
     setTimeout(function () {
       atmosMidiCount++;
       if (atmosMidiCount % 3 === 0) triggerAtmos();
