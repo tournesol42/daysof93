@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v77-atmos -->
+<!-- build: explore3-v78-drums-vol -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1903,7 +1903,10 @@ function startDrumsSystem() {
     drumsAnalyser.smoothingTimeConstant = 0.0;
     drumsAnalyserData = new Uint8Array(drumsAnalyser.fftSize);
     drumsAudioSrc.connect(drumsAnalyser);
-    drumsAudioSrc.connect(audioCtx.destination);
+    var drumsGain = audioCtx.createGain();
+    drumsGain.gain.value = 0.7;
+    drumsAudioSrc.connect(drumsGain);
+    drumsGain.connect(audioCtx.destination);
     drumsAudioSrc.start(0);
     // startXploreVideos(); // TD videos disabled
     scheduleMidiLoop(audioCtx.currentTime);
