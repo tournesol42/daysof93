@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v78-drums-vol -->
+<!-- build: explore3-v79-arp -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -135,6 +135,7 @@ var masterGain   = null;
 var seqIdx       = -1;
 var musicIdx     = -1;
 var musicStarted = false;
+var arpSource    = null;
 var autoPresetInterval = null;
 var analyser      = null;
 var analyserData  = null;
@@ -2251,6 +2252,20 @@ document.getElementById('audioSquare').onclick = function() {
   musicStarted = true;
   document.getElementById('audioSquare').style.display = 'none';
   playNextMusic();
+  if (!arpSource) {
+    fetch('https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3')
+      .then(function(r) { return r.arrayBuffer(); })
+      .then(function(ab) { return audioCtx.decodeAudioData(ab); })
+      .then(function(buf) {
+        arpSource = audioCtx.createBufferSource();
+        arpSource.buffer = buf;
+        arpSource.loop = true;
+        arpSource.connect(audioCtx.destination);
+        arpSource.start(0);
+        console.log('d93: arp started');
+      })
+      .catch(function(e) { console.warn('d93: arp fetch failed', e); });
+  }
 };
 
 render();
