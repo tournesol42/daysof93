@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v84-arp-zone -->
+<!-- build: explore3-v85-arp-drums -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -437,7 +437,6 @@ var drumsAudioRaw       = null;
 var drumsAudioBuffer    = null;
 var drumsMidiEvents     = [];
 var drumsStarted        = false;
-var arpZoneTriggered    = false;
 var drumsAudioSrc       = null;
 
 // ── Atmos pad system ───────────────────────────────────────────
@@ -1910,6 +1909,29 @@ function startDrumsSystem() {
     drumsAudioSrc.connect(drumsGain);
     drumsGain.connect(audioCtx.destination);
     drumsAudioSrc.start(0);
+    if (!arpSource) {
+      var xhrArp = new XMLHttpRequest();
+      xhrArp.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3', true);
+      xhrArp.responseType = 'arraybuffer';
+      xhrArp.onload = function() {
+        audioCtx.decodeAudioData(xhrArp.response, function(buf) {
+          var arpGain = audioCtx.createGain();
+          arpGain.gain.value = 1.0;
+          arpSource = audioCtx.createBufferSource();
+          arpSource.buffer = buf;
+          arpSource.loop = true;
+          arpSource.connect(arpGain);
+          arpGain.connect(audioCtx.destination);
+          arpSource.start(0);
+          setTimeout(function() {
+            arpGain.gain.setValueAtTime(arpGain.gain.value * 1.778, audioCtx.currentTime);
+          }, buf.duration * 1000);
+          console.log('d93: arp started');
+        }, function(e) { console.warn('d93: arp decode failed', e); });
+      };
+      xhrArp.onerror = function(e) { console.warn('d93: arp xhr failed', e); };
+      xhrArp.send();
+    }
     // startXploreVideos(); // TD videos disabled
     scheduleMidiLoop(audioCtx.currentTime);
     console.log('d93: drums started, loop', drumsDurationSec.toFixed(1) + 's');
@@ -2165,35 +2187,6 @@ window.addEventListener('mousemove', function(e) {
     startDrumsSystem();
     atmosStarted = true;
   }
-  if (!arpZoneTriggered && e.clientX > window.innerWidth * 0.82 && e.clientY > window.innerHeight * 0.82) {
-    arpZoneTriggered = true;
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    if (audioCtx && !arpSource) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3', true);
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = function() {
-        console.log('d93: arp xhr status', xhr.status);
-        audioCtx.decodeAudioData(xhr.response, function(buf) {
-          var arpGain = audioCtx.createGain();
-          arpGain.gain.value = 1.0;
-          arpSource = audioCtx.createBufferSource();
-          arpSource.buffer = buf;
-          arpSource.loop = true;
-          arpSource.connect(arpGain);
-          arpGain.connect(audioCtx.destination);
-          arpSource.start(0);
-          setTimeout(function() {
-            arpGain.gain.setValueAtTime(arpGain.gain.value * 1.778, audioCtx.currentTime);
-          }, buf.duration * 1000);
-          console.log('d93: arp started');
-        }, function(e) { console.warn('d93: arp decode failed', e); });
-      };
-      xhr.onerror = function(e) { console.warn('d93: arp xhr failed', e); };
-      xhr.send();
-      console.log('d93: arp xhr sent (zone)');
-    }
-  }
 });
 
 // ── Trail burst: random on/off independent of presets ──────────
@@ -2276,31 +2269,6 @@ document.getElementById('audioSquare').onclick = function() {
   musicStarted = true;
   document.getElementById('audioSquare').style.display = 'none';
   playNextMusic();
-  if (!arpSource) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3', true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = function() {
-      console.log('d93: arp xhr status', xhr.status);
-      audioCtx.decodeAudioData(xhr.response, function(buf) {
-        var arpGain = audioCtx.createGain();
-        arpGain.gain.value = 1.0;
-        arpSource = audioCtx.createBufferSource();
-        arpSource.buffer = buf;
-        arpSource.loop = true;
-        arpSource.connect(arpGain);
-        arpGain.connect(audioCtx.destination);
-        arpSource.start(0);
-        setTimeout(function() {
-          arpGain.gain.setValueAtTime(arpGain.gain.value * 1.778, audioCtx.currentTime);
-        }, buf.duration * 1000);
-        console.log('d93: arp started');
-      }, function(e) { console.warn('d93: arp decode failed', e); });
-    };
-    xhr.onerror = function(e) { console.warn('d93: arp xhr failed', e); };
-    xhr.send();
-    console.log('d93: arp xhr sent');
-  }
 };
 
 render();
