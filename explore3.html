@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v88-master-lpf -->
+<!-- build: explore3-v89-lpf-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -986,11 +986,13 @@ var SMOOTH = 0.06;
 function render() {
   requestAnimationFrame(render);
 
-  if (drumMouseActive && drumMouseGain && masterLPF) {
-    drumVolSmooth += (drumVolTarget - drumVolSmooth) * 0.05;
-    lpfSmooth     += (lpfTarget     - lpfSmooth)     * 0.05;
-    drumMouseGain.gain.value    = drumVolSmooth;
-    masterLPF.frequency.value   = lpfSmooth;
+  if (masterLPF) {
+    if (drumMouseActive && drumMouseGain) {
+      drumVolSmooth += (drumVolTarget - drumVolSmooth) * 0.05;
+      drumMouseGain.gain.value = drumVolSmooth;
+    }
+    lpfSmooth += (lpfTarget - lpfSmooth) * 0.05;
+    masterLPF.frequency.value = lpfSmooth;
   }
 
   if (analyser && currentGroup) {
@@ -1969,7 +1971,13 @@ function startDrumsSystem() {
     drumMouseGain.gain.value = 1.0;
     drumsGain.disconnect(audioCtx.destination);
     drumsGain.connect(drumMouseGain);
-    drumMouseGain.connect(masterLPF);
+    if (masterLPF) {
+      drumMouseGain.connect(masterLPF);
+      console.log('d93: drumsGain → drumMouseGain → masterLPF OK');
+    } else {
+      console.warn('d93: masterLPF missing, drums connecting direct to destination');
+      drumMouseGain.connect(audioCtx.destination);
+    }
     setTimeout(function() { drumMouseActive = true; }, 8000);
     if (!arpSource) {
       var xhrArp = new XMLHttpRequest();
@@ -2248,7 +2256,7 @@ window.addEventListener('mousemove', function(e) {
   var ny = e.clientY / window.innerHeight;
   drumVolTarget = 1.0 + (3.162 - 1.0) * (1.0 - ny);
   lpfTarget = ny > 0.5
-    ? 20000 - (20000 - 800) * ((ny - 0.5) / 0.5)
+    ? 20000 - (20000 - 800) * Math.min(1, (ny - 0.5) / 0.2)
     : Math.min(20000, audioCtx ? audioCtx.sampleRate * 0.499 : 20000);
   if (!drumsStarted && e.clientX < window.innerWidth * 0.35 && e.clientY > window.innerHeight * 0.65) {
     startDrumsSystem();
