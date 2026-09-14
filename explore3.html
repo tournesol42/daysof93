@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v82-arp-fix -->
+<!-- build: explore3-v83-arp-debug -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2240,7 +2240,9 @@ window.addEventListener('keydown', function(e) {
 
 // Square: starts main music (context already unlocked)
 document.getElementById('audioSquare').onclick = function() {
+  console.log('d93: audioSquare clicked, audioCtx:', audioCtx ? audioCtx.state : 'null');
   if (!audioCtx) initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   musicStarted = true;
   document.getElementById('audioSquare').style.display = 'none';
   playNextMusic();
@@ -2249,6 +2251,7 @@ document.getElementById('audioSquare').onclick = function() {
     xhr.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_arp.mp3', true);
     xhr.responseType = 'arraybuffer';
     xhr.onload = function() {
+      console.log('d93: arp xhr status', xhr.status);
       audioCtx.decodeAudioData(xhr.response, function(buf) {
         var arpGain = audioCtx.createGain();
         arpGain.gain.value = 1.0;
@@ -2266,6 +2269,7 @@ document.getElementById('audioSquare').onclick = function() {
     };
     xhr.onerror = function(e) { console.warn('d93: arp xhr failed', e); };
     xhr.send();
+    console.log('d93: arp xhr sent');
   }
 };
 
