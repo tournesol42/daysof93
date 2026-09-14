@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v205-dot-timing -->
+<!-- build: v206-splash -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -428,6 +428,40 @@
 </style>
 </head>
 <body>
+<div id="splash" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s ease;">
+  <style>
+    @keyframes splashFlicker {
+      0%,100% { opacity: 1; }
+      15%      { opacity: 0.87; }
+      35%      { opacity: 1; }
+      60%      { opacity: 0.9; }
+      80%      { opacity: 1; }
+      92%      { opacity: 0.85; }
+    }
+  </style>
+  <div style="position:relative;width:min(60vmin,480px);">
+    <img src="https://daysof93-cdn.b-cdn.net/cd%20sleeve.png" style="width:100%;display:block;" alt="">
+    <div style="position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);text-align:center;font-family:'VT323',monospace;font-size:clamp(1rem,3.5vmin,2.2rem);color:#1a1a1a;line-height:1.4;white-space:nowrap;animation:splashFlicker 2s steps(1,end) infinite;">
+      Days of 93<br><br>
+      Touch shapes to interact<br>
+      with sound and visuals<br><br>
+      Press any key to continue
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var _splash = document.getElementById('splash');
+  function _dismissSplash() {
+    if (!_splash) return;
+    _splash.style.opacity = '0';
+    setTimeout(function() { if (_splash && _splash.parentNode) _splash.parentNode.removeChild(_splash); _splash = null; }, 400);
+  }
+  document.addEventListener('keydown', _dismissSplash, { once: true });
+  _splash.addEventListener('touchstart', _dismissSplash, { once: true });
+  _splash.addEventListener('click', _dismissSplash, { once: true });
+})();
+</script>
 <script>
 (function(){
   if (false && location.search.indexOf('from=explore') === -1) {
