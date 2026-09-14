@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v76-cam-v2 -->
+<!-- build: explore3-v77-atmos -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -437,6 +437,14 @@ var drumsAudioBuffer    = null;
 var drumsMidiEvents     = [];
 var drumsStarted        = false;
 var drumsAudioSrc       = null;
+
+// ── Atmos pad system ───────────────────────────────────────────
+var ATMOS_BASE      = 'https://daysof93-cdn.b-cdn.net/Explore3_futureatmos/';
+var ATMOS_COUNT     = 18;
+var atmosStarted    = false;
+var atmosMidiCount  = 0;   // counts every MIDI note-on since atmos activated
+var atmosPlaying    = false;
+var atmosLastIdx    = -1;
 
 // ── MJ image system ────────────────────────────────────────────
 var MJ_BASE       = 'https://daysof93-cdn.b-cdn.net/explore3_MJ/';
@@ -1870,8 +1878,10 @@ function scheduleMidiLoop(loopStartTimeSec) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
     setTimeout(triggerMeshB, delay);
     setTimeout(onMJMidiTrigger, delay);
-
-
+    setTimeout(function () {
+      atmosMidiCount++;
+      if (atmosMidiCount % 3 === 0) triggerAtmos();
+    }, delay);
   });
   var msUntilNext = Math.max(0, (loopStartTimeSec + drumsDurationSec - now) * 1000 - 100);
   setTimeout(function () { scheduleMidiLoop(loopStartTimeSec + drumsDurationSec); }, msUntilNext);
@@ -1899,6 +1909,27 @@ function startDrumsSystem() {
     scheduleMidiLoop(audioCtx.currentTime);
     console.log('d93: drums started, loop', drumsDurationSec.toFixed(1) + 's');
   });
+}
+
+// ── Atmos: trigger one pad sound (fetch-on-demand) ─────────────
+function triggerAtmos() {
+  if (!atmosStarted || atmosPlaying) return;
+  var idx;
+  do { idx = Math.floor(Math.random() * ATMOS_COUNT); } while (idx === atmosLastIdx);
+  atmosLastIdx = idx;
+  var url = ATMOS_BASE + 'futureatmos' + (idx + 1) + '.wav';
+  atmosPlaying = true;
+  fetch(url)
+    .then(function (r) { return r.arrayBuffer(); })
+    .then(function (ab) { return audioCtx.decodeAudioData(ab); })
+    .then(function (buf) {
+      var src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.onended = function () { atmosPlaying = false; };
+      src.start(0);
+    })
+    .catch(function (e) { atmosPlaying = false; console.warn('d93: atmos fetch failed', e); });
 }
 
 // ── Invert burst ───────────────────────────────────────────────
@@ -2135,6 +2166,7 @@ window.addEventListener('mousemove', function(e) {
   moveCrosshair(e.clientX, e.clientY);
   if (!drumsStarted && e.clientX < window.innerWidth * 0.18 && e.clientY > window.innerHeight * 0.82) {
     startDrumsSystem();
+    atmosStarted = true;
   }
 });
 
