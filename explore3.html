@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v79-arp -->
+<!-- build: explore3-v80-mj-atmos-arp -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -441,7 +441,7 @@ var drumsAudioSrc       = null;
 
 // ── Atmos pad system ───────────────────────────────────────────
 var ATMOS_BASE      = 'https://daysof93-cdn.b-cdn.net/Explore3_futureatmos/';
-var ATMOS_COUNT     = 18;
+var ATMOS_COUNT     = 17; // futureatmos15.wav removed
 var atmosStarted    = false;
 var atmosMidiCount  = 0;   // counts every MIDI note-on since atmos activated
 var atmosPlaying    = false;
@@ -1230,7 +1230,7 @@ function render() {
 
   // ── MJ image opacity modulation ────────────────────────────────
   if (mjActive && mjImg) {
-    mjSpikeLevel += (mjBaseOpacity - mjSpikeLevel) * 0.025;
+    mjSpikeLevel += (mjBaseOpacity - mjSpikeLevel) * 0.08;
     mjImg.style.opacity = mjSpikeLevel.toFixed(3);
     mjPosX += mjVelX;
     mjPosY += mjVelY;
@@ -1921,7 +1921,8 @@ function triggerAtmos() {
   var idx;
   do { idx = Math.floor(Math.random() * ATMOS_COUNT); } while (idx === atmosLastIdx);
   atmosLastIdx = idx;
-  var url = ATMOS_BASE + 'futureatmos' + (idx + 1) + '.wav';
+  var fileNum = idx < 14 ? idx + 1 : idx + 2; // skip futureatmos15.wav (was index 14)
+  var url = ATMOS_BASE + 'futureatmos' + fileNum + '.wav';
   atmosPlaying = true;
   fetch(url)
     .then(function (r) { return r.arrayBuffer(); })
@@ -1977,17 +1978,8 @@ function startMJSystem() {
 
 function onMJMidiTrigger() {
   if (!mjActive) return;
-  // Sample & hold with probability weighting
-  var _r = Math.random();
-  if (_r < 0.70) {
-    mjBaseOpacity = 0.0;
-  } else if (_r < 0.90) {
-    mjBaseOpacity = 0.01 + Math.random() * 0.29; // 1–30%
-  } else {
-    mjBaseOpacity = 0.30 + Math.random() * 0.10; // 30–40%
-  }
-  // 2-input switch: 80% nothing, 20% spike
-  if (Math.random() < 0.20) {
+  // Spike-only mode: 5% chance per MIDI note
+  if (Math.random() < 0.05) {
     mjSpikeLevel = 1.0;
     // Switch randomly between mj3 (idx 2) and mj5 (idx 4)
     mjCurrentIdx = Math.random() < 0.5 ? 2 : 4;
@@ -2234,7 +2226,7 @@ document.getElementById('audioDot').onclick = function() {
   document.getElementById('audioDot').style.display = 'none';
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
-  // startMJSystem(); // MJ images muted — re-enable when ready
+  startMJSystem();
   // startXploreVideos();
 };
 
@@ -2257,11 +2249,17 @@ document.getElementById('audioSquare').onclick = function() {
       .then(function(r) { return r.arrayBuffer(); })
       .then(function(ab) { return audioCtx.decodeAudioData(ab); })
       .then(function(buf) {
+        var arpGain = audioCtx.createGain();
+        arpGain.gain.value = 1.0;
         arpSource = audioCtx.createBufferSource();
         arpSource.buffer = buf;
         arpSource.loop = true;
-        arpSource.connect(audioCtx.destination);
+        arpSource.connect(arpGain);
+        arpGain.connect(audioCtx.destination);
         arpSource.start(0);
+        setTimeout(function() {
+          arpGain.gain.setValueAtTime(arpGain.gain.value * 1.778, audioCtx.currentTime);
+        }, buf.duration * 1000);
         console.log('d93: arp started');
       })
       .catch(function(e) { console.warn('d93: arp fetch failed', e); });
