@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v89-lpf-fix -->
+<!-- build: explore3-v90-arp-lpf -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -145,6 +145,7 @@ var seqIdx       = -1;
 var musicIdx     = -1;
 var musicStarted = false;
 var arpSource    = null;
+var arpGainNode  = null;
 var autoPresetInterval = null;
 var analyser      = null;
 var analyserData  = null;
@@ -993,6 +994,10 @@ function render() {
     }
     lpfSmooth += (lpfTarget - lpfSmooth) * 0.05;
     masterLPF.frequency.value = lpfSmooth;
+    if (arpGainNode) {
+      var arpVol = Math.max(0, Math.min(1, (lpfSmooth - 800) / (20000 - 800)));
+      arpGainNode.gain.value = arpVol;
+    }
   }
 
   if (analyser && currentGroup) {
@@ -1987,6 +1992,7 @@ function startDrumsSystem() {
         audioCtx.decodeAudioData(xhrArp.response, function(buf) {
           var arpGain = audioCtx.createGain();
           arpGain.gain.value = 1.0;
+          arpGainNode = arpGain;
           arpSource = audioCtx.createBufferSource();
           arpSource.buffer = buf;
           arpSource.loop = true;
