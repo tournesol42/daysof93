@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v211-splash-clock -->
+<!-- build: v212-splash-layout -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -437,8 +437,10 @@
   </style>
   <div style="display:flex;flex-direction:column;align-items:center;width:min(95vmin,95vw);">
     <img src="https://daysof93-cdn.b-cdn.net/cd%20sleeve.png" style="width:100%;display:block;" alt="">
-    <div id="splash-clock" style="margin-top:1.5vh;font-family:'VT323',monospace;font-size:clamp(0.75rem,1.8vmin,1.3rem);color:#FF6600;opacity:0.7;letter-spacing:0.04em;"></div>
-    <div style="margin-top:1.5vh;font-family:'VT323',monospace;font-size:clamp(0.9rem,2.2vmin,1.6rem);color:#FF6600;letter-spacing:0.08em;-webkit-text-stroke:0.5px #FF6600;white-space:nowrap;animation:splashPulse 1.8s steps(1) infinite;">Press any key to continue</div>
+    <div style="margin-top:0.8vh;display:flex;flex-direction:row;align-items:center;gap:2em;font-family:'VT323',monospace;font-size:clamp(0.9rem,2.2vmin,1.6rem);color:#FF6600;letter-spacing:0.08em;white-space:nowrap;">
+      <span id="splash-clock"></span>
+      <span style="-webkit-text-stroke:0.5px #FF6600;animation:splashPulse 1.8s steps(1) infinite;">Press any key to continue</span>
+    </div>
   </div>
 </div>
 <script>
