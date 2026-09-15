@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v101-curtain-fix -->
+<!-- build: explore3-v102-meshb-throttle -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -428,6 +428,7 @@ var greenCubeOffsets = [];
 var greenCubeStates = [];
 var gravMesh        = null;
 var gravGroup       = new THREE.Group();
+var _lastMeshBTrigger = 0;
 var gravDummy       = new THREE.Object3D();
 var greenCubeDummy  = new THREE.Object3D();
 var curtainActive  = false;
@@ -1894,6 +1895,9 @@ window.addEventListener('keydown', function(e) {
 });
 
 function triggerMeshB() {
+  var _now = Date.now();
+  if (_now - _lastMeshBTrigger < 500) return;
+  _lastMeshBTrigger = _now;
   if (meshBank.length < 2) return;
   var idx, tries = 0;
   do {
