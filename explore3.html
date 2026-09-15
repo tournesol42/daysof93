@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v96-vol-limiter-menu -->
+<!-- build: explore3-v97-mastervol-cross -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -41,18 +41,18 @@ body { background: #FAC300; overflow: hidden; cursor: none; }
   position: absolute;
   top: 0; bottom: 0; left: 50%;
   width: 0.75px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.28);
 }
 #ws-ch-h {
   position: absolute;
   left: 0; right: 0; top: 50%;
   height: 0.75px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.28);
 }
 #ws-ch-sq {
   position: absolute;
   width: 7px; height: 7px;
-  border: 0.75px solid rgba(0,0,0,0.75);
+  border: 0.75px solid rgba(0,0,0,0.38);
   transform: translate(-50%, -50%);
   top: 50%; left: 50%;
 }
@@ -132,6 +132,7 @@ var MUSIC_FILES = [
 // ── Audio state ────────────────────────────────────────────────
 var audioCtx     = null;
 var masterGain   = null;
+var masterVolGain = null;
 var musicGain    = null;
 var masterLPF      = null;
 var drumMouseGain  = null;
@@ -1729,8 +1730,11 @@ function initAudio() {
   masterLimiter.ratio.value = 20;
   masterLimiter.attack.value = 0.001;
   masterLimiter.release.value = 0.08;
-  masterLimiter.connect(audioCtx.destination);
+  masterVolGain = audioCtx.createGain();
+  masterVolGain.gain.value = 1.0;
   masterLPF.connect(masterLimiter);
+  masterLimiter.connect(masterVolGain);
+  masterVolGain.connect(audioCtx.destination);
   masterGain.disconnect(audioCtx.destination);
   masterGain.connect(masterLPF);
   seqConvolver.disconnect(audioCtx.destination);
@@ -2052,7 +2056,7 @@ function triggerAtmos() {
     .then(function (buf) {
       var src = audioCtx.createBufferSource();
       src.buffer = buf;
-      src.connect(audioCtx.destination);
+      src.connect(masterVolGain || audioCtx.destination);
       src.onended = function () { atmosPlaying = false; };
       src.start(0);
     })
@@ -2614,7 +2618,7 @@ if(navigator.requestMIDIAccess){
 </div>
 <script>
 document.getElementById('masterVolFader').addEventListener('input', function() {
-  if (typeof masterGain !== 'undefined' && masterGain) masterGain.gain.value = parseFloat(this.value);
+  if (typeof masterVolGain !== 'undefined' && masterVolGain) masterVolGain.gain.value = parseFloat(this.value);
 });
 </script>
 
