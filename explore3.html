@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v102-meshb-throttle -->
+<!-- build: explore3-v103-midi-perf -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2481,7 +2481,7 @@ try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
 let recState='idle',recStart=0,recEvts=[],playTmrs=[];
-const svF=()=>{try{localStorage.setItem(SK,JSON.stringify(F));}catch{}};
+const svF=()=>{if(recState==='playing')return;try{localStorage.setItem(SK,JSON.stringify(F));}catch{}};
 const svP=()=>{try{localStorage.setItem(SPK,JSON.stringify(presets));}catch{}};
 const fmt=f=>(f.min+(f.value/127)*(f.max-f.min)).toFixed(3);
 const applyF=f=>{const _fv=+fmt(f);if(f.target?.startsWith('--'))document.documentElement.style.setProperty(f.target,_fv);if(typeof window._onGravFader==='function')window._onGravFader(f.target,_fv);};
@@ -2507,6 +2507,7 @@ function stopAll(){
     presets[selP].rec={dur:Date.now()-recStart,evts:[...recEvts]};svP();updPresets();
   }
   playTmrs.forEach(clearTimeout);playTmrs=[];
+  try{localStorage.setItem(SK,JSON.stringify(F));}catch{}
   recState='idle';updHeader();updTransport();
 }
 function startPlay(){
@@ -2516,7 +2517,13 @@ function startPlay(){
   recState='playing';
   // Reset frame: fire known-good values at t=0 before recording events
   onFV(5,86);  // CC5 BG colour → yellow (mapped 0.677)
-  playTmrs=evts.map(e=>setTimeout(()=>onFV(e.cc,e.v),e.t));
+  playTmrs=[];
+  (function scheduleBatch(start){
+    for(var i=start;i<Math.min(start+50,evts.length);i++){
+      (function(e){playTmrs.push(setTimeout(()=>onFV(e.cc,e.v),e.t));})(evts[i]);
+    }
+    if(start+50<evts.length) requestAnimationFrame(function(){scheduleBatch(start+50);});
+  })(0);
   playTmrs.push(setTimeout(()=>{if(recState==='playing'){startPlay();}else{recState='idle';updHeader();updTransport();}},dur+50));
   updHeader();updTransport();
 }
