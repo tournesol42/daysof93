@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v95-music-vol-green-dot -->
+<!-- build: explore3-v96-vol-limiter-menu -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1723,7 +1723,14 @@ function initAudio() {
   masterLPF.type = 'lowpass';
   masterLPF.frequency.value = Math.min(20000, audioCtx.sampleRate * 0.499);
   masterLPF.Q.value = 0.5;
-  masterLPF.connect(audioCtx.destination);
+  var masterLimiter = audioCtx.createDynamicsCompressor();
+  masterLimiter.threshold.value = -1;
+  masterLimiter.knee.value = 0;
+  masterLimiter.ratio.value = 20;
+  masterLimiter.attack.value = 0.001;
+  masterLimiter.release.value = 0.08;
+  masterLimiter.connect(audioCtx.destination);
+  masterLPF.connect(masterLimiter);
   masterGain.disconnect(audioCtx.destination);
   masterGain.connect(masterLPF);
   seqConvolver.disconnect(audioCtx.destination);
@@ -2456,6 +2463,7 @@ Object.assign(btn.style,{position:'fixed',bottom:'14px',left:'14px',zIndex:'9999
 const box=document.createElement('div');
 Object.assign(box.style,{position:'fixed',bottom:'44px',left:'14px',zIndex:'999999',width:'444px',background:'rgba(8,8,8,.97)',border:'1px solid rgba(255,255,255,.09)',padding:'10px',fontFamily:'monospace',display:'none'});
 document.body.appendChild(btn);document.body.appendChild(box);
+btn.style.display='none';box.style.display='none';
 function onFV(i,v){
   F[i].value=v;applyF(F[i]);svF();updViz(i);
   window.dispatchEvent(new CustomEvent('midicc',{detail:{cc:i,raw:v,mapped:+fmt(F[i]),label:F[i].label}}));
@@ -2599,5 +2607,19 @@ if(navigator.requestMIDIAccess){
 })();
 </script>
 <!-- /MIDI CONSOLE -->
+
+<div id="masterVolWrap" style="position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:999998;padding:6px 16px;display:flex;align-items:center;gap:8px;opacity:0.35;transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='0.35'">
+  <span style="font-family:monospace;font-size:8px;letter-spacing:0.18em;color:rgba(255,255,255,0.7)">VOL</span>
+  <input id="masterVolFader" type="range" min="0" max="2" step="0.01" value="1" style="width:90px;accent-color:rgba(255,255,255,0.5);cursor:pointer;">
+</div>
+<script>
+document.getElementById('masterVolFader').addEventListener('input', function() {
+  if (typeof masterGain !== 'undefined' && masterGain) masterGain.gain.value = parseFloat(this.value);
+});
+</script>
+
+<div style="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:999997;text-align:center;">
+  <a href="/" style="font-family:'Jost',sans-serif;font-size:11px;font-weight:300;letter-spacing:0.22em;color:rgba(255,255,255,0.35);text-decoration:none;">DAYSOF93</a>
+</div>
 </body>
 </html>
