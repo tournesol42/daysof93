@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v103-midi-perf -->
+<!-- build: explore3-v104-green-physics-restore -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -424,6 +424,7 @@ var gravParticles   = [];
 var gravSpawnPool   = [];
 var greenCubeMesh   = null;
 var GREEN_CUBE_COUNT = 5;
+var greenParticles = [];
 var greenCubeOffsets = [];
 var greenCubeStates = [];
 var gravMesh        = null;
@@ -2193,58 +2194,47 @@ window.addEventListener('midicc', function(e) {
 function initGreenCubes() {
   var mat = new THREE.MeshPhongMaterial({ color: 0x4D6B39, transparent: true, opacity: 0.85 });
   var geo = new THREE.BoxGeometry(1, 1, 1);
-  greenCubeMesh = new THREE.InstancedMesh(geo, mat, 7);
+  greenCubeMesh = new THREE.InstancedMesh(geo, mat, 20);
+  greenCubeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   greenCubeMesh.count = 0;
   sceneB.add(greenCubeMesh);
-  for (var i = 0; i < 7; i++) {
-    greenCubeOffsets.push(new THREE.Vector3(
-      (Math.random() - 0.5) * 2.0,
-      (Math.random() - 0.5) * 2.0,
-      (Math.random() - 0.5) * 2.0
-    ));
-  }
 }
 
 function updateGreenCubes() {
-  if (!greenCubeMesh || gravSpawnPool.length < 1) return;
-  var count = 3 + Math.floor(Math.random() * 5);
+  if (!greenCubeMesh || gravSpawnPool.length < 3) return;
+  var count = 10 + Math.floor(Math.random() * 11);
   greenCubeMesh.count = count;
-  greenCubeStates = [];
+  greenParticles = [];
   for (var i = 0; i < count; i++) {
-    var si = Math.floor(Math.random() * (gravSpawnPool.length / 3)) * 3;
-    var scale = 1.4 + Math.random() * 0.8;
-    var size = (0.06 + Math.random() * 0.10);
-    greenCubeStates.push({
-      pos: new THREE.Vector3(
-        gravSpawnPool[si]   * scale + greenCubeOffsets[i].x,
-        gravSpawnPool[si+1] * scale + greenCubeOffsets[i].y,
-        gravSpawnPool[si+2] * scale + greenCubeOffsets[i].z
-      ),
-      rot: new THREE.Vector3(
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2
-      ),
-      rotSpeed: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02
-      ),
-      size: size
-    });
+    var p = { pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+              rot: new THREE.Euler(), rotVel: new THREE.Vector3(),
+              age: 0, lifespan: 12, baseSize: 0.06 };
+    spawnGravParticle(p);
+    p.baseSize = 0.06 + Math.random() * 0.10;
+    p.age = Math.random() * p.lifespan;
+    greenParticles.push(p);
   }
 }
 
 function tickGreenCubes() {
-  if (!greenCubeMesh || greenCubeStates.length === 0) return;
-  for (var i = 0; i < greenCubeStates.length; i++) {
-    var s = greenCubeStates[i];
-    s.rot.x += s.rotSpeed.x;
-    s.rot.y += s.rotSpeed.y;
-    s.rot.z += s.rotSpeed.z;
-    greenCubeDummy.position.copy(s.pos);
-    greenCubeDummy.rotation.set(s.rot.x, s.rot.y, s.rot.z);
-    greenCubeDummy.scale.set(s.size, s.size, s.size);
+  if (!greenCubeMesh || greenParticles.length === 0) return;
+  for (var i = 0; i < greenParticles.length; i++) {
+    var p = greenParticles[i];
+    p.age += 0.01667;
+    if (p.age >= p.lifespan) { spawnGravParticle(p); p.baseSize = 0.06 + Math.random() * 0.10; p.age = 0; }
+    _gravDir.set(-p.pos.x, -p.pos.y, -p.pos.z);
+    var r = _gravDir.length(); if (r < 0.06) r = 0.06;
+    _gravDir.normalize().multiplyScalar(GRAV_GM / (r * r));
+    p.vel.add(_gravDir);
+    p.pos.addScaledVector(p.vel, GRAV_SPEED);
+    p.rot.x += p.rotVel.x * GRAV_SPEED;
+    p.rot.y += p.rotVel.y * GRAV_SPEED;
+    p.rot.z += p.rotVel.z * GRAV_SPEED;
+    var na = p.age / p.lifespan;
+    var sf = na < 0.08 ? na / 0.08 : na > 0.85 ? (1 - na) / 0.15 : 1.0;
+    greenCubeDummy.position.copy(p.pos);
+    greenCubeDummy.rotation.copy(p.rot);
+    greenCubeDummy.scale.setScalar(p.baseSize * sf);
     greenCubeDummy.updateMatrix();
     greenCubeMesh.setMatrixAt(i, greenCubeDummy.matrix);
   }
