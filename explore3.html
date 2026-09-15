@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v91-green-cubes -->
+<!-- build: explore3-v92-green-cubes-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2173,12 +2173,12 @@ function updateGreenCubes() {
   greenCubeMesh.count = count;
   var dummy = new THREE.Object3D();
   for (var i = 0; i < count; i++) {
-    var src = gravSpawnPool[Math.floor(Math.random() * gravSpawnPool.length)];
+    var si = Math.floor(Math.random() * (gravSpawnPool.length / 3)) * 3;
     var scale = 1.4 + Math.random() * 0.8;
     dummy.position.set(
-      src.x * scale + greenCubeOffsets[i].x,
-      src.y * scale + greenCubeOffsets[i].y,
-      src.z * scale + greenCubeOffsets[i].z
+      gravSpawnPool[si]   * scale + greenCubeOffsets[i].x,
+      gravSpawnPool[si+1] * scale + greenCubeOffsets[i].y,
+      gravSpawnPool[si+2] * scale + greenCubeOffsets[i].z
     );
     var size = 0.25 + Math.random() * 0.55;
     dummy.scale.set(size, size, size);
