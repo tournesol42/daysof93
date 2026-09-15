@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v94-perf-gc -->
+<!-- build: explore3-v95-music-vol-green-dot -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -73,7 +73,7 @@ body { background: #FAC300; overflow: hidden; cursor: none; }
   position: fixed;
   width: 132px; height: 132px;
   border-radius: 50%;
-  background: #FF6B00;
+  background: #4D6B39;
   bottom: 44px; right: 64px;
   cursor: pointer;
   z-index: 200;
@@ -132,6 +132,7 @@ var MUSIC_FILES = [
 // ── Audio state ────────────────────────────────────────────────
 var audioCtx     = null;
 var masterGain   = null;
+var musicGain    = null;
 var masterLPF      = null;
 var drumMouseGain  = null;
 var drumMouseActive = false;
@@ -1727,6 +1728,9 @@ function initAudio() {
   masterGain.connect(masterLPF);
   seqConvolver.disconnect(audioCtx.destination);
   seqConvolver.connect(masterLPF);
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 3.162;
+  musicGain.connect(masterLPF);
 }
 
 function createReverbIR(ctx, duration, decay) {
@@ -1763,7 +1767,11 @@ function loadAndPlay(base, files, indexRef, onEnded) {
     audioCtx.decodeAudioData(xhr.response, function(buffer) {
       var src = audioCtx.createBufferSource();
       src.buffer = buffer;
-      src.connect(masterGain);
+      if (base === MUSIC_BASE && musicGain) {
+        src.connect(musicGain);
+      } else {
+        src.connect(masterGain);
+      }
       if (seqReverbSend && base === SEQ_BASE) {
         src.connect(seqReverbSend);
       }
