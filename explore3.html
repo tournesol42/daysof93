@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v93-green-cubes-anim -->
+<!-- build: explore3-v94-perf-gc -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -427,6 +427,7 @@ var greenCubeStates = [];
 var gravMesh        = null;
 var gravGroup       = new THREE.Group();
 var gravDummy       = new THREE.Object3D();
+var greenCubeDummy  = new THREE.Object3D();
 var _gravDir        = new THREE.Vector3();
 var meshBSpeedMult  = 0.3;
 
@@ -1943,15 +1944,16 @@ function loadDrumsSystem() {
 function scheduleMidiLoop(loopStartTimeSec) {
   if (!drumsStarted) return;
   var now = audioCtx.currentTime;
-  drumsMidiEvents.forEach(function (ev) {
+  drumsMidiEvents.forEach(function (ev, evIdx) {
     var delay = Math.max(0, (loopStartTimeSec + ev.timeSec - now) * 1000);
-    setTimeout(triggerMeshB, delay);
-    setTimeout(onMJMidiTrigger, delay);
-    setTimeout(sampleHoldReverbSend, delay);
+    var stagger = evIdx * 0.3;
+    setTimeout(triggerMeshB, delay + stagger);
+    setTimeout(onMJMidiTrigger, delay + stagger);
+    setTimeout(sampleHoldReverbSend, delay + stagger);
     setTimeout(function () {
       atmosMidiCount++;
       if (atmosMidiCount % 3 === 0) triggerAtmos();
-    }, delay);
+    }, delay + stagger);
   });
   var msUntilNext = Math.max(0, (loopStartTimeSec + drumsDurationSec - now) * 1000 - 100);
   setTimeout(function () { scheduleMidiLoop(loopStartTimeSec + drumsDurationSec); }, msUntilNext);
@@ -2177,7 +2179,7 @@ function updateGreenCubes() {
   for (var i = 0; i < count; i++) {
     var si = Math.floor(Math.random() * (gravSpawnPool.length / 3)) * 3;
     var scale = 1.4 + Math.random() * 0.8;
-    var size = (0.12 + Math.random() * 0.28);
+    var size = (0.06 + Math.random() * 0.10);
     greenCubeStates.push({
       pos: new THREE.Vector3(
         gravSpawnPool[si]   * scale + greenCubeOffsets[i].x,
@@ -2201,17 +2203,16 @@ function updateGreenCubes() {
 
 function tickGreenCubes() {
   if (!greenCubeMesh || greenCubeStates.length === 0) return;
-  var dummy = new THREE.Object3D();
   for (var i = 0; i < greenCubeStates.length; i++) {
     var s = greenCubeStates[i];
     s.rot.x += s.rotSpeed.x;
     s.rot.y += s.rotSpeed.y;
     s.rot.z += s.rotSpeed.z;
-    dummy.position.copy(s.pos);
-    dummy.rotation.set(s.rot.x, s.rot.y, s.rot.z);
-    dummy.scale.set(s.size, s.size, s.size);
-    dummy.updateMatrix();
-    greenCubeMesh.setMatrixAt(i, dummy.matrix);
+    greenCubeDummy.position.copy(s.pos);
+    greenCubeDummy.rotation.set(s.rot.x, s.rot.y, s.rot.z);
+    greenCubeDummy.scale.set(s.size, s.size, s.size);
+    greenCubeDummy.updateMatrix();
+    greenCubeMesh.setMatrixAt(i, greenCubeDummy.matrix);
   }
   greenCubeMesh.instanceMatrix.needsUpdate = true;
 }
