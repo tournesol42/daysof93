@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v97-mastervol-cross -->
+<!-- build: explore3-v98-mastervol-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2008,7 +2008,7 @@ function startDrumsSystem() {
       console.log('d93: drumsGain → drumMouseGain → masterLPF OK');
     } else {
       console.warn('d93: masterLPF missing, drums connecting direct to destination');
-      drumMouseGain.connect(audioCtx.destination);
+      drumMouseGain.connect(masterVolGain ? masterVolGain : audioCtx.destination);
     }
     setTimeout(function() { drumMouseActive = true; }, 8000);
     if (!arpSource) {
