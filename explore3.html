@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v90-arp-lpf -->
+<!-- build: explore3-v91-green-cubes -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -420,6 +420,9 @@ var _RAL = ['#EE7C0E','#FF2B00','#D5D6D2','#898D8D','#2B2B2C','#FAC300','#F4F4F4
 function _ralPick(v) { return _RAL[Math.min(7, Math.floor(v * 8))]; }
 var gravParticles   = [];
 var gravSpawnPool   = [];
+var greenCubeMesh   = null;
+var GREEN_CUBE_COUNT = 5;
+var greenCubeOffsets = [];
 var gravMesh        = null;
 var gravGroup       = new THREE.Group();
 var gravDummy       = new THREE.Object3D();
@@ -697,6 +700,7 @@ function switchToMesh(index) {
   currentGroup.rotation.set(0, 0, 0);
   applyMeshMaterials(currentGroup);
   updateGravSpawnPool();
+  updateGreenCubes();
   updateMeshBankUI();
   var hdrMeshEl = document.getElementById('hdrMesh');
   if (hdrMeshEl) hdrMeshEl.textContent = meshBank[index].name;
@@ -2148,6 +2152,43 @@ window.addEventListener('midicc', function(e) {
   if (cc === 7 && gravMesh) { gravMesh.material.color.set(_ralPick(v)); }
 });
 
+function initGreenCubes() {
+  var mat = new THREE.MeshPhongMaterial({ color: 0x57A639, transparent: true, opacity: 0.85 });
+  var geo = new THREE.BoxGeometry(1, 1, 1);
+  greenCubeMesh = new THREE.InstancedMesh(geo, mat, 7);
+  greenCubeMesh.count = 0;
+  sceneB.add(greenCubeMesh);
+  for (var i = 0; i < 7; i++) {
+    greenCubeOffsets.push(new THREE.Vector3(
+      (Math.random() - 0.5) * 2.0,
+      (Math.random() - 0.5) * 2.0,
+      (Math.random() - 0.5) * 2.0
+    ));
+  }
+}
+
+function updateGreenCubes() {
+  if (!greenCubeMesh || gravSpawnPool.length < 1) return;
+  var count = 3 + Math.floor(Math.random() * 5);
+  greenCubeMesh.count = count;
+  var dummy = new THREE.Object3D();
+  for (var i = 0; i < count; i++) {
+    var src = gravSpawnPool[Math.floor(Math.random() * gravSpawnPool.length)];
+    var scale = 1.4 + Math.random() * 0.8;
+    dummy.position.set(
+      src.x * scale + greenCubeOffsets[i].x,
+      src.y * scale + greenCubeOffsets[i].y,
+      src.z * scale + greenCubeOffsets[i].z
+    );
+    var size = 0.25 + Math.random() * 0.55;
+    dummy.scale.set(size, size, size);
+    dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    dummy.updateMatrix();
+    greenCubeMesh.setMatrixAt(i, dummy.matrix);
+  }
+  greenCubeMesh.instanceMatrix.needsUpdate = true;
+}
+
 function initGravParticles() {
   sceneB.add(gravGroup);
   var geo = new THREE.BoxGeometry(1, 1, 1);
@@ -2317,6 +2358,7 @@ function scheduleTrailBurst() {
 
 loadDrumsSystem();
 initGravParticles();
+initGreenCubes();
 applyMidiDefaults();
 loadMeshLibrary();
 scheduleTrailBurst();
