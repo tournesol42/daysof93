@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v100-curtain -->
+<!-- build: explore3-v101-curtain-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1214,11 +1214,7 @@ function render() {
     renderer.setClearColor(0x000000, 1);
     renderer.clear();
     curtainSmooth += (curtainTarget - curtainSmooth) * 0.06;
-    if (curtainActive && curtainSmooth > 0.001) {
-      renderer.getClearColor(_curtainTmp);
-      _curtainTmp.lerp(_curtainBlack, curtainSmooth);
-      renderer.setClearColor(_curtainTmp, renderer.getClearAlpha());
-    }
+    // trail already black — no curtain needed
     renderer.render(scene, camera);
 
     feedbackMat.uniforms.tCur.value   = rtScene.texture;
@@ -1242,10 +1238,8 @@ function render() {
     renderer.setClearColor(0x000000, 0);
     renderer.clear();
     curtainSmooth += (curtainTarget - curtainSmooth) * 0.06;
-    if (curtainActive && curtainSmooth > 0.001) {
-      renderer.getClearColor(_curtainTmp);
-      _curtainTmp.lerp(_curtainBlack, curtainSmooth);
-      renderer.setClearColor(_curtainTmp, renderer.getClearAlpha());
+    if (curtainActive) {
+      renderer.setClearColor(0x000000, curtainSmooth);
     }
     renderer.render(scene, camera);
   }
