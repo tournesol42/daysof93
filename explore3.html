@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v99-mastervol-scope -->
+<!-- build: explore3-v100-curtain -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -430,6 +430,11 @@ var gravMesh        = null;
 var gravGroup       = new THREE.Group();
 var gravDummy       = new THREE.Object3D();
 var greenCubeDummy  = new THREE.Object3D();
+var curtainActive  = false;
+var curtainTarget  = 0;
+var curtainSmooth  = 0;
+var _curtainTmp    = new THREE.Color();
+var _curtainBlack  = new THREE.Color(0x000000);
 var _gravDir        = new THREE.Vector3();
 var meshBSpeedMult  = 0.3;
 
@@ -1208,6 +1213,12 @@ function render() {
     renderer.setRenderTarget(rtScene);
     renderer.setClearColor(0x000000, 1);
     renderer.clear();
+    curtainSmooth += (curtainTarget - curtainSmooth) * 0.06;
+    if (curtainActive && curtainSmooth > 0.001) {
+      renderer.getClearColor(_curtainTmp);
+      _curtainTmp.lerp(_curtainBlack, curtainSmooth);
+      renderer.setClearColor(_curtainTmp, renderer.getClearAlpha());
+    }
     renderer.render(scene, camera);
 
     feedbackMat.uniforms.tCur.value   = rtScene.texture;
@@ -1230,6 +1241,12 @@ function render() {
     renderer.setRenderTarget(null);
     renderer.setClearColor(0x000000, 0);
     renderer.clear();
+    curtainSmooth += (curtainTarget - curtainSmooth) * 0.06;
+    if (curtainActive && curtainSmooth > 0.001) {
+      renderer.getClearColor(_curtainTmp);
+      _curtainTmp.lerp(_curtainBlack, curtainSmooth);
+      renderer.setClearColor(_curtainTmp, renderer.getClearAlpha());
+    }
     renderer.render(scene, camera);
   }
 
@@ -2356,6 +2373,10 @@ window.addEventListener('mousemove', function(e) {
     startDrumsSystem();
     atmosStarted = true;
   }
+  if (curtainActive) {
+    var nyCurtain = e.clientY / window.innerHeight;
+    curtainTarget = nyCurtain < 0.4 ? 0 : Math.min(1, (nyCurtain - 0.4) / 0.35);
+  }
 });
 
 // ── Trail burst: random on/off independent of presets ──────────
@@ -2437,6 +2458,7 @@ document.getElementById('audioSquare').onclick = function() {
   if (!audioCtx) initAudio();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   musicStarted = true;
+  curtainActive = true;
   document.getElementById('audioSquare').style.display = 'none';
   playNextMusic();
 };
