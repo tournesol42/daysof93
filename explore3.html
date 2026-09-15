@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v98-mastervol-fix -->
+<!-- build: explore3-v99-mastervol-scope -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2443,6 +2443,10 @@ document.getElementById('audioSquare').onclick = function() {
 
 render();
 
+window.setMasterVol = function(v) {
+  if (masterVolGain) masterVolGain.gain.value = v;
+};
+
 })();
 </script>
 <!-- MIDI CONSOLE — DEV -->
@@ -2618,7 +2622,7 @@ if(navigator.requestMIDIAccess){
 </div>
 <script>
 document.getElementById('masterVolFader').addEventListener('input', function() {
-  if (typeof masterVolGain !== 'undefined' && masterVolGain) masterVolGain.gain.value = parseFloat(this.value);
+  if (window.setMasterVol) window.setMasterVol(parseFloat(this.value));
 });
 </script>
 
