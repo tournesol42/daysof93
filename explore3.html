@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v106-fader-match -->
+<!-- build: explore3-v107-orch -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -159,6 +159,8 @@ var musicIdx     = -1;
 var musicStarted = false;
 var arpSource    = null;
 var arpGainNode  = null;
+var orchSource = null;
+var orchGain   = null;
 var autoPresetInterval = null;
 var analyser      = null;
 var analyserData  = null;
@@ -2008,6 +2010,13 @@ function scheduleMidiLoop(loopStartTimeSec) {
 // ── Drums: start (called from bottom-left mouse zone) ──────────
 function startDrumsSystem() {
   if (drumsStarted) return;
+  if (orchSource && orchGain) {
+    orchGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.8);
+    setTimeout(function() {
+      try { orchSource.stop(); } catch(e) {}
+      orchSource = null; orchGain = null;
+    }, 3000);
+  }
   if (!drumsAudioRaw) { console.warn('d93: drums audio not ready'); return; }
   if (!audioCtx) initAudio();
   drumsStarted = true;
@@ -2437,6 +2446,22 @@ initMIDI();
 document.getElementById('audioDot').onclick = function() {
   initAudio();
   document.getElementById('audioDot').style.display = 'none';
+  var xhrOrch = new XMLHttpRequest();
+  xhrOrch.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_orch.mp3', true);
+  xhrOrch.responseType = 'arraybuffer';
+  xhrOrch.onload = function() {
+    audioCtx.decodeAudioData(xhrOrch.response, function(buf) {
+      orchGain = audioCtx.createGain();
+      orchGain.gain.value = 0.316;
+      orchSource = audioCtx.createBufferSource();
+      orchSource.buffer = buf;
+      orchSource.loop = true;
+      orchSource.connect(orchGain);
+      orchGain.connect(masterVolGain || audioCtx.destination);
+      orchSource.start(0);
+    });
+  };
+  xhrOrch.send();
   playNextSeq();
   document.getElementById('c').style.opacity = '1';
   startMJSystem();
