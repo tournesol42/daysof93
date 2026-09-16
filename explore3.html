@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v110-revert-seq -->
+<!-- build: explore3-v111-seq-vol -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,6 +143,7 @@ var MUSIC_FILES = [
 // ── Audio state ────────────────────────────────────────────────
 var audioCtx     = null;
 var masterGain   = null;
+var seqDryGain   = null;
 var masterVolGain = null;
 var musicGain    = null;
 var masterLPF      = null;
@@ -1735,6 +1736,9 @@ function initAudio() {
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 1.0;
   masterGain.connect(audioCtx.destination);
+  seqDryGain = audioCtx.createGain();
+  seqDryGain.gain.value = 0.398;
+  seqDryGain.connect(masterGain);
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.0;
@@ -1806,6 +1810,8 @@ function loadAndPlay(base, files, indexRef, onEnded) {
       src.buffer = buffer;
       if (base === MUSIC_BASE && musicGain) {
         src.connect(musicGain);
+      } else if (base === SEQ_BASE && seqDryGain) {
+        src.connect(seqDryGain);
       } else {
         src.connect(masterGain);
       }
