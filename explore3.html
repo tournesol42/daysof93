@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v108-orch-vol -->
+<!-- build: explore3-v109-seq-after-drums -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2020,6 +2020,7 @@ function startDrumsSystem() {
   if (!drumsAudioRaw) { console.warn('d93: drums audio not ready'); return; }
   if (!audioCtx) initAudio();
   drumsStarted = true;
+  playNextSeq();
   audioCtx.decodeAudioData(drumsAudioRaw, function (buf) {
     drumsAudioBuffer = buf;
     drumsAudioSrc = audioCtx.createBufferSource();
@@ -2462,7 +2463,6 @@ document.getElementById('audioDot').onclick = function() {
     });
   };
   xhrOrch.send();
-  playNextSeq();
   document.getElementById('c').style.opacity = '1';
   startMJSystem();
   // startXploreVideos();
