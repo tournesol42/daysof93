@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v214-three-dots -->
+<!-- build: v215-hint-arrow -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -112,15 +112,21 @@
     #music-btn { right: 18px; bottom: 90px; top: auto; width: 100px; height: 100px; }
   }
   #dot-hint {
-    position: fixed; bottom: 5vh; left: 50%; transform: translateX(-50%);
-    white-space: nowrap;
+    position: fixed;
+    left: calc(50vw - 12.87vh - 26px);
+    top: calc(55.1vh);
+    transform: translate(-100%, -50%);
     font-family: 'Google Sans Code', 'B612 Mono', monospace;
-    font-size: 10px; letter-spacing: 0.22em; text-transform: lowercase;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.22em; text-transform: lowercase;
     color: #000; opacity: 0; pointer-events: none; z-index: 52;
     transition: opacity 1s ease;
   }
   @media (max-width:720px) {
-    #dot-hint { bottom: 70px; }
+    #dot-hint {
+      left: calc(31.8vw - 26px);
+      top: calc(50vh + 7.22vw);
+      transform: translate(-100%, -50%);
+    }
   }
   #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
   @keyframes bgvector-breathe{
@@ -1377,7 +1383,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
 <a href="https://daysof93.com/explore3" id="explore3-btn" aria-label="Explore 3"></a>
 <a href="music.html" id="music-btn" aria-label="Music"></a>
-<div id="dot-hint">— push dots to explore</div>
+<div id="dot-hint">push dots to explore →</div>
 <script>
 (function() {
   var musicBtn    = document.getElementById('music-btn');
