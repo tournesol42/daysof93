@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v213-no-splash -->
+<!-- build: v214-three-dots -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -98,19 +98,29 @@
     margin-top:28px;
     transition: opacity 1.5s ease;
   }
-  .hero-music{
-    font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size: clamp(4rem, 11.5vw, 14rem);
-    font-weight:700; text-transform:uppercase;
-    letter-spacing:-0.02em; line-height:0.88;
-    color:#000; text-decoration:none; opacity:0;
-    margin-top: auto; margin-right: 4vw;
-    transition: opacity 1.5s ease;
-  }
-  .hero-music:hover{ opacity:1; }
   @media (max-width:720px){
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
-    .hero-music{ position:fixed; bottom:90px; right:18px; margin:0; }
+  }
+  #music-btn {
+    position: fixed; right: 5vw; top: 40vh;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: #000; display: none; z-index: 51;
+    text-decoration: none;
+    animation: dot-slow 2.8s ease-in-out infinite;
+  }
+  @media (max-width:720px) {
+    #music-btn { right: 18px; bottom: 90px; top: auto; width: 100px; height: 100px; }
+  }
+  #dot-hint {
+    position: fixed; bottom: 5vh; left: 50%; transform: translateX(-50%);
+    white-space: nowrap;
+    font-family: 'Google Sans Code', 'B612 Mono', monospace;
+    font-size: 10px; letter-spacing: 0.22em; text-transform: lowercase;
+    color: #000; opacity: 0; pointer-events: none; z-index: 52;
+    transition: opacity 1s ease;
+  }
+  @media (max-width:720px) {
+    #dot-hint { bottom: 70px; }
   }
   #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
   @keyframes bgvector-breathe{
@@ -389,7 +399,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #E85500;
+    background: #000;
     text-decoration: none;
     z-index: 51;
   }
@@ -414,7 +424,7 @@
     right: auto; bottom: auto;
     width: 84px; height: 84px;
     border-radius: 50%;
-    background: #E85500;
+    background: #000;
     text-decoration: none;
     z-index: 51;
     animation: dot-slow 2.4s ease-in-out infinite;
@@ -493,7 +503,6 @@
       <div class="hero-title">DAYS<br>OF 93.</div>
       <div class="hero-sub">Film Composer — Tommy Gee</div>
     </div>
-    <a href="music.html" class="hero-music">MUSIC</a>
   </div>
 
   <div class="overlay" id="about">
@@ -669,14 +678,6 @@ build();
 setTimeout(function(){
   var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
 }, 6000);
-
-// fade in MUSIC after 3s, then pulse
-setTimeout(function(){
-  const el = document.querySelector('.hero-music');
-  if(!el) return;
-  el.style.opacity = '0.85';
-  setTimeout(function(){ el.classList.add('d93-pulse'); }, 1500);
-}, 3000);
 
 // redblack video — appears after 12s on first anchor hover, then cycles
 (function(){
@@ -1375,25 +1376,33 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
 <a href="https://daysof93.com/explore3" id="explore3-btn" aria-label="Explore 3"></a>
+<a href="music.html" id="music-btn" aria-label="Music"></a>
+<div id="dot-hint">— push dots to explore</div>
 <script>
-setTimeout(function() {
-  var dot = document.getElementById('explore-btn');
-  dot.classList.add('visible');
+(function() {
+  var musicBtn    = document.getElementById('music-btn');
+  var explore3Btn = document.getElementById('explore3-btn');
+  var exploreBtn  = document.getElementById('explore-btn');
+  var hint        = document.getElementById('dot-hint');
+  setTimeout(function() { musicBtn.style.display = 'block'; }, 2000);
+  setTimeout(function() { explore3Btn.style.display = 'block'; }, 3200);
   setTimeout(function() {
-    document.getElementById('explore3-btn').style.display = 'block';
-  }, 2000);
-  // Phase 2: slow opacity pulse after 2s solid
-  setTimeout(function() { dot.classList.add('phase2'); }, 2000);
-  // Phase 3: grow to 2× + fast pulse after ~3.5s of slow pulse
-  setTimeout(function() {
-    dot.classList.remove('phase2');
-    dot.classList.add('phase3-grow');
+    exploreBtn.classList.add('visible');
+    setTimeout(function() { exploreBtn.classList.add('phase2'); }, 2000);
     setTimeout(function() {
-      dot.classList.remove('phase3-grow');
-      dot.classList.add('phase3-pulse');
-    }, 500);
-  }, 5500);
-}, 10000);
+      exploreBtn.classList.remove('phase2');
+      exploreBtn.classList.add('phase3-grow');
+      setTimeout(function() {
+        exploreBtn.classList.remove('phase3-grow');
+        exploreBtn.classList.add('phase3-pulse');
+      }, 500);
+    }, 5500);
+  }, 4200);
+  setTimeout(function() {
+    hint.style.opacity = '0.55';
+    setTimeout(function() { hint.style.opacity = '0'; }, 5000);
+  }, 5200);
+})();
 </script>
 
 <script>
