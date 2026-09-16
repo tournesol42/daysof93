@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v216-orange-dots -->
+<!-- build: v217-hint-jost -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -113,18 +113,18 @@
   }
   #dot-hint {
     position: fixed;
-    left: calc(50vw - 12.87vh - 26px);
-    top: calc(55.1vh);
+    left: calc(50vw - 12.87vh - 14px + 180px);
+    top: calc(55.1vh - 14px + 110px + 42px);
     transform: translate(-100%, -50%);
-    font-family: 'Google Sans Code', 'B612 Mono', monospace;
-    font-size: 28px; font-weight: 700; letter-spacing: 0.22em; text-transform: lowercase;
+    font-family: 'Jost', 'Helvetica Neue', sans-serif;
+    font-size: 28px; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase;
     color: #000; opacity: 0; pointer-events: none; z-index: 52;
     transition: opacity 1s ease;
   }
   @media (max-width:720px) {
     #dot-hint {
-      left: calc(31.8vw - 26px);
-      top: calc(50vh + 7.22vw);
+      left: calc(31.8vw - 14px + 180px);
+      top: calc(50vh + 7.22vw - 14px + 110px + 42px);
       transform: translate(-100%, -50%);
     }
   }
