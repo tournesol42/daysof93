@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v107-orch -->
+<!-- build: explore3-v108-orch-vol -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2452,7 +2452,7 @@ document.getElementById('audioDot').onclick = function() {
   xhrOrch.onload = function() {
     audioCtx.decodeAudioData(xhrOrch.response, function(buf) {
       orchGain = audioCtx.createGain();
-      orchGain.gain.value = 0.316;
+      orchGain.gain.value = 0.708;
       orchSource = audioCtx.createBufferSource();
       orchSource.buffer = buf;
       orchSource.loop = true;
