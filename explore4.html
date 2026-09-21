@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v6-bluer-pulse -->
+<!-- build: explore4-v7-faster-bigger -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,7 +37,7 @@ const DIM = '#2a4aaa', BRIGHT = '#b0ccff';
 let fontSize = null;
 
 function computeSize(W) {
-  const target = W * 0.35;
+  const target = W * 0.50;
   let lo = 1, hi = W;
   for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2;
@@ -63,7 +63,7 @@ function frame() {
 
   if (fontSize === null) fontSize = computeSize(W);
 
-  const s = (Math.sin(Date.now() * 0.0005) + 1) / 2;
+  const s = (Math.sin(Date.now() * 0.003) + 1) / 2;
   const t = s * s * (3 - 2 * s);
   ctx.font = `${fontSize}px 'VectorBattle', monospace`;
   ctx.lineWidth = 0.4;
