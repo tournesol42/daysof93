@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v113-ios-rt-fix -->
+<!-- build: explore3-v114-ios-touch -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -477,6 +477,8 @@ var drumsMidiEvents     = [];
 var drumsStarted        = false;
 var drumsAudioSrc       = null;
 
+var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 // ── Atmos pad system ───────────────────────────────────────────
 var ATMOS_BASE      = 'https://daysof93-cdn.b-cdn.net/Explore3_futureatmos/';
 var ATMOS_COUNT     = 17; // futureatmos15.wav removed
@@ -537,18 +539,16 @@ var lineMats     = [];
 var edgeLines    = [];
 
 // ── Render targets ─────────────────────────────────────────────
-var _halfFloatExt = renderer.extensions.get('OES_texture_half_float');
-var _halfFloatLinExt = renderer.extensions.get('OES_texture_half_float_linear');
-var _rtType = (_halfFloatExt && _halfFloatLinExt) ? THREE.HalfFloatType : THREE.UnsignedByteType;
-var rtOpts = {
-  minFilter: THREE.LinearFilter,
-  magFilter: THREE.LinearFilter,
-  format:    THREE.RGBAFormat,
-  type:      _rtType,
-};
-var rtScene = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
-var rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
-var rtB     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
+var rtScene = null, rtA = null, rtB = null;
+if (!isIOS) {
+  var _halfFloatExt = renderer.extensions.get('OES_texture_half_float');
+  var _halfFloatLinExt = renderer.extensions.get('OES_texture_half_float_linear');
+  var _rtType = (_halfFloatExt && _halfFloatLinExt) ? THREE.HalfFloatType : THREE.UnsignedByteType;
+  var rtOpts = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, type: _rtType };
+  rtScene = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
+  rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
+  rtB     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
+}
 
 // ── Post quads ─────────────────────────────────────────────────
 var postScene  = new THREE.Scene();
@@ -1218,7 +1218,7 @@ function render() {
     displayMat.uniforms.uHue.value = S.hue + midiVals.hue;
   }
 
-  if (S.trailOn) {
+  if (S.trailOn && !isIOS && rtScene) {
     var frameDecay;
     if (S.trailType === 'paint') {
       frameDecay = 1.0;
@@ -1367,7 +1367,7 @@ function onResize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
-  rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
+  if (!isIOS && rtScene) { rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h); }
   lineRes.set(w, h);
   wireMats.forEach(function (m) { if (m.isLineMaterial) m.resolution.set(w, h); });
 }
@@ -2398,6 +2398,25 @@ window.addEventListener('mousemove', function(e) {
     curtainTarget = nyCurtain < 0.4 ? 0 : Math.min(1, (nyCurtain - 0.4) / 0.35);
   }
 });
+
+document.addEventListener('touchmove', function(e) {
+  var t = e.touches[0];
+  if (!t) return;
+  moveCrosshair(t.clientX, t.clientY);
+}, { passive: true });
+
+document.addEventListener('touchstart', function(e) {
+  var t = e.touches[0];
+  if (!t) return;
+  if (!drumsStarted && t.clientX < window.innerWidth * 0.35 && t.clientY > window.innerHeight * 0.65) {
+    startDrumsSystem();
+    atmosStarted = true;
+  }
+  if (curtainActive) {
+    var ny = t.clientY / window.innerHeight;
+    curtainTarget = ny < 0.4 ? 0 : Math.min(1, (ny - 0.4) / 0.35);
+  }
+}, { passive: true });
 
 // ── Trail burst: random on/off independent of presets ──────────
 // ── Bake MIDI snapshot 2026-09-12 as startup defaults ──────────
