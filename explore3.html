@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v114-ios-touch -->
+<!-- build: explore3-v115-sceneb-always -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1264,11 +1264,9 @@ function render() {
   }
 
   // MeshB renders outside trail pipeline — no trail accumulation
-  if (meshBGroup.visible) {
-    renderer.autoClear = false;
-    renderer.render(sceneB, camera);
-    renderer.autoClear = true;
-  }
+  renderer.autoClear = false;
+  renderer.render(sceneB, camera);
+  renderer.autoClear = true;
 
   // ── Drums envelope → TD video opacity ──────────────────────────
   if (drumsAnalyser) {
