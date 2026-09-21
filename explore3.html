@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v112-ios-fix -->
+<!-- build: explore3-v113-ios-rt-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -537,11 +537,14 @@ var lineMats     = [];
 var edgeLines    = [];
 
 // ── Render targets ─────────────────────────────────────────────
+var _halfFloatExt = renderer.extensions.get('OES_texture_half_float');
+var _halfFloatLinExt = renderer.extensions.get('OES_texture_half_float_linear');
+var _rtType = (_halfFloatExt && _halfFloatLinExt) ? THREE.HalfFloatType : THREE.UnsignedByteType;
 var rtOpts = {
   minFilter: THREE.LinearFilter,
   magFilter: THREE.LinearFilter,
   format:    THREE.RGBAFormat,
-  type:      THREE.HalfFloatType,
+  type:      _rtType,
 };
 var rtScene = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 var rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
@@ -2454,6 +2457,7 @@ initMIDI();
 // Dot: starts short sequences + fades in canvas
 document.getElementById('audioDot').onclick = function() {
   initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   document.getElementById('audioDot').style.display = 'none';
   var xhrOrch = new XMLHttpRequest();
   xhrOrch.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_orch.mp3', true);
