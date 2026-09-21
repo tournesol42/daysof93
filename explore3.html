@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v111-seq-vol -->
+<!-- build: explore3-v112-ios-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -509,7 +509,7 @@ var canvas  = document.getElementById('c');
 var cw = function () { return window.innerWidth; };
 var ch = function () { return window.innerHeight; };
 
-var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
 renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw(), ch());
@@ -543,7 +543,7 @@ var rtOpts = {
   format:    THREE.RGBAFormat,
   type:      THREE.HalfFloatType,
 };
-var rtScene = new THREE.WebGLMultisampleRenderTarget(cw(), ch(), rtOpts);
+var rtScene = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 var rtA     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 var rtB     = new THREE.WebGLRenderTarget(cw(), ch(), rtOpts);
 
@@ -2092,17 +2092,20 @@ function triggerAtmos() {
   var fileNum = idx < 14 ? idx + 1 : idx + 2; // skip futureatmos15.wav (was index 14)
   var url = ATMOS_BASE + 'futureatmos' + fileNum + '.wav';
   atmosPlaying = true;
-  fetch(url)
-    .then(function (r) { return r.arrayBuffer(); })
-    .then(function (ab) { return audioCtx.decodeAudioData(ab); })
-    .then(function (buf) {
+  var xhrAtm = new XMLHttpRequest();
+  xhrAtm.open('GET', url, true);
+  xhrAtm.responseType = 'arraybuffer';
+  xhrAtm.onload = function() {
+    audioCtx.decodeAudioData(xhrAtm.response, function(buf) {
       var src = audioCtx.createBufferSource();
       src.buffer = buf;
       src.connect(masterVolGain || audioCtx.destination);
-      src.onended = function () { atmosPlaying = false; };
+      src.onended = function() { atmosPlaying = false; };
       src.start(0);
-    })
-    .catch(function (e) { atmosPlaying = false; console.warn('d93: atmos fetch failed', e); });
+    }, function() { atmosPlaying = false; });
+  };
+  xhrAtm.onerror = function() { atmosPlaying = false; };
+  xhrAtm.send();
 }
 
 // ── Invert burst ───────────────────────────────────────────────
