@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v2-vector-battle -->
+<!-- build: explore4-v3-smaller-thinner -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -35,7 +35,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
 
   // Binary-search font size so text spans ~75% of viewport width
-  const target = W * 0.75;
+  const target = W * 0.35;
   let lo = 1, hi = W;
   for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2;
@@ -46,7 +46,7 @@ function draw() {
   const size = (lo + hi) / 2;
 
   ctx.font = `${size}px 'VectorBattle', monospace`;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.4;
   ctx.lineJoin = 'round';
   ctx.strokeStyle = '#a8bfff';
   ctx.textAlign = 'center';
