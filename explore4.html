@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v5-pulse -->
+<!-- build: explore4-v6-bluer-pulse -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -33,7 +33,7 @@ function lerpHex(a, b, t) {
   return `#${r}${g}${bh}`;
 }
 
-const DIM = '#a8bfff', BRIGHT = '#eef2ff';
+const DIM = '#2a4aaa', BRIGHT = '#b0ccff';
 let fontSize = null;
 
 function computeSize(W) {
@@ -63,7 +63,8 @@ function frame() {
 
   if (fontSize === null) fontSize = computeSize(W);
 
-  const t = (Math.sin(Date.now() * 0.0009) + 1) / 2;
+  const s = (Math.sin(Date.now() * 0.0005) + 1) / 2;
+  const t = s * s * (3 - 2 * s);
   ctx.font = `${fontSize}px 'VectorBattle', monospace`;
   ctx.lineWidth = 0.4;
   ctx.lineJoin = 'round';
