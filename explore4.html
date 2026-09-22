@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v18-fontmesh1 -->
+<!-- build: explore4-v19-lights-loop -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -24,6 +24,18 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 1000);
 
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(0, 1, 2);
+scene.add(dirLight);
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
 const loader = new THREE.GLTFLoader();
 loader.load('https://daysof93-cdn.b-cdn.net/explore4fontmesh1.glb', function(gltf) {
   var root = gltf.scene;
@@ -41,15 +53,14 @@ loader.load('https://daysof93-cdn.b-cdn.net/explore4fontmesh1.glb', function(glt
   camera.position.set(0, 0, dist);
   camera.updateProjectionMatrix();
 
+  console.log('GLB loaded', root);
   scene.add(root);
-  renderer.render(scene, camera);
 });
 
 window.addEventListener('resize', function() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.render(scene, camera);
 });
 </script>
 </body>
