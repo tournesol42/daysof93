@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v29-topdown-doubleside -->
+<!-- build: explore4-v30-aspect-aware-dist -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -51,9 +51,13 @@ loader.load('/explore4fontmesh6.glb', function(gltf) {
   root.position.sub(center);
 
   // Model is flat in XZ (y ≈ 0). Camera looks straight down from Y.
-  var maxDim = Math.max(size.x, size.z);
+  // Must fit both dimensions: size.x in horizontal FOV, size.z in vertical FOV.
+  var aspect = window.innerWidth / window.innerHeight;
   var fovRad = (camera.fov * Math.PI) / 180;
-  var dist = (maxDim / 2) / Math.tan(fovRad / 2) / 0.6;
+  var tanHalfVFov = Math.tan(fovRad / 2);
+  var distZ = (size.z / 2) / tanHalfVFov / 0.6;
+  var distX = (size.x / 2) / (aspect * tanHalfVFov) / 0.6;
+  var dist = Math.max(distX, distZ);
   camera.position.set(0, dist, 0);
   camera.up.set(0, 0, -1);
   camera.lookAt(0, 0, 0);
@@ -63,7 +67,7 @@ loader.load('/explore4fontmesh6.glb', function(gltf) {
     if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff, side: THREE.DoubleSide });
   });
 
-  console.log('v29 size', size, 'dist', dist.toFixed(1));
+  console.log('v30 size', size, 'distX', distX.toFixed(1), 'distZ', distZ.toFixed(1), 'dist', dist.toFixed(1));
 });
 
 window.addEventListener('resize', function() {
