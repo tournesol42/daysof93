@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v14-edges-clean -->
+<!-- build: explore4-v15-match-index-pattern -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,34 +37,20 @@ function frustumHalfH(z) {
 }
 
 const loader = new THREE.GLTFLoader();
-loader.load('https://daysof93-cdn.b-cdn.net/explore4font3.glb', (gltf) => {
-  const group = new THREE.Group();
-
-  gltf.scene.updateWorldMatrix(true, true);
-
-  gltf.scene.traverse((child) => {
-    if (!child.isMesh) return;
-    const geom = child.geometry.clone();
-    geom.applyMatrix4(child.matrixWorld);
-    const edges = new THREE.EdgesGeometry(geom, 15);
-    const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xa8bfff }));
-    group.add(lines);
+loader.load('https://daysof93-cdn.b-cdn.net/explore4font3.glb', function(gltf) {
+  var root = gltf.scene;
+  var box = new THREE.Box3().setFromObject(root);
+  var center = box.getCenter(new THREE.Vector3());
+  var size = box.getSize(new THREE.Vector3());
+  root.position.sub(center);
+  root.traverse(function(child) {
+    if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff, wireframe: true });
   });
-
-  // Center group at origin
-  const box = new THREE.Box3().setFromObject(group);
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  group.position.sub(center);
-
-  modelHeight = box.max.y - box.min.y;
-
-  // Start just above the top of the frustum
-  const halfH = frustumHalfH(group.position.z);
-  group.position.y = halfH + modelHeight / 2;
-
-  model = group;
-  scene.add(model);
+  modelHeight = size.y;
+  const halfH = frustumHalfH(0);
+  root.position.y = halfH + modelHeight / 2;
+  model = root;
+  scene.add(root);
 });
 
 function animate() {
