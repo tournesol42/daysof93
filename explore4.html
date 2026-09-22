@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v27-center-then-rotate -->
+<!-- build: explore4-v28-pivot-group -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -38,23 +38,35 @@ animate();
 
 const loader = new THREE.GLTFLoader();
 loader.load('/explore4fontmesh6.glb', function(gltf) {
-  var root = gltf.scene;
-  // Center FIRST (no rotation yet — position math is in local/world-aligned space)
-  var box = new THREE.Box3().setFromObject(root);
+  var gltfScene = gltf.scene;
+
+  // 1. Raw bounds before any rotation
+  var box = new THREE.Box3().setFromObject(gltfScene);
   var center = box.getCenter(new THREE.Vector3());
   var size = box.getSize(new THREE.Vector3());
-  root.position.sub(center);
-  // THEN rotate to face camera (pivot is now at origin)
-  root.rotation.x = -Math.PI / 2;
-  // Camera distance uses the post-rotation footprint: width=size.x, height=size.z
+
+  // 2. Shift gltfScene so geometry center sits at pivot origin
+  gltfScene.position.sub(center);
+
+  // 3. Wrap in a pivot group; rotating the pivot spins around geometry center
+  var pivot = new THREE.Group();
+  pivot.add(gltfScene);
+  pivot.rotation.x = -Math.PI / 2;
+
+  // 4. Camera distance: XZ footprint becomes XY after -90° rotation
   var maxDim = Math.max(size.x, size.z);
   var fovRad = (camera.fov * Math.PI) / 180;
   var dist = (maxDim / 2) / Math.tan(fovRad / 2) / 0.6;
   camera.position.set(0, 0, dist);
   camera.updateProjectionMatrix();
-  root.traverse(function(child) { if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff }); });
-  console.log('size', size, 'dist', dist);
-  scene.add(root);
+
+  // 5. Material override
+  gltfScene.traverse(function(child) {
+    if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff });
+  });
+
+  console.log('v28 size', size, 'dist', dist.toFixed(1));
+  scene.add(pivot);
 });
 
 window.addEventListener('resize', function() {
