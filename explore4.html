@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v26-rotation-back -->
+<!-- build: explore4-v27-center-then-rotate -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -39,19 +39,21 @@ animate();
 const loader = new THREE.GLTFLoader();
 loader.load('/explore4fontmesh6.glb', function(gltf) {
   var root = gltf.scene;
-  root.rotation.x = -Math.PI / 2;
-  root.updateMatrixWorld(true);
+  // Center FIRST (no rotation yet — position math is in local/world-aligned space)
   var box = new THREE.Box3().setFromObject(root);
   var center = box.getCenter(new THREE.Vector3());
-  root.position.sub(center);
   var size = box.getSize(new THREE.Vector3());
-  console.log('bounds', size, center);
-  var maxDim = Math.max(size.x, size.y, size.z);
+  root.position.sub(center);
+  // THEN rotate to face camera (pivot is now at origin)
+  root.rotation.x = -Math.PI / 2;
+  // Camera distance uses the post-rotation footprint: width=size.x, height=size.z
+  var maxDim = Math.max(size.x, size.z);
   var fovRad = (camera.fov * Math.PI) / 180;
   var dist = (maxDim / 2) / Math.tan(fovRad / 2) / 0.6;
   camera.position.set(0, 0, dist);
   camera.updateProjectionMatrix();
   root.traverse(function(child) { if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff }); });
+  console.log('size', size, 'dist', dist);
   scene.add(root);
 });
 
