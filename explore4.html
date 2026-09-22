@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v22-override-material -->
+<!-- build: explore4-v23-fontmesh5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,28 +37,21 @@ function animate() {
 animate();
 
 const loader = new THREE.GLTFLoader();
-loader.load('/explore4fontmesh1.glb', function(gltf) {
+loader.load('/explore4fontmesh5.glb', function(gltf) {
   var root = gltf.scene;
-
-  // Center at origin
+  root.rotation.x = -Math.PI / 2;
+  root.updateMatrixWorld(true);
   var box = new THREE.Box3().setFromObject(root);
   var center = box.getCenter(new THREE.Vector3());
   root.position.sub(center);
-
-  // Position camera so model fills ~60% of viewport height
   var size = box.getSize(new THREE.Vector3());
+  console.log('bounds', size, center);
   var maxDim = Math.max(size.x, size.y, size.z);
   var fovRad = (camera.fov * Math.PI) / 180;
   var dist = (maxDim / 2) / Math.tan(fovRad / 2) / 0.6;
   camera.position.set(0, 0, dist);
   camera.updateProjectionMatrix();
-
-  root.traverse(function(child) {
-    if (child.isMesh) {
-      child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff });
-    }
-  });
-  console.log('GLB loaded', root);
+  root.traverse(function(child) { if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff }); });
   scene.add(root);
 });
 
