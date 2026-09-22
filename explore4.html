@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v30-aspect-aware-dist -->
+<!-- build: explore4-v31-own-materials -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -62,12 +62,7 @@ loader.load('/explore4fontmesh6.glb', function(gltf) {
   camera.up.set(0, 0, -1);
   camera.lookAt(0, 0, 0);
 
-  // DoubleSide so normals facing either direction render
-  root.traverse(function(child) {
-    if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff, side: THREE.DoubleSide });
-  });
-
-  console.log('v30 size', size, 'distX', distX.toFixed(1), 'distZ', distZ.toFixed(1), 'dist', dist.toFixed(1));
+  console.log('v31 size', size, 'distX', distX.toFixed(1), 'distZ', distZ.toFixed(1), 'dist', dist.toFixed(1));
 });
 
 window.addEventListener('resize', function() {
