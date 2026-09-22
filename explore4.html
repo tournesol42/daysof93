@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v10-glb2 -->
+<!-- build: explore4-v11-mirror-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -53,6 +53,7 @@ loader.load('https://daysof93-cdn.b-cdn.net/explore4font2.glb', (gltf) => {
   model.position.sub(center);
 
   modelHeight = box.max.y - box.min.y;
+  model.rotation.y = Math.PI;
 
   // Start just above the top of the frustum
   const halfH = frustumHalfH(model.position.z);
