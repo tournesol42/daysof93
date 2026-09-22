@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v19-lights-loop -->
+<!-- build: explore4-v20-local-glb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,7 +37,7 @@ function animate() {
 animate();
 
 const loader = new THREE.GLTFLoader();
-loader.load('https://daysof93-cdn.b-cdn.net/explore4fontmesh1.glb', function(gltf) {
+loader.load('/explore4fontmesh1.glb', function(gltf) {
   var root = gltf.scene;
 
   // Center at origin
