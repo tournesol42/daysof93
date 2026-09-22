@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v28-pivot-group -->
+<!-- build: explore4-v29-topdown-doubleside -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -38,35 +38,32 @@ animate();
 
 const loader = new THREE.GLTFLoader();
 loader.load('/explore4fontmesh6.glb', function(gltf) {
-  var gltfScene = gltf.scene;
+  var root = gltf.scene;
 
-  // 1. Raw bounds before any rotation
-  var box = new THREE.Box3().setFromObject(gltfScene);
+  // Add first so world matrices are correct for Box3
+  scene.add(root);
+
+  var box = new THREE.Box3().setFromObject(root);
   var center = box.getCenter(new THREE.Vector3());
   var size = box.getSize(new THREE.Vector3());
 
-  // 2. Shift gltfScene so geometry center sits at pivot origin
-  gltfScene.position.sub(center);
+  // Center root (geometry center → world origin)
+  root.position.sub(center);
 
-  // 3. Wrap in a pivot group; rotating the pivot spins around geometry center
-  var pivot = new THREE.Group();
-  pivot.add(gltfScene);
-  pivot.rotation.x = -Math.PI / 2;
-
-  // 4. Camera distance: XZ footprint becomes XY after -90° rotation
+  // Model is flat in XZ (y ≈ 0). Camera looks straight down from Y.
   var maxDim = Math.max(size.x, size.z);
   var fovRad = (camera.fov * Math.PI) / 180;
   var dist = (maxDim / 2) / Math.tan(fovRad / 2) / 0.6;
-  camera.position.set(0, 0, dist);
-  camera.updateProjectionMatrix();
+  camera.position.set(0, dist, 0);
+  camera.up.set(0, 0, -1);
+  camera.lookAt(0, 0, 0);
 
-  // 5. Material override
-  gltfScene.traverse(function(child) {
-    if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff });
+  // DoubleSide so normals facing either direction render
+  root.traverse(function(child) {
+    if (child.isMesh) child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff, side: THREE.DoubleSide });
   });
 
-  console.log('v28 size', size, 'dist', dist.toFixed(1));
-  scene.add(pivot);
+  console.log('v29 size', size, 'dist', dist.toFixed(1));
 });
 
 window.addEventListener('resize', function() {
