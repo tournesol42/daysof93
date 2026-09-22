@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v21-white-bg -->
+<!-- build: explore4-v22-override-material -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,7 +7,7 @@
 <title>explore4 — days of 93</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #fff; overflow: hidden; width: 100vw; height: 100vh; }
+body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
 canvas { display: block; }
 </style>
 </head>
@@ -18,7 +18,7 @@ canvas { display: block; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0xffffff);
+renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -53,6 +53,11 @@ loader.load('/explore4fontmesh1.glb', function(gltf) {
   camera.position.set(0, 0, dist);
   camera.updateProjectionMatrix();
 
+  root.traverse(function(child) {
+    if (child.isMesh) {
+      child.material = new THREE.MeshBasicMaterial({ color: 0xa8bfff });
+    }
+  });
   console.log('GLB loaded', root);
   scene.add(root);
 });
