@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v20-local-glb -->
+<!-- build: explore4-v21-white-bg -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,7 +7,7 @@
 <title>explore4 — days of 93</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+body { background: #fff; overflow: hidden; width: 100vw; height: 100vh; }
 canvas { display: block; }
 </style>
 </head>
@@ -18,7 +18,7 @@ canvas { display: block; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000);
+renderer.setClearColor(0xffffff);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
