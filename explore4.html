@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v34-bg-video-midi -->
+<!-- build: explore4-v35-cover-scaling -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -23,7 +23,7 @@ Object.assign(canvas.style,{position:'fixed',inset:'0',zIndex:'1',width:'100%',h
 document.body.appendChild(canvas);
 
 var filelabel=document.createElement('div');
-Object.assign(filelabel.style,{position:'fixed',bottom:'14px',right:'14px',zIndex:'9999',fontFamily:'monospace',fontSize:'9px',color:'rgba(255,255,255,0.4)',letterSpacing:'.12em',pointerEvents:'none'});
+Object.assign(filelabel.style,{position:'fixed',bottom:'14px',right:'14px',zIndex:'9999',fontFamily:'monospace',fontSize:'9px',color:'#000000',letterSpacing:'.1em',fontSize:'13px',fontWeight:'600',pointerEvents:'none'});
 document.body.appendChild(filelabel);
 
 var COLORS=['#F9A12E','#F6A623','#FA4616','#FE0000','#5B8FA8','#3481B8','#D5D6D2','#8F8F8F','#4E5452','#9EA0A1','#0A0A0A','#F4F4F4','#FEFEFE'];
@@ -41,7 +41,7 @@ var vs=gl.createShader(gl.VERTEX_SHADER);
 gl.shaderSource(vs,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}');
 gl.compileShader(vs);
 var fs=gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fs,'precision highp float;uniform sampler2D u;varying vec2 v;void main(){vec4 c=texture2D(u,vec2(v.x*.5,v.y));float a=texture2D(u,vec2(v.x*.5+.5,v.y)).r;gl_FragColor=vec4(c.rgb,a);}');
+gl.shaderSource(fs,'precision highp float;uniform sampler2D u;uniform vec2 uCan,uVid;varying vec2 v;void main(){vec2 uv=v*.5+.5;float va=(uVid.x*.5)/uVid.y,ca=uCan.x/uCan.y;if(ca>va){float sc=ca/va;uv.y=(uv.y-.5)/sc+.5;}else{float sc=va/ca;uv.x=(uv.x-.5)/sc+.5;}if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}vec4 c=texture2D(u,vec2(uv.x*.5,uv.y));float a=texture2D(u,vec2(uv.x*.5+.5,uv.y)).r;gl_FragColor=vec4(c.rgb,a);}');
 gl.compileShader(fs);
 var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
 var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
@@ -53,6 +53,8 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 gl.uniform1i(gl.getUniformLocation(prog,'u'),0);
+var uCanLoc=gl.getUniformLocation(prog,'uCan'),uVidLoc=gl.getUniformLocation(prog,'uVid');
+gl.uniform2f(uCanLoc,canvas.width,canvas.height);gl.uniform2f(uVidLoc,1080,1920);
 gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
 gl.clearColor(0,0,0,0);
 
@@ -67,6 +69,8 @@ resize();window.addEventListener('resize',resize);
   requestAnimationFrame(render);
   if(!ready||vid.readyState<2)return;
   gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(uCanLoc,canvas.width,canvas.height);
+  if(vid.videoWidth)gl.uniform2f(uVidLoc,vid.videoWidth,vid.videoHeight);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 })();
