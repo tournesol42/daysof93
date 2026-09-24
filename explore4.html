@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v35-cover-scaling -->
+<!-- build: explore4-v36-contain-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -41,7 +41,7 @@ var vs=gl.createShader(gl.VERTEX_SHADER);
 gl.shaderSource(vs,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}');
 gl.compileShader(vs);
 var fs=gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fs,'precision highp float;uniform sampler2D u;uniform vec2 uCan,uVid;varying vec2 v;void main(){vec2 uv=v*.5+.5;float va=(uVid.x*.5)/uVid.y,ca=uCan.x/uCan.y;if(ca>va){float sc=ca/va;uv.y=(uv.y-.5)/sc+.5;}else{float sc=va/ca;uv.x=(uv.x-.5)/sc+.5;}if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}vec4 c=texture2D(u,vec2(uv.x*.5,uv.y));float a=texture2D(u,vec2(uv.x*.5+.5,uv.y)).r;gl_FragColor=vec4(c.rgb,a);}');
+gl.shaderSource(fs,'precision highp float;uniform sampler2D u;uniform vec2 uCan,uVid;varying vec2 v;void main(){float va=(uVid.x*.5)/uVid.y,ca=uCan.x/uCan.y;vec2 uv=v;if(ca>va){uv.x=(uv.x-.5)*(ca/va)+.5;}else{uv.y=(uv.y-.5)*(va/ca)+.5;}if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.);return;}vec4 c=texture2D(u,vec2(uv.x*.5,uv.y));float a=texture2D(u,vec2(uv.x*.5+.5,uv.y)).r;gl_FragColor=vec4(c.rgb,a);}');
 gl.compileShader(fs);
 var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
 var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
