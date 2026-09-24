@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v38-direct-uv -->
+<!-- build: explore4-v39-flip-y -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -41,7 +41,7 @@ var vs=gl.createShader(gl.VERTEX_SHADER);
 gl.shaderSource(vs,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}');
 gl.compileShader(vs);
 var fs=gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fs,'precision highp float;uniform sampler2D u;varying vec2 v;void main(){vec4 c=texture2D(u,vec2(v.x*.5,v.y));float a=texture2D(u,vec2(v.x*.5+.5,v.y)).r;gl_FragColor=vec4(c.rgb,a);}');
+gl.shaderSource(fs,'precision highp float;uniform sampler2D u;varying vec2 v;void main(){float y=1.-v.y;vec4 c=texture2D(u,vec2(v.x*.5,y));float a=texture2D(u,vec2(v.x*.5+.5,y)).r;gl_FragColor=vec4(c.rgb,a);}');
 gl.compileShader(fs);
 var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
 var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
