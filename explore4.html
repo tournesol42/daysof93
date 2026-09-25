@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v40-binary-scatter -->
+<!-- build: explore4-v41-midi-preset-scroll -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -177,6 +177,13 @@ const BAKED_PRESETS=[{"motion":"noise","count":238,"win":0,"smin":11,"smax":56,"
 window.bsRecall=function(i){const s=BAKED_PRESETS[i];if(s)recallWithInterp(s);};
 window.bsFilledSlots=function(){return BAKED_PRESETS.map(function(p,i){return p!=null?i:null;}).filter(function(i){return i!==null;});};
 window.bsSetInterp=function(v){currentInterp=Math.max(0,Math.min(100,v));};
+window.addEventListener('midicc',function(e){
+  if(e.detail.cc!==0)return;
+  const filled=window.bsFilledSlots();
+  if(!filled.length)return;
+  const slot=filled[Math.round(e.detail.raw/127*(filled.length-1))];
+  window.bsRecall(slot);
+});
 function draw(ms){
   requestAnimationFrame(draw);
   if(lastMS===null)lastMS=ms;
