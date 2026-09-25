@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v41-midi-preset-scroll -->
+<!-- build: explore4-v42-knobs -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -301,15 +301,19 @@ requestAnimationFrame(draw);
 (function(){
 'use strict';
 const N=8,NP=4,SK='do93_midi_e4',SPK='do93_presets_e4';
+const NK=8,KB=16;
 let F=Array.from({length:N},(_,i)=>({cc:i,label:['BG COLOR','VIDEO','OPACITY','F4','F5','F6','F7','F8'][i],target:'',value:[64,0,127,64,64,64,64,64][i],min:0,max:1}));
+let K=Array.from({length:NK},(_,i)=>({cc:KB+i,label:'K'+(i+1),target:'',value:64,min:0,max:1}));
 const BAKED_P1=null;
 
 let presets=Array.from({length:NP},(_,i)=>({name:'P'+(i+1),faders:null,rec:null}));
 try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
+try{const s=JSON.parse(localStorage.getItem(SK+'_k'));if(Array.isArray(s))s.slice(0,NK).forEach((k,i)=>Object.assign(K[i],k,{value:+(k.value??64)}));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
 let recState='idle',recStart=0,recEvts=[],playTmrs=[];
 const svF=()=>{if(recState==='playing')return;try{localStorage.setItem(SK,JSON.stringify(F));}catch{}};
+const svK=()=>{try{localStorage.setItem(SK+'_k',JSON.stringify(K));}catch{}};
 const svP=()=>{try{localStorage.setItem(SPK,JSON.stringify(presets));}catch{}};
 const fmt=f=>(f.min+(f.value/127)*(f.max-f.min)).toFixed(3);
 const applyF=f=>{const _fv=+fmt(f);if(f.target?.startsWith('--'))document.documentElement.style.setProperty(f.target,_fv);if(typeof window._onGravFader==='function')window._onGravFader(f.target,_fv);};
@@ -325,6 +329,14 @@ function onFV(i,v){
   window.dispatchEvent(new CustomEvent('midicc',{detail:{cc:i,raw:v,mapped:+fmt(F[i]),label:F[i].label}}));
   if(recState==='recording')recEvts.push({t:Date.now()-recStart,cc:i,v});
 }
+function onKV(i,v){
+  K[i].value=v;applyK(K[i]);svK();updKnob(i);
+  window.dispatchEvent(new CustomEvent('midicc',{detail:{cc:KB+i,raw:v,mapped:+fmtK(K[i]),label:K[i].label}}));
+  if(recState==='recording')recEvts.push({t:Date.now()-recStart,cc:KB+i,v});
+}
+const fmtK=k=>(k.min+(k.value/127)*(k.max-k.min)).toFixed(3);
+const applyK=k=>{const _v=+fmtK(k);if(k.target?.startsWith('--'))document.documentElement.style.setProperty(k.target,_v);};
+K.forEach(applyK);
 function startRec(){
   if(selP===null)return;
   stopAll();recState='recording';recStart=Date.now();recEvts=[];
@@ -374,6 +386,24 @@ function updViz(i){
   if(hdl)hdl.style.bottom='calc('+p+'% - 3px)';
   if(val)val.textContent=fmt(f);
 }
+function updKnob(i){
+  const k=K[i],p=(k.value/127)*100;
+  const fill=box.querySelector('[data-kfill="'+i+'"]');
+  const val=box.querySelector('[data-kval="'+i+'"]');
+  if(fill)fill.style.width=p+'%';
+  if(val)val.textContent=fmtK(k);
+}
+function buildKnobs(){
+  return'<div style="display:flex;gap:7px;margin-bottom:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">'+
+  K.map((k,i)=>{const p=(k.value/127)*100,act=!!k.target;
+    return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0">'+
+    '<div style="position:relative;width:100%;height:6px;background:rgba(255,255,255,.06);border-radius:2px;cursor:ew-resize;user-select:none" data-ktrk="'+i+'">'+
+    '<div data-kfill="'+i+'" style="position:absolute;top:0;left:0;height:100%;width:'+p+'%;background:'+(act?'#ffad00':'rgba(255,255,255,.2)')+';border-radius:2px;pointer-events:none"></div></div>'+
+    '<div data-kval="'+i+'" style="font-size:9px;color:rgba(255,255,255,.45)">'+fmtK(k)+'</div>'+
+    '<div data-klbl="'+i+'" style="font-size:8px;color:'+(act?'#ffad00':'rgba(255,255,255,.3)')+';cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:1px 2px">'+k.label+'</div>'+
+    '<div style="font-size:7px;color:rgba(255,255,255,.18)">CC'+(KB+i)+'</div></div>';
+  }).join('')+'</div>';
+}
 function updPresets(){
   box.querySelectorAll('[data-ps]').forEach(el=>{
     const i=+el.dataset.ps,p=presets[i],sel=selP===i;
@@ -395,6 +425,12 @@ function updTransport(){
 }
 document.addEventListener('mousemove',e=>{
   if(!drag)return;
+  if(drag.knob){
+    const trk=box.querySelector('[data-ktrk="'+drag.idx+'"]');if(!trk)return;
+    const r=trk.getBoundingClientRect();if(!r.width)return;
+    onKV(drag.idx,Math.max(0,Math.min(127,Math.round(drag.sv+(e.clientX-drag.sx)/r.width*127))));
+    return;
+  }
   const trk=box.querySelector('[data-trk="'+drag.idx+'"]');if(!trk)return;
   const r=trk.getBoundingClientRect();if(!r.height)return;
   onFV(drag.idx,Math.max(0,Math.min(127,Math.round(drag.sv+(drag.sy-e.clientY)/r.height*127))));
@@ -426,6 +462,7 @@ function rEdit(){
 function bindAll(){
   box.querySelectorAll('[data-ps]').forEach(el=>el.addEventListener('click',()=>recallPreset(+el.dataset.ps)));
   box.querySelectorAll('[data-trk]').forEach(el=>el.addEventListener('mousedown',e=>{drag={idx:+el.dataset.trk,sy:e.clientY,sv:F[+el.dataset.trk].value};e.preventDefault();}));
+  box.querySelectorAll('[data-ktrk]').forEach(el=>el.addEventListener('mousedown',e=>{drag={idx:+el.dataset.ktrk,sx:e.clientX,sv:K[+el.dataset.ktrk].value,knob:true};e.preventDefault();}));
   box.querySelectorAll('[data-lbl]').forEach(el=>el.addEventListener('click',()=>{eIdx=eIdx===+el.dataset.lbl?null:+el.dataset.lbl;rEdit();F.forEach((_,j)=>{const l=box.querySelector('[data-lbl="'+j+'"]');if(l)l.style.borderBottom=eIdx===j?'1px solid #ffad00':'1px solid transparent';});}));
   box.querySelector('#mc-save-p')?.addEventListener('click',saveToPreset);
   box.querySelector('#mc-rec')?.addEventListener('click',()=>{recState==='idle'?startRec():stopAll();});
@@ -439,7 +476,7 @@ function bindAll(){
   });
 }
 function rPanel(){
-  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)"><span style="font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.2em">NANOKONTROL2 · CH 1</span><span id="mc-hdr" style="font-size:8px;letter-spacing:.15em"></span></div>'+buildPresets()+'<div id="mc-faders" style="display:flex;gap:7px;margin-bottom:10px">'+buildFaders()+'</div><div id="mc-edit"></div>'+buildTransport();
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)"><span style="font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.2em">NANOKONTROL2 · CH 1</span><span id="mc-hdr" style="font-size:8px;letter-spacing:.15em"></span></div>'+buildPresets()+'<div id="mc-faders" style="display:flex;gap:7px;margin-bottom:10px">'+buildFaders()+'</div>'+buildKnobs()+'<div id="mc-edit"></div>'+buildTransport();
   updHeader();bindAll();rEdit();
 }
 function updBtn(){btn.style.background=open?'rgba(255,173,0,.9)':'rgba(20,20,20,.9)';btn.style.color=open?'#000':'#555';btn.textContent=midi?'◆ MIDI':'◇ MIDI';}
@@ -453,6 +490,7 @@ if(navigator.requestMIDIAccess){
       const[s,cc,val]=msg.data;
       if((s&0xF0)!==0xB0)return;
       if(cc<N){onFV(cc,val);if(!midi){midi=true;updBtn();if(open)updHeader();}}
+      if(cc>=KB&&cc<KB+NK){onKV(cc-KB,val);if(!midi){midi=true;updBtn();if(open)updHeader();}}
       // nanoKONTROL2 transport (value 127 = press)
       if(val===127){
         if(cc===45)recState==='idle'?startRec():stopAll(); // ●
