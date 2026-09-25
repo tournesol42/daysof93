@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v43-interp-knob-black-fix -->
+<!-- build: explore4-v44-proximity-lines -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -66,6 +66,8 @@ function readSizeParams(){
   return{sizeMin:S.smin,sizeMax:Math.max(S.smin,S.smax),bExp:biasExp(S.sbias)};
 }
 let rainDrops=[],lastRainSpawnMS=0,points=[];
+let connections=[],lastConnectMS=0;
+let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
   return{x:S.focusCX+Math.cos(angle)*radius*(CH/CW),y:S.focusCY+Math.sin(angle)*radius};
@@ -152,6 +154,12 @@ function applyState(s){
   S.circleRadius=s.circleRadius;S.rectW=s.rectW;S.rectH=s.rectH;
   _currentTextColor=s.textColor;
   document.body.style.background=s.bgColor;
+  linesOn=s.linesOn!==undefined?s.linesOn:true;
+  linesMaxDist=s.linesMaxDist!==undefined?s.linesMaxDist:120;
+  linesMaxPer=s.linesMaxPer!==undefined?s.linesMaxPer:2;
+  linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
+  linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
+  if(!linesOn)connections=[];
   respawnPoints();repackRectangle();
 }
 (function smoothTick(){
@@ -177,6 +185,13 @@ const BAKED_PRESETS=[{"motion":"noise","count":238,"win":0,"smin":11,"smax":56,"
 window.bsRecall=function(i){const s=BAKED_PRESETS[i];if(s)recallWithInterp(s);};
 window.bsFilledSlots=function(){return BAKED_PRESETS.map(function(p,i){return p!=null?i:null;}).filter(function(i){return i!==null;});};
 window.bsSetInterp=function(v){currentInterp=Math.max(0,Math.min(100,v));};
+window.bsLines=function(on){linesOn=on;if(!on)connections=[];};
+window.bsLinesParams=function(dist,perPt,durFrames,opac100){
+  if(dist!==undefined)linesMaxDist=dist;
+  if(perPt!==undefined)linesMaxPer=perPt;
+  if(durFrames!==undefined)linesDurMs=durFrames*16;
+  if(opac100!==undefined)linesOpac=opac100/100;
+};
 window.addEventListener('midicc',function(e){
   const cc=e.detail.cc,raw=e.detail.raw;
   if(cc===16){window.bsSetInterp(Math.round(raw/127*100));return;}
@@ -249,6 +264,59 @@ function draw(ms){
         ctx.globalAlpha=1;
       }
     }
+  if(linesOn&&motionMode==='noise'&&S.focusType!=='rect'){
+    const now=ms;
+    const maxDist=linesMaxDist;
+    const maxPer=linesMaxPer;
+    const durMs=linesDurMs;
+    const maxOpac=linesOpac;
+    const disp=noiseAmt*120;
+    if(now-lastConnectMS>48){
+      lastConnectMS=now;
+      const used=new Map();
+      const candidates=[];
+      for(let a=0;a<points.length;a++){
+        const pa=points[a];
+        const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
+        const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+        for(let b=a+1;b<points.length;b++){
+          const pb=points[b];
+          const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
+          const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
+          const dx=ax-bx,dy=ay-by;
+          const dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<maxDist)candidates.push({a,b,dist});
+        }
+      }
+      candidates.sort((x,y)=>x.dist-y.dist);
+      for(const{a,b}of candidates){
+        const ca=used.get(a)||0;
+        const cb=used.get(b)||0;
+        if(ca>=maxPer||cb>=maxPer)continue;
+        if(connections.find(c=>(c.i===a&&c.j===b)||(c.i===b&&c.j===a)))continue;
+        connections.push({i:a,j:b,born:now,dur:durMs*(0.7+Math.random()*0.6),maxOpacity:maxOpac*(0.4+Math.random()*0.6)});
+        used.set(a,ca+1);
+        used.set(b,cb+1);
+      }
+    }
+    connections=connections.filter(c=>{
+      const age=now-c.born;
+      if(age>c.dur)return false;
+      const t=age/c.dur;
+      const opT=t<0.15?t/0.15:t>0.6?1-(t-0.6)/0.4:1;
+      const op=c.maxOpacity*opT;
+      const pa=points[c.i],pb=points[c.j];
+      if(!pa||!pb)return false;
+      const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
+      const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+      const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
+      const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
+      ctx.save();ctx.globalAlpha=op;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+      ctx.restore();
+      return true;
+    });
+  }
   }else if(motionMode==='grid'){
     const windowSize=Math.max(1,words.length-winStart);
     for(let i=0;i<points.length;i++){
