@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v49-plexus -->
+<!-- build: explore4-v50-plexus-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -17,7 +17,7 @@ body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
 const CW=1080,CH=1920;
 const canvas=document.createElement('canvas');
 canvas.width=CW;canvas.height=CH;
-Object.assign(canvas.style,{position:'fixed',display:'block',pointerEvents:'none'});
+Object.assign(canvas.style,{position:'fixed',display:'block',pointerEvents:'none',zIndex:'2'});
 document.body.appendChild(canvas);
 const ctx=canvas.getContext('2d');
 function fitCanvas(){
@@ -398,21 +398,17 @@ const LINE_WIDTH = 0.6;  // px
 // Colour palette — plexus picks from this, excluding current text + bg colour
 const PALETTE = ['#D5D6D2','#FAC300','#ffffff','#EE7C0E','#FF2B00','#898D8D'];
 
-// ── Canvas — sits behind binary scatter canvas ─────────────────────────────
+// ── Canvas — on top of binary scatter, transparent bg ─────────────────────
 const plxCanvas = document.createElement('canvas');
 plxCanvas.width  = CW;
 plxCanvas.height = CH;
 Object.assign(plxCanvas.style, {
   position: 'fixed', display: 'block',
   imageRendering: 'pixelated',
+  zIndex: '3',
+  pointerEvents: 'none',
 });
-// Insert before the binary scatter canvas so it renders behind it
-const bsCanvas = document.querySelector('canvas');
-if (bsCanvas && bsCanvas.parentNode) {
-  bsCanvas.parentNode.insertBefore(plxCanvas, bsCanvas);
-} else {
-  document.body.appendChild(plxCanvas);
-}
+document.body.appendChild(plxCanvas);
 const ctx = plxCanvas.getContext('2d');
 
 function fitPlexus() {
@@ -455,9 +451,11 @@ function draw() {
   const lineCol = pickColor(cols.text, cols.bg);
   const bg      = hexToRgb(cols.bg);
 
-  // Accumulation: fade trails by filling with low-opacity bg colour
-  ctx.fillStyle = 'rgba(' + bg[0] + ',' + bg[1] + ',' + bg[2] + ',' + FILL_OPAC + ')';
+  // Fade existing trails toward transparent — keeps canvas see-through
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0,0,0,' + FILL_OPAC + ')';
   ctx.fillRect(0, 0, CW, CH);
+  ctx.globalCompositeOperation = 'source-over';
 
   // Get mirrored positions (180° flip around canvas centre)
   const src = window.bsGetPositions();
@@ -488,9 +486,6 @@ function draw() {
   ctx.globalAlpha = 1;
 }
 
-// Initialise canvas to current bg colour before first frame
-ctx.fillStyle = '#000000';
-ctx.fillRect(0, 0, CW, CH);
 requestAnimationFrame(draw);
 
 })();
