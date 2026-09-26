@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v46-mesh-scale-speed -->
+<!-- build: explore4-v47-mesh-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -201,10 +201,6 @@ window.addEventListener('midicc',function(e){
   if(!filled.length)return;
   const slot=filled[Math.round(raw/127*(filled.length-1))];
   window.bsRecall(slot);
-  if(typeof window.meshSetSpeed==='function'){
-    window.meshSetSpeed(0.3+(raw/127)*0.7);
-    setTimeout(()=>{if(typeof window.meshSetSpeed==='function')window.meshSetSpeed(0.08);},1200);
-  }
 });
 function draw(ms){
   requestAnimationFrame(draw);
@@ -514,7 +510,7 @@ function buildMesh() {
 
   const mesh = new THREE.Mesh(geo, mat);
   // Position slightly left and down in portrait canvas
-  mesh.position.set(-0.4, -0.2, 0);
+  mesh.position.set(0, 0, 0);
   mesh.scale.setScalar(0.22);
   return mesh;
 }
@@ -551,9 +547,30 @@ function tick(ms) {
 })();
 
 // ── Hooks for later MIDI/scatter wiring ──────────────────────────────────────
-window.meshSetSpeed  = t => { const s=t*0.018; tx=(Math.random()-.5)*s; ty=(Math.random()-.5)*s; };
-window.meshSetColor  = hex => mesh.material.color.setHex(parseInt(hex.replace('#',''),16));
-window.meshSetScale  = s => mesh.scale.setScalar(s);
+window.meshSetSpeed = function(t) {
+  const s = t * 0.018;
+  vx = (Math.random() - 0.5) * s * 2;
+  vy = (Math.random() - 0.5) * s * 2;
+  vz = (Math.random() - 0.5) * s * 0.6;
+  tx = vx * 0.3; ty = vy * 0.3; tz = vz * 0.3;
+  nextDrift = performance.now() + 1800 + Math.random() * 1200;
+};
+
+window.meshSetColor = function(hex) {
+  mesh.material.color.setHex(parseInt(hex.replace('#',''), 16));
+};
+
+window.addEventListener('midicc', function(e) {
+  if (e.detail.cc !== 0) return;
+  const speed = 0.25 + (e.detail.raw / 127) * 0.75;
+  window.meshSetSpeed(speed);
+  clearTimeout(window._meshSpeedTimer);
+  window._meshSpeedTimer = setTimeout(function() {
+    tx = (Math.random() - 0.5) * 0.005;
+    ty = (Math.random() - 0.5) * 0.005;
+    tz = (Math.random() - 0.5) * 0.002;
+  }, 1400);
+});
 
 })();
 </script>
