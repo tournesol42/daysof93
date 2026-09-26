@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v48-mesh-removed -->
+<!-- build: explore4-v49-plexus -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -352,6 +352,20 @@ function draw(ms){
     ctx.globalAlpha=1;
   }
 }
+// ── Plexus bridge ────────────────────────────────────────────────────────
+window.bsGetPositions = function () {
+  const noiseAmt = S.noiseAmt / 100;
+  const noiseMod = S.noiseMod / 100;
+  return points.map(function (p) {
+    const nm   = 1 + ((p.noiseMod != null ? p.noiseMod : 0.5) - 0.5) * noiseMod * 2;
+    const disp = noiseAmt * 120 * nm;
+    return {
+      x: p.bx * CW + (vnoise(p.ox + anim * 0.6, p.oy + 17.3) * 2 - 1) * disp,
+      y: p.by * CH + (vnoise(p.ox + 31.7, p.oy + anim * 0.6) * 2 - 1) * disp,
+    };
+  });
+};
+window.bsColors = function () { return { text: _currentTextColor, bg: S.bgColor }; };
 ctx.fillStyle=S.bgColor;
 ctx.fillRect(0,0,CW,CH);
 const _fp=BAKED_PRESETS.find(function(p){return p!=null;});
@@ -364,6 +378,121 @@ fetch('/binary_digital_1000.csv').then(function(r){return r.text();}).then(funct
   if(lines.length){words=lines;respawnPoints();}
 }).catch(function(){});
 requestAnimationFrame(draw);
+})();
+</script>
+<script>
+(function () {
+'use strict';
+
+// ── Plexus accumulation layer ──────────────────────────────────────────────
+// Mirrors binary scatter point positions (180° flip around canvas centre).
+// Accumulation canvas: fill with low-opacity bg each frame instead of clear.
+// Proximity lines drawn raw every frame — accumulation creates the trails.
+
+const CW = 1080, CH = 1920;
+const MAX_DIST  = 180;   // px — max distance for a line
+const LINE_OPAC = 0.05;  // line stroke opacity per frame
+const FILL_OPAC = 0.03;  // bg fill opacity per frame (trail decay speed)
+const LINE_WIDTH = 0.6;  // px
+
+// Colour palette — plexus picks from this, excluding current text + bg colour
+const PALETTE = ['#D5D6D2','#FAC300','#ffffff','#EE7C0E','#FF2B00','#898D8D'];
+
+// ── Canvas — sits behind binary scatter canvas ─────────────────────────────
+const plxCanvas = document.createElement('canvas');
+plxCanvas.width  = CW;
+plxCanvas.height = CH;
+Object.assign(plxCanvas.style, {
+  position: 'fixed', display: 'block',
+  imageRendering: 'pixelated',
+});
+// Insert before the binary scatter canvas so it renders behind it
+const bsCanvas = document.querySelector('canvas');
+if (bsCanvas && bsCanvas.parentNode) {
+  bsCanvas.parentNode.insertBefore(plxCanvas, bsCanvas);
+} else {
+  document.body.appendChild(plxCanvas);
+}
+const ctx = plxCanvas.getContext('2d');
+
+function fitPlexus() {
+  const scale = Math.min(window.innerWidth / CW, window.innerHeight / CH);
+  const w = Math.round(CW * scale), h = Math.round(CH * scale);
+  plxCanvas.style.width  = w + 'px';
+  plxCanvas.style.height = h + 'px';
+  plxCanvas.style.left   = Math.round((window.innerWidth  - w) / 2) + 'px';
+  plxCanvas.style.top    = Math.round((window.innerHeight - h) / 2) + 'px';
+}
+window.addEventListener('resize', fitPlexus);
+fitPlexus();
+
+// ── Colour selection ───────────────────────────────────────────────────────
+let plxColor = '#D5D6D2';
+let lastTextCol = '', lastBgCol = '';
+
+function pickColor(textHex, bgHex) {
+  const t = textHex.toLowerCase(), b = bgHex.toLowerCase();
+  if (t === lastTextCol && b === lastBgCol) return plxColor;
+  lastTextCol = t; lastBgCol = b;
+  const candidates = PALETTE.filter(function (c) {
+    return c.toLowerCase() !== t && c.toLowerCase() !== b;
+  });
+  plxColor = candidates.length ? candidates[0] : '#D5D6D2';
+  return plxColor;
+}
+
+// ── Draw loop ──────────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace('#',''), 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (typeof window.bsGetPositions !== 'function') return;
+
+  const cols    = window.bsColors ? window.bsColors() : { text:'#EE7C0E', bg:'#000000' };
+  const lineCol = pickColor(cols.text, cols.bg);
+  const bg      = hexToRgb(cols.bg);
+
+  // Accumulation: fade trails by filling with low-opacity bg colour
+  ctx.fillStyle = 'rgba(' + bg[0] + ',' + bg[1] + ',' + bg[2] + ',' + FILL_OPAC + ')';
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Get mirrored positions (180° flip around canvas centre)
+  const src = window.bsGetPositions();
+  const pts = src.map(function (p) {
+    return { x: CW - p.x, y: CH - p.y };
+  });
+
+  if (pts.length < 2) return;
+
+  // Draw proximity lines — raw each frame, accumulation creates the smear
+  ctx.strokeStyle = lineCol;
+  ctx.lineWidth   = LINE_WIDTH;
+  ctx.globalAlpha = LINE_OPAC;
+  ctx.beginPath();
+
+  for (var a = 0; a < pts.length; a++) {
+    for (var b = a + 1; b < pts.length; b++) {
+      const dx = pts[a].x - pts[b].x;
+      const dy = pts[a].y - pts[b].y;
+      if (dx*dx + dy*dy < MAX_DIST * MAX_DIST) {
+        ctx.moveTo(pts[a].x, pts[a].y);
+        ctx.lineTo(pts[b].x, pts[b].y);
+      }
+    }
+  }
+
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+// Initialise canvas to current bg colour before first frame
+ctx.fillStyle = '#000000';
+ctx.fillRect(0, 0, CW, CH);
+requestAnimationFrame(draw);
+
 })();
 </script>
 <!-- MIDI CONSOLE -->
