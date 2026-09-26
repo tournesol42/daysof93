@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v53-fullpage -->
+<!-- build: explore4-v54-plexus-removed-contain -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -21,7 +21,7 @@ Object.assign(canvas.style,{position:'fixed',display:'block',pointerEvents:'none
 document.body.appendChild(canvas);
 const ctx=canvas.getContext('2d');
 function fitCanvas(){
-  const scale=Math.max(window.innerHeight/CH,window.innerWidth/CW);
+  const scale=Math.min(window.innerHeight/CH,window.innerWidth/CW);
   const w=CW*scale,h=CH*scale;
   Object.assign(canvas.style,{width:w+'px',height:h+'px',left:((window.innerWidth-w)/2)+'px',top:((window.innerHeight-h)/2)+'px'});
 }
@@ -352,22 +352,6 @@ function draw(ms){
     ctx.globalAlpha=1;
   }
 }
-// ── Plexus bridge ────────────────────────────────────────────────────────
-window.bsGetPositions = function () {
-  const noiseAmt = S.noiseAmt / 100;
-  const noiseMod = S.noiseMod / 100;
-  return points.filter(function(p) {
-    return p.bx !== undefined && p.by !== undefined;
-  }).map(function (p) {
-    const nm   = 1 + ((p.noiseMod != null ? p.noiseMod : 0.5) - 0.5) * noiseMod * 2;
-    const disp = noiseAmt * 120 * nm;
-    return {
-      x: p.bx * CW + (vnoise(p.ox + anim * 0.6, p.oy + 17.3) * 2 - 1) * disp,
-      y: p.by * CH + (vnoise(p.ox + 31.7, p.oy + anim * 0.6) * 2 - 1) * disp,
-    };
-  });
-};
-window.bsColors = function () { return { text: _currentTextColor, bg: S.bgColor }; };
 ctx.fillStyle=S.bgColor;
 ctx.fillRect(0,0,CW,CH);
 const _fp=BAKED_PRESETS.find(function(p){return p!=null;});
@@ -380,128 +364,6 @@ fetch('/binary_digital_1000.csv').then(function(r){return r.text();}).then(funct
   if(lines.length){words=lines;respawnPoints();}
 }).catch(function(){});
 requestAnimationFrame(draw);
-})();
-</script>
-<script>
-(function () {
-'use strict';
-
-// ── Plexus accumulation layer ──────────────────────────────────────────────
-// Mirrors binary scatter point positions (180° flip around canvas centre).
-// Accumulation canvas: fill with low-opacity bg each frame instead of clear.
-// Proximity lines drawn raw every frame — accumulation creates the trails.
-
-const CW = 1080, CH = 1920;
-const MAX_DIST  = 180;   // px — max distance for a line
-const LINE_OPAC = 0.05;  // line stroke opacity per frame
-const FILL_OPAC = 0.03;  // bg fill opacity per frame (trail decay speed)
-const LINE_WIDTH = 0.6;  // px
-
-// Colour palette — two priority lists by bg luminance
-const DARK_BG_PRIORITY  = ['#EE7C0E','#FAC300','#D5D6D2','#898D8D'];
-const LIGHT_BG_PRIORITY = ['#2B2B2C','#898D8D','#EE7C0E','#FAC300'];
-
-function hexToRgb(hex) {
-  const n = parseInt(hex.replace('#',''), 16);
-  return [(n>>16)&255, (n>>8)&255, n&255];
-}
-function hexLum(hex) {
-  const c = hexToRgb(hex);
-  return (c[0]*0.299 + c[1]*0.587 + c[2]*0.114) / 255;
-}
-function colorDist(a, b) {
-  const ar = hexToRgb(a), br = hexToRgb(b);
-  return Math.abs(ar[0]-br[0]) + Math.abs(ar[1]-br[1]) + Math.abs(ar[2]-br[2]);
-}
-
-let plxColor = '#EE7C0E';
-let lastTextCol = '', lastBgCol = '';
-
-function pickColor(textHex, bgHex) {
-  const t = (textHex||'').toLowerCase().trim();
-  const b = (bgHex||'').toLowerCase().trim();
-  if (t === lastTextCol && b === lastBgCol) return plxColor;
-  lastTextCol = t; lastBgCol = b;
-  const priority = hexLum(bgHex) < 0.25 ? DARK_BG_PRIORITY : LIGHT_BG_PRIORITY;
-  for (let i = 0; i < priority.length; i++) {
-    const c = priority[i];
-    if (colorDist(c, textHex) > 40 && colorDist(c, bgHex) > 40) {
-      plxColor = c; return plxColor;
-    }
-  }
-  return plxColor;
-}
-
-// ── Canvas — on top of binary scatter, transparent bg ─────────────────────
-const plxCanvas = document.createElement('canvas');
-plxCanvas.width  = CW;
-plxCanvas.height = CH;
-Object.assign(plxCanvas.style, {
-  position: 'fixed', display: 'block',
-  imageRendering: 'pixelated',
-  zIndex: '3',
-  pointerEvents: 'none',
-});
-document.body.appendChild(plxCanvas);
-const ctx = plxCanvas.getContext('2d');
-
-function fitPlexus() {
-  const scale = Math.max(window.innerWidth / CW, window.innerHeight / CH);
-  const w = Math.round(CW * scale), h = Math.round(CH * scale);
-  plxCanvas.style.width  = w + 'px';
-  plxCanvas.style.height = h + 'px';
-  plxCanvas.style.left   = Math.round((window.innerWidth  - w) / 2) + 'px';
-  plxCanvas.style.top    = Math.round((window.innerHeight - h) / 2) + 'px';
-}
-window.addEventListener('resize', fitPlexus);
-fitPlexus();
-
-// ── Draw loop ──────────────────────────────────────────────────────────────
-function draw() {
-  requestAnimationFrame(draw);
-  if (typeof window.bsGetPositions !== 'function') return;
-
-  const cols    = window.bsColors ? window.bsColors() : { text:'#EE7C0E', bg:'#000000' };
-  const lineCol = pickColor(cols.text, cols.bg);
-  const bg      = hexToRgb(cols.bg);
-
-  // Fade existing trails toward transparent — keeps canvas see-through
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = 'rgba(0,0,0,' + FILL_OPAC + ')';
-  ctx.fillRect(0, 0, CW, CH);
-  ctx.globalCompositeOperation = 'source-over';
-
-  // Get mirrored positions (Y-axis flip — vertical opposite)
-  const src = window.bsGetPositions();
-  const pts = src.map(function (p) {
-    return { x: p.x, y: CH - p.y };
-  });
-
-  if (pts.length < 2) return;
-
-  // Draw proximity lines — raw each frame, accumulation creates the smear
-  ctx.strokeStyle = lineCol;
-  ctx.lineWidth   = LINE_WIDTH;
-  ctx.globalAlpha = LINE_OPAC;
-  ctx.beginPath();
-
-  for (var a = 0; a < pts.length; a++) {
-    for (var b = a + 1; b < pts.length; b++) {
-      const dx = pts[a].x - pts[b].x;
-      const dy = pts[a].y - pts[b].y;
-      if (dx*dx + dy*dy < MAX_DIST * MAX_DIST) {
-        ctx.moveTo(pts[a].x, pts[a].y);
-        ctx.lineTo(pts[b].x, pts[b].y);
-      }
-    }
-  }
-
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-
-requestAnimationFrame(draw);
-
 })();
 </script>
 <!-- MIDI CONSOLE -->
