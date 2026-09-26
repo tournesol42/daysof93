@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v51-plexus-color-mirror-fix -->
+<!-- build: explore4-v53-fullpage -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -21,7 +21,7 @@ Object.assign(canvas.style,{position:'fixed',display:'block',pointerEvents:'none
 document.body.appendChild(canvas);
 const ctx=canvas.getContext('2d');
 function fitCanvas(){
-  const scale=Math.min(window.innerHeight/CH,window.innerWidth/CW);
+  const scale=Math.max(window.innerHeight/CH,window.innerWidth/CW);
   const w=CW*scale,h=CH*scale;
   Object.assign(canvas.style,{width:w+'px',height:h+'px',left:((window.innerWidth-w)/2)+'px',top:((window.innerHeight-h)/2)+'px'});
 }
@@ -446,7 +446,7 @@ document.body.appendChild(plxCanvas);
 const ctx = plxCanvas.getContext('2d');
 
 function fitPlexus() {
-  const scale = Math.min(window.innerWidth / CW, window.innerHeight / CH);
+  const scale = Math.max(window.innerWidth / CW, window.innerHeight / CH);
   const w = Math.round(CW * scale), h = Math.round(CH * scale);
   plxCanvas.style.width  = w + 'px';
   plxCanvas.style.height = h + 'px';
