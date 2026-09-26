@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v45-mesh -->
+<!-- build: explore4-v46-mesh-scale-speed -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -201,6 +201,10 @@ window.addEventListener('midicc',function(e){
   if(!filled.length)return;
   const slot=filled[Math.round(raw/127*(filled.length-1))];
   window.bsRecall(slot);
+  if(typeof window.meshSetSpeed==='function'){
+    window.meshSetSpeed(0.3+(raw/127)*0.7);
+    setTimeout(()=>{if(typeof window.meshSetSpeed==='function')window.meshSetSpeed(0.08);},1200);
+  }
 });
 function draw(ms){
   requestAnimationFrame(draw);
@@ -511,7 +515,7 @@ function buildMesh() {
   const mesh = new THREE.Mesh(geo, mat);
   // Position slightly left and down in portrait canvas
   mesh.position.set(-0.4, -0.2, 0);
-  mesh.scale.setScalar(0.72);
+  mesh.scale.setScalar(0.22);
   return mesh;
 }
 
