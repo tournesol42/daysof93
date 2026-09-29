@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v59-gfx-order-fix -->
+<!-- build: explore4-v60-gfx-order-thickness-rings -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -220,6 +220,97 @@ function draw(ms){
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
   ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
+  // ── Graphics overlay ────────────────────────────────────────────────────
+  const _level = typeof window.bsGetLevel === 'function'
+    ? window.bsGetLevel()
+    : 0.3;
+  if (gfxMode !== 'none') {
+    const ctr   = window.bsCentroid();
+    const col   = textCol;
+    const level = _level;
+
+    if (gfxMode === 'bars') {
+      const bands = typeof window.bsGetBands === 'function'
+        ? window.bsGetBands(12)
+        : Array.from({length:12}, function(_,i){ return 0.2 + Math.sin(i)*0.15; });
+      const barCount = bands.length;
+      const gap      = 28;
+      const maxLen   = CW * 0.38;
+      const startY   = ctr.y - (barCount * gap) / 2;
+      for (let i = 0; i < barCount; i++) {
+        const band  = bands[i];
+        const len   = Math.max(8, band * maxLen);
+        // Thickness: thin at low amp, thick rect at high amp
+        const thick = 1 + Math.pow(band, 0.6) * 38;
+        const y     = startY + i * gap;
+        ctx.save();
+        ctx.globalAlpha = 0.45 + band * 0.55;
+        ctx.fillStyle   = col;
+        ctx.fillRect(ctr.x, y - thick / 2, len, thick);
+        ctx.restore();
+      }
+      const dx      = CW / 2 - ctr.x;
+      const dy      = CH / 2 - ctr.y;
+      const baseAng = Math.atan2(dy, dx);
+      const sweep   = (Math.PI * 0.3) + level * (Math.PI * 0.55);
+      const arcRings = 6;
+      const maxR    = 180 + level * 320;
+      for (let r = 1; r <= arcRings; r++) {
+        const radius = (r / arcRings) * maxR;
+        ctx.save();
+        ctx.globalAlpha = (1 - r / arcRings) * 0.5 + level * 0.3;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 0.75;
+        ctx.beginPath();
+        ctx.arc(ctr.x, ctr.y, radius, baseAng - sweep / 2, baseAng + sweep / 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      const spokeCount = 8 + Math.round(level * 8);
+      for (let s = 0; s <= spokeCount; s++) {
+        const ang = (baseAng - sweep / 2) + (s / spokeCount) * sweep;
+        ctx.save();
+        ctx.globalAlpha = 0.18 + level * 0.22;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ctr.x, ctr.y);
+        ctx.lineTo(ctr.x + Math.cos(ang) * maxR, ctr.y + Math.sin(ang) * maxR);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    if (gfxMode === 'rings') {
+      if (window._bsRings) {
+        const now = performance.now();
+        window._bsRings = window._bsRings.filter(function (ring) {
+          const age  = now - ring.born;
+          if (age > ring.totalDur) return false;
+          const ctrR = window.bsCentroid();
+          for (let r = ring.count - 1; r >= 0; r--) {
+            const ringDur   = ring.totalDur * (0.4 + (r / ring.count) * 0.6);
+            const ringDelay = ((ring.count - 1 - r) / ring.count) * ring.totalDur * 0.3;
+            const ringAge   = age - ringDelay;
+            if (ringAge < 0) continue;
+            const t   = Math.min(1, ringAge / ringDur);
+            const op  = (1 - t) * ring.opacity;
+            if (op <= 0.01) continue;
+            const rad = ring.minR + (r / ring.count) * (ring.maxR - ring.minR);
+            ctx.save();
+            ctx.globalAlpha = op;
+            ctx.strokeStyle = col;
+            ctx.lineWidth   = 1.2 + (1 - r / ring.count) * 1.8;
+            ctx.beginPath();
+            ctx.arc(ctrR.x, ctrR.y, rad, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+          return true;
+        });
+      }
+    }
+  }
   ctx.fillStyle=textCol;ctx.textBaseline='middle';ctx.textAlign='left';
   if(motionMode==='noise'){
     anim+=dt*noiseSpd*1.8;
@@ -354,100 +445,6 @@ function draw(ms){
     ctx.globalAlpha=1;
   }
 
-  // ── Graphics overlay ────────────────────────────────────────────────────
-  const _level = typeof window.bsGetLevel === 'function'
-    ? window.bsGetLevel()
-    : 0.3;
-  if (gfxMode !== 'none') {
-    const ctr   = window.bsCentroid();
-    const col   = textCol;
-    const level = _level;
-
-    if (gfxMode === 'bars') {
-      const bands = typeof window.bsGetBands === 'function'
-        ? window.bsGetBands(12)
-        : Array.from({length:12}, function(_,i){ return 0.2 + Math.sin(i)*0.15; });
-      const barCount = bands.length;
-      const gap      = 28;
-      const maxLen   = CW * 0.38;
-      const startY   = ctr.y - (barCount * gap) / 2;
-      for (let i = 0; i < barCount; i++) {
-        const band  = bands[i];
-        const len   = band * maxLen;
-        const thick = 1 + band * 5;
-        const y     = startY + i * gap;
-        ctx.save();
-        ctx.globalAlpha = 0.55 + band * 0.45;
-        ctx.strokeStyle = col;
-        ctx.lineWidth   = thick;
-        ctx.beginPath();
-        ctx.moveTo(ctr.x, y);
-        ctx.lineTo(ctr.x + len, y);
-        ctx.stroke();
-        ctx.restore();
-      }
-      const dx      = CW / 2 - ctr.x;
-      const dy      = CH / 2 - ctr.y;
-      const baseAng = Math.atan2(dy, dx);
-      const sweep   = (Math.PI * 0.3) + level * (Math.PI * 0.55);
-      const arcRings = 6;
-      const maxR    = 180 + level * 320;
-      for (let r = 1; r <= arcRings; r++) {
-        const radius = (r / arcRings) * maxR;
-        ctx.save();
-        ctx.globalAlpha = (1 - r / arcRings) * 0.5 + level * 0.3;
-        ctx.strokeStyle = col;
-        ctx.lineWidth   = 0.75;
-        ctx.beginPath();
-        ctx.arc(ctr.x, ctr.y, radius, baseAng - sweep / 2, baseAng + sweep / 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-      const spokeCount = 8 + Math.round(level * 8);
-      for (let s = 0; s <= spokeCount; s++) {
-        const ang = (baseAng - sweep / 2) + (s / spokeCount) * sweep;
-        ctx.save();
-        ctx.globalAlpha = 0.18 + level * 0.22;
-        ctx.strokeStyle = col;
-        ctx.lineWidth   = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(ctr.x, ctr.y);
-        ctx.lineTo(ctr.x + Math.cos(ang) * maxR, ctr.y + Math.sin(ang) * maxR);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    if (gfxMode === 'rings') {
-      if (window._bsRings) {
-        const now = performance.now();
-        window._bsRings = window._bsRings.filter(function (ring) {
-          const age  = now - ring.born;
-          if (age > ring.totalDur) return false;
-          const ctrR = window.bsCentroid();
-          for (let r = ring.count - 1; r >= 0; r--) {
-            const ringDur   = ring.totalDur * (0.4 + (r / ring.count) * 0.6);
-            const ringDelay = ((ring.count - 1 - r) / ring.count) * ring.totalDur * 0.3;
-            const ringAge   = age - ringDelay;
-            if (ringAge < 0) continue;
-            const t   = Math.min(1, ringAge / ringDur);
-            const op  = (1 - t) * ring.opacity;
-            if (op <= 0.01) continue;
-            const rad = ring.minR + (r / ring.count) * (ring.maxR - ring.minR);
-            ctx.save();
-            ctx.globalAlpha = op;
-            ctx.strokeStyle = col;
-            ctx.lineWidth   = 0.75;
-            ctx.beginPath();
-            ctx.arc(ctrR.x, ctrR.y, rad, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.restore();
-          }
-          return true;
-        });
-      }
-    }
-  }
 }
 // ── Graphics bridge ─────────────────────────────────────────────────────────
 window.bsCentroid = function () {
@@ -472,9 +469,9 @@ window._bsRings = [];
 window.bsSpawnRing = function () {
   if (gfxMode !== 'rings') return;
   const count    = 4 + Math.floor(Math.random() * 9);
-  const maxR     = 120 + Math.random() * 280;
-  const minR     = maxR * (0.1 + Math.random() * 0.2);
-  const totalDur = 1800 + Math.random() * 2400;
+  const maxR     = 300 + Math.random() * 600;
+  const minR     = maxR * (0.05 + Math.random() * 0.12);
+  const totalDur = 2500 + Math.random() * 3500;
   window._bsRings.push({
     born: performance.now(),
     count, maxR, minR, totalDur,
