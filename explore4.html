@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v55-music-midi-triggers -->
+<!-- build: explore4-v56-gfx-bars-rings -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,6 +143,7 @@ const DEFAULTS=[
   'signal','noise','discrete','continuous'
 ];
 let words=DEFAULTS.slice(),fontName='Courier New',anim=0,lastMS=null;
+let gfxMode='none';
 function applyState(s){
   S.motion=s.motion;S.count=s.count;S.win=s.win;
   S.smin=s.smin;S.smax=s.smax;S.sbias=s.sbias;
@@ -160,6 +161,7 @@ function applyState(s){
   linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
+  gfxMode=s.gfxMode||'none';
   respawnPoints();repackRectangle();
 }
 (function smoothTick(){
@@ -352,7 +354,130 @@ function draw(ms){
     }
     ctx.globalAlpha=1;
   }
+
+  // ── Graphics overlay ────────────────────────────────────────────────────
+  if (typeof window.bsGetLevel === 'function' && gfxMode !== 'none') {
+    const ctr   = window.bsCentroid();
+    const col   = textCol;
+    const level = window.bsGetLevel();
+
+    if (gfxMode === 'bars') {
+      const bands    = window.bsGetBands(12);
+      const barCount = bands.length;
+      const gap      = 28;
+      const maxLen   = CW * 0.38;
+      const startY   = ctr.y - (barCount * gap) / 2;
+      for (let i = 0; i < barCount; i++) {
+        const band  = bands[i];
+        const len   = band * maxLen;
+        const thick = 1 + band * 5;
+        const y     = startY + i * gap;
+        ctx.save();
+        ctx.globalAlpha = 0.55 + band * 0.45;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = thick;
+        ctx.beginPath();
+        ctx.moveTo(ctr.x, y);
+        ctx.lineTo(ctr.x + len, y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      const dx      = CW / 2 - ctr.x;
+      const dy      = CH / 2 - ctr.y;
+      const baseAng = Math.atan2(dy, dx);
+      const sweep   = (Math.PI * 0.3) + level * (Math.PI * 0.55);
+      const arcRings = 6;
+      const maxR    = 180 + level * 320;
+      for (let r = 1; r <= arcRings; r++) {
+        const radius = (r / arcRings) * maxR;
+        ctx.save();
+        ctx.globalAlpha = (1 - r / arcRings) * 0.5 + level * 0.3;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 0.75;
+        ctx.beginPath();
+        ctx.arc(ctr.x, ctr.y, radius, baseAng - sweep / 2, baseAng + sweep / 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      const spokeCount = 8 + Math.round(level * 8);
+      for (let s = 0; s <= spokeCount; s++) {
+        const ang = (baseAng - sweep / 2) + (s / spokeCount) * sweep;
+        ctx.save();
+        ctx.globalAlpha = 0.18 + level * 0.22;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ctr.x, ctr.y);
+        ctx.lineTo(ctr.x + Math.cos(ang) * maxR, ctr.y + Math.sin(ang) * maxR);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    if (gfxMode === 'rings') {
+      if (window._bsRings) {
+        const now = performance.now();
+        window._bsRings = window._bsRings.filter(function (ring) {
+          const age  = now - ring.born;
+          if (age > ring.totalDur) return false;
+          const ctrR = window.bsCentroid();
+          for (let r = ring.count - 1; r >= 0; r--) {
+            const ringDur   = ring.totalDur * (0.4 + (r / ring.count) * 0.6);
+            const ringDelay = ((ring.count - 1 - r) / ring.count) * ring.totalDur * 0.3;
+            const ringAge   = age - ringDelay;
+            if (ringAge < 0) continue;
+            const t   = Math.min(1, ringAge / ringDur);
+            const op  = (1 - t) * ring.opacity;
+            if (op <= 0.01) continue;
+            const rad = ring.minR + (r / ring.count) * (ring.maxR - ring.minR);
+            ctx.save();
+            ctx.globalAlpha = op;
+            ctx.strokeStyle = col;
+            ctx.lineWidth   = 0.75;
+            ctx.beginPath();
+            ctx.arc(ctrR.x, ctrR.y, rad, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+          return true;
+        });
+      }
+    }
+  }
 }
+// ── Graphics bridge ─────────────────────────────────────────────────────────
+window.bsCentroid = function () {
+  if (!points.length) return { x: CW * 0.5, y: CH * 0.5 };
+  const noiseAmt = S.noiseAmt / 100;
+  const noiseMod = S.noiseMod / 100;
+  let sx = 0, sy = 0, n = 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.bx === undefined || p.by === undefined) continue;
+    const disp = noiseAmt * 120;
+    const nm   = 1 + ((p.noiseMod != null ? p.noiseMod : 0.5) - 0.5) * noiseMod * 2;
+    sx += p.bx * CW + (vnoise(p.ox + anim * 0.6, p.oy + 17.3) * 2 - 1) * disp * nm;
+    sy += p.by * CH + (vnoise(p.ox + 31.7, p.oy + anim * 0.6) * 2 - 1) * disp * nm;
+    n++;
+  }
+  return n ? { x: sx / n, y: sy / n } : { x: CW * 0.5, y: CH * 0.5 };
+};
+window.bsTextColor = function () { return _currentTextColor; };
+window.bsBgColor   = function () { return S.bgColor; };
+window._bsRings = [];
+window.bsSpawnRing = function () {
+  if (gfxMode !== 'rings') return;
+  const count    = 4 + Math.floor(Math.random() * 9);
+  const maxR     = 120 + Math.random() * 280;
+  const minR     = maxR * (0.1 + Math.random() * 0.2);
+  const totalDur = 1800 + Math.random() * 2400;
+  window._bsRings.push({
+    born: performance.now(),
+    count, maxR, minR, totalDur,
+    opacity: 0.35 + Math.random() * 0.5,
+  });
+  if (window._bsRings.length > 6) window._bsRings.shift();
+};
 ctx.fillStyle=S.bgColor;
 ctx.fillRect(0,0,CW,CH);
 const _fp=BAKED_PRESETS.find(function(p){return p!=null;});
@@ -466,6 +591,10 @@ function firePreset() {
   if (window.bsRecall)    window.bsRecall(slot);
 }
 
+function fireRing() {
+  if (typeof window.bsSpawnRing === 'function') window.bsSpawnRing();
+}
+
 function scheduler() {
   if (!audioCtx || !noteTimes.length) return;
   const now    = audioCtx.currentTime;
@@ -481,7 +610,7 @@ function scheduler() {
   while (pending.length && pending[0] < now + ahead) {
     const fireAt = pending.shift();
     const delay  = Math.max(0, (fireAt - now) * 1000);
-    setTimeout(firePreset, delay);
+    setTimeout(function() { firePreset(); fireRing(); }, delay);
   }
 }
 
@@ -499,11 +628,35 @@ function boot() {
       // Parse MIDI
       noteTimes = parseMidi(results[1]);
 
-      // Start MP3 loop
+      // Set up analyser
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      window.bsAnalyser = analyser;
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      window.bsGetLevel = function () {
+        analyser.getByteFrequencyData(freqData);
+        let sum = 0;
+        for (let i = 0; i < freqData.length; i++) sum += freqData[i];
+        return sum / (freqData.length * 255);
+      };
+      window.bsGetBands = function (n) {
+        analyser.getByteFrequencyData(freqData);
+        const bands = new Array(n);
+        const step  = Math.floor(freqData.length / n);
+        for (let i = 0; i < n; i++) {
+          let s = 0;
+          for (let j = 0; j < step; j++) s += freqData[i * step + j];
+          bands[i] = s / (step * 255);
+        }
+        return bands;
+      };
+      // Start MP3 loop through analyser
       const src  = audioCtx.createBufferSource();
       src.buffer = mp3Buf;
       src.loop   = true;
-      src.connect(audioCtx.destination);
+      src.connect(analyser);
+      analyser.connect(audioCtx.destination);
       src.start(0);
 
       // Anchor MIDI scheduler to audio clock
