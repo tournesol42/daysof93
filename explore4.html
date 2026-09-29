@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v56-gfx-bars-rings -->
+<!-- build: explore4-v57-gfx-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,7 +143,7 @@ const DEFAULTS=[
   'signal','noise','discrete','continuous'
 ];
 let words=DEFAULTS.slice(),fontName='Courier New',anim=0,lastMS=null;
-let gfxMode='none';
+let gfxMode='bars';
 function applyState(s){
   S.motion=s.motion;S.count=s.count;S.win=s.win;
   S.smin=s.smin;S.smax=s.smax;S.sbias=s.sbias;
@@ -356,13 +356,18 @@ function draw(ms){
   }
 
   // ── Graphics overlay ────────────────────────────────────────────────────
-  if (typeof window.bsGetLevel === 'function' && gfxMode !== 'none') {
+  const _level = typeof window.bsGetLevel === 'function'
+    ? window.bsGetLevel()
+    : 0.3;
+  if (gfxMode !== 'none') {
     const ctr   = window.bsCentroid();
     const col   = textCol;
-    const level = window.bsGetLevel();
+    const level = _level;
 
     if (gfxMode === 'bars') {
-      const bands    = window.bsGetBands(12);
+      const bands = typeof window.bsGetBands === 'function'
+        ? window.bsGetBands(12)
+        : Array.from({length:12}, function(_,i){ return 0.2 + Math.sin(i)*0.15; });
       const barCount = bands.length;
       const gap      = 28;
       const maxLen   = CW * 0.38;
