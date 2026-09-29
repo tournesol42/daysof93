@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v58-gfx-diag-interp -->
+<!-- build: explore4-v59-gfx-order-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -161,7 +161,6 @@ function applyState(s){
   linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
-  gfxMode=s.gfxMode||'none';
   respawnPoints();repackRectangle();
 }
 (function smoothTick(){
@@ -360,12 +359,6 @@ function draw(ms){
     ? window.bsGetLevel()
     : 0.3;
   if (gfxMode !== 'none') {
-    // DIAGNOSTIC — remove after confirming draw works
-    ctx.save();
-    ctx.fillStyle = '#ff0000';
-    ctx.globalAlpha = 1;
-    ctx.fillRect(40, 40, 120, 40);
-    ctx.restore();
     const ctr   = window.bsCentroid();
     const col   = textCol;
     const level = _level;
@@ -597,10 +590,7 @@ function firePreset() {
   const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
   if (!filled.length) return;
   const slot   = filled[Math.floor(Math.random() * filled.length)];
-  // 70% chance of high interp (70–100), 30% chance of low (0–15)
-  const interp = Math.random() < 0.7
-    ? Math.round(70 + Math.random() * 30)
-    : Math.round(Math.random() * 15);
+  const interp = Math.round(Math.random() * 100);
   if (window.bsSetInterp) window.bsSetInterp(interp);
   if (window.bsRecall)    window.bsRecall(slot);
 }
