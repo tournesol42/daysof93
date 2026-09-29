@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v60-gfx-order-thickness-rings -->
+<!-- build: explore4-v61-bars-rewrite -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -144,6 +144,29 @@ const DEFAULTS=[
 ];
 let words=DEFAULTS.slice(),fontName='Courier New',anim=0,lastMS=null;
 let gfxMode='bars';
+// ── Bar state (persistent across frames) ──────────────────────────────────
+const BAR_COUNT  = 14;
+const BAR_COLORS = ['#D5D6D2','#FAC300','#EE7C0E','#ffffff','#898D8D'];
+let _bars = null;
+function _initBars() {
+  _bars = Array.from({ length: BAR_COUNT }, function (_, i) {
+    const isVert = Math.random() < 0.28;
+    return {
+      isVert,
+      ox:      (Math.random() - 0.5) * 0.55,
+      oy:      (Math.random() - 0.5) * 0.55,
+      baseLen: 0.08 + Math.random() * 0.22,
+      dynLen:  0.12 + Math.random() * 0.28,
+      thkMin:  0.6  + Math.random() * 1.2,
+      thkMax:  4    + Math.random() * 22,
+      amp:    0,
+      atk:    0.18 + Math.random() * 0.22,
+      rel:    0.012 + Math.random() * 0.025,
+      band:   Math.floor(Math.random() * 12),
+      colIdx: Math.floor(Math.random() * BAR_COLORS.length),
+    };
+  });
+}
 function applyState(s){
   S.motion=s.motion;S.count=s.count;S.win=s.win;
   S.smin=s.smin;S.smax=s.smax;S.sbias=s.sbias;
@@ -161,6 +184,7 @@ function applyState(s){
   linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
+  _bars = null;
   respawnPoints();repackRectangle();
 }
 (function smoothTick(){
@@ -230,52 +254,84 @@ function draw(ms){
     const level = _level;
 
     if (gfxMode === 'bars') {
+      if (!_bars) _initBars();
+
+      // Anti-centroid: opposite corner from where text lives
+      const acx = CW - ctr.x;
+      const acy = CH - ctr.y;
+
       const bands = typeof window.bsGetBands === 'function'
         ? window.bsGetBands(12)
-        : Array.from({length:12}, function(_,i){ return 0.2 + Math.sin(i)*0.15; });
-      const barCount = bands.length;
-      const gap      = 28;
-      const maxLen   = CW * 0.38;
-      const startY   = ctr.y - (barCount * gap) / 2;
-      for (let i = 0; i < barCount; i++) {
-        const band  = bands[i];
-        const len   = Math.max(8, band * maxLen);
-        // Thickness: thin at low amp, thick rect at high amp
-        const thick = 1 + Math.pow(band, 0.6) * 38;
-        const y     = startY + i * gap;
+        : Array.from({ length: 12 }, function () { return 0.15; });
+
+      // Update per-bar smoothed amplitudes (slow release = organic lag)
+      for (let i = 0; i < _bars.length; i++) {
+        const b   = _bars[i];
+        const raw = bands[b.band] || 0;
+        b.amp = raw > b.amp
+          ? b.amp + (raw - b.amp) * b.atk
+          : b.amp + (raw - b.amp) * b.rel;
+      }
+
+      // Derive bar bg luminance — to avoid matching bg
+      const bgLum = (function(h){
+        const n=parseInt(h.replace('#',''),16);
+        return ((n>>16)&255)*0.299+((n>>8)&255)*0.587+(n&255)*0.114;
+      })(bgCol);
+
+      for (let i = 0; i < _bars.length; i++) {
+        const b   = _bars[i];
+        const amp = b.amp;
+
+        const px  = acx + b.ox * CW;
+        const py  = acy + b.oy * CH;
+        const len = (b.baseLen + amp * b.dynLen) * (b.isVert ? CH : CW);
+        const thk = b.thkMin + amp * (b.thkMax - b.thkMin);
+
+        let barCol = BAR_COLORS[b.colIdx];
+        const cn = parseInt(barCol.replace('#',''),16);
+        const cLum = ((cn>>16)&255)*0.299+((cn>>8)&255)*0.587+(cn&255)*0.114;
+        if (Math.abs(cLum - bgLum) < 35) barCol = textCol;
+
         ctx.save();
-        ctx.globalAlpha = 0.45 + band * 0.55;
-        ctx.fillStyle   = col;
-        ctx.fillRect(ctr.x, y - thick / 2, len, thick);
+        ctx.globalAlpha = 0.4 + amp * 0.6;
+        ctx.fillStyle   = barCol;
+        if (b.isVert) {
+          ctx.fillRect(px - thk / 2, py, thk, len);
+        } else {
+          ctx.fillRect(px, py - thk / 2, len, thk);
+        }
         ctx.restore();
       }
-      const dx      = CW / 2 - ctr.x;
-      const dy      = CH / 2 - ctr.y;
+
+      // ── ARC FAN at anti-centroid, pointing toward canvas centre ───────────
+      const dx      = CW / 2 - acx;
+      const dy      = CH / 2 - acy;
       const baseAng = Math.atan2(dy, dx);
-      const sweep   = (Math.PI * 0.3) + level * (Math.PI * 0.55);
-      const arcRings = 6;
-      const maxR    = 180 + level * 320;
+      const sweep   = Math.PI * 0.25 + _level * Math.PI * 0.6;
+      const maxR    = 140 + _level * 340;
+      const arcRings = 7;
       for (let r = 1; r <= arcRings; r++) {
         const radius = (r / arcRings) * maxR;
         ctx.save();
-        ctx.globalAlpha = (1 - r / arcRings) * 0.5 + level * 0.3;
+        ctx.globalAlpha = (1 - r / arcRings) * 0.45 + _level * 0.3;
         ctx.strokeStyle = col;
-        ctx.lineWidth   = 0.75;
+        ctx.lineWidth   = 0.75 + _level * 1.5;
         ctx.beginPath();
-        ctx.arc(ctr.x, ctr.y, radius, baseAng - sweep / 2, baseAng + sweep / 2);
+        ctx.arc(acx, acy, radius, baseAng - sweep/2, baseAng + sweep/2);
         ctx.stroke();
         ctx.restore();
       }
-      const spokeCount = 8 + Math.round(level * 8);
+      const spokeCount = 6 + Math.round(_level * 10);
       for (let s = 0; s <= spokeCount; s++) {
         const ang = (baseAng - sweep / 2) + (s / spokeCount) * sweep;
         ctx.save();
-        ctx.globalAlpha = 0.18 + level * 0.22;
+        ctx.globalAlpha = 0.15 + _level * 0.25;
         ctx.strokeStyle = col;
         ctx.lineWidth   = 0.5;
         ctx.beginPath();
-        ctx.moveTo(ctr.x, ctr.y);
-        ctx.lineTo(ctr.x + Math.cos(ang) * maxR, ctr.y + Math.sin(ang) * maxR);
+        ctx.moveTo(acx, acy);
+        ctx.lineTo(acx + Math.cos(ang) * maxR, acy + Math.sin(ang) * maxR);
         ctx.stroke();
         ctx.restore();
       }
@@ -469,8 +525,8 @@ window._bsRings = [];
 window.bsSpawnRing = function () {
   if (gfxMode !== 'rings') return;
   const count    = 4 + Math.floor(Math.random() * 9);
-  const maxR     = 300 + Math.random() * 600;
-  const minR     = maxR * (0.05 + Math.random() * 0.12);
+  const maxR     = 500 + Math.random() * 900;
+  const minR     = maxR * (0.02 + Math.random() * 0.08);
   const totalDur = 2500 + Math.random() * 3500;
   window._bsRings.push({
     born: performance.now(),
@@ -632,7 +688,7 @@ function boot() {
       // Set up analyser
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
+      analyser.smoothingTimeConstant = 0.92;
       window.bsAnalyser = analyser;
       const freqData = new Uint8Array(analyser.frequencyBinCount);
       window.bsGetLevel = function () {
