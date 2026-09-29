@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v54-plexus-removed-contain -->
+<!-- build: explore4-v55-music-midi-triggers -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -194,6 +194,7 @@ window.bsLinesParams=function(dist,perPt,durFrames,opac100){
 };
 window.addEventListener('midicc',function(e){
   const cc=e.detail.cc,raw=e.detail.raw;
+  if(window.bsMusicActive&&(cc===0||cc===16))return;
   if(cc===16){window.bsSetInterp(Math.round(raw/127*100));return;}
   if(cc!==0)return;
   const filled=window.bsFilledSlots();
@@ -364,6 +365,165 @@ fetch('/binary_digital_1000.csv').then(function(r){return r.text();}).then(funct
   if(lines.length){words=lines;respawnPoints();}
 }).catch(function(){});
 requestAnimationFrame(draw);
+})();
+</script>
+<script>
+(function () {
+'use strict';
+
+// ── Music + MIDI trigger engine ───────────────────────────────────────────────
+// MP3 loops continuously via Web Audio API (XHR + decodeAudioData, iOS safe)
+// MIDI file parsed at runtime — note-ons trigger random preset + random interp
+// CC 0 (preset scroll) and CC 16 (interp knob) from hardware silenced
+
+const MP3_URL  = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic.mp3';
+const MIDI_URL = 'https://daysof93-cdn.b-cdn.net/Explore4miditrigger_44bars.mid';
+const LOOP_DUR = 88.0; // 44 bars × 2 sec/bar at 120 BPM
+
+window.bsMusicActive = false; // set true once audio starts
+
+// ── XHR fetch helper (iOS-safe, no fetch()) ───────────────────────────────────
+function xhrGet(url) {
+  return new Promise(function (resolve, reject) {
+    const x = new XMLHttpRequest();
+    x.open('GET', url);
+    x.responseType = 'arraybuffer';
+    x.onload  = function () { x.status < 400 ? resolve(x.response) : reject(x.status); };
+    x.onerror = reject;
+    x.send();
+  });
+}
+
+// ── Inline MIDI parser — extracts note-on times in seconds ────────────────────
+function parseMidi(buffer) {
+  const u8  = new Uint8Array(buffer);
+  const dv  = new DataView(buffer);
+  let   pos = 0;
+
+  const r8   = function () { return u8[pos++]; };
+  const r16  = function () { const v = dv.getUint16(pos); pos += 2; return v; };
+  const r32  = function () { const v = dv.getUint32(pos); pos += 4; return v; };
+  const rVLQ = function () {
+    let v = 0, b;
+    do { b = r8(); v = (v << 7) | (b & 0x7f); } while (b & 0x80);
+    return v;
+  };
+
+  pos += 4; r32(); // MThd + length (always 6)
+  /*fmt*/r16();
+  const numTracks = r16();
+  const ppq       = r16(); // ticks per quarter note
+
+  const times  = [];
+  let gTempo   = 500000;  // µs per beat — 120 BPM default
+
+  for (let t = 0; t < numTracks; t++) {
+    pos += 4;            // MTrk
+    const tEnd = pos + r32();
+    let tick = 0, lastSt = 0, tempo = gTempo;
+
+    while (pos < tEnd) {
+      tick += rVLQ();
+      let st = r8();
+      if (st < 0x80) { pos--; st = lastSt; } else { lastSt = st; }
+      const type = st & 0xF0;
+
+      if (type === 0x90) {                          // Note On
+        const note = r8(), vel = r8();
+        if (vel > 0) times.push(tick / ppq * (tempo / 1e6));
+      } else if (type === 0x80 || type === 0xA0 ||  // Note Off / AfterTouch / CC / PitchBend
+                 type === 0xB0 || type === 0xE0) { r8(); r8(); }
+        else if  (type === 0xC0 || type === 0xD0) { r8(); } // Program / ChannelPressure
+        else if  (st === 0xFF) {                    // Meta event
+          const mt = r8(), ml = rVLQ();
+          if (mt === 0x51 && ml === 3) {
+            tempo = gTempo = (r8() << 16) | (r8() << 8) | r8();
+          } else { pos += ml; }
+        } else if (st === 0xF0 || st === 0xF7) {   // SysEx
+          pos += rVLQ();
+        } else { pos = tEnd; break; }               // Unknown — skip track
+    }
+    pos = tEnd;
+  }
+  return times.sort(function (a, b) { return a - b; });
+}
+
+// ── Scheduler (Web Audio lookahead pattern) ───────────────────────────────────
+let audioCtx, noteTimes = [], pending = [], nextLoopOrigin = 0;
+
+function queueLoop(origin) {
+  for (let i = 0; i < noteTimes.length; i++) {
+    pending.push(origin + noteTimes[i]);
+  }
+}
+
+function firePreset() {
+  const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
+  if (!filled.length) return;
+  const slot   = filled[Math.floor(Math.random() * filled.length)];
+  const interp = Math.round(Math.random() * 100);
+  if (window.bsSetInterp) window.bsSetInterp(interp);
+  if (window.bsRecall)    window.bsRecall(slot);
+}
+
+function scheduler() {
+  if (!audioCtx || !noteTimes.length) return;
+  const now    = audioCtx.currentTime;
+  const ahead  = 0.15; // seconds lookahead
+
+  // Keep two loops queued ahead
+  while (nextLoopOrigin < now + LOOP_DUR * 2) {
+    queueLoop(nextLoopOrigin);
+    nextLoopOrigin += LOOP_DUR;
+  }
+
+  // Dispatch due events
+  while (pending.length && pending[0] < now + ahead) {
+    const fireAt = pending.shift();
+    const delay  = Math.max(0, (fireAt - now) * 1000);
+    setTimeout(firePreset, delay);
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+let started = false;
+
+function boot() {
+  if (started) return;
+  started = true;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  Promise.all([xhrGet(MP3_URL), xhrGet(MIDI_URL)]).then(function (results) {
+    audioCtx.decodeAudioData(results[0], function (mp3Buf) {
+      // Parse MIDI
+      noteTimes = parseMidi(results[1]);
+
+      // Start MP3 loop
+      const src  = audioCtx.createBufferSource();
+      src.buffer = mp3Buf;
+      src.loop   = true;
+      src.connect(audioCtx.destination);
+      src.start(0);
+
+      // Anchor MIDI scheduler to audio clock
+      nextLoopOrigin      = audioCtx.currentTime;
+      window.bsMusicActive = true;
+      setInterval(scheduler, 25);
+    });
+  }).catch(function (e) { console.warn('Music engine error:', e); });
+}
+
+// Try immediately (works on desktop); fall back to first gesture (iOS/mobile)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+['click','keydown','touchstart'].forEach(function(ev) {
+  window.addEventListener(ev, boot, { once: true });
+});
+
 })();
 </script>
 <!-- MIDI CONSOLE -->
