@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v71-shape-opacity -->
+<!-- build: explore4-v72-binary-counter -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -219,6 +219,26 @@ window.addEventListener('midicc',function(e){
   const slot=filled[Math.round(raw/127*(filled.length-1))];
   window.bsRecall(slot);
 });
+// ── Binary counter (v72) ──
+const BC_COLORS=['#000000','#ffffff','#ff7900'];
+let bcDigit='0',bcColor='#ffffff',bcBpm=120,bcNext=0,bcTicksLeft=0;
+function bcDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
+function bcPickColor(bg){const ok=BC_COLORS.filter(function(c){return bcDist(c,bg)>150;});const pool=ok.length?ok:BC_COLORS;return pool[Math.floor(Math.random()*pool.length)];}
+function drawBinaryCounter(ms,bg){
+  if(bcTicksLeft<=0){bcBpm=120+Math.random()*120;bcTicksLeft=8*(1+Math.floor(Math.random()*4));}
+  if(ms>=bcNext){
+    bcDigit=Math.random()<0.5?'0':'1';
+    bcColor=bcPickColor(bg);
+    bcTicksLeft--;
+    const step=60000/bcBpm/2;
+    bcNext=(bcNext&&ms-bcNext<step)?bcNext+step:ms+step;
+  }
+  if(bcDist(bcColor,bg)<=150)bcColor=bcPickColor(bg);
+  ctx.save();ctx.globalAlpha=1;ctx.fillStyle=bcColor;ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.font="520px '"+fontName+"', 'Courier New', monospace";
+  ctx.fillText(bcDigit,60,60);
+  ctx.restore();
+}
 function assignShapes(winStart){
   const valid=[];
   for(let i=0;i<points.length;i++){if(points[i]&&words[winStart+i])valid.push(i);}
@@ -427,6 +447,7 @@ function draw(ms){
     }
     ctx.globalAlpha=1;
   }
+  drawBinaryCounter(ms,bgCol);
 
 }
 ctx.fillStyle=S.bgColor;
