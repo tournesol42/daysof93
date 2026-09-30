@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v81-rings -->
+<!-- build: explore4-v82-rings-fullscreen -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -79,23 +79,31 @@ function fbRoll(){
   for(let i=0;i<n;i++)fbPairs.push([Math.random(),Math.random(),0.15+Math.random()*0.4,Math.random()<0.5?0:Math.PI/2]);
 }
 fbRoll();
-// ── Rings (v81) — big ring draggable with inertia, small ring rides its inside edge ──
-const RG_R=320,RG_r=145,RG_W=2,RG_FRICTION=0.12;
-const rg={x:CW*0.62,y:CH*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0};
-function rgSmall(){const d=RG_R-RG_r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d};}
-function rgPos(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*CW/r.width,y:(e.clientY-r.top)*CH/r.height};}
+// ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
+// Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
+const RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.12,RG_TOP=0.5,RG_BOT=1.4;
+const rgCanvas=document.createElement('canvas');
+Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
+document.body.appendChild(rgCanvas);
+const rctx=rgCanvas.getContext('2d');
+let rgDpr=1;
+function rgFit(){rgDpr=window.devicePixelRatio||1;rgCanvas.width=Math.round(window.innerWidth*rgDpr);rgCanvas.height=Math.round(window.innerHeight*rgDpr);}
+window.addEventListener('resize',rgFit);rgFit();
+const rg={x:window.innerWidth*0.62,y:window.innerHeight*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0,ox:0,oy:0};
+function rgR(){const vh=window.innerHeight,t=Math.max(0,Math.min(1,rg.y/vh));return vh*RG_BASE*(RG_TOP+(RG_BOT-RG_TOP)*t);}
+function rgSmall(){const R=rgR(),r=R*RG_RATIO,d=R-r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d,r:r};}
 function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas;}
 window.addEventListener('pointerdown',function(e){
   if(!rgFree(e))return;
-  const p=rgPos(e),sm=rgSmall();
-  if(Math.hypot(p.x-sm.x,p.y-sm.y)<RG_r){rg.drag='small';rg.w=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
-  else if(Math.hypot(p.x-rg.x,p.y-rg.y)<RG_R){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
+  const p={x:e.clientX,y:e.clientY},sm=rgSmall();
+  if(Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r){rg.drag='small';rg.w=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
+  else if(Math.hypot(p.x-rg.x,p.y-rg.y)<rgR()){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
   else return;
   rg.lx=p.x;rg.ly=p.y;rg.lt=performance.now();
   document.body.style.cursor='grabbing';e.preventDefault();
 });
 window.addEventListener('pointermove',function(e){
-  const p=rgPos(e),now=performance.now(),dts=Math.max(0.001,(now-rg.lt)/1000);
+  const p={x:e.clientX,y:e.clientY},now=performance.now(),dts=Math.max(0.001,(now-rg.lt)/1000);
   if(rg.drag==='big'){
     rg.vx=rg.vx*0.5+((p.x-rg.lx)/dts)*0.5;rg.vy=rg.vy*0.5+((p.y-rg.ly)/dts)*0.5;
     rg.x=p.x-rg.ox;rg.y=p.y-rg.oy;
@@ -106,7 +114,7 @@ window.addEventListener('pointermove',function(e){
   }else{
     if(!rgFree(e)){return;}
     const sm=rgSmall();
-    const over=Math.hypot(p.x-sm.x,p.y-sm.y)<RG_r||Math.hypot(p.x-rg.x,p.y-rg.y)<RG_R;
+    const over=Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r||Math.hypot(p.x-rg.x,p.y-rg.y)<rgR();
     document.body.style.cursor=over?'grab':'';
   }
   rg.lx=p.x;rg.ly=p.y;rg.lt=now;
@@ -118,24 +126,26 @@ window.addEventListener('pointerup',function(){
   rg.drag=null;document.body.style.cursor='grab';
 });
 function drawRings(dt,bg){
+  const vw=window.innerWidth,vh=window.innerHeight;
   if(rg.drag!=='big'){
     const f=Math.pow(RG_FRICTION,dt);
     rg.vx*=f;rg.vy*=f;rg.x+=rg.vx*dt;rg.y+=rg.vy*dt;
-    // Soft bounce so the ring never leaves the canvas
-    if(rg.x<RG_R){rg.x=RG_R;rg.vx=Math.abs(rg.vx)*0.6;}
-    if(rg.x>CW-RG_R){rg.x=CW-RG_R;rg.vx=-Math.abs(rg.vx)*0.6;}
-    if(rg.y<RG_R){rg.y=RG_R;rg.vy=Math.abs(rg.vy)*0.6;}
-    if(rg.y>CH-RG_R){rg.y=CH-RG_R;rg.vy=-Math.abs(rg.vy)*0.6;}
+    // Soft bounce so the ring never leaves the screen
+    const R=rgR();
+    if(rg.x<R){rg.x=R;rg.vx=Math.abs(rg.vx)*0.6;}
+    if(rg.x>vw-R){rg.x=vw-R;rg.vx=-Math.abs(rg.vx)*0.6;}
+    if(rg.y<R){rg.y=R;rg.vy=Math.abs(rg.vy)*0.6;}
+    if(rg.y>vh-R){rg.y=vh-R;rg.vy=-Math.abs(rg.vy)*0.6;}
   }
   if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
   const n=parseInt(bg.slice(1),16);
   const lum=((n>>16&255)*0.299+(n>>8&255)*0.587+(n&255)*0.114)/255;
-  const col=lum<0.2?'#ffffff':'#000000';
-  const sm=rgSmall();
-  ctx.save();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=RG_W;
-  ctx.beginPath();ctx.arc(rg.x,rg.y,RG_R,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();ctx.arc(sm.x,sm.y,RG_r,0,Math.PI*2);ctx.stroke();
-  ctx.restore();
+  const R=rgR(),sm=rgSmall();
+  rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
+  rctx.clearRect(0,0,vw,vh);
+  rctx.strokeStyle=lum<0.2?'#ffffff':'#000000';rctx.lineWidth=RG_W;
+  rctx.beginPath();rctx.arc(rg.x,rg.y,R,0,Math.PI*2);rctx.stroke();
+  rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
 function fbReset(){fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
 function fbText(w,x,y){
