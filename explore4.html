@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v64-shapes -->
+<!-- build: explore4-v65-shapes-lines-fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -185,8 +185,10 @@ function applyState(s){
   linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
-  respawnPoints();repackRectangle();
-  randomiseShapePoints();
+  respawnPoints();
+  repackRectangle();
+  // randomiseShapePoints called after both so points[] is fully populated
+  setTimeout(randomiseShapePoints, 0);
 }
 (function smoothTick(){
   requestAnimationFrame(smoothTick);
@@ -246,8 +248,13 @@ function draw(ms){
   const opacitySpread=S.opSpread/100;
   ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
   // ── Shape pass — drawn behind text ────────────────────────────────────────
-  if (motionMode === 'noise' && points.length > 0 &&
-      typeof window.bsGetBands === 'function') {
+  if (motionMode === 'noise' && points.length > 0) {
+    if (typeof window.bsGetBands !== 'function') {
+      // Music not loaded yet — use static fallback so shapes are visible
+      window.bsGetBands = function(n) {
+        return Array.from({length:n}, function(_,i){ return 0.25+Math.sin(i*0.7)*0.15; });
+      };
+    }
     const sBands = window.bsGetBands(12);
     const sDisp  = noiseAmt * 120;
     for (let si = 0; si < SHAPES.length; si++) {
