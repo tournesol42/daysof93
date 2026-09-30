@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v62-graphics-removed -->
+<!-- build: explore4-v63-open-preset30-maxinterp -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -356,8 +356,10 @@ function draw(ms){
 }
 ctx.fillStyle=S.bgColor;
 ctx.fillRect(0,0,CW,CH);
-const _fp=BAKED_PRESETS.find(function(p){return p!=null;});
-if(_fp)applyState(_fp);else makePoints(S.count);
+// Always open on slot 30 at max interpolation
+window.bsSetInterp(100);
+if(BAKED_PRESETS[30]){applyState(BAKED_PRESETS[30]);}
+else{const _fp=BAKED_PRESETS.find(function(p){return p!=null;});if(_fp)applyState(_fp);else makePoints(S.count);}
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
   document.fonts.add(face);fontName='VectorBattle';respawnPoints();
 }).catch(function(){});
