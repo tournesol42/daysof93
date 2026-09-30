@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v78-counter-removed -->
+<!-- build: explore4-v79-bounding-frame -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -67,6 +67,36 @@ function readSizeParams(){
 }
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
+// ── Bounding frame (v79) — shows when no proximity lines are drawn ──
+const FB_COLOR='#ee1729',FB_WIDTH=2;
+let fbMinX,fbMinY,fbMaxX,fbMaxY,fbSX=0,fbSY=0,fbN=0,fbLinesDrawn=0,fbA=0;
+let fbBox=null;
+function fbReset(){fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
+function fbText(w,x,y){
+  ctx.fillText(w,x,y);
+  if(ctx.globalAlpha<0.05)return;
+  const m=ctx.measureText(w);
+  const t=y-m.actualBoundingBoxAscent,b=y+m.actualBoundingBoxDescent;
+  if(x<fbMinX)fbMinX=x;if(x+m.width>fbMaxX)fbMaxX=x+m.width;
+  if(t<fbMinY)fbMinY=t;if(b>fbMaxY)fbMaxY=b;
+  fbSX+=x+m.width/2;fbSY+=y;fbN++;
+}
+function fbDraw(){
+  fbA+=((fbLinesDrawn===0&&fbN>0?1:0)-fbA)*0.05;
+  if(fbN>0){
+    const pad=12,tgt=[fbMinX-pad,fbMinY-pad,fbMaxX+pad,fbMaxY+pad,fbSX/fbN,fbSY/fbN];
+    if(!fbBox)fbBox=tgt.slice();
+    for(let i=0;i<6;i++)fbBox[i]+=(tgt[i]-fbBox[i])*0.15;
+  }
+  if(fbA<0.01||!fbBox)return;
+  const [x0,y0,x1,y1,cx,cy]=fbBox;
+  ctx.save();ctx.strokeStyle=FB_COLOR;ctx.lineWidth=FB_WIDTH;
+  ctx.globalAlpha=fbA;
+  ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+  ctx.globalAlpha=fbA*0.35;
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(CW,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,CH);ctx.stroke();
+  ctx.restore();
+}
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 // ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
 const SHAPES=[
@@ -294,6 +324,7 @@ function draw(ms){
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
   ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
+  fbReset();
   ctx.fillStyle=textCol;ctx.textBaseline='middle';ctx.textAlign='left';
   if(motionMode==='noise'){
     anim+=dt*noiseSpd*1.8;
@@ -322,7 +353,7 @@ function draw(ms){
         const opR=pool?pool.opacityRand:0.5;
         const nMod=1+(((pool?pool.noiseMod:0.5)??0.5)-0.5)*noiseModAmt*2;
         ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(opR-0.5)*opacitySpread));
-        ctx.fillText(word,curX+nx*dispMax*nMod,curY+ny*dispMax*nMod);
+        fbText(word,curX+nx*dispMax*nMod,curY+ny*dispMax*nMod);
         ctx.globalAlpha=1;
         curX+=ww+GAP;placed++;
       }
@@ -337,7 +368,7 @@ function draw(ms){
         const nMod=1+((p.noiseMod??0.5)-0.5)*noiseModAmt*2;
         ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";
         ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(p.opacityRand-0.5)*opacitySpread));
-        ctx.fillText(word,p.bx*CW+nx*dispMax*nMod,p.by*CH+ny*dispMax*nMod);
+        fbText(word,p.bx*CW+nx*dispMax*nMod,p.by*CH+ny*dispMax*nMod);
         ctx.globalAlpha=1;
       }
     }
@@ -390,6 +421,7 @@ function draw(ms){
       const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
       ctx.save();ctx.globalAlpha=op;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+      if(op>0.02)fbLinesDrawn++;
       ctx.restore();
       return true;
     });
@@ -405,7 +437,7 @@ function draw(ms){
       if(Math.abs(p.dy)>300){p.vy=-Math.abs(p.vy)*Math.sign(p.dy);p.dy=Math.sign(p.dy)*300;}
       ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";
       ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(p.opacityRand-0.5)*opacitySpread));
-      ctx.fillText(word,p.bx*CW+p.dx,p.by*CH+p.dy);
+      fbText(word,p.bx*CW+p.dx,p.by*CH+p.dy);
       ctx.globalAlpha=1;
     }
   }else if(motionMode==='rain'){
@@ -424,11 +456,11 @@ function draw(ms){
       if(d.opacity<=0){rainDrops.splice(i,1);continue;}
       ctx.globalAlpha=Math.pow(Math.max(0,d.opacity),d.fadeExp);
       ctx.font=d.sz+"px '"+fontName+"', 'Courier New', monospace";
-      ctx.fillText(d.word,d.x,d.y);
+      fbText(d.word,d.x,d.y);
     }
     ctx.globalAlpha=1;
   }
-
+  fbDraw();
 
 }
 ctx.fillStyle=S.bgColor;
