@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v86-f1-links-f2-dist -->
+<!-- build: explore4-v87-f3-rect-scale -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -204,11 +204,12 @@ function fbDraw(){
 }
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 // MIDI overrides — null until the fader is touched, then survive preset changes
-let midiLinesPer=null,midiLinesDist=null;
+let midiLinesPer=null,midiLinesDist=null,midiRectK=1;
 window.addEventListener('midicc',function(e){
   const cc=e.detail.cc,raw=e.detail.raw;
   if(cc===0)midiLinesPer=1+Math.round(raw/127*5);          // F1: connections per word 1–6
   else if(cc===1)midiLinesDist=20+Math.round(raw/127*380); // F2: max distance 20–400px
+  else if(cc===2)midiRectK=0.5*Math.pow(4,raw/127);         // F3: rect scale 0.5×–2× (length gets it twice)
 });
 // ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
 const SHAPES=[
@@ -388,24 +389,26 @@ function drawShapes(dispMax,noiseModAmt,winStart){
       s.amp+=(lvl-s.amp)*(lvl>s.amp?s.atk:s.rel);
       f=0.25+Math.min(1.5,s.amp*2.5);
     }
+    f*=midiRectK;
+    const sw=s.w*midiRectK,sh=s.h*midiRectK;
     const grey=s.c==='#898d8d';
     ctx.fillStyle=s.c;ctx.strokeStyle=s.c;
     ctx.globalAlpha=grey?1:shapeOp(s.seed,opT);
-    if(s.k==='h'){ctx.fillRect(ax,ay,s.w*f,s.h);}
-    else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,s.w*f,s.h);}
-    else{const hv=s.h*f;ctx.fillRect(ax,ay-hv,s.w,hv);}
+    if(s.k==='h'){ctx.fillRect(ax,ay,sw*f,sh);}
+    else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,sw*f,sh);}
+    else{const hv=sh*f;ctx.fillRect(ax,ay-hv,sw,hv);}
     // Mirror: thin vector outline, same size/colour/motion, opposite direction
     ctx.lineWidth=1;
-    const lx=ax+s.w/2,ly=ay+s.h/2;
+    const lx=ax+sw/2,ly=ay+sh/2;
     ctx.globalAlpha=grey?1:shapeOp(s.seed+50,opT);
     ctx.beginPath();
-    if(s.k==='v'){ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+s.h*f);}
-    else{ctx.moveTo(ax,ly);ctx.lineTo(ax-s.w*f,ly);}
+    if(s.k==='v'){ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+sh*f);}
+    else{ctx.moveTo(ax,ly);ctx.lineTo(ax-sw*f,ly);}
     ctx.stroke();
     ctx.globalAlpha=grey?1:shapeOp(s.seed+100,opT);
     ctx.beginPath();
-    if(s.k==='v'){ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+s.h*f);}
-    else{ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-s.w*f,ly+s.dy);}
+    if(s.k==='v'){ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+sh*f);}
+    else{ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-sw*f,ly+s.dy);}
     ctx.stroke();
   }
   ctx.restore();
@@ -764,7 +767,7 @@ const BAKED_P1=null;
 
 let presets=Array.from({length:NP},(_,i)=>({name:'P'+(i+1),faders:null,rec:null}));
 try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
-F[0].label='LINKS';F[1].label='DIST';
+F[0].label='LINKS';F[1].label='DIST';F[2].label='RECT';
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
 try{const s=JSON.parse(localStorage.getItem(SK+'_k'));if(Array.isArray(s))s.slice(0,NK).forEach((k,i)=>Object.assign(K[i],k,{value:+(k.value??64)}));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
