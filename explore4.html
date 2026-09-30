@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v82-rings-fullscreen -->
+<!-- build: explore4-v83-rings-hairline -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,7 +143,7 @@ function drawRings(dt,bg){
   const R=rgR(),sm=rgSmall();
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
-  rctx.strokeStyle=lum<0.2?'#ffffff':'#000000';rctx.lineWidth=RG_W;
+  rctx.strokeStyle=lum<0.2?'#ffffff':'#000000';rctx.lineWidth=1/rgDpr;
   rctx.beginPath();rctx.arc(rg.x,rg.y,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
