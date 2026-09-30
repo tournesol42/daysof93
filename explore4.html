@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v85-cc0-cc16-cleared -->
+<!-- build: explore4-v86-f1-links-f2-dist -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -203,6 +203,13 @@ function fbDraw(){
   ctx.restore();
 }
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
+// MIDI overrides — null until the fader is touched, then survive preset changes
+let midiLinesPer=null,midiLinesDist=null;
+window.addEventListener('midicc',function(e){
+  const cc=e.detail.cc,raw=e.detail.raw;
+  if(cc===0)midiLinesPer=1+Math.round(raw/127*5);          // F1: connections per word 1–6
+  else if(cc===1)midiLinesDist=20+Math.round(raw/127*380); // F2: max distance 20–400px
+});
 // ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
 const SHAPES=[
   {c:'#f36312',k:'h',w:431,h:15, react:1,atk:0.30,rel:0.040},
@@ -470,8 +477,8 @@ function draw(ms){
     }
   if(linesOn&&motionMode==='noise'&&S.focusType!=='rect'){
     const now=ms;
-    const maxDist=linesMaxDist;
-    const maxPer=linesMaxPer;
+    const maxDist=midiLinesDist!==null?midiLinesDist:linesMaxDist;
+    const maxPer=midiLinesPer!==null?midiLinesPer:linesMaxPer;
     const durMs=linesDurMs;
     const maxOpac=linesOpac;
     const disp=noiseAmt*120;
@@ -757,6 +764,7 @@ const BAKED_P1=null;
 
 let presets=Array.from({length:NP},(_,i)=>({name:'P'+(i+1),faders:null,rec:null}));
 try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
+F[0].label='LINKS';F[1].label='DIST';
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
 try{const s=JSON.parse(localStorage.getItem(SK+'_k'));if(Array.isArray(s))s.slice(0,NK).forEach((k,i)=>Object.assign(K[i],k,{value:+(k.value??64)}));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
