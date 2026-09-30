@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v84-rings-60 -->
+<!-- build: explore4-v85-cc0-cc16-cleared -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -345,16 +345,6 @@ window.bsLinesParams=function(dist,perPt,durFrames,opac100){
   if(durFrames!==undefined)linesDurMs=durFrames*16;
   if(opac100!==undefined)linesOpac=opac100/100;
 };
-window.addEventListener('midicc',function(e){
-  const cc=e.detail.cc,raw=e.detail.raw;
-  if(window.bsMusicActive&&(cc===0||cc===16))return;
-  if(cc===16){window.bsSetInterp(Math.round(raw/127*100));return;}
-  if(cc!==0)return;
-  const filled=window.bsFilledSlots();
-  if(!filled.length)return;
-  const slot=filled[Math.round(raw/127*(filled.length-1))];
-  window.bsRecall(slot);
-});
 
 function assignShapes(winStart){
   const valid=[];
