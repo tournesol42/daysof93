@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v80-frame-chaos -->
+<!-- build: explore4-v81-rings -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -68,7 +68,7 @@ function readSizeParams(){
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
 // ── Bounding frame (v79) — shows when no proximity lines are drawn ──
-const FB_COLOR='#ee1729',FB_WIDTH=2;
+const FB_COLOR='#ee1729',FB_WIDTH=2,FB_SKEW=0.06;
 let fbMinX,fbMinY,fbMaxX,fbMaxY,fbSX=0,fbSY=0,fbN=0,fbLinesDrawn=0,fbA=0;
 let fbBox=null,fbPts=[],fbOffX=0,fbOffY=0,fbPairs=[];
 // Re-rolled on every preset: frame offset + which words the chaotic lines pass through
@@ -76,9 +76,67 @@ function fbRoll(){
   fbOffX=(Math.random()<0.5?-1:1)*(15+Math.random()*45);
   fbOffY=(Math.random()<0.5?-1:1)*(15+Math.random()*45);
   fbPairs=[];const n=3+Math.floor(Math.random()*4);
-  for(let i=0;i<n;i++)fbPairs.push([Math.random(),Math.random(),0.15+Math.random()*0.4]);
+  for(let i=0;i<n;i++)fbPairs.push([Math.random(),Math.random(),0.15+Math.random()*0.4,Math.random()<0.5?0:Math.PI/2]);
 }
 fbRoll();
+// ── Rings (v81) — big ring draggable with inertia, small ring rides its inside edge ──
+const RG_R=320,RG_r=145,RG_W=2,RG_FRICTION=0.12;
+const rg={x:CW*0.62,y:CH*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0};
+function rgSmall(){const d=RG_R-RG_r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d};}
+function rgPos(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*CW/r.width,y:(e.clientY-r.top)*CH/r.height};}
+function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas;}
+window.addEventListener('pointerdown',function(e){
+  if(!rgFree(e))return;
+  const p=rgPos(e),sm=rgSmall();
+  if(Math.hypot(p.x-sm.x,p.y-sm.y)<RG_r){rg.drag='small';rg.w=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
+  else if(Math.hypot(p.x-rg.x,p.y-rg.y)<RG_R){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
+  else return;
+  rg.lx=p.x;rg.ly=p.y;rg.lt=performance.now();
+  document.body.style.cursor='grabbing';e.preventDefault();
+});
+window.addEventListener('pointermove',function(e){
+  const p=rgPos(e),now=performance.now(),dts=Math.max(0.001,(now-rg.lt)/1000);
+  if(rg.drag==='big'){
+    rg.vx=rg.vx*0.5+((p.x-rg.lx)/dts)*0.5;rg.vy=rg.vy*0.5+((p.y-rg.ly)/dts)*0.5;
+    rg.x=p.x-rg.ox;rg.y=p.y-rg.oy;
+  }else if(rg.drag==='small'){
+    const a=Math.atan2(p.y-rg.y,p.x-rg.x);
+    let da=a-rg.la;da=Math.atan2(Math.sin(da),Math.cos(da));
+    rg.th+=da;rg.w=rg.w*0.5+(da/dts)*0.5;rg.la=a;
+  }else{
+    if(!rgFree(e)){return;}
+    const sm=rgSmall();
+    const over=Math.hypot(p.x-sm.x,p.y-sm.y)<RG_r||Math.hypot(p.x-rg.x,p.y-rg.y)<RG_R;
+    document.body.style.cursor=over?'grab':'';
+  }
+  rg.lx=p.x;rg.ly=p.y;rg.lt=now;
+});
+window.addEventListener('pointerup',function(){
+  if(!rg.drag)return;
+  // Stale motion (mouse held still before release) = no throw
+  if(performance.now()-rg.lt>80){rg.vx=rg.vy=0;rg.w=0;}
+  rg.drag=null;document.body.style.cursor='grab';
+});
+function drawRings(dt,bg){
+  if(rg.drag!=='big'){
+    const f=Math.pow(RG_FRICTION,dt);
+    rg.vx*=f;rg.vy*=f;rg.x+=rg.vx*dt;rg.y+=rg.vy*dt;
+    // Soft bounce so the ring never leaves the canvas
+    if(rg.x<RG_R){rg.x=RG_R;rg.vx=Math.abs(rg.vx)*0.6;}
+    if(rg.x>CW-RG_R){rg.x=CW-RG_R;rg.vx=-Math.abs(rg.vx)*0.6;}
+    if(rg.y<RG_R){rg.y=RG_R;rg.vy=Math.abs(rg.vy)*0.6;}
+    if(rg.y>CH-RG_R){rg.y=CH-RG_R;rg.vy=-Math.abs(rg.vy)*0.6;}
+  }
+  if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
+  const n=parseInt(bg.slice(1),16);
+  const lum=((n>>16&255)*0.299+(n>>8&255)*0.587+(n&255)*0.114)/255;
+  const col=lum<0.2?'#ffffff':'#000000';
+  const sm=rgSmall();
+  ctx.save();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=RG_W;
+  ctx.beginPath();ctx.arc(rg.x,rg.y,RG_R,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(sm.x,sm.y,RG_r,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
 function fbReset(){fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
 function fbText(w,x,y){
   ctx.fillText(w,x,y);
@@ -122,9 +180,12 @@ function fbDraw(){
       const ia=Math.floor(pr[0]*np),ib=Math.floor(pr[1]*np);
       if(ia===ib)continue;
       const ax=fbPts[ia*2],ay=fbPts[ia*2+1],bx=fbPts[ib*2],by=fbPts[ib*2+1];
-      const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy);
-      if(len<1)continue;
-      const ux=dx/len*3000,uy=dy/len*3000;
+      if(Math.hypot(bx-ax,by-ay)<1)continue;
+      // Near-horizontal/vertical, tilted slightly by the direction to the second word
+      let d=Math.atan2(by-ay,bx-ax)-pr[3];
+      d=Math.atan2(Math.sin(d),Math.cos(d));
+      const ang=pr[3]+d*FB_SKEW;
+      const ux=Math.cos(ang)*3000,uy=Math.sin(ang)*3000;
       ctx.globalAlpha=fbA*pr[2];
       ctx.beginPath();ctx.moveTo(ax-ux,ay-uy);ctx.lineTo(ax+ux,ay+uy);ctx.stroke();
     }
@@ -496,6 +557,7 @@ function draw(ms){
     ctx.globalAlpha=1;
   }
   fbDraw();
+  drawRings(dt,bgCol);
 
 }
 ctx.fillStyle=S.bgColor;
