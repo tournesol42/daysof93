@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v77-bitrows -->
+<!-- build: explore4-v78-counter-removed -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -219,33 +219,7 @@ window.addEventListener('midicc',function(e){
   const slot=filled[Math.round(raw/127*(filled.length-1))];
   window.bsRecall(slot);
 });
-// ── Binary counter (v77) — rows type out, hold, then a new row (own irregular timer) ──
-const BC_COLORS=['#000000','#ffffff','#ff7900'];
-const BC_SIZE=32,BC_FADE_IN=100,BC_HOLD_MIN=300,BC_HOLD_MAX=2500;
-let bcColor='#ffffff',bcBpm=180,bcNext=0,bcLen=12,bcBuilding=true,bcHoldUntil=0,bcRow=[];
-function bcDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
-function bcPickColor(bg){const ok=BC_COLORS.filter(function(c){return bcDist(c,bg)>150;});const pool=ok.length?ok:BC_COLORS;return pool[Math.floor(Math.random()*pool.length)];}
-function bcNewRow(){bcRow=[];bcLen=1+Math.floor(Math.random()*32);bcBpm=140+Math.random()*110;bcBuilding=true;bcNext=0;}
-function drawBinaryCounter(ms,bg){
-  if(bcBuilding&&ms>=bcNext){
-    bcRow.push({v:Math.random()<0.5?'0':'1',born:ms});
-    const step=60000/bcBpm/4;
-    bcNext=(bcNext&&ms-bcNext<step)?bcNext+step:ms+step;
-    if(bcRow.length>=bcLen){bcBuilding=false;bcHoldUntil=ms+BC_HOLD_MIN+Math.random()*(BC_HOLD_MAX-BC_HOLD_MIN);}
-  }
-  if(!bcBuilding&&ms>=bcHoldUntil)bcNewRow();
-  // Colour only changes when it would be invisible on the current bg
-  if(bcDist(bcColor,bg)<=150)bcColor=bcPickColor(bg);
-  ctx.save();
-  ctx.font=BC_SIZE+"px '"+fontName+"', 'Courier New', monospace";
-  ctx.fillStyle=bcColor;ctx.textAlign='left';ctx.textBaseline='top';
-  const adv=ctx.measureText('0').width+BC_SIZE*0.15;
-  for(let i=0;i<bcRow.length;i++){
-    ctx.globalAlpha=Math.min(1,(ms-bcRow[i].born)/BC_FADE_IN);
-    ctx.fillText(bcRow[i].v,60+i*adv,60);
-  }
-  ctx.restore();
-}
+
 function assignShapes(winStart){
   const valid=[];
   for(let i=0;i<points.length;i++){if(points[i]&&words[winStart+i])valid.push(i);}
@@ -454,7 +428,7 @@ function draw(ms){
     }
     ctx.globalAlpha=1;
   }
-  drawBinaryCounter(ms,bgCol);
+
 
 }
 ctx.fillStyle=S.bgColor;
