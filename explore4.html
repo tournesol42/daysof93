@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v75-bitstream -->
+<!-- build: explore4-v76-bitstream-flat -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -221,8 +221,8 @@ window.addEventListener('midicc',function(e){
 });
 // ── Binary counter (v75) — shift-register bitstream ──
 const BC_COLORS=['#000000','#ffffff','#ff7900'];
-const BC_SIZE=64,BC_DRIFT=10,BC_FADE_IN=100,BC_FADE_OUT=160;
-let bcColor='#ffffff',bcBpm=180,bcNext=0,bcTarget=4,bcBits=[];
+const BC_SIZE=32,BC_FADE_IN=100,BC_FADE_OUT=160;
+let bcColor='#ffffff',bcBpm=180,bcNext=0,bcTarget=4,bcGoal=12,bcBits=[];
 function bcDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function bcPickColor(bg){const ok=BC_COLORS.filter(function(c){return bcDist(c,bg)>150;});const pool=ok.length?ok:BC_COLORS;return pool[Math.floor(Math.random()*pool.length)];}
 // Called on every MIDI preset trigger: new tempo only
@@ -233,7 +233,8 @@ function drawBinaryCounter(ms,bg){
   const adv=ctx.measureText('0').width+BC_SIZE*0.15;
   if(ms>=bcNext){
     // Row length: random walk between 1 and 8, one step at a time
-    if(Math.random()<0.12)bcTarget=Math.max(1,Math.min(8,bcTarget+(Math.random()<0.5?-1:1)));
+    if(Math.random()<0.03)bcGoal=1+Math.floor(Math.random()*32);
+    if(bcTarget<bcGoal)bcTarget++;else if(bcTarget>bcGoal)bcTarget--;
     // Shift in one new bit on the right
     const live=bcBits.filter(function(b){return !b.dying;});
     const startX=live.length?live[live.length-1].tx+adv:60;
@@ -251,14 +252,11 @@ function drawBinaryCounter(ms,bg){
   for(let i=0;i<bcBits.length;i++){const b=bcBits[i];if(!b.dying){b.tx=60+slot*adv;slot++;}b.x+=(b.tx-b.x)*0.25;}
   bcBits=bcBits.filter(function(b){return !b.dying||ms-b.died<BC_FADE_OUT;});
   ctx.fillStyle=bcColor;ctx.textAlign='left';ctx.textBaseline='top';
-  const t=ms*0.0006;
   for(let i=0;i<bcBits.length;i++){
     const b=bcBits[i];
     const a=b.dying?1-(ms-b.died)/BC_FADE_OUT:Math.min(1,(ms-b.born)/BC_FADE_IN);
     ctx.globalAlpha=Math.max(0,a);
-    const dx=(vnoise(b.seed,t)*2-1)*BC_DRIFT;
-    const dy=(vnoise(t,b.seed+9.4)*2-1)*BC_DRIFT;
-    ctx.fillText(b.v,b.x+dx,60+dy);
+    ctx.fillText(b.v,b.x,60);
   }
   ctx.restore();
 }
