@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v70-grey-dup-lines -->
+<!-- build: explore4-v71-shape-opacity -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -82,7 +82,8 @@ const SHAPES=[
 ];
 const SHAPE_ANCHORS=['tl','tr','bl','br','ml','mr','c'];
 let shapesDirty=true;
-SHAPES.forEach(function(s){s.amp=0;s.pi=-1;s.an='tl';s.dx=0;s.dy=0;});
+SHAPES.forEach(function(s,k){s.amp=0;s.pi=-1;s.an='tl';s.dx=0;s.dy=0;s.seed=k*37.1+Math.random()*100;});
+function shapeOp(seed,t){return Math.max(0.1,Math.min(1,(vnoise(seed,t)-0.15)/0.7));}
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
   return{x:S.focusCX+Math.cos(angle)*radius*(CH/CW),y:S.focusCY+Math.sin(angle)*radius};
@@ -233,6 +234,7 @@ function assignShapes(winStart){
 function drawShapes(dispMax,noiseModAmt,winStart){
   if(shapesDirty)assignShapes(winStart);
   const lvl=typeof window.bsGetLevel==='function'?window.bsGetLevel():0;
+  const opT=performance.now()*0.0004;
   ctx.save();
   ctx.globalAlpha=1;
   for(let k=0;k<SHAPES.length;k++){
@@ -252,16 +254,24 @@ function drawShapes(dispMax,noiseModAmt,winStart){
       s.amp+=(lvl-s.amp)*(lvl>s.amp?s.atk:s.rel);
       f=0.25+Math.min(1.5,s.amp*2.5);
     }
+    const grey=s.c==='#898d8d';
     ctx.fillStyle=s.c;ctx.strokeStyle=s.c;
+    ctx.globalAlpha=grey?1:shapeOp(s.seed,opT);
     if(s.k==='h'){ctx.fillRect(ax,ay,s.w*f,s.h);}
     else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,s.w*f,s.h);}
     else{const hv=s.h*f;ctx.fillRect(ax,ay-hv,s.w,hv);}
     // Mirror: thin vector outline, same size/colour/motion, opposite direction
-    ctx.lineWidth=1;ctx.beginPath();
-    if(s.k==='v'){const lx=ax+s.w/2;ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+s.h*f);
-      ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+s.h*f);}
-    else{const ly=ay+s.h/2;ctx.moveTo(ax,ly);ctx.lineTo(ax-s.w*f,ly);
-      ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-s.w*f,ly+s.dy);}
+    ctx.lineWidth=1;
+    const lx=ax+s.w/2,ly=ay+s.h/2;
+    ctx.globalAlpha=grey?1:shapeOp(s.seed+50,opT);
+    ctx.beginPath();
+    if(s.k==='v'){ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+s.h*f);}
+    else{ctx.moveTo(ax,ly);ctx.lineTo(ax-s.w*f,ly);}
+    ctx.stroke();
+    ctx.globalAlpha=grey?1:shapeOp(s.seed+100,opT);
+    ctx.beginPath();
+    if(s.k==='v'){ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+s.h*f);}
+    else{ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-s.w*f,ly+s.dy);}
     ctx.stroke();
   }
   ctx.restore();
