@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v63-open-preset30-maxinterp -->
+<!-- build: explore4-v64-shapes -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -67,6 +67,31 @@ function readSizeParams(){
 }
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
+
+  // ── Shape system ────────────────────────────────────────────────────────────
+  const SHAPES = [
+    // 2 orange thin horizontal bars
+    {type:'h', color:'#EE7C0E', oy:-22, baseW:280, dynW:200, th:4,  band:2,  atk:0.09, rel:0.014, amp:0, ptIdx:0},
+    {type:'h', color:'#EE7C0E', oy:-8,  baseW:220, dynW:160, th:2,  band:4,  atk:0.11, rel:0.018, amp:0, ptIdx:1},
+    // 2 black thick horizontal rects
+    {type:'h', color:'#2B2B2C', oy:14,  baseW:200, dynW:170, th:28, band:1,  atk:0.15, rel:0.022, amp:0, ptIdx:2},
+    {type:'h', color:'#2B2B2C', oy:30,  baseW:240, dynW:190, th:13, band:3,  atk:0.13, rel:0.020, amp:0, ptIdx:3},
+    // 2 white/grey thin horizontal bars
+    {type:'h', color:'#D5D6D2', oy:-4,  baseW:320, dynW:230, th:2,  band:6,  atk:0.22, rel:0.032, amp:0, ptIdx:4},
+    {type:'h', color:'#D5D6D2', oy:8,   baseW:240, dynW:170, th:1,  band:8,  atk:0.20, rel:0.028, amp:0, ptIdx:5},
+    // 3 red vertical rects (graduating width)
+    {type:'v', color:'#FF2B00', ox:-60, baseH:160, dynH:220, tw:22, band:0,  atk:0.18, rel:0.020, amp:0, ptIdx:6},
+    {type:'v', color:'#FF2B00', ox:-20, baseH:220, dynH:280, tw:36, band:2,  atk:0.14, rel:0.016, amp:0, ptIdx:7},
+    {type:'v', color:'#FF2B00', ox:14,  baseH:280, dynH:340, tw:56, band:5,  atk:0.10, rel:0.012, amp:0, ptIdx:8},
+  ];
+
+  function randomiseShapePoints() {
+    const n = Math.max(1, points.length);
+    SHAPES.forEach(function (s) {
+      s.ptIdx = Math.floor(Math.random() * n);
+      s.amp   = 0;
+    });
+  }
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
@@ -161,6 +186,7 @@ function applyState(s){
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
   respawnPoints();repackRectangle();
+  randomiseShapePoints();
 }
 (function smoothTick(){
   requestAnimationFrame(smoothTick);
@@ -219,6 +245,40 @@ function draw(ms){
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
   ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
+  // ── Shape pass — drawn behind text ────────────────────────────────────────
+  if (motionMode === 'noise' && points.length > 0 &&
+      typeof window.bsGetBands === 'function') {
+    const sBands = window.bsGetBands(12);
+    const sDisp  = noiseAmt * 120;
+    for (let si = 0; si < SHAPES.length; si++) {
+      const sh = SHAPES[si];
+      const p  = points[sh.ptIdx];
+      if (!p || p.bx === undefined) continue;
+      // Update smoothed amplitude
+      const raw = sBands[sh.band] || 0;
+      sh.amp = raw > sh.amp
+        ? sh.amp + (raw - sh.amp) * sh.atk
+        : sh.amp + (raw - sh.amp) * sh.rel;
+      // Compute anchor position (same formula as word draw)
+      const snm = 1 + ((p.nm != null ? p.nm : 0.5) - 0.5) * noiseMod * 2;
+      const snx = (vnoise(p.ox + anim * 0.6, p.oy + 17.3) * 2 - 1) * sDisp * snm;
+      const sny = (vnoise(p.ox + 31.7, p.oy + anim * 0.6) * 2 - 1) * sDisp * snm;
+      const px  = p.bx * CW + snx;
+      const py  = p.by * CH + sny;
+      ctx.save();
+      ctx.fillStyle   = sh.color;
+      ctx.globalAlpha = 0.82 + sh.amp * 0.18;
+      if (sh.type === 'h') {
+        const w = sh.baseW + sh.amp * sh.dynW;
+        ctx.fillRect(px + (sh.ox || 0), py + sh.oy, w, sh.th);
+      } else {
+        const h = sh.baseH + sh.amp * sh.dynH;
+        ctx.fillRect(px + sh.ox, py + (sh.oy || 0) - h, sh.tw, h);
+      }
+      ctx.restore();
+    }
+  }
+
   ctx.fillStyle=textCol;ctx.textBaseline='middle';ctx.textAlign='left';
   if(motionMode==='noise'){
     anim+=dt*noiseSpd*1.8;
@@ -359,7 +419,7 @@ ctx.fillRect(0,0,CW,CH);
 // Always open on slot 30 at max interpolation
 window.bsSetInterp(100);
 if(BAKED_PRESETS[30]){applyState(BAKED_PRESETS[30]);}
-else{const _fp=BAKED_PRESETS.find(function(p){return p!=null;});if(_fp)applyState(_fp);else makePoints(S.count);}
+else{const _fp=BAKED_PRESETS.find(function(p){return p!=null;});if(_fp)applyState(_fp);else{makePoints(S.count);randomiseShapePoints();}}
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
   document.fonts.add(face);fontName='VectorBattle';respawnPoints();
 }).catch(function(){});
@@ -502,10 +562,26 @@ function boot() {
       // Parse MIDI
       noteTimes = parseMidi(results[1]);
 
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.88;
+      const _freqData = new Uint8Array(analyser.frequencyBinCount);
+      window.bsGetBands = function (n) {
+        analyser.getByteFrequencyData(_freqData);
+        const out  = new Array(n);
+        const step = Math.floor(_freqData.length / n);
+        for (let i = 0; i < n; i++) {
+          let s = 0;
+          for (let j = 0; j < step; j++) s += _freqData[i * step + j];
+          out[i] = s / (step * 255);
+        }
+        return out;
+      };
       const src  = audioCtx.createBufferSource();
       src.buffer = mp3Buf;
       src.loop   = true;
-      src.connect(audioCtx.destination);
+      src.connect(analyser);
+      analyser.connect(audioCtx.destination);
       src.start(0);
 
       // Anchor MIDI scheduler to audio clock
