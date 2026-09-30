@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v67-shapes -->
+<!-- build: explore4-v68-shape-mirrors -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -254,6 +254,10 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     if(s.k==='h'){ctx.fillRect(ax,ay,s.w*f,s.h);}
     else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,s.w*f,s.h);}
     else{const hv=s.h*f;ctx.fillRect(ax,ay-hv,s.w,hv);}
+    // Mirror: thin vector outline, same size/colour/motion, opposite direction
+    ctx.lineWidth=1;
+    if(s.k==='v'){ctx.strokeRect(ax,ay,s.w,s.h*f);}
+    else{ctx.strokeRect(ax-s.w*f,ay,s.w*f,s.h);}
   }
   ctx.restore();
 }
