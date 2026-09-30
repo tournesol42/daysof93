@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v69-mirror-lines -->
+<!-- build: explore4-v70-grey-dup-lines -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -76,13 +76,13 @@ const SHAPES=[
   {c:'#000000',k:'h',w:425,h:15, react:0},
   {c:'#ffffff',k:'o',w:398,h:6,  react:1,atk:0.45,rel:0.080},
   {c:'#ffffff',k:'h',w:286,h:15, react:0},
-  {c:'#ec2a14',k:'v',w:91, h:183,react:1,atk:0.06,rel:0.008},
-  {c:'#ec2a14',k:'v',w:27, h:137,react:1,atk:0.25,rel:0.030},
-  {c:'#d74a3a',k:'v',w:24, h:145,react:0}
+  {c:'#898d8d',k:'v',w:91, h:183,react:1,atk:0.06,rel:0.008},
+  {c:'#898d8d',k:'v',w:27, h:137,react:1,atk:0.25,rel:0.030},
+  {c:'#898d8d',k:'v',w:24, h:145,react:0}
 ];
 const SHAPE_ANCHORS=['tl','tr','bl','br','ml','mr','c'];
 let shapesDirty=true;
-SHAPES.forEach(function(s){s.amp=0;s.pi=-1;s.an='tl';});
+SHAPES.forEach(function(s){s.amp=0;s.pi=-1;s.an='tl';s.dx=0;s.dy=0;});
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
   return{x:S.focusCX+Math.cos(angle)*radius*(CH/CW),y:S.focusCY+Math.sin(angle)*radius};
@@ -225,6 +225,8 @@ function assignShapes(winStart){
   SHAPES.forEach(function(s,k){
     s.pi=valid.length?valid[k%valid.length]:-1;
     s.an=SHAPE_ANCHORS[Math.floor(Math.random()*SHAPE_ANCHORS.length)];
+    s.dx=(Math.random()*2-1)*200;
+    s.dy=(Math.random()*2-1)*200;
   });
   shapesDirty=false;
 }
@@ -256,8 +258,10 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     else{const hv=s.h*f;ctx.fillRect(ax,ay-hv,s.w,hv);}
     // Mirror: thin vector outline, same size/colour/motion, opposite direction
     ctx.lineWidth=1;ctx.beginPath();
-    if(s.k==='v'){const lx=ax+s.w/2;ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+s.h*f);}
-    else{const ly=ay+s.h/2;ctx.moveTo(ax,ly);ctx.lineTo(ax-s.w*f,ly);}
+    if(s.k==='v'){const lx=ax+s.w/2;ctx.moveTo(lx,ay);ctx.lineTo(lx,ay+s.h*f);
+      ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+s.h*f);}
+    else{const ly=ay+s.h/2;ctx.moveTo(ax,ly);ctx.lineTo(ax-s.w*f,ly);
+      ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-s.w*f,ly+s.dy);}
     ctx.stroke();
   }
   ctx.restore();
