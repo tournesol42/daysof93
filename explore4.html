@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v88-f3-lag-frame -->
+<!-- build: explore4-v89-f4-splash -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,7 +143,7 @@ function drawRings(dt,bg){
   const R=rgR(),sm=rgSmall();
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
-  rctx.strokeStyle=lum<0.2?'#ffffff':'#000000';rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
+  rctx.strokeStyle=splash?splash.ring:(lum<0.2?'#ffffff':'#000000');rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
   rctx.beginPath();rctx.arc(rg.x,rg.y,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
@@ -168,7 +168,7 @@ function fbDraw(){
   if(fbA<0.01||!fbBox)return;
   const x0=fbBox[0]+fbOffX,y0=fbBox[1]+fbOffY,x1=fbBox[2]+fbOffX,y1=fbBox[3]+fbOffY;
   const cx=fbBox[4],cy=fbBox[5];
-  ctx.save();ctx.strokeStyle=FB_COLOR;ctx.lineWidth=FB_WIDTH;
+  ctx.save();ctx.strokeStyle=splash?splash.frame:FB_COLOR;ctx.lineWidth=FB_WIDTH;
   // Precision: offset frame + corner registration marks
   ctx.globalAlpha=fbA;
   // Frame edges scale around their own midpoints with F3 (gaps at corners when short, overshoot when long)
@@ -210,11 +210,22 @@ function fbDraw(){
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 // MIDI overrides — null until the fader is touched, then survive preset changes
 let midiLinesPer=null,midiLinesDist=null,midiRectK=1,midiRectT=1;
+// ── F4 colour splash (v89): above 15 = random neon colours once, below = back to normal ──
+const SPLASH_COLS=['#08cb00','#ff5fcf','#000000','#ffffff','#00e0ba','#30afff','#16ff00','#ebf400','#0079ff','#ffc400','#ffd93d','#aac8a7','#9929ea','#ff2dd1'];
+let splash=null,lastBodyBg='';
+function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
+function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
+function splashRoll(){
+  const bg=SPLASH_COLS[Math.floor(Math.random()*SPLASH_COLS.length)];
+  splash={bg:bg,text:splashPick(bg),frame:splashPick(bg),ring:splashPick(bg),shapes:[]};
+  for(let i=0;i<9;i++)splash.shapes.push(splashPick(bg));
+}
 window.addEventListener('midicc',function(e){
   const cc=e.detail.cc,raw=e.detail.raw;
   if(cc===0)midiLinesPer=1+Math.round(raw/127*5);          // F1: connections per word 1–6
   else if(cc===1)midiLinesDist=20+Math.round(raw/127*380); // F2: max distance 20–400px
   else if(cc===2)midiRectT=0.5*Math.pow(4,raw/127);
+  else if(cc===3){if(raw>15){if(!splash)splashRoll();}else splash=null;} // F4: colour splash switch
 });
 // ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
 const SHAPES=[
@@ -397,7 +408,8 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     f*=midiRectK;
     const sw=s.w*midiRectK,sh=s.h*midiRectK;
     const grey=s.c==='#898d8d';
-    ctx.fillStyle=s.c;ctx.strokeStyle=s.c;
+    const sc=splash?splash.shapes[k]:s.c;
+    ctx.fillStyle=sc;ctx.strokeStyle=sc;
     ctx.globalAlpha=grey?1:shapeOp(s.seed,opT);
     if(s.k==='h'){ctx.fillRect(ax,ay,sw*f,sh);}
     else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,sw*f,sh);}
@@ -430,8 +442,9 @@ function draw(ms){
   const noiseAmt=S.noiseAmt/100;
   const noiseSpd=S.noiseSpd/100;
   const noiseModAmt=S.noiseMod/100;
-  const bgCol=S.bgColor;
-  const textCol=_currentTextColor;
+  const bgCol=splash?splash.bg:S.bgColor;
+  const textCol=splash?splash.text:_currentTextColor;
+  if(bgCol!==lastBodyBg){document.body.style.background=bgCol;lastBodyBg=bgCol;}
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
   ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
@@ -772,7 +785,7 @@ const BAKED_P1=null;
 
 let presets=Array.from({length:NP},(_,i)=>({name:'P'+(i+1),faders:null,rec:null}));
 try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
-F[0].label='LINKS';F[1].label='DIST';F[2].label='RECT';
+F[0].label='LINKS';F[1].label='DIST';F[2].label='RECT';F[3].label='SPLASH';
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
 try{const s=JSON.parse(localStorage.getItem(SK+'_k'));if(Array.isArray(s))s.slice(0,NK).forEach((k,i)=>Object.assign(K[i],k,{value:+(k.value??64)}));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
