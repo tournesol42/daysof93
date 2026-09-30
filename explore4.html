@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v63-open-preset30-maxinterp -->
+<!-- build: explore4-v67-shapes -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -68,6 +68,21 @@ function readSizeParams(){
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
+// ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
+const SHAPES=[
+  {c:'#f36312',k:'h',w:431,h:15, react:1,atk:0.30,rel:0.040},
+  {c:'#f36312',k:'h',w:461,h:8,  react:0},
+  {c:'#000000',k:'h',w:302,h:42, react:1,atk:0.10,rel:0.012},
+  {c:'#000000',k:'h',w:425,h:15, react:0},
+  {c:'#ffffff',k:'o',w:398,h:6,  react:1,atk:0.45,rel:0.080},
+  {c:'#ffffff',k:'h',w:286,h:15, react:0},
+  {c:'#ec2a14',k:'v',w:91, h:183,react:1,atk:0.06,rel:0.008},
+  {c:'#ec2a14',k:'v',w:27, h:137,react:1,atk:0.25,rel:0.030},
+  {c:'#d74a3a',k:'v',w:24, h:145,react:0}
+];
+const SHAPE_ANCHORS=['tl','tr','bl','br','ml','mr','c'];
+let shapesDirty=true;
+SHAPES.forEach(function(s){s.amp=0;s.pi=-1;s.an='tl';});
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
   return{x:S.focusCX+Math.cos(angle)*radius*(CH/CW),y:S.focusCY+Math.sin(angle)*radius};
@@ -161,6 +176,7 @@ function applyState(s){
   linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
   if(!linesOn)connections=[];
   respawnPoints();repackRectangle();
+  shapesDirty=true;
 }
 (function smoothTick(){
   requestAnimationFrame(smoothTick);
@@ -202,6 +218,45 @@ window.addEventListener('midicc',function(e){
   const slot=filled[Math.round(raw/127*(filled.length-1))];
   window.bsRecall(slot);
 });
+function assignShapes(winStart){
+  const valid=[];
+  for(let i=0;i<points.length;i++){if(points[i]&&words[winStart+i])valid.push(i);}
+  for(let i=valid.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=valid[i];valid[i]=valid[j];valid[j]=t;}
+  SHAPES.forEach(function(s,k){
+    s.pi=valid.length?valid[k%valid.length]:-1;
+    s.an=SHAPE_ANCHORS[Math.floor(Math.random()*SHAPE_ANCHORS.length)];
+  });
+  shapesDirty=false;
+}
+function drawShapes(dispMax,noiseModAmt,winStart){
+  if(shapesDirty)assignShapes(winStart);
+  const lvl=typeof window.bsGetLevel==='function'?window.bsGetLevel():0;
+  ctx.save();
+  ctx.globalAlpha=1;
+  for(let k=0;k<SHAPES.length;k++){
+    const s=SHAPES[k];
+    const p=points[s.pi],word=words[winStart+s.pi];
+    if(!p||!word){shapesDirty=true;continue;}
+    const nx=vnoise(p.ox+anim*0.6,p.oy+17.3)*2-1;
+    const ny=vnoise(p.ox+31.7,p.oy+anim*0.6)*2-1;
+    const nMod=1+((p.noiseMod??0.5)-0.5)*noiseModAmt*2;
+    const x=p.bx*CW+nx*dispMax*nMod,y=p.by*CH+ny*dispMax*nMod;
+    ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";
+    const ww=ctx.measureText(word).width,hh=p.sz,a=s.an;
+    const ax=(a==='tl'||a==='bl'||a==='ml')?x:(a==='c'?x+ww/2:x+ww);
+    const ay=(a==='tl'||a==='tr')?y-hh/2:((a==='bl'||a==='br')?y+hh/2:y);
+    let f=1;
+    if(s.react){
+      s.amp+=(lvl-s.amp)*(lvl>s.amp?s.atk:s.rel);
+      f=0.25+Math.min(1.5,s.amp*2.5);
+    }
+    ctx.fillStyle=s.c;ctx.strokeStyle=s.c;
+    if(s.k==='h'){ctx.fillRect(ax,ay,s.w*f,s.h);}
+    else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,s.w*f,s.h);}
+    else{const hv=s.h*f;ctx.fillRect(ax,ay-hv,s.w,hv);}
+  }
+  ctx.restore();
+}
 function draw(ms){
   requestAnimationFrame(draw);
   if(lastMS===null)lastMS=ms;
@@ -223,6 +278,7 @@ function draw(ms){
   if(motionMode==='noise'){
     anim+=dt*noiseSpd*1.8;
     const dispMax=noiseAmt*120;
+    if(S.focusType!=='rect')drawShapes(dispMax,noiseModAmt,winStart);
     if(S.focusType==='rect'){
       const winSize=Math.max(1,count);
       const{sizeMin,sizeMax}=readSizeParams();
@@ -505,7 +561,17 @@ function boot() {
       const src  = audioCtx.createBufferSource();
       src.buffer = mp3Buf;
       src.loop   = true;
-      src.connect(audioCtx.destination);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      const _td = new Uint8Array(analyser.fftSize);
+      window.bsGetLevel = function () {
+        analyser.getByteTimeDomainData(_td);
+        let sum = 0;
+        for (let i = 0; i < _td.length; i++) { const v = (_td[i] - 128) / 128; sum += v * v; }
+        return Math.sqrt(sum / _td.length);
+      };
+      src.connect(analyser);
+      analyser.connect(audioCtx.destination);
       src.start(0);
 
       // Anchor MIDI scheduler to audio clock
