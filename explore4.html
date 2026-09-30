@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v79-bounding-frame -->
+<!-- build: explore4-v80-frame-chaos -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -70,8 +70,16 @@ let connections=[],lastConnectMS=0;
 // ── Bounding frame (v79) — shows when no proximity lines are drawn ──
 const FB_COLOR='#ee1729',FB_WIDTH=2;
 let fbMinX,fbMinY,fbMaxX,fbMaxY,fbSX=0,fbSY=0,fbN=0,fbLinesDrawn=0,fbA=0;
-let fbBox=null;
-function fbReset(){fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
+let fbBox=null,fbPts=[],fbOffX=0,fbOffY=0,fbPairs=[];
+// Re-rolled on every preset: frame offset + which words the chaotic lines pass through
+function fbRoll(){
+  fbOffX=(Math.random()<0.5?-1:1)*(15+Math.random()*45);
+  fbOffY=(Math.random()<0.5?-1:1)*(15+Math.random()*45);
+  fbPairs=[];const n=3+Math.floor(Math.random()*4);
+  for(let i=0;i<n;i++)fbPairs.push([Math.random(),Math.random(),0.15+Math.random()*0.4]);
+}
+fbRoll();
+function fbReset(){fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
 function fbText(w,x,y){
   ctx.fillText(w,x,y);
   if(ctx.globalAlpha<0.05)return;
@@ -80,6 +88,7 @@ function fbText(w,x,y){
   if(x<fbMinX)fbMinX=x;if(x+m.width>fbMaxX)fbMaxX=x+m.width;
   if(t<fbMinY)fbMinY=t;if(b>fbMaxY)fbMaxY=b;
   fbSX+=x+m.width/2;fbSY+=y;fbN++;
+  fbPts.push(x,y);
 }
 function fbDraw(){
   fbA+=((fbLinesDrawn===0&&fbN>0?1:0)-fbA)*0.05;
@@ -89,12 +98,37 @@ function fbDraw(){
     for(let i=0;i<6;i++)fbBox[i]+=(tgt[i]-fbBox[i])*0.15;
   }
   if(fbA<0.01||!fbBox)return;
-  const [x0,y0,x1,y1,cx,cy]=fbBox;
+  const x0=fbBox[0]+fbOffX,y0=fbBox[1]+fbOffY,x1=fbBox[2]+fbOffX,y1=fbBox[3]+fbOffY;
+  const cx=fbBox[4],cy=fbBox[5];
   ctx.save();ctx.strokeStyle=FB_COLOR;ctx.lineWidth=FB_WIDTH;
+  // Precision: offset frame + corner registration marks
   ctx.globalAlpha=fbA;
   ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+  const g=10,L=28;
+  ctx.beginPath();
+  [[x0,y0,-1,-1],[x1,y0,1,-1],[x0,y1,-1,1],[x1,y1,1,1]].forEach(function(c){
+    ctx.moveTo(c[0]+c[2]*g,c[1]);ctx.lineTo(c[0]+c[2]*(g+L),c[1]);
+    ctx.moveTo(c[0],c[1]+c[3]*g);ctx.lineTo(c[0],c[1]+c[3]*(g+L));
+  });
+  ctx.stroke();
   ctx.globalAlpha=fbA*0.35;
   ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(CW,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,CH);ctx.stroke();
+  // Chaos: lines through two word anchors, extended across the canvas
+  const np=fbPts.length/2;
+  if(np>=2){
+    ctx.lineWidth=1;
+    for(let k=0;k<fbPairs.length;k++){
+      const pr=fbPairs[k];
+      const ia=Math.floor(pr[0]*np),ib=Math.floor(pr[1]*np);
+      if(ia===ib)continue;
+      const ax=fbPts[ia*2],ay=fbPts[ia*2+1],bx=fbPts[ib*2],by=fbPts[ib*2+1];
+      const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy);
+      if(len<1)continue;
+      const ux=dx/len*3000,uy=dy/len*3000;
+      ctx.globalAlpha=fbA*pr[2];
+      ctx.beginPath();ctx.moveTo(ax-ux,ay-uy);ctx.lineTo(ax+ux,ay+uy);ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
@@ -208,6 +242,7 @@ function applyState(s){
   if(!linesOn)connections=[];
   respawnPoints();repackRectangle();
   shapesDirty=true;
+  fbRoll();
 }
 (function smoothTick(){
   requestAnimationFrame(smoothTick);
