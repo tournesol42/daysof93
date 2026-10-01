@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v109-rects-3d -->
+<!-- build: explore4-v110-boxes-depth -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -243,7 +243,7 @@ let splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
-const WEB_DEPTH=60,WEB_FOCAL=1400,WEB_SPIN0=3.2,WEB_SPIN_MIN=0.12,WEB_SPIN_DECAY=0.35,WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
+const WEB_DEPTH=60,WEB_DEPTH_MAX=700,WEB_FOCAL=1400,WEB_SPIN0=3.2,WEB_SPIN_MIN=0.12,WEB_SPIN_DECAY=0.35,WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
 let web=null;
 function webBuild(){
   const pts=[],K=6+Math.floor(Math.random()*5),cl=[];
@@ -252,7 +252,7 @@ function webBuild(){
     let x,y,g=-1;
     if(Math.random()<0.62){g=Math.floor(Math.random()*K);const c=cl[g],a=Math.random()*Math.PI*2,r=Math.abs(gaussRand())*c.s;x=c.x+Math.cos(a)*r;y=c.y+Math.sin(a)*r;}
     else{x=Math.random()*CW;y=Math.random()*CH;}
-    pts.push({x0:x,y0:y,z:(Math.random()*2-1)*WEB_DEPTH,ox:Math.random()*500,oy:Math.random()*500,x:x,y:y,sx:x,sy:y,s:1,reach:0});
+    pts.push({x0:x,y0:y,zn:Math.random()*2-1,ox:Math.random()*500,oy:Math.random()*500,x:x,y:y,sx:x,sy:y,s:1,reach:0});
   }
   // Reach from local density: distance to 4th nearest neighbour (once per trigger)
   for(let i=0;i<pts.length;i++){
@@ -289,7 +289,7 @@ function webBuild(){
     bubbles.push({x0:x,y0:y,r:3+Math.pow(Math.random(),2.2)*45,amp:20+Math.random()*180,spd:0.3+Math.random()*2.7,ox:Math.random()*900,oy:Math.random()*900});
   }
   // 3D spin around the vertical axis: fast burst on activation, slowly decelerating
-  web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0,bubbles:bubbles,rot:0,w:(Math.random()<0.5?-1:1)*WEB_SPIN0,lastT:performance.now()};
+  web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0,bubbles:bubbles,rot:0,w:(Math.random()<0.5?-1:1)*WEB_SPIN0,lastT:performance.now(),depth:WEB_DEPTH};
 }
 function webDraw(col){
   if(!web)return 0;
@@ -308,7 +308,10 @@ function webDraw(col){
   web.w=wmin+(web.w-wmin)*Math.pow(WEB_SPIN_DECAY,dts);web.rot+=web.w*dts;
   const rc=Math.cos(web.rot),rs=Math.sin(web.rot),hx0=CW/2,hy0=CH/2;
   const PJ=function(x,y,z){const dx=x-hx0,X=dx*rc+z*rs,Z=-dx*rs+z*rc,k=WEB_FOCAL/(WEB_FOCAL+Z);return [hx0+X*k,hy0+(y-hy0)*k,k];};
-  for(let i=0;i<n;i++){const p=P[i],q=PJ(p.x,p.y,p.z);p.sx=q[0];p.sy=q[1];p.s=q[2];}
+  // Depth: flat with rings at the top, deep volume as the rings go down (smoothed)
+  const dTarget=WEB_DEPTH+(WEB_DEPTH_MAX-WEB_DEPTH)*(window.rgY01?window.rgY01():0);
+  web.depth+=(dTarget-web.depth)*0.05;
+  for(let i=0;i<n;i++){const p=P[i],q=PJ(p.x,p.y,p.zn*web.depth);p.sx=q[0];p.sy=q[1];p.s=q[2];}
   // Spawn: like the main engine — random partners within reach, each line lives and fades, so lines pile up and overlap
   if(now-web.lastSpawn>48){
     web.lastSpawn=now;
@@ -393,7 +396,17 @@ const SHAPES=[
 ];
 const SHAPE_ANCHORS=['tl','tr','bl','br','ml','mr','c'];
 let shapesDirty=true;
-SHAPES.forEach(function(s,k){s.amp=0;s.pi=-1;s.an='tl';s.dx=0;s.dy=0;s.seed=k*37.1+Math.random()*100;});
+SHAPES.forEach(function(s,k){s.amp=0;s.pi=-1;s.an='tl';s.dx=0;s.dy=0;s.seed=k*37.1+Math.random()*100;s.dz=40+Math.random()*120;});
+// Splash 3D box: rectangle (x0,y0,w,h) with depth dz, turned around a vertical axis at px (c=cos, sn=sin of the angle)
+function drawBox(x0,y0,w,h,dz,px,c,sn,stroke){
+  const xa=px+(x0-px)*c,xb=px+(x0+w-px)*c,o=dz*sn,a=ctx.globalAlpha;
+  const face=function(x1,x2,al){ctx.globalAlpha=a*al;if(stroke){ctx.strokeRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h);}else{ctx.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h);}};
+  face(xa+o,xb+o,stroke?0.6:0.25); // back
+  face(xa,xa+o,stroke?0.8:0.5);    // side
+  face(xb,xb+o,stroke?0.8:0.5);    // side
+  face(xa,xb,1);                    // front
+  ctx.globalAlpha=a;
+}
 function shapeOp(seed,t){return Math.max(0.1,Math.min(1,(vnoise(seed,t)-0.15)/0.7));}
 function randomPointInCircle(){
   const angle=Math.random()*Math.PI*2,radius=Math.sqrt(Math.random())*S.circleRadius;
@@ -561,15 +574,23 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     f*=midiRectK;
     const sw=s.w*midiRectK,sh=s.h*midiRectK;
     // Splash 3D: rectangles turn around their own vertical axis (through the anchor), in sync with the web's spin
-    let rot3=(splash&&web)?Math.cos(web.rot):1;
-    if(rot3!==1){if(Math.abs(rot3)<0.02)rot3=rot3<0?-0.02:0.02;ctx.save();ctx.translate(ax,ay);ctx.scale(rot3,1);ctx.translate(-ax,-ay);}
+    const is3=!!(splash&&web);
+    let rot3=is3?Math.cos(web.rot):1;const rsn=is3?Math.sin(web.rot):0,dz=s.dz*midiRectK;
     const grey=s.c==='#898d8d';
     const sc=splash?splash.shapes[k]:s.c;
     ctx.fillStyle=sc;ctx.strokeStyle=sc;
     ctx.globalAlpha=grey?1:shapeOp(s.seed,opT);
-    if(s.k==='h'){ctx.fillRect(ax,ay,sw*f,sh);}
-    else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,sw*f,sh);}
-    else{const hv=sh*f;ctx.fillRect(ax,ay-hv,sw,hv);}
+    if(is3){
+      if(s.k==='h')drawBox(ax,ay,sw*f,sh,dz,ax,rot3,rsn,false);
+      else if(s.k==='o'){ctx.lineWidth=2;drawBox(ax,ay,sw*f,sh,dz,ax,rot3,rsn,true);}
+      else{const hv=sh*f;drawBox(ax,ay-hv,sw,hv,dz,ax,rot3,rsn,false);}
+    }else{
+      if(s.k==='h'){ctx.fillRect(ax,ay,sw*f,sh);}
+      else if(s.k==='o'){ctx.lineWidth=2;ctx.strokeRect(ax,ay,sw*f,sh);}
+      else{const hv=sh*f;ctx.fillRect(ax,ay-hv,sw,hv);}
+    }
+    // Lines turn as flat lines around the same anchor
+    if(rot3!==1){if(Math.abs(rot3)<0.02)rot3=rot3<0?-0.02:0.02;ctx.save();ctx.translate(ax,ay);ctx.scale(rot3,1);ctx.translate(-ax,-ay);}
     // Mirror: thin vector outline, same size/colour/motion, opposite direction
     ctx.lineWidth=1;
     const lx=ax+sw/2,ly=ay+sh/2;
