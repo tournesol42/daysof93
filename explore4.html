@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v110-boxes-depth -->
+<!-- build: explore4-v111-depth-280 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -243,7 +243,7 @@ let splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
-const WEB_DEPTH=60,WEB_DEPTH_MAX=700,WEB_FOCAL=1400,WEB_SPIN0=3.2,WEB_SPIN_MIN=0.12,WEB_SPIN_DECAY=0.35,WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
+const WEB_DEPTH=60,WEB_DEPTH_MAX=280,WEB_FOCAL=1400,WEB_SPIN0=3.2,WEB_SPIN_MIN=0.12,WEB_SPIN_DECAY=0.35,WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
 let web=null;
 function webBuild(){
   const pts=[],K=6+Math.floor(Math.random()*5),cl=[];
