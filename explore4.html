@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v114-fog-countdown -->
+<!-- build: explore4-v115-fog-black-countloop -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -357,7 +357,7 @@ function webDraw(col){
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
   const lk=web.is3d?1:WEB_2D_OP; // 2D reveal: fainter, thinner-looking lines
   // Fog pass: thick soft lines at 1/6 resolution, blurred, then stretched under the sharp lines
-  if(FOG_ON){
+  if(FOG_ON&&splash&&splash.bg==='#000000'){ // fog only on black backgrounds
   if((fogTick++&1)===0){ // fog layer refreshed every 2nd frame (it's soft, the difference is invisible)
   fctxA.setTransform(1,0,0,1,0,0);fctxA.clearRect(0,0,fogA.width,fogA.height);
   fctxA.setTransform(FOG_SCALE,0,0,FOG_SCALE,0,0);fctxA.strokeStyle=col;fctxA.lineWidth=1.6/FOG_SCALE;
@@ -1050,7 +1050,7 @@ function unlockAudio() {
 #entry{position:fixed;inset:0;background:#000;z-index:2147483000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .7s ease;-webkit-tap-highlight-color:transparent}
 #entry-row{display:flex;width:21.6em;font-family:'VectorBattle','Courier New',monospace;font-size:clamp(18px,2.6vw,32px);color:#fff;transition:transform .12s linear;user-select:none}
 #entry-row .eb{flex:0 0 1.35em;text-align:center;position:relative}
-#entry-row .ec{position:absolute;left:0;right:0;top:0;opacity:.25;z-index:-1;pointer-events:none}
+#entry-row .ec{position:absolute;left:0;right:0;top:0;opacity:.3;z-index:-1;pointer-events:none}
 #entry-row .eb.pulse{animation:ebPulse 1.6s ease-in-out infinite}
 #entry-row .eb.in{animation:ebIn .16s ease-out both}
 @keyframes ebPulse{0%,100%{opacity:.25}50%{opacity:1}}
@@ -1062,10 +1062,11 @@ function unlockAudio() {
   const ov=document.getElementById('entry'),row=document.getElementById('entry-row');
   const bit=function(){return Math.random()<0.5?'0':'1';};
   // Behind each digit: a fast 9→1 countdown at low opacity, then it disappears
+  // Loops 9→1 continuously until the overlay closes (a single 0.4s run was too brief to notice)
   function countdown(span){
     const c=document.createElement('span');c.className='ec';span.appendChild(c);
     let v=9;c.textContent=v;
-    const t=setInterval(function(){v--;if(v<1){clearInterval(t);c.remove();}else c.textContent=v;},45);
+    setInterval(function(){v=v>1?v-1:9;c.textContent=v;},45);
   }
   function center(n){row.style.transform='translateX('+((SLOTS-n)/2*1.35)+'em)';}
   for(let i=0;i<FIRST;i++){const s=document.createElement('span');s.className='eb pulse';s.style.animationDelay=(i*0.2)+'s';s.textContent=bit();row.appendChild(s);}
