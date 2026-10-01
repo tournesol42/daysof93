@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v122-entry-rings -->
+<!-- build: explore4-v123-entry-auto -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1066,7 +1066,7 @@ function unlockAudio() {
 
 })();
 </script>
-<!-- ENTRY (v122): 4 bits → countdown after 2 s → rings + hint after ~2.5 s more. Grabbing a ring (or clicking) unlocks audio, streams in 12 bits, opens the page. -->
+<!-- ENTRY (v123): 4 bits with countdowns → 12 more stream in after 2 s → rings + hint. Grabbing a ring (or clicking) unlocks audio and opens the page. -->
 <div id="entry"><div id="entry-row"></div></div>
 <div id="entry-hint"><span>move rings to discover</span><svg width="64" height="12" viewBox="0 0 64 12"><line x1="0" y1="6" x2="62" y2="6" stroke="#fff" stroke-width="1"/><polyline points="55,1 62,6 55,11" fill="none" stroke="#fff" stroke-width="1"/></svg></div>
 <style>
@@ -1100,8 +1100,17 @@ function unlockAudio() {
   function center(n){row.style.transform='translateX('+((SLOTS-n)/2*1.35)+'em)';}
   for(let i=0;i<FIRST;i++){const s=document.createElement('span');s.className='eb pulse';s.style.animationDelay=(i*0.2)+'s';s.textContent=bit();row.appendChild(s);}
   center(FIRST);
-  // 1) after 2 s: the countdown starts behind the 4 digits
-  setTimeout(function(){row.querySelectorAll('.eb').forEach(countdown);},COUNT_AT);
+  row.querySelectorAll('.eb').forEach(countdown);
+  // 1) after 2 s: the other 12 digits stream in from the right on their own (no click needed)
+  setTimeout(function(){
+    row.querySelectorAll('.eb').forEach(function(s){s.className='eb';s.style.opacity='1';});
+    let n=FIRST;
+    const iv=setInterval(function(){
+      const s=document.createElement('span');s.className='eb in';s.textContent=bit();row.appendChild(s);countdown(s);
+      n++;center(n);
+      if(n>=SLOTS)clearInterval(iv);
+    },STEP_MS);
+  },COUNT_AT);
   // 2) ~2.5 s later: rings fade in above the black screen, with the hint pointing at them
   setTimeout(function(){
     if(used)return;
@@ -1114,18 +1123,12 @@ function unlockAudio() {
     hint.style.opacity='0.85';
   },RINGS_AT);
   let used=false;
-  // 3) grabbing a ring (or clicking anywhere): stream in 12 more bits and open the page
+  // 3) grabbing a ring (or clicking anywhere): open the page
   function proceed(){
     if(used)return;used=true;
     window.rgShown=true;
     hint.style.opacity='0';
-    row.querySelectorAll('.eb').forEach(function(s){s.className='eb';s.style.opacity='1';countdown(s);});
-    let n=FIRST;
-    const iv=setInterval(function(){
-      const s=document.createElement('span');s.className='eb in';s.textContent=bit();row.appendChild(s);countdown(s);
-      n++;center(n);
-      if(n>=SLOTS){clearInterval(iv);setTimeout(function(){ov.style.opacity='0';setTimeout(function(){ov.remove();hint.remove();window.entryActive=false;if(rings){rings.style.zIndex='3';rings.style.transition='';}},750);},600);}
-    },STEP_MS);
+    setTimeout(function(){ov.style.opacity='0';setTimeout(function(){ov.remove();hint.remove();window.entryActive=false;if(rings){rings.style.zIndex='3';rings.style.transition='';}},750);},300);
   }
   window.entryProceed=proceed;
   ov.addEventListener('click',proceed);
