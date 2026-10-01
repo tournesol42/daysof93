@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v104-music-fixes -->
+<!-- build: explore4-v105-bubbles -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -262,7 +262,15 @@ function webBuild(){
   // Echo zones: lines inside get copies that skew more and more
   const echo=[],E=2+Math.floor(Math.random()*3);
   for(let e=0;e<E;e++){const c=cl[Math.floor(Math.random()*K)];echo.push({x:c.x,y:c.y,r:80+Math.random()*220,step:(Math.random()<0.5?-1:1)*(0.035+Math.random()*0.07),n:3+Math.floor(Math.random()*4)});}
-  web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0};
+  // Free bubbles: 50–60, each with a centre point, own size, own wander path and speed
+  const bubbles=[],NB=50+Math.floor(Math.random()*11);
+  for(let i=0;i<NB;i++){
+    let x,y;
+    if(Math.random()<0.6){const c=cl[Math.floor(Math.random()*K)];x=c.x+gaussRand()*c.s*1.5;y=c.y+gaussRand()*c.s*1.5;}
+    else{x=Math.random()*CW;y=Math.random()*CH;}
+    bubbles.push({x0:x,y0:y,r:3+Math.pow(Math.random(),2.2)*45,amp:20+Math.random()*180,spd:0.3+Math.random()*2.7,ox:Math.random()*900,oy:Math.random()*900});
+  }
+  web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0,bubbles:bubbles};
 }
 function webDraw(col){
   if(!web)return 0;
@@ -319,6 +327,14 @@ function webDraw(col){
     for(let q=0;q<G.circ.length;q++){const c=G.circ[q];path.moveTo(gx+c.x+c.r,gy+c.y);path.arc(gx+c.x,gy+c.y,c.r,0,Math.PI*2);}
     ctx.stroke(path);
   }
+  const bp=new Path2D(),dp=new Path2D();
+  for(let i=0;i<web.bubbles.length;i++){
+    const B=web.bubbles[i],bt=t*B.spd;
+    const x=B.x0+(vnoise(B.ox+bt,B.oy)*2-1)*B.amp,y=B.y0+(vnoise(B.ox,B.oy+bt)*2-1)*B.amp;
+    bp.moveTo(x+B.r,y);bp.arc(x,y,B.r,0,Math.PI*2);
+    dp.moveTo(x+1.6,y);dp.arc(x,y,1.6,0,Math.PI*2);
+  }
+  ctx.stroke(bp);ctx.fillStyle=col;ctx.fill(dp);
   ctx.restore();
   return lines;
 }
