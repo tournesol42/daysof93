@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v105-bubbles -->
+<!-- build: explore4-v106-bubbles-orange -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -225,7 +225,7 @@ let splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
-const WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
+const WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
 let web=null;
 function webBuild(){
   const pts=[],K=6+Math.floor(Math.random()*5),cl=[];
@@ -320,7 +320,7 @@ function webDraw(col){
   ctx.globalAlpha=0.38;ctx.stroke(paths[1]);
   ctx.globalAlpha=0.7;ctx.stroke(paths[2]);
   ctx.globalAlpha=0.3;ctx.stroke(echoP);
-  ctx.globalAlpha=0.9;ctx.lineWidth=1.2;
+  ctx.globalAlpha=0.4;ctx.lineWidth=1.2; // packed (connected) circles, lower opacity
   for(let g=0;g<web.groups.length;g++){
     const G=web.groups[g],gx=G.cx+(vnoise(G.ox+t,G.oy)*2-1)*WEB_DRIFT,gy=G.cy+(vnoise(G.ox,G.oy+t)*2-1)*WEB_DRIFT;
     const path=new Path2D();
@@ -334,7 +334,7 @@ function webDraw(col){
     bp.moveTo(x+B.r,y);bp.arc(x,y,B.r,0,Math.PI*2);
     dp.moveTo(x+1.6,y);dp.arc(x,y,1.6,0,Math.PI*2);
   }
-  ctx.stroke(bp);ctx.fillStyle=col;ctx.fill(dp);
+  ctx.globalAlpha=0.9;ctx.strokeStyle=WEB_BUBBLE_COL;ctx.fillStyle=WEB_BUBBLE_COL;ctx.stroke(bp);ctx.fill(dp);
   ctx.restore();
   return lines;
 }
