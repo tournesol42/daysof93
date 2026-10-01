@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v116-count-vary-black70 -->
+<!-- build: explore4-v117-fog-joints -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -244,7 +244,7 @@ function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),1
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
 // Fog (v114): web lines drawn into a tiny canvas, blurred, upscaled under the sharp lines (bloom-like haze where lines cluster)
-const FOG_ON=true,FOG_SCALE=1/6,FOG_OP=0.55,FOG_BLUR=2.5;
+const FOG_ON=true,FOG_SCALE=1/6,FOG_OP=0.75,FOG_BLUR=2.5,FOG_NODES=0.45,FOG_REACH=0.22;
 const fogA=document.createElement('canvas'),fogB=document.createElement('canvas');
 fogA.width=fogB.width=Math.round(CW*FOG_SCALE);fogA.height=fogB.height=Math.round(CH*FOG_SCALE);
 const fctxA=fogA.getContext('2d'),fctxB=fogB.getContext('2d');
@@ -259,7 +259,7 @@ function webBuild(){
     let x,y,g=-1;
     if(Math.random()<0.62){g=Math.floor(Math.random()*K);const c=cl[g],a=Math.random()*Math.PI*2,r=Math.abs(gaussRand())*c.s;x=c.x+Math.cos(a)*r;y=c.y+Math.sin(a)*r;}
     else{x=Math.random()*CW;y=Math.random()*CH;}
-    pts.push({x0:x,y0:y,zn:Math.random()*2-1,ox:Math.random()*500,oy:Math.random()*500,x:x,y:y,sx:x,sy:y,s:1,reach:0});
+    pts.push({x0:x,y0:y,fog:Math.random()<FOG_NODES,zn:Math.random()*2-1,ox:Math.random()*500,oy:Math.random()*500,x:x,y:y,sx:x,sy:y,s:1,reach:0});
   }
   // Reach from local density: distance to 4th nearest neighbour (once per trigger)
   for(let i=0;i<pts.length;i++){
@@ -336,7 +336,7 @@ function webDraw(col){
       }
     }
   }
-  const paths=[new Path2D(),new Path2D(),new Path2D()],echoP=new Path2D();
+  const paths=[new Path2D(),new Path2D(),new Path2D()],echoP=new Path2D(),fogP=new Path2D();
   let lines=0,echoes=0;
   web.conns=web.conns.filter(function(c){
     const age=now-c.born;if(age>c.dur)return false;
@@ -347,6 +347,9 @@ function webDraw(col){
     const od=o*Math.min(1,(pa.s+pb.s)/2); // further back = fainter
     const path=paths[od<0.25?0:od<0.5?1:2];
     path.moveTo(pa.sx,pa.sy);path.lineTo(pb.sx,pb.sy);
+    // Fog only near the joints of 'foggy' points: the first/last part of each line from such a point
+    if(pa.fog){fogP.moveTo(pa.sx,pa.sy);fogP.lineTo(pa.sx+(pb.sx-pa.sx)*FOG_REACH,pa.sy+(pb.sy-pa.sy)*FOG_REACH);}
+    if(pb.fog){fogP.moveTo(pb.sx,pb.sy);fogP.lineTo(pb.sx+(pa.sx-pb.sx)*FOG_REACH,pb.sy+(pa.sy-pb.sy)*FOG_REACH);}
     if(echoes<600&&od>0.2){const mx=(pa.sx+pb.sx)/2,my=(pa.sy+pb.sy)/2;
       for(let z=0;z<web.echo.length;z++){const Z=web.echo[z];if((mx-Z.x)**2+(my-Z.y)**2<Z.r*Z.r){
         const hx=(pb.sx-pa.sx)/2,hy=(pb.sy-pa.sy)/2;
@@ -361,7 +364,7 @@ function webDraw(col){
   if((fogTick++&1)===0){ // fog layer refreshed every 2nd frame (it's soft, the difference is invisible)
   fctxA.setTransform(1,0,0,1,0,0);fctxA.clearRect(0,0,fogA.width,fogA.height);
   fctxA.setTransform(FOG_SCALE,0,0,FOG_SCALE,0,0);fctxA.strokeStyle=col;fctxA.lineWidth=1.6/FOG_SCALE;
-  fctxA.globalAlpha=0.08;fctxA.stroke(paths[0]);fctxA.globalAlpha=0.18;fctxA.stroke(paths[1]);fctxA.globalAlpha=0.32;fctxA.stroke(paths[2]);
+  fctxA.globalAlpha=0.22;fctxA.stroke(fogP);
   fctxB.clearRect(0,0,fogB.width,fogB.height);
   if(FOG_FILTER)fctxB.filter='blur('+FOG_BLUR+'px)';
   fctxB.drawImage(fogA,0,0);fctxB.filter='none';
