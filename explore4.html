@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v117-fog-joints -->
+<!-- build: explore4-v118-inner-ring-opacity -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -81,6 +81,7 @@ function fbRoll(){
 fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
+let meshOp=1,meshRecover=false,rgLastTh=0;const MESH_TURN=1,MESH_RECOVER_S=10;
 const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.12,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
 Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
@@ -141,6 +142,12 @@ function drawRings(dt,bg){
     if(rg.y>vh-R){rg.y=vh-R;rg.vy=-Math.abs(rg.vy)*RG_BOUNCE_Y;}
   }
   if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
+  // Inner ring turns the proximity opacity: clockwise = up, counter-clockwise = down (one full turn = full range)
+  const dTh=rg.th-rgLastTh;rgLastTh=rg.th;
+  if(dTh!==0){meshOp=Math.max(0,Math.min(1,meshOp+dTh/(Math.PI*2)*MESH_TURN));if(rg.drag==='small')meshRecover=false;}
+  // Left at zero and let go: fade back up over 10 s
+  if(meshOp<=0.001&&rg.drag!=='small'&&Math.abs(rg.w)<0.05)meshRecover=true;
+  if(meshRecover){meshOp=Math.min(1,meshOp+dt/MESH_RECOVER_S);if(meshOp>=1)meshRecover=false;}
   const n=parseInt(bg.slice(1),16);
   const lum=((n>>16&255)*0.299+(n>>8&255)*0.587+(n&255)*0.114)/255;
   const R=rgR(),sm0=rgSmall();
@@ -358,7 +365,7 @@ function webDraw(col){
     return true;
   });
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
-  const lk=web.is3d?1:WEB_2D_OP; // 2D reveal: fainter, thinner-looking lines
+  const lk=(web.is3d?1:WEB_2D_OP)*meshOp; // 2D reveal: fainter, thinner-looking lines; inner ring opacity
   // Fog pass: thick soft lines at 1/6 resolution, blurred, then stretched under the sharp lines
   if(FOG_ON&&splash&&splash.bg==='#000000'){ // fog only on black backgrounds
   if((fogTick++&1)===0){ // fog layer refreshed every 2nd frame (it's soft, the difference is invisible)
@@ -763,7 +770,7 @@ function draw(ms){
       const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
       const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
       const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
-      ctx.save();ctx.globalAlpha=op;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
+      ctx.save();ctx.globalAlpha=op*meshOp;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
       if(op>0.02)fbLinesDrawn++;
       ctx.restore();
