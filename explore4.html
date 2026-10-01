@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v119-bubbles-shrink -->
+<!-- build: explore4-v120-bubbles-pace -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -300,7 +300,7 @@ function webBuild(){
     let x,y;
     if(Math.random()<0.6){const c=cl[Math.floor(Math.random()*K)];x=c.x+gaussRand()*c.s*1.5;y=c.y+gaussRand()*c.s*1.5;}
     else{x=Math.random()*CW;y=Math.random()*CH;}
-    bubbles.push({x0:x,y0:y,r:3+Math.pow(Math.random(),2.2)*45,amp:20+Math.random()*180,spd:0.3+Math.random()*2.7,shrink:0.3+Math.random()*0.4,ox:Math.random()*900,oy:Math.random()*900});
+    bubbles.push({x0:x,y0:y,r:3+Math.pow(Math.random(),2.2)*45,amp:20+Math.random()*180,spd:0.3+Math.random()*2.7,shrink:0.3+Math.random()*0.4,ky:0,lag:0.008+Math.random()*0.12,pw:0.4+Math.random()*2.2,ox:Math.random()*900,oy:Math.random()*900});
   }
   // 3D spin around the vertical axis: fast burst on activation, slowly decelerating
   web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0,bubbles:bubbles,rot:0,w:(Math.random()<0.5?-1:1)*WEB_SPIN0,lastT:performance.now(),depth:WEB_DEPTH};
@@ -394,7 +394,9 @@ function webDraw(col){
   for(let i=0;i<web.bubbles.length;i++){
     const B=web.bubbles[i],bt=t*B.spd;
     const b3=PJ(B.x0+(vnoise(B.ox+bt,B.oy)*2-1)*B.amp,B.y0+(vnoise(B.ox,B.oy+bt)*2-1)*B.amp,0),x=b3[0],y=b3[1];
-    const br=B.r*(1-ringY*(1-B.shrink));
+    // Each bubble follows the rings at its own pace (lag) and along its own curve (pw)
+    B.ky+=(ringY-B.ky)*B.lag;
+    const br=B.r*(1-Math.pow(B.ky,B.pw)*(1-B.shrink));
     bp.moveTo(x+br,y);bp.arc(x,y,br,0,Math.PI*2);
   }
   ctx.globalAlpha=0.9*(1-0.35*ringY);ctx.strokeStyle=WEB_BUBBLE_COL;ctx.fillStyle=WEB_BUBBLE_COL;ctx.stroke(bp);
