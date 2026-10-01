@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v98-midi-v2 -->
+<!-- build: explore4-v99-crossfade -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -91,6 +91,8 @@ function rgFit(){rgDpr=window.devicePixelRatio||1;rgCanvas.width=Math.round(wind
 window.addEventListener('resize',rgFit);rgFit();
 const rg={x:window.innerWidth*0.62,y:window.innerHeight*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0,ox:0,oy:0};
 function rgR(){const vh=window.innerHeight,t=Math.max(0,Math.min(1,rg.y/vh));return vh*RG_BASE*(RG_TOP+(RG_BOT-RG_TOP)*t);}
+// 0 = rings at their highest reachable point, 1 = lowest (accounts for size change + edge bounce)
+window.rgY01=function(){const a=RG_BASE*RG_TOP,b=RG_BASE*(RG_BOT-RG_TOP),top=a/(1-b),bot=(1-a)/(1+b);return Math.max(0,Math.min(1,(rg.y/window.innerHeight-top)/(bot-top)));};
 function rgSmall(){const R=rgR(),r=R*RG_RATIO,d=R-r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d,r:r};}
 function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas;}
 window.addEventListener('pointerdown',function(e){
@@ -730,6 +732,27 @@ requestAnimationFrame(draw);
 // CC 0 (preset scroll) and CC 16 (interp knob) from hardware silenced
 
 const MP3_URL  = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic.mp3';
+const MP3_2_URL = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic2.mp3';
+// ── Two-track crossfade (v99): rings' vertical position balances music 1 / music 2 ──
+const XF_STEEP = 14; // higher = more sudden switch, less overlap
+let g1 = null, g2 = null, mix2Buf = null, mix2Started = false;
+function startMusic2() {
+  if (mix2Started || !mix2Buf || !window.bsStarted || !audioCtx || !g2) return;
+  const s2 = audioCtx.createBufferSource();
+  s2.buffer = mix2Buf; s2.loop = true; s2.connect(g2); s2.start(0);
+  mix2Started = true;
+}
+function xfCurve(x) { // steep S-curve, exactly 0 at x=0 and 1 at x=1
+  const f = function (v) { return 1 / (1 + Math.exp(-XF_STEEP * (v - 0.5))); };
+  return (f(x) - f(0)) / (f(1) - f(0));
+}
+setInterval(function () {
+  if (!g1 || !g2) return;
+  const m = xfCurve(window.rgY01 ? window.rgY01() : 0);
+  const t = audioCtx.currentTime;
+  g1.gain.setTargetAtTime(Math.cos(m * Math.PI / 2), t, 0.04); // equal-power
+  g2.gain.setTargetAtTime(mix2Started ? Math.sin(m * Math.PI / 2) : 0, t, 0.04);
+}, 30);
 const MIDI_URL = 'https://daysof93-cdn.b-cdn.net/Explore4miditrigger-44barsV2.mid';
 const LOOP_DUR = 88.0; // 44 bars × 2 sec/bar at 120 BPM
 
@@ -812,6 +835,7 @@ function queueLoop(origin) {
 
 function firePreset() {
   window.bsStarted = true;
+  startMusic2();
   const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
   if (!filled.length) return;
   const slot   = filled[Math.floor(Math.random() * filled.length)];
@@ -866,9 +890,15 @@ function boot() {
         for (let i = 0; i < _td.length; i++) { const v = (_td[i] - 128) / 128; sum += v * v; }
         return Math.sqrt(sum / _td.length);
       };
-      src.connect(analyser);
+      g1 = audioCtx.createGain();
+      g2 = audioCtx.createGain(); g2.gain.value = 0;
+      src.connect(g1); g1.connect(analyser); g2.connect(analyser);
       analyser.connect(audioCtx.destination);
       src.start(0);
+      // Music 2: loads in the background, starts (silent) at the first MIDI gate
+      xhrGet(MP3_2_URL).then(function (b2) {
+        audioCtx.decodeAudioData(b2, function (buf) { mix2Buf = buf; startMusic2(); });
+      }).catch(function (e) { console.warn('Music 2 error:', e); });
 
       // Anchor MIDI scheduler to audio clock
       nextLoopOrigin      = audioCtx.currentTime;
