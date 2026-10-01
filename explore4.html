@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v120-bubbles-pace -->
+<!-- build: explore4-v121-ring-adaptive-glide -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -81,8 +81,8 @@ function fbRoll(){
 fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
-let meshOp=1,meshRecover=false,rgLastTh=0;const MESH_TURN=1,MESH_RECOVER_S=10;
-const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.12,RG_TOP=0.5,RG_BOT=1.4;
+let meshOp=1,meshRecover=false,rgLastTh=0,meshDir=0;const MESH_TURN=1,MESH_RECOVER_S=10;
+const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.3,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
 Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
 document.body.appendChild(rgCanvas);
@@ -99,7 +99,7 @@ function rgFree(e){return e.target===document.body||e.target===document.document
 window.addEventListener('pointerdown',function(e){
   if(!rgFree(e)||!window.bsStarted)return;
   const p={x:e.clientX,y:e.clientY},sm=rgSmall();
-  if(Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r){rg.drag='small';rg.w=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
+  if(Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r){rg.drag='small';rg.w=0;meshDir=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
   else if(Math.hypot(p.x-rg.x,p.y-rg.y)<rgR()){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
   else return;
   rg.lx=p.x;rg.ly=p.y;rg.lt=performance.now();
@@ -144,7 +144,10 @@ function drawRings(dt,bg){
   if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
   // Inner ring turns the proximity opacity: clockwise = up, counter-clockwise = down (one full turn = full range)
   const dTh=rg.th-rgLastTh;rgLastTh=rg.th;
-  if(dTh!==0){meshOp=Math.max(0,Math.min(1,meshOp+dTh/(Math.PI*2)*MESH_TURN));if(rg.drag==='small')meshRecover=false;}
+  // Direction adapts to the first move of each grab: that direction heads away from where the opacity is
+  // (down if it's above half, up if below); turning back reverses it
+  if(dTh!==0&&rg.drag==='small'&&meshDir===0)meshDir=Math.sign(dTh)*(meshOp>0.5?-1:1);
+  if(dTh!==0&&meshDir!==0){meshOp=Math.max(0,Math.min(1,meshOp+dTh*meshDir/(Math.PI*2)*MESH_TURN));if(rg.drag==='small')meshRecover=false;}
   // Left at zero and let go: fade back up over 10 s
   if(meshOp<=0.001&&rg.drag!=='small'&&Math.abs(rg.w)<0.05)meshRecover=true;
   if(meshRecover){meshOp=Math.min(1,meshOp+dt/MESH_RECOVER_S);if(meshOp>=1)meshRecover=false;}
