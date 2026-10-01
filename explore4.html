@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v94-splash-web -->
+<!-- build: explore4-v95-web-echo-palette -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -218,7 +218,7 @@ let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 // MIDI overrides — null until the fader is touched, then survive preset changes
 let midiLinesPer=null,midiLinesDist=null,midiRectK=1,midiRectT=1;
 // ── F4 colour splash (v89): above 15 = random neon colours once, below = back to normal ──
-const SPLASH_COLS=['#08cb00','#ff5fcf','#000000','#ffffff','#00e0ba','#30afff','#16ff00','#ebf400','#0079ff','#ffc400','#ffd93d','#aac8a7','#9929ea','#ff2dd1'];
+const SPLASH_COLS=['#000000','#ff204e','#f1f1f1','#c5c5c5','#ebd346','#f8de22','#7a7871']; // black, red, off-white, RAL 7047, RAL 1018, yellow, RAL 7048
 let splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
@@ -242,13 +242,13 @@ function webBuild(){
     a.reach=Math.max(6,Math.min(280,Math.sqrt(d[3])*1.7));
   }
   // Tangent circle packing in 2–4 clusters (touch, never overlap); each group moves rigidly
-  const groups=[],G=2+Math.floor(Math.random()*3);
+  const groups=[],G=4+Math.floor(Math.random()*5);
   for(let gi=0;gi<G;gi++){
-    const c=cl[Math.floor(Math.random()*K)],circ=[{x:0,y:0,r:8+Math.random()*30}];
-    const M=8+Math.floor(Math.random()*18);
+    const c=cl[Math.floor(Math.random()*K)],circ=[{x:0,y:0,r:3+Math.pow(Math.random(),2)*28}];
+    const M=12+Math.floor(Math.random()*29);
     for(let m=1;m<M;m++){
       for(let tries=0;tries<40;tries++){
-        const par=circ[Math.floor(Math.random()*circ.length)],r=5+Math.random()*30,ang=Math.random()*Math.PI*2;
+        const par=circ[Math.floor(Math.random()*circ.length)],r=2+Math.pow(Math.random(),2)*28,ang=Math.random()*Math.PI*2;
         const x=par.x+Math.cos(ang)*(par.r+r),y=par.y+Math.sin(ang)*(par.r+r);
         let ok=true;
         for(let q=0;q<circ.length;q++){const o=circ[q];if(Math.hypot(x-o.x,y-o.y)<o.r+r-0.01){ok=false;break;}}
@@ -257,11 +257,15 @@ function webBuild(){
     }
     groups.push({cx:c.x,cy:c.y,ox:Math.random()*500,oy:Math.random()*500,circ:circ});
   }
-  web={pts:pts,groups:groups};
+  // Echo zones: lines inside get copies that skew more and more
+  const echo=[],E=2+Math.floor(Math.random()*3);
+  for(let e=0;e<E;e++){const c=cl[Math.floor(Math.random()*K)];echo.push({x:c.x,y:c.y,r:80+Math.random()*220,step:(Math.random()<0.5?-1:1)*(0.035+Math.random()*0.07),n:3+Math.floor(Math.random()*4)});}
+  web={pts:pts,groups:groups,echo:echo};
 }
 function webDraw(col){
   if(!web)return 0;
-  const t=performance.now()*0.00012,P=web.pts,n=P.length,grid=new Map();
+  // Speed follows the scatter engine's noise speed (anim), with a slow base so it never fully stops
+  const t=anim*0.25+performance.now()*0.00003,P=web.pts,n=P.length,grid=new Map();
   for(let i=0;i<n;i++){
     const p=P[i];
     p.x=p.x0+(vnoise(p.ox+t,p.oy)*2-1)*WEB_DRIFT;
@@ -271,8 +275,8 @@ function webDraw(col){
   }
   const cnt=new Uint8Array(n);
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
-  const near=new Path2D(),far=new Path2D();
-  let lines=0;
+  const near=new Path2D(),far=new Path2D(),echoP=new Path2D();
+  let lines=0,echoes=0;
   for(let a=0;a<n;a++){
     if(cnt[a]>=WEB_MAXPER)continue;
     const pa=P[a],cr=Math.ceil(pa.reach/WEB_CELL),gx=Math.floor(pa.x/WEB_CELL),gy=Math.floor(pa.y/WEB_CELL);
@@ -281,12 +285,19 @@ function webDraw(col){
       for(let k=0;k<c.length;k++){
         const b=c[k];if(b<=a||cnt[b]>=WEB_MAXPER)continue;
         const pb=P[b],dx=pa.x-pb.x,dy=pa.y-pb.y,d=Math.sqrt(dx*dx+dy*dy),lim=Math.min(pa.reach,pb.reach);
-        if(d<lim){const path=d<lim*0.5?near:far;path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);cnt[a]++;cnt[b]++;lines++;if(cnt[a]>=WEB_MAXPER)break;}
+        if(d<lim){const path=d<lim*0.5?near:far;path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);cnt[a]++;cnt[b]++;lines++;
+          if(echoes<600){const mx=(pa.x+pb.x)/2,my=(pa.y+pb.y)/2;
+            for(let z=0;z<web.echo.length;z++){const Z=web.echo[z];if((mx-Z.x)**2+(my-Z.y)**2<Z.r*Z.r){
+              const hx=(pb.x-pa.x)/2,hy=(pb.y-pa.y)/2;
+              for(let e=1;e<=Z.n;e++){const an=Z.step*e,ca=Math.cos(an),sa=Math.sin(an),rx=hx*ca-hy*sa,ry=hx*sa+hy*ca;echoP.moveTo(mx-rx,my-ry);echoP.lineTo(mx+rx,my+ry);echoes++;}
+              break;}}}
+          if(cnt[a]>=WEB_MAXPER)break;}
       }
     }
   }
   ctx.globalAlpha=0.75;ctx.stroke(near);
   ctx.globalAlpha=0.35;ctx.stroke(far);
+  ctx.globalAlpha=0.3;ctx.stroke(echoP);
   ctx.globalAlpha=0.9;ctx.lineWidth=1.2;
   for(let g=0;g<web.groups.length;g++){
     const G=web.groups[g],gx=G.cx+(vnoise(G.ox+t,G.oy)*2-1)*WEB_DRIFT,gy=G.cy+(vnoise(G.ox,G.oy+t)*2-1)*WEB_DRIFT;
