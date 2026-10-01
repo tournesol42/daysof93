@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v121-ring-adaptive-glide -->
+<!-- build: explore4-v122-entry-rings -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -82,10 +82,10 @@ fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
 let meshOp=1,meshRecover=false,rgLastTh=0,meshDir=0;const MESH_TURN=1,MESH_RECOVER_S=10;
-const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.3,RG_TOP=0.5,RG_BOT=1.4;
+const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.55,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
 Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
-document.body.appendChild(rgCanvas);
+rgCanvas.id='rings';document.body.appendChild(rgCanvas);
 const rctx=rgCanvas.getContext('2d');
 let rgDpr=1;
 function rgFit(){rgDpr=window.devicePixelRatio||1;rgCanvas.width=Math.round(window.innerWidth*rgDpr);rgCanvas.height=Math.round(window.innerHeight*rgDpr);}
@@ -93,17 +93,20 @@ window.addEventListener('resize',rgFit);rgFit();
 const rg={x:window.innerWidth*0.62,y:window.innerHeight*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0,ox:0,oy:0};
 function rgR(){const vh=window.innerHeight,t=Math.max(0,Math.min(1,rg.y/vh));return vh*RG_BASE*(RG_TOP+(RG_BOT-RG_TOP)*t);}
 // 0 = rings at their highest reachable point, 1 = lowest (accounts for size change + edge bounce)
+window.rgInfo=function(){return {x:rg.x,y:rg.y,R:rgR()};};
 window.rgY01=function(){const a=RG_BASE*RG_TOP,b=RG_BASE*(RG_BOT-RG_TOP),top=a/(1-b),bot=(1-a)/(1+b);return Math.max(0,Math.min(1,(rg.y/window.innerHeight-top)/(bot-top)));};
 function rgSmall(){const R=rgR(),r=R*RG_RATIO,d=R-r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d,r:r};}
-function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas;}
+function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas||!!(e.target.closest&&e.target.closest('#entry'));}
+function rgOn(){return !!(window.bsStarted||window.rgShown);}
 window.addEventListener('pointerdown',function(e){
-  if(!rgFree(e)||!window.bsStarted)return;
+  if(!rgFree(e)||!rgOn())return;
   const p={x:e.clientX,y:e.clientY},sm=rgSmall();
   if(Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r){rg.drag='small';rg.w=0;meshDir=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
   else if(Math.hypot(p.x-rg.x,p.y-rg.y)<rgR()){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
   else return;
   rg.lx=p.x;rg.ly=p.y;rg.lt=performance.now();
   document.body.style.cursor='grabbing';e.preventDefault();
+  if(window.entryProceed)window.entryProceed(); // first grab during the entry opens the page
 });
 window.addEventListener('pointermove',function(e){
   const p={x:e.clientX,y:e.clientY},now=performance.now(),dts=Math.max(0.001,(now-rg.lt)/1000);
@@ -115,7 +118,7 @@ window.addEventListener('pointermove',function(e){
     let da=a-rg.la;da=Math.atan2(Math.sin(da),Math.cos(da));
     rg.th+=da;rg.w=rg.w*0.5+(da/dts)*0.5;rg.la=a;
   }else{
-    if(!rgFree(e)||!window.bsStarted){return;}
+    if(!rgFree(e)||!rgOn()){return;}
     const sm=rgSmall();
     const over=Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r||Math.hypot(p.x-rg.x,p.y-rg.y)<rgR();
     document.body.style.cursor=over?'grab':'';
@@ -129,7 +132,7 @@ window.addEventListener('pointerup',function(){
   rg.drag=null;document.body.style.cursor='grab';
 });
 function drawRings(dt,bg){
-  if(!window.bsStarted){rctx.setTransform(1,0,0,1,0,0);rctx.clearRect(0,0,rgCanvas.width,rgCanvas.height);return;}
+  if(!rgOn()){rctx.setTransform(1,0,0,1,0,0);rctx.clearRect(0,0,rgCanvas.width,rgCanvas.height);return;}
   const vw=window.innerWidth,vh=window.innerHeight;
   if(rg.drag!=='big'){
     const f=Math.pow(RG_FRICTION,dt);
@@ -162,7 +165,7 @@ function drawRings(dt,bg){
   const sm={x:bx+Math.cos(rg.th+wa)*d0,y:by+Math.sin(rg.th+wa)*d0,r:sm0.r};
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
-  rctx.strokeStyle=splash?splash.ring:(lum<0.2?'#ffffff':'#000000');rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
+  rctx.strokeStyle=window.entryActive?'#ffffff':(splash?splash.ring:(lum<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
   rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
@@ -1063,8 +1066,9 @@ function unlockAudio() {
 
 })();
 </script>
-<!-- ENTRY (v113): 4 pulsing bits; click/tap streams in 12 more, then the page opens. The click also unlocks audio. -->
+<!-- ENTRY (v122): 4 bits → countdown after 2 s → rings + hint after ~2.5 s more. Grabbing a ring (or clicking) unlocks audio, streams in 12 bits, opens the page. -->
 <div id="entry"><div id="entry-row"></div></div>
+<div id="entry-hint"><span>move rings to discover</span><svg width="64" height="12" viewBox="0 0 64 12"><line x1="0" y1="6" x2="62" y2="6" stroke="#fff" stroke-width="1"/><polyline points="55,1 62,6 55,11" fill="none" stroke="#fff" stroke-width="1"/></svg></div>
 <style>
 #entry{position:fixed;inset:0;background:#000;z-index:2147483000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .7s ease;-webkit-tap-highlight-color:transparent}
 #entry-row{display:flex;width:21.6em;font-family:'VectorBattle','Courier New',monospace;font-size:clamp(18px,2.6vw,32px);color:#fff;transition:transform .12s linear;user-select:none}
@@ -1074,34 +1078,57 @@ function unlockAudio() {
 #entry-row .eb.in{animation:ebIn .16s ease-out both}
 @keyframes ebPulse{0%,100%{opacity:.25}50%{opacity:1}}
 @keyframes ebIn{from{opacity:0;transform:translateX(.9em)}to{opacity:1;transform:none}}
+#entry-hint{position:fixed;z-index:2147483002;display:flex;align-items:center;gap:14px;color:#fff;font-family:'VectorBattle','Courier New',monospace;font-size:13px;letter-spacing:.18em;opacity:0;transition:opacity 1.2s ease;pointer-events:none;white-space:nowrap}
+#entry-hint.below{flex-direction:column-reverse;gap:10px}
+#entry-hint.below svg{transform:rotate(-90deg)}
 </style>
 <script>
 (function(){
-  const SLOTS=16,FIRST=4,STEP_MS=80;
-  const ov=document.getElementById('entry'),row=document.getElementById('entry-row');
+  const SLOTS=16,FIRST=4,STEP_MS=80,COUNT_AT=2000,RINGS_AT=4500;
+  const ov=document.getElementById('entry'),row=document.getElementById('entry-row'),hint=document.getElementById('entry-hint');
+  const rings=document.getElementById('rings');
   const bit=function(){return Math.random()<0.5?'0':'1';};
-  // Behind each digit: a fast 9→1 countdown at low opacity, then it disappears
-  // Loops 9→1 continuously until the overlay closes (a single 0.4s run was too brief to notice)
+  window.entryActive=true;
+  // Behind each digit: a fast 9→1 countdown loop, each number with its own opacity and speed
   function countdown(span){
+    if(span.dataset.cd)return;span.dataset.cd='1';
     const c=document.createElement('span');c.className='ec';span.appendChild(c);
-    c.style.opacity=(0.35+Math.random()*0.4).toFixed(2); // each number its own opacity (35–75%)
+    c.style.opacity=(0.35+Math.random()*0.4).toFixed(2);
     let v=9;c.textContent=v;
-    setInterval(function(){v=v>1?v-1:9;c.textContent=v;},25+Math.random()*65); // and its own speed (25–90ms per step)
+    setInterval(function(){v=v>1?v-1:9;c.textContent=v;},25+Math.random()*65);
   }
   function center(n){row.style.transform='translateX('+((SLOTS-n)/2*1.35)+'em)';}
   for(let i=0;i<FIRST;i++){const s=document.createElement('span');s.className='eb pulse';s.style.animationDelay=(i*0.2)+'s';s.textContent=bit();row.appendChild(s);}
   center(FIRST);
+  // 1) after 2 s: the countdown starts behind the 4 digits
+  setTimeout(function(){row.querySelectorAll('.eb').forEach(countdown);},COUNT_AT);
+  // 2) ~2.5 s later: rings fade in above the black screen, with the hint pointing at them
+  setTimeout(function(){
+    if(used)return;
+    window.rgShown=true;
+    if(rings){rings.style.zIndex='2147483001';rings.style.transition='opacity 1.2s ease';rings.style.opacity='0';requestAnimationFrame(function(){rings.style.opacity='1';});}
+    const g=window.rgInfo?window.rgInfo():{x:innerWidth*0.62,y:innerHeight*0.3,R:100};
+    const w=hint.offsetWidth;
+    if(g.x-g.R-24-w>12){hint.style.left=(g.x-g.R-24-w)+'px';hint.style.top=(g.y-hint.offsetHeight/2)+'px';}
+    else{hint.classList.add('below');hint.style.left=(g.x-hint.offsetWidth/2)+'px';hint.style.top=(g.y+g.R+16)+'px';}
+    hint.style.opacity='0.85';
+  },RINGS_AT);
   let used=false;
-  ov.addEventListener('click',function(){
+  // 3) grabbing a ring (or clicking anywhere): stream in 12 more bits and open the page
+  function proceed(){
     if(used)return;used=true;
+    window.rgShown=true;
+    hint.style.opacity='0';
     row.querySelectorAll('.eb').forEach(function(s){s.className='eb';s.style.opacity='1';countdown(s);});
     let n=FIRST;
     const iv=setInterval(function(){
       const s=document.createElement('span');s.className='eb in';s.textContent=bit();row.appendChild(s);countdown(s);
       n++;center(n);
-      if(n>=SLOTS){clearInterval(iv);setTimeout(function(){ov.style.opacity='0';setTimeout(function(){ov.remove();},750);},600);}
+      if(n>=SLOTS){clearInterval(iv);setTimeout(function(){ov.style.opacity='0';setTimeout(function(){ov.remove();hint.remove();window.entryActive=false;if(rings){rings.style.zIndex='3';rings.style.transition='';}},750);},600);}
     },STEP_MS);
-  });
+  }
+  window.entryProceed=proceed;
+  ov.addEventListener('click',proceed);
 })();
 </script>
 
