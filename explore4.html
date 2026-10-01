@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v111-depth-280 -->
+<!-- build: explore4-v112-audio-unlock-2d3d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -239,7 +239,7 @@ let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 let midiLinesPer=null,midiLinesDist=null,midiRectK=1,midiRectT=1;
 // ── F4 colour splash (v89): above 15 = random neon colours once, below = back to normal ──
 const SPLASH_COLS=['#000000','#f1f1f1','#c5c5c5','#7a7871']; // black, off-white, RAL 7047, RAL 7048
-let splash=null,lastBodyBg='';
+let splashCount=0,lastSplash=null,splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
@@ -311,7 +311,7 @@ function webDraw(col){
   // Depth: flat with rings at the top, deep volume as the rings go down (smoothed)
   const dTarget=WEB_DEPTH+(WEB_DEPTH_MAX-WEB_DEPTH)*(window.rgY01?window.rgY01():0);
   web.depth+=(dTarget-web.depth)*0.05;
-  for(let i=0;i<n;i++){const p=P[i],q=PJ(p.x,p.y,p.zn*web.depth);p.sx=q[0];p.sy=q[1];p.s=q[2];}
+  for(let i=0;i<n;i++){const p=P[i],q=PJ(p.x,p.y,web.is3d?p.zn*web.depth:0);p.sx=q[0];p.sy=q[1];p.s=q[2];}
   // Spawn: like the main engine — random partners within reach, each line lives and fades, so lines pile up and overlap
   if(now-web.lastSpawn>48){
     web.lastSpawn=now;
@@ -380,7 +380,15 @@ window.addEventListener('midicc',function(e){
   if(cc===0)midiLinesPer=1+Math.round(raw/127*5);          // F1: connections per word 1–6
   else if(cc===1)midiLinesDist=20+Math.round(raw/127*380); // F2: max distance 20–400px
   else if(cc===2)midiRectT=0.5*Math.pow(4,raw/127);
-  else if(cc===3){if(raw>15){if(!splash)splashRoll();}else{splash=null;web=null;}} // F4: colour splash switch
+  else if(cc===3){ // F4: odd activations = new splash in 2D, even activations = same splash transforms to 3D
+    if(raw>15){
+      if(!splash){
+        splashCount++;
+        if(splashCount%2===1||!lastSplash){splashRoll();web.is3d=false;web.w=0;lastSplash={splash:splash,web:web};}
+        else{splash=lastSplash.splash;web=lastSplash.web;web.is3d=true;web.rot=0;web.w=(Math.random()<0.5?-1:1)*WEB_SPIN0;web.lastT=performance.now();web.conns=[];}
+      }
+    }else{splash=null;web=null;}
+  }
 });
 // ── Shapes (v67) — sizes/colours measured from reference image, canvas px ──
 const SHAPES=[
@@ -574,7 +582,7 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     f*=midiRectK;
     const sw=s.w*midiRectK,sh=s.h*midiRectK;
     // Splash 3D: rectangles turn around their own vertical axis (through the anchor), in sync with the web's spin
-    const is3=!!(splash&&web);
+    const is3=!!(splash&&web&&web.is3d);
     let rot3=is3?Math.cos(web.rot):1;const rsn=is3?Math.sin(web.rot):0,dz=s.dz*midiRectK;
     const grey=s.c==='#898d8d';
     const sc=splash?splash.shapes[k]:s.c;
@@ -1004,8 +1012,14 @@ if (document.readyState === 'loading') {
 } else {
   boot();
 }
-['click','keydown','touchstart'].forEach(function(ev) {
-  window.addEventListener(ev, boot, { once: true });
+// Browsers start the AudioContext 'suspended' unless the page already has user activation,
+// so every gesture (re)starts it — boot() alone returned early and left it suspended.
+function unlockAudio() {
+  if (!started) boot();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+['pointerdown','click','keydown','touchstart'].forEach(function(ev) {
+  window.addEventListener(ev, unlockAudio);
 });
 
 })();
