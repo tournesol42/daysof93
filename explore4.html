@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v95-web-echo-palette -->
+<!-- build: explore4-v96-splash-bodybg -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -422,7 +422,7 @@ function applyState(s){
   S.focusCX=s.focusCX;S.focusCY=s.focusCY;
   S.circleRadius=s.circleRadius;S.rectW=s.rectW;S.rectH=s.rectH;
   _currentTextColor=s.textColor;
-  document.body.style.background=s.bgColor;
+  document.body.style.background=s.bgColor;lastBodyBg=''; // force draw() to re-apply (splash bg wins)
   linesOn=s.linesOn!==undefined?s.linesOn:true;
   linesMaxDist=s.linesMaxDist!==undefined?s.linesMaxDist:120;
   linesMaxPer=s.linesMaxPer!==undefined?s.linesMaxPer:2;
