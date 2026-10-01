@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v108-web-3d-spin -->
+<!-- build: explore4-v109-rects-3d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -560,6 +560,9 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     }
     f*=midiRectK;
     const sw=s.w*midiRectK,sh=s.h*midiRectK;
+    // Splash 3D: rectangles turn around their own vertical axis (through the anchor), in sync with the web's spin
+    let rot3=(splash&&web)?Math.cos(web.rot):1;
+    if(rot3!==1){if(Math.abs(rot3)<0.02)rot3=rot3<0?-0.02:0.02;ctx.save();ctx.translate(ax,ay);ctx.scale(rot3,1);ctx.translate(-ax,-ay);}
     const grey=s.c==='#898d8d';
     const sc=splash?splash.shapes[k]:s.c;
     ctx.fillStyle=sc;ctx.strokeStyle=sc;
@@ -580,6 +583,7 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     if(s.k==='v'){ctx.moveTo(lx+s.dx,ay+s.dy);ctx.lineTo(lx+s.dx,ay+s.dy+sh*f);}
     else{ctx.moveTo(ax+s.dx,ly+s.dy);ctx.lineTo(ax+s.dx-sw*f,ly+s.dy);}
     ctx.stroke();
+    if(rot3!==1)ctx.restore();
   }
   ctx.restore();
 }
