@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v89-f4-splash -->
+<!-- build: explore4-v90-frame-grey -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -68,7 +68,7 @@ function readSizeParams(){
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
 // ── Bounding frame (v79) — shows when no proximity lines are drawn ──
-const FB_COLOR='#ee1729',FB_WIDTH=2,FB_SKEW=0.06;
+const FB_COLOR='#ee1729',FB_THICK_COLOR='#898d8d',FB_WIDTH=2,FB_SKEW=0.06;
 let fbMinX,fbMinY,fbMaxX,fbMaxY,fbSX=0,fbSY=0,fbN=0,fbLinesDrawn=0,fbA=0;
 let fbBox=null,fbPts=[],fbOffX=0,fbOffY=0,fbPairs=[];
 // Re-rolled on every preset: frame offset + which words the chaotic lines pass through
@@ -168,7 +168,7 @@ function fbDraw(){
   if(fbA<0.01||!fbBox)return;
   const x0=fbBox[0]+fbOffX,y0=fbBox[1]+fbOffY,x1=fbBox[2]+fbOffX,y1=fbBox[3]+fbOffY;
   const cx=fbBox[4],cy=fbBox[5];
-  ctx.save();ctx.strokeStyle=splash?splash.frame:FB_COLOR;ctx.lineWidth=FB_WIDTH;
+  ctx.save();ctx.strokeStyle=splash?splash.frame:FB_THICK_COLOR;ctx.lineWidth=FB_WIDTH;
   // Precision: offset frame + corner registration marks
   ctx.globalAlpha=fbA;
   // Frame edges scale around their own midpoints with F3 (gaps at corners when short, overshoot when long)
@@ -189,7 +189,7 @@ function fbDraw(){
   // Chaos: lines through two word anchors, extended across the canvas
   const np=fbPts.length/2;
   if(np>=2){
-    ctx.lineWidth=1;
+    ctx.lineWidth=1;ctx.strokeStyle=splash?splash.frame:FB_COLOR;
     for(let k=0;k<fbPairs.length;k++){
       const pr=fbPairs[k];
       const ia=Math.floor(pr[0]*np),ib=Math.floor(pr[1]*np);
