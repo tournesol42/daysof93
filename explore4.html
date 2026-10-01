@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v99-crossfade -->
+<!-- build: explore4-v100-m1floor-hp-reverb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -735,11 +735,23 @@ const MP3_URL  = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic.mp3';
 const MP3_2_URL = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic2.mp3';
 // ── Two-track crossfade (v99): rings' vertical position balances music 1 / music 2 ──
 const XF_STEEP = 14; // higher = more sudden switch, less overlap
-let g1 = null, g2 = null, mix2Buf = null, mix2Started = false;
+const M1_FLOOR = 0.7;  // music 1 never below 70%
+const REV_MAX = 1.0;   // reverb send on music 1 when rings are low
+let g1 = null, g2 = null, hp2 = null, revIn = null, mix2Buf = null, mix2Started = false;
+// Same church reverb as explore.html: 8s tail, decay 1.2, 40ms pre-delay
+function createReverbIR(ctx, duration, decay) {
+  const rate = ctx.sampleRate, length = Math.ceil(rate * duration), preDelay = Math.floor(rate * 0.04);
+  const ir = ctx.createBuffer(2, length, rate);
+  for (let c = 0; c < 2; c++) {
+    const ch = ir.getChannelData(c);
+    for (let i = preDelay; i < length; i++) { const t = (i - preDelay) / (length - preDelay); ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay); }
+  }
+  return ir;
+}
 function startMusic2() {
   if (mix2Started || !mix2Buf || !window.bsStarted || !audioCtx || !g2) return;
   const s2 = audioCtx.createBufferSource();
-  s2.buffer = mix2Buf; s2.loop = true; s2.connect(g2); s2.start(0);
+  s2.buffer = mix2Buf; s2.loop = true; s2.connect(hp2); s2.start(0);
   mix2Started = true;
 }
 function xfCurve(x) { // steep S-curve, exactly 0 at x=0 and 1 at x=1
@@ -750,7 +762,8 @@ setInterval(function () {
   if (!g1 || !g2) return;
   const m = xfCurve(window.rgY01 ? window.rgY01() : 0);
   const t = audioCtx.currentTime;
-  g1.gain.setTargetAtTime(Math.cos(m * Math.PI / 2), t, 0.04); // equal-power
+  g1.gain.setTargetAtTime(M1_FLOOR + (1 - M1_FLOOR) * Math.cos(m * Math.PI / 2), t, 0.04);
+  if (revIn) revIn.gain.setTargetAtTime(m * REV_MAX, t, 0.08);
   g2.gain.setTargetAtTime(mix2Started ? Math.sin(m * Math.PI / 2) : 0, t, 0.04);
 }, 30);
 const MIDI_URL = 'https://daysof93-cdn.b-cdn.net/Explore4miditrigger-44barsV2.mid';
@@ -893,6 +906,13 @@ function boot() {
       g1 = audioCtx.createGain();
       g2 = audioCtx.createGain(); g2.gain.value = 0;
       src.connect(g1); g1.connect(analyser); g2.connect(analyser);
+      // Music 2 only: highpass at 100 Hz
+      hp2 = audioCtx.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = 100; hp2.Q.value = 0.707;
+      hp2.connect(g2);
+      // Music 1 reverb send (rises as the rings go low)
+      revIn = audioCtx.createGain(); revIn.gain.value = 0;
+      const conv = audioCtx.createConvolver(); conv.buffer = createReverbIR(audioCtx, 8.0, 1.2);
+      src.connect(revIn); revIn.connect(conv); conv.connect(analyser);
       analyser.connect(audioCtx.destination);
       src.start(0);
       // Music 2: loads in the background, starts (silent) at the first MIDI gate
