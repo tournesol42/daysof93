@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v125-wander-down -->
+<!-- build: explore4-v126-strobe -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -81,6 +81,12 @@ function fbRoll(){
 fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
+// Strobe (v126): spinning the inner ring fast makes full-screen flashes in the opposite colour of the background
+const STROBE_MIN=7,STROBE_FULL=20; // rad/s: starts above ~1.1 turns/s, maximum at ~3.2 turns/s
+const strobeEl=document.createElement('div');
+Object.assign(strobeEl.style,{position:'fixed',inset:'0',pointerEvents:'none',zIndex:'4',opacity:'0'});
+document.body.appendChild(strobeEl);
+let strobeOn=false,strobeSp=0;
 let rgLastUser=0;const RG_WANDER_AFTER=3,RG_WANDER_SPEED=40,RG_WANDER_DOWN=0.6;
 let meshOp=1,meshRecover=false,rgLastTh=0,meshDir=0;const MESH_TURN=1,MESH_RECOVER_S=10;
 const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.55,RG_TOP=0.5,RG_BOT=1.4;
@@ -177,6 +183,12 @@ function drawRings(dt,bg){
   rctx.strokeStyle=window.entryActive?'#ffffff':(splash?splash.ring:(lum<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
   rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
+  // Strobe: inner ring spin speed → flash chance; never two 'on' frames in a row (hard blinks)
+  strobeSp+=(Math.abs(dTh)/Math.max(dt,0.001)-strobeSp)*0.5;
+  const sAmt=Math.max(0,Math.min(1,(strobeSp-STROBE_MIN)/(STROBE_FULL-STROBE_MIN)));
+  if(sAmt>0&&!strobeOn&&Math.random()<0.25+0.5*sAmt){
+    strobeOn=true;strobeEl.style.background=lum<0.5?'#ffffff':'#000000';strobeEl.style.opacity=(0.55+0.45*sAmt).toFixed(2);
+  }else if(strobeOn){strobeOn=false;strobeEl.style.opacity='0';}
 }
 // Text mask for the splash web (v107): cells covered by visible words (previous frame)
 const TXT_CELL=24,TXT_PAD=8;
