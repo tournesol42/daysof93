@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v91-start-idle-dist -->
+<!-- build: explore4-v92-line-anchors -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -67,6 +67,20 @@ function readSizeParams(){
 }
 let rainDrops=[],lastRainSpawnMS=0,points=[];
 let connections=[],lastConnectMS=0;
+// Word width cache for proximity line anchors (v92)
+const lnWCache=new Map();
+function lnWordW(i,winStart){
+  const w=words[winStart+i],p=points[i];
+  if(!w||!p)return 0;
+  const key=fontName+'|'+p.sz+'|'+w;
+  let v=lnWCache.get(key);
+  if(v===undefined){
+    ctx.save();ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";v=ctx.measureText(w).width;ctx.restore();
+    if(lnWCache.size>5000)lnWCache.clear();
+    lnWCache.set(key,v);
+  }
+  return v;
+}
 // ── Bounding frame (v79) — shows when no proximity lines are drawn ──
 const FB_COLOR='#ee1729',FB_THICK_COLOR='#898d8d',FB_WIDTH=2,FB_SKEW=0.06;
 let fbMinX,fbMinY,fbMaxX,fbMaxY,fbSX=0,fbSY=0,fbN=0,fbLinesDrawn=0,fbA=0;
@@ -519,8 +533,9 @@ function draw(ms){
       const n=points.length,PX=new Float32Array(n),PY=new Float32Array(n);
       for(let a=0;a<n;a++){
         const pa=points[a];
-        PX[a]=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-        PY[a]=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+        const nmA=1+((pa.noiseMod??0.5)-0.5)*noiseModAmt*2;
+        PX[a]=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp*nmA;
+        PY[a]=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp*nmA;
       }
       const md2=maxDist*maxDist;
       for(let a=0;a<n;a++){
@@ -542,7 +557,7 @@ function draw(ms){
         const cb=used.get(b)||0;
         if(ca>=maxPer||cb>=maxPer)continue;
         if(live.has(a*65536+b))continue;
-        connections.push({i:a,j:b,born:now,dur:durMs*(0.7+Math.random()*0.6),maxOpacity:maxOpac*(0.4+Math.random()*0.6)});
+        connections.push({i:a,j:b,fa:Math.random(),fb:Math.random(),born:now,dur:durMs*(0.7+Math.random()*0.6),maxOpacity:maxOpac*(0.4+Math.random()*0.6)});
         used.set(a,ca+1);
         used.set(b,cb+1);
       }
@@ -555,10 +570,12 @@ function draw(ms){
       const op=c.maxOpacity*opT;
       const pa=points[c.i],pb=points[c.j];
       if(!pa||!pb)return false;
-      const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-      const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
-      const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
-      const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
+      // Same position formula as the words (incl. per-word noise mod), anchored at a random point along each word
+      const nmA=1+((pa.noiseMod??0.5)-0.5)*noiseModAmt*2,nmB=1+((pb.noiseMod??0.5)-0.5)*noiseModAmt*2;
+      const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp*nmA+lnWordW(c.i,winStart)*c.fa;
+      const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp*nmA;
+      const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp*nmB+lnWordW(c.j,winStart)*c.fb;
+      const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp*nmB;
       ctx.save();ctx.globalAlpha=op;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
       if(op>0.02)fbLinesDrawn++;
