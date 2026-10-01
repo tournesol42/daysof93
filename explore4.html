@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v113-entry-2dfaint -->
+<!-- build: explore4-v114-fog-countdown -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -243,6 +243,13 @@ let splashCount=0,lastSplash=null,splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
+// Fog (v114): web lines drawn into a tiny canvas, blurred, upscaled under the sharp lines (bloom-like haze where lines cluster)
+const FOG_ON=true,FOG_SCALE=1/6,FOG_OP=0.55,FOG_BLUR=2.5;
+const fogA=document.createElement('canvas'),fogB=document.createElement('canvas');
+fogA.width=fogB.width=Math.round(CW*FOG_SCALE);fogA.height=fogB.height=Math.round(CH*FOG_SCALE);
+const fctxA=fogA.getContext('2d'),fctxB=fogB.getContext('2d');
+const FOG_FILTER=('filter' in fctxB);
+let fogTick=0;
 const WEB_2D_OP=0.4,WEB_DEPTH=60,WEB_DEPTH_MAX=280,WEB_FOCAL=1400,WEB_SPIN0=3.2,WEB_SPIN_MIN=0.12,WEB_SPIN_DECAY=0.35,WEB_BUBBLE_COL='#ff7900',WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
 let web=null;
 function webBuild(){
@@ -349,6 +356,18 @@ function webDraw(col){
   });
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
   const lk=web.is3d?1:WEB_2D_OP; // 2D reveal: fainter, thinner-looking lines
+  // Fog pass: thick soft lines at 1/6 resolution, blurred, then stretched under the sharp lines
+  if(FOG_ON){
+  if((fogTick++&1)===0){ // fog layer refreshed every 2nd frame (it's soft, the difference is invisible)
+  fctxA.setTransform(1,0,0,1,0,0);fctxA.clearRect(0,0,fogA.width,fogA.height);
+  fctxA.setTransform(FOG_SCALE,0,0,FOG_SCALE,0,0);fctxA.strokeStyle=col;fctxA.lineWidth=1.6/FOG_SCALE;
+  fctxA.globalAlpha=0.08;fctxA.stroke(paths[0]);fctxA.globalAlpha=0.18;fctxA.stroke(paths[1]);fctxA.globalAlpha=0.32;fctxA.stroke(paths[2]);
+  fctxB.clearRect(0,0,fogB.width,fogB.height);
+  if(FOG_FILTER)fctxB.filter='blur('+FOG_BLUR+'px)';
+  fctxB.drawImage(fogA,0,0);fctxB.filter='none';
+  }
+  ctx.globalAlpha=FOG_OP*lk;ctx.imageSmoothingEnabled=true;ctx.drawImage(fogB,0,0,CW,CH);
+  }
   ctx.globalAlpha=0.15*lk;ctx.stroke(paths[0]);
   ctx.globalAlpha=0.38*lk;ctx.stroke(paths[1]);
   ctx.globalAlpha=0.7*lk;ctx.stroke(paths[2]);
@@ -1030,7 +1049,8 @@ function unlockAudio() {
 <style>
 #entry{position:fixed;inset:0;background:#000;z-index:2147483000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .7s ease;-webkit-tap-highlight-color:transparent}
 #entry-row{display:flex;width:21.6em;font-family:'VectorBattle','Courier New',monospace;font-size:clamp(18px,2.6vw,32px);color:#fff;transition:transform .12s linear;user-select:none}
-#entry-row .eb{flex:0 0 1.35em;text-align:center}
+#entry-row .eb{flex:0 0 1.35em;text-align:center;position:relative}
+#entry-row .ec{position:absolute;left:0;right:0;top:0;opacity:.25;z-index:-1;pointer-events:none}
 #entry-row .eb.pulse{animation:ebPulse 1.6s ease-in-out infinite}
 #entry-row .eb.in{animation:ebIn .16s ease-out both}
 @keyframes ebPulse{0%,100%{opacity:.25}50%{opacity:1}}
@@ -1041,16 +1061,22 @@ function unlockAudio() {
   const SLOTS=16,FIRST=4,STEP_MS=80;
   const ov=document.getElementById('entry'),row=document.getElementById('entry-row');
   const bit=function(){return Math.random()<0.5?'0':'1';};
+  // Behind each digit: a fast 9→1 countdown at low opacity, then it disappears
+  function countdown(span){
+    const c=document.createElement('span');c.className='ec';span.appendChild(c);
+    let v=9;c.textContent=v;
+    const t=setInterval(function(){v--;if(v<1){clearInterval(t);c.remove();}else c.textContent=v;},45);
+  }
   function center(n){row.style.transform='translateX('+((SLOTS-n)/2*1.35)+'em)';}
   for(let i=0;i<FIRST;i++){const s=document.createElement('span');s.className='eb pulse';s.style.animationDelay=(i*0.2)+'s';s.textContent=bit();row.appendChild(s);}
   center(FIRST);
   let used=false;
   ov.addEventListener('click',function(){
     if(used)return;used=true;
-    row.querySelectorAll('.eb').forEach(function(s){s.className='eb';s.style.opacity='1';});
+    row.querySelectorAll('.eb').forEach(function(s){s.className='eb';s.style.opacity='1';countdown(s);});
     let n=FIRST;
     const iv=setInterval(function(){
-      const s=document.createElement('span');s.className='eb in';s.textContent=bit();row.appendChild(s);
+      const s=document.createElement('span');s.className='eb in';s.textContent=bit();row.appendChild(s);countdown(s);
       n++;center(n);
       if(n>=SLOTS){clearInterval(iv);setTimeout(function(){ov.style.opacity='0';setTimeout(function(){ov.remove();},750);},600);}
     },STEP_MS);
