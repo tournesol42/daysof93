@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v106-bubbles-orange -->
+<!-- build: explore4-v107-web-avoids-text -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -156,7 +156,24 @@ function drawRings(dt,bg){
   rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
-function fbReset(){midiRectK+=(midiRectT-midiRectK)*(midiRectT>midiRectK?0.5:0.03);fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
+// Text mask for the splash web (v107): cells covered by visible words (previous frame)
+const TXT_CELL=24,TXT_PAD=8;
+let txtBoxes=[],txtOcc=new Set();
+function txtBuildOcc(){
+  txtOcc.clear();
+  for(let i=0;i<txtBoxes.length;i+=4){
+    const x0=Math.floor((txtBoxes[i]-TXT_PAD)/TXT_CELL),y0=Math.floor((txtBoxes[i+1]-TXT_PAD)/TXT_CELL);
+    const x1=Math.floor((txtBoxes[i+2]+TXT_PAD)/TXT_CELL),y1=Math.floor((txtBoxes[i+3]+TXT_PAD)/TXT_CELL);
+    for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)txtOcc.add(cx*4096+cy);
+  }
+  txtBoxes.length=0;
+}
+function txtHit(ax,ay,bx,by){
+  const len=Math.hypot(bx-ax,by-ay),n=Math.min(60,Math.max(1,Math.ceil(len/TXT_CELL)));
+  for(let k=0;k<=n;k++){const u=k/n;if(txtOcc.has(Math.floor((ax+(bx-ax)*u)/TXT_CELL)*4096+Math.floor((ay+(by-ay)*u)/TXT_CELL)))return true;}
+  return false;
+}
+function fbReset(){if(splash)txtBuildOcc();else txtBoxes.length=0;midiRectK+=(midiRectT-midiRectK)*(midiRectT>midiRectK?0.5:0.03);fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
 function fbText(w,x,y){
   ctx.fillText(w,x,y);
   if(ctx.globalAlpha<0.05)return;
@@ -166,6 +183,7 @@ function fbText(w,x,y){
   if(t<fbMinY)fbMinY=t;if(b>fbMaxY)fbMaxY=b;
   fbSX+=x+m.width/2;fbSY+=y;fbN++;
   fbPts.push(x,y);
+  if(splash)txtBoxes.push(x,t,x+m.width,b);
 }
 function fbDraw(){
   fbA+=((fbLinesDrawn===0&&fbN>0?1:0)-fbA)*0.05;
@@ -306,8 +324,10 @@ function webDraw(col){
     const age=now-c.born;if(age>c.dur)return false;
     const u=age/c.dur,env=u<0.15?u/0.15:u>0.6?1-(u-0.6)/0.4:1,o=c.op*env;
     const pa=P[c.a],pb=P[c.b];
+    lines++;
+    if(txtHit(pa.x,pa.y,pb.x,pb.y))return true; // keep alive, but don't draw across text
     const path=paths[o<0.25?0:o<0.5?1:2];
-    path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);lines++;
+    path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);
     if(echoes<600&&o>0.2){const mx=(pa.x+pb.x)/2,my=(pa.y+pb.y)/2;
       for(let z=0;z<web.echo.length;z++){const Z=web.echo[z];if((mx-Z.x)**2+(my-Z.y)**2<Z.r*Z.r){
         const hx=(pb.x-pa.x)/2,hy=(pb.y-pa.y)/2;
@@ -332,9 +352,8 @@ function webDraw(col){
     const B=web.bubbles[i],bt=t*B.spd;
     const x=B.x0+(vnoise(B.ox+bt,B.oy)*2-1)*B.amp,y=B.y0+(vnoise(B.ox,B.oy+bt)*2-1)*B.amp;
     bp.moveTo(x+B.r,y);bp.arc(x,y,B.r,0,Math.PI*2);
-    dp.moveTo(x+1.6,y);dp.arc(x,y,1.6,0,Math.PI*2);
   }
-  ctx.globalAlpha=0.9;ctx.strokeStyle=WEB_BUBBLE_COL;ctx.fillStyle=WEB_BUBBLE_COL;ctx.stroke(bp);ctx.fill(dp);
+  ctx.globalAlpha=0.9;ctx.strokeStyle=WEB_BUBBLE_COL;ctx.fillStyle=WEB_BUBBLE_COL;ctx.stroke(bp);
   ctx.restore();
   return lines;
 }
