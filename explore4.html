@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v127-f5-space -->
+<!-- build: explore4-v128-space-tweaks -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -180,14 +180,15 @@ function drawRings(dt,bg){
   const sm={x:bx+Math.cos(rg.th+wa)*d0,y:by+Math.sin(rg.th+wa)*d0,r:sm0.r};
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
-  rctx.strokeStyle=window.entryActive?'#ffffff':(splash?splash.ring:(lum<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
+  const lumE=lum*(1-0.995*spaceA); // F5 darkness counts as a dark background for rings + strobe
+  rctx.strokeStyle=window.entryActive?'#ffffff':(splash&&spaceA<0.5?splash.ring:(lumE<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
   rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
   // Strobe: inner ring spin speed → flash chance; never two 'on' frames in a row (hard blinks)
   strobeSp+=(Math.abs(dTh)/Math.max(dt,0.001)-strobeSp)*0.5;
   const sAmt=Math.max(0,Math.min(1,(strobeSp-STROBE_MIN)/(STROBE_FULL-STROBE_MIN)));
   if(sAmt>0&&!strobeOn&&Math.random()<0.25+0.5*sAmt){
-    strobeOn=true;strobeEl.style.background=lum<0.5?'#ffffff':'#000000';strobeEl.style.opacity=(0.55+0.45*sAmt).toFixed(2);
+    strobeOn=true;strobeEl.style.background=lumE<0.5?'#ffffff':'#000000';strobeEl.style.opacity=(0.55+0.45*sAmt).toFixed(2);
   }else if(strobeOn){strobeOn=false;strobeEl.style.opacity='0';}
 }
 // Text mask for the splash web (v107): cells covered by visible words (previous frame)
@@ -608,7 +609,7 @@ window.bsLinesParams=function(dist,perPt,durFrames,opac100){
 };
 
 // ── F5 "big space" (v127): everything sinks into darkness; a few small fragments stay, blurred and glowing ──
-const SP_SCALE=1/6,SP_SPOTS=14,SP_BLUR=3;
+const SP_SCALE=1/6,SP_SPOTS=14,SP_BLUR=3,SP_DARK=0.995;
 const spA=document.createElement('canvas'),spB=document.createElement('canvas'),spM=document.createElement('canvas');
 spA.width=spB.width=spM.width=Math.round(CW*SP_SCALE);spA.height=spB.height=spM.height=Math.round(CH*SP_SCALE);
 const spxA=spA.getContext('2d'),spxB=spB.getContext('2d'),spxM=spM.getContext('2d');
@@ -616,7 +617,7 @@ let spaceT=0,spaceA=0,spTick=0;const spSpots=[];
 function spDark(hex,a){const n=parseInt(hex.slice(1),16),k=1-a;return 'rgb('+Math.round((n>>16&255)*k)+','+Math.round((n>>8&255)*k)+','+Math.round((n&255)*k)+')';}
 function spaceDraw(bg){
   spaceA+=(spaceT-spaceA)*0.08;
-  if(!window.entryActive)rgCanvas.style.opacity=(1-0.85*spaceA).toFixed(3);
+
   if(spaceA<0.004)return;
   const now=performance.now(),np=fbPts.length/2;
   // Fragments: each sits on a word, lives 2–6 s, fades in and out, then moves to another word
@@ -628,7 +629,13 @@ function spaceDraw(bg){
   //    turns the background black and the content bright, so fragments glow on any background
   if((spTick++&1)===0){
     spxA.globalCompositeOperation='source-over';spxA.clearRect(0,0,spA.width,spA.height);spxA.drawImage(canvas,0,0,spA.width,spA.height);
-    spxA.globalCompositeOperation='difference';spxA.fillStyle=bg;spxA.fillRect(0,0,spA.width,spA.height);spxA.globalCompositeOperation='source-over';
+    spxA.globalCompositeOperation='difference';spxA.fillStyle=bg;spxA.fillRect(0,0,spA.width,spA.height);
+    // tint: orange at one side drifting to red at the other, the gradient slowly turning
+    const ta=now*0.00015,cx=spA.width/2,cy=spA.height/2,L=spA.height*0.6;
+    const tg=spxA.createLinearGradient(cx-Math.cos(ta)*L,cy-Math.sin(ta)*L,cx+Math.cos(ta)*L,cy+Math.sin(ta)*L);
+    tg.addColorStop(0,'#ff9a2e');tg.addColorStop(0.5,'#ff5a1e');tg.addColorStop(1,'#ff2414');
+    spxA.globalCompositeOperation='multiply';spxA.fillStyle=tg;spxA.fillRect(0,0,spA.width,spA.height);
+    spxA.globalCompositeOperation='source-over';
     spxB.clearRect(0,0,spB.width,spB.height);if('filter' in spxB)spxB.filter='blur('+SP_BLUR+'px)';spxB.drawImage(spA,0,0);spxB.filter='none';
   }
   // 2) mask of soft spots on the fragment words
@@ -641,7 +648,7 @@ function spaceDraw(bg){
   }
   spxM.globalCompositeOperation='source-in';spxM.drawImage(spB,0,0);
   // 3) darken everything, 4) add the fragments back on top as glow
-  ctx.save();ctx.globalAlpha=spaceA*0.96;ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
+  ctx.save();ctx.globalAlpha=spaceA*SP_DARK;ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
   ctx.globalCompositeOperation='lighter';ctx.imageSmoothingEnabled=true;
   ctx.globalAlpha=Math.min(1,spaceA*1.2);ctx.drawImage(spM,0,0,CW,CH);ctx.drawImage(spM,0,0,CW,CH);
   ctx.restore();
@@ -734,7 +741,7 @@ function draw(ms){
   const noiseModAmt=S.noiseMod/100;
   const bgCol=splash?splash.bg:S.bgColor;
   const textCol=splash?splash.text:_currentTextColor;
-  const spDarkBg=spaceA>0.004?spDark(bgCol,spaceA*0.96):bgCol;
+  const spDarkBg=spaceA>0.004?spDark(bgCol,spaceA*SP_DARK):bgCol;
   if(spDarkBg!==lastBodyBg){document.body.style.background=spDarkBg;lastBodyBg=spDarkBg;}
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
