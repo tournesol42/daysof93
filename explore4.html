@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v123-entry-auto -->
+<!-- build: explore4-v124-ring-wander -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -81,6 +81,7 @@ function fbRoll(){
 fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
+let rgLastUser=0;const RG_WANDER_AFTER=3,RG_WANDER_SPEED=22;
 let meshOp=1,meshRecover=false,rgLastTh=0,meshDir=0;const MESH_TURN=1,MESH_RECOVER_S=10;
 const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.55,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
@@ -109,6 +110,7 @@ window.addEventListener('pointerdown',function(e){
   if(window.entryProceed)window.entryProceed(); // first grab during the entry opens the page
 });
 window.addEventListener('pointermove',function(e){
+  rgLastUser=performance.now();
   const p={x:e.clientX,y:e.clientY},now=performance.now(),dts=Math.max(0.001,(now-rg.lt)/1000);
   if(rg.drag==='big'){
     rg.vx=rg.vx*0.5+((p.x-rg.lx)/dts)*0.5;rg.vy=rg.vy*0.5+((p.y-rg.ly)/dts)*0.5;
@@ -136,7 +138,14 @@ function drawRings(dt,bg){
   const vw=window.innerWidth,vh=window.innerHeight;
   if(rg.drag!=='big'){
     const f=Math.pow(RG_FRICTION,dt);
-    rg.vx*=f;rg.vy*=f;rg.x+=rg.vx*dt;rg.y+=rg.vy*dt;
+    rg.vx*=f;rg.vy*=f;
+    // Idle wander: after a few seconds without mouse/touch activity the rings drift slowly in shifting directions
+    if(!window.entryActive&&rg.drag===null&&performance.now()-rgLastUser>RG_WANDER_AFTER*1000){
+      const wt=performance.now()*0.00008,ease=Math.min(1,(performance.now()-rgLastUser-RG_WANDER_AFTER*1000)/4000);
+      const tx=(vnoise(wt,41.3)*2-1)*RG_WANDER_SPEED*ease,ty=(vnoise(77.9,wt)*2-1)*RG_WANDER_SPEED*ease;
+      const k=Math.min(1,dt*0.8);rg.vx+=(tx-rg.vx)*k;rg.vy+=(ty-rg.vy)*k;
+    }
+    rg.x+=rg.vx*dt;rg.y+=rg.vy*dt;
     // Soft bounce so the ring never leaves the screen
     const R=rgR();
     if(rg.x<R){rg.x=R;rg.vx=Math.abs(rg.vx)*0.6;}
