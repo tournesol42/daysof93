@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v96-splash-bodybg -->
+<!-- build: explore4-v97-web-scatter -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -218,12 +218,12 @@ let linesOn=true,linesMaxDist=120,linesMaxPer=2,linesDurMs=960,linesOpac=0.40;
 // MIDI overrides — null until the fader is touched, then survive preset changes
 let midiLinesPer=null,midiLinesDist=null,midiRectK=1,midiRectT=1;
 // ── F4 colour splash (v89): above 15 = random neon colours once, below = back to normal ──
-const SPLASH_COLS=['#000000','#ff204e','#f1f1f1','#c5c5c5','#ebd346','#f8de22','#7a7871']; // black, red, off-white, RAL 7047, RAL 1018, yellow, RAL 7048
+const SPLASH_COLS=['#000000','#f1f1f1','#c5c5c5','#7a7871']; // black, off-white, RAL 7047, RAL 7048
 let splash=null,lastBodyBg='';
 function splashDist(a,b){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return Math.abs((x>>16&255)-(y>>16&255))+Math.abs((x>>8&255)-(y>>8&255))+Math.abs((x&255)-(y&255));}
 function splashPick(bg){const ok=SPLASH_COLS.filter(function(c){return c!==bg&&splashDist(c,bg)>150;});return ok[Math.floor(Math.random()*ok.length)];}
 // ── Splash web (v94): own point cloud, density-based reach, packed tangent circles ──
-const WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXPER=4;
+const WEB_N=520,WEB_DRIFT=26,WEB_CELL=48,WEB_MAXLIVE=2500,WEB_SPAWN=0.25;
 let web=null;
 function webBuild(){
   const pts=[],K=6+Math.floor(Math.random()*5),cl=[];
@@ -239,7 +239,7 @@ function webBuild(){
     const d=[];const a=pts[i];
     for(let j=0;j<pts.length;j++){if(i!==j)d.push((a.x0-pts[j].x0)**2+(a.y0-pts[j].y0)**2);}
     d.sort(function(p,q){return p-q;});
-    a.reach=Math.max(6,Math.min(280,Math.sqrt(d[3])*1.7));
+    a.reach=Math.max(40,Math.min(520,Math.sqrt(d[3])*3.5));
   }
   // Tangent circle packing in 2–4 clusters (touch, never overlap); each group moves rigidly
   const groups=[],G=4+Math.floor(Math.random()*5);
@@ -260,12 +260,12 @@ function webBuild(){
   // Echo zones: lines inside get copies that skew more and more
   const echo=[],E=2+Math.floor(Math.random()*3);
   for(let e=0;e<E;e++){const c=cl[Math.floor(Math.random()*K)];echo.push({x:c.x,y:c.y,r:80+Math.random()*220,step:(Math.random()<0.5?-1:1)*(0.035+Math.random()*0.07),n:3+Math.floor(Math.random()*4)});}
-  web={pts:pts,groups:groups,echo:echo};
+  web={pts:pts,groups:groups,echo:echo,conns:[],lastSpawn:0};
 }
 function webDraw(col){
   if(!web)return 0;
   // Speed follows the scatter engine's noise speed (anim), with a slow base so it never fully stops
-  const t=anim*0.25+performance.now()*0.00003,P=web.pts,n=P.length,grid=new Map();
+  const t=anim*0.25+performance.now()*0.00003,P=web.pts,n=P.length,grid=new Map(),now=performance.now();
   for(let i=0;i<n;i++){
     const p=P[i];
     p.x=p.x0+(vnoise(p.ox+t,p.oy)*2-1)*WEB_DRIFT;
@@ -273,30 +273,42 @@ function webDraw(col){
     const key=Math.floor(p.x/WEB_CELL)*4096+Math.floor(p.y/WEB_CELL);
     let c=grid.get(key);if(!c){c=[];grid.set(key,c);}c.push(i);
   }
-  const cnt=new Uint8Array(n);
-  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
-  const near=new Path2D(),far=new Path2D(),echoP=new Path2D();
-  let lines=0,echoes=0;
-  for(let a=0;a<n;a++){
-    if(cnt[a]>=WEB_MAXPER)continue;
-    const pa=P[a],cr=Math.ceil(pa.reach/WEB_CELL),gx=Math.floor(pa.x/WEB_CELL),gy=Math.floor(pa.y/WEB_CELL);
-    for(let ix=gx-cr;ix<=gx+cr&&cnt[a]<WEB_MAXPER;ix++)for(let iy=gy-cr;iy<=gy+cr&&cnt[a]<WEB_MAXPER;iy++){
-      const c=grid.get(ix*4096+iy);if(!c)continue;
-      for(let k=0;k<c.length;k++){
-        const b=c[k];if(b<=a||cnt[b]>=WEB_MAXPER)continue;
-        const pb=P[b],dx=pa.x-pb.x,dy=pa.y-pb.y,d=Math.sqrt(dx*dx+dy*dy),lim=Math.min(pa.reach,pb.reach);
-        if(d<lim){const path=d<lim*0.5?near:far;path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);cnt[a]++;cnt[b]++;lines++;
-          if(echoes<600){const mx=(pa.x+pb.x)/2,my=(pa.y+pb.y)/2;
-            for(let z=0;z<web.echo.length;z++){const Z=web.echo[z];if((mx-Z.x)**2+(my-Z.y)**2<Z.r*Z.r){
-              const hx=(pb.x-pa.x)/2,hy=(pb.y-pa.y)/2;
-              for(let e=1;e<=Z.n;e++){const an=Z.step*e,ca=Math.cos(an),sa=Math.sin(an),rx=hx*ca-hy*sa,ry=hx*sa+hy*ca;echoP.moveTo(mx-rx,my-ry);echoP.lineTo(mx+rx,my+ry);echoes++;}
-              break;}}}
-          if(cnt[a]>=WEB_MAXPER)break;}
+  // Spawn: like the main engine — random partners within reach, each line lives and fades, so lines pile up and overlap
+  if(now-web.lastSpawn>48){
+    web.lastSpawn=now;
+    for(let a=0;a<n;a++){
+      if(web.conns.length>=WEB_MAXLIVE)break;
+      if(Math.random()>WEB_SPAWN)continue;
+      const pa=P[a],cr=Math.ceil(pa.reach/WEB_CELL),gx=Math.floor(pa.x/WEB_CELL),gy=Math.floor(pa.y/WEB_CELL);
+      for(let tries=0;tries<6;tries++){
+        const c=grid.get((gx+Math.round((Math.random()*2-1)*cr))*4096+(gy+Math.round((Math.random()*2-1)*cr)));
+        if(!c)continue;
+        const b=c[Math.floor(Math.random()*c.length)];if(b===a)continue;
+        const pb=P[b];if((pa.x-pb.x)**2+(pa.y-pb.y)**2>pa.reach*pa.reach)continue;
+        web.conns.push({a:a,b:b,born:now,dur:600+Math.random()*1400,op:0.25+Math.random()*0.65});
+        break;
       }
     }
   }
-  ctx.globalAlpha=0.75;ctx.stroke(near);
-  ctx.globalAlpha=0.35;ctx.stroke(far);
+  const paths=[new Path2D(),new Path2D(),new Path2D()],echoP=new Path2D();
+  let lines=0,echoes=0;
+  web.conns=web.conns.filter(function(c){
+    const age=now-c.born;if(age>c.dur)return false;
+    const u=age/c.dur,env=u<0.15?u/0.15:u>0.6?1-(u-0.6)/0.4:1,o=c.op*env;
+    const pa=P[c.a],pb=P[c.b];
+    const path=paths[o<0.25?0:o<0.5?1:2];
+    path.moveTo(pa.x,pa.y);path.lineTo(pb.x,pb.y);lines++;
+    if(echoes<600&&o>0.2){const mx=(pa.x+pb.x)/2,my=(pa.y+pb.y)/2;
+      for(let z=0;z<web.echo.length;z++){const Z=web.echo[z];if((mx-Z.x)**2+(my-Z.y)**2<Z.r*Z.r){
+        const hx=(pb.x-pa.x)/2,hy=(pb.y-pa.y)/2;
+        for(let e=1;e<=Z.n;e++){const an=Z.step*e,ca=Math.cos(an),sa=Math.sin(an),rx=hx*ca-hy*sa,ry=hx*sa+hy*ca;echoP.moveTo(mx-rx,my-ry);echoP.lineTo(mx+rx,my+ry);echoes++;}
+        break;}}}
+    return true;
+  });
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
+  ctx.globalAlpha=0.15;ctx.stroke(paths[0]);
+  ctx.globalAlpha=0.38;ctx.stroke(paths[1]);
+  ctx.globalAlpha=0.7;ctx.stroke(paths[2]);
   ctx.globalAlpha=0.3;ctx.stroke(echoP);
   ctx.globalAlpha=0.9;ctx.lineWidth=1.2;
   for(let g=0;g<web.groups.length;g++){
