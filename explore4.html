@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v115-fog-black-countloop -->
+<!-- build: explore4-v116-count-vary-black70 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -390,7 +390,9 @@ function webDraw(col){
   return lines;
 }
 function splashRoll(){
-  const bg=SPLASH_COLS[Math.floor(Math.random()*SPLASH_COLS.length)];
+  // Background: black 70% of the time, the other colours share the remaining 30%
+  const others=SPLASH_COLS.filter(function(c){return c!=='#000000';});
+  const bg=Math.random()<0.7?'#000000':others[Math.floor(Math.random()*others.length)];
   splash={bg:bg,text:splashPick(bg),frame:splashPick(bg),ring:splashPick(bg),web:splashPick(bg),shapes:[]};
   webBuild();
   for(let i=0;i<9;i++)splash.shapes.push(splashPick(bg));
@@ -1065,8 +1067,9 @@ function unlockAudio() {
   // Loops 9→1 continuously until the overlay closes (a single 0.4s run was too brief to notice)
   function countdown(span){
     const c=document.createElement('span');c.className='ec';span.appendChild(c);
+    c.style.opacity=(0.35+Math.random()*0.4).toFixed(2); // each number its own opacity (35–75%)
     let v=9;c.textContent=v;
-    setInterval(function(){v=v>1?v-1:9;c.textContent=v;},45);
+    setInterval(function(){v=v>1?v-1:9;c.textContent=v;},25+Math.random()*65); // and its own speed (25–90ms per step)
   }
   function center(n){row.style.transform='translateX('+((SLOTS-n)/2*1.35)+'em)';}
   for(let i=0;i<FIRST;i++){const s=document.createElement('span');s.className='eb pulse';s.style.animationDelay=(i*0.2)+'s';s.textContent=bit();row.appendChild(s);}
