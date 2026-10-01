@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v128-space-tweaks -->
+<!-- build: explore4-v129-space-colours -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -610,43 +610,46 @@ window.bsLinesParams=function(dist,perPt,durFrames,opac100){
 
 // ── F5 "big space" (v127): everything sinks into darkness; a few small fragments stay, blurred and glowing ──
 const SP_SCALE=1/6,SP_SPOTS=14,SP_BLUR=3,SP_DARK=0.995;
+// Each fragment gets its own colour: mostly oranges and reds, now and then a green or a blue
+const SP_WARM=['#ffb347','#ff9a2e','#ff7a1a','#ff5a1e','#ff3a14','#e8401c','#ff2414'],SP_COOL=['#3dff7a','#2ea8ff','#5cc8ff'];
+function spColour(){return Math.random()<0.15?SP_COOL[Math.floor(Math.random()*SP_COOL.length)]:SP_WARM[Math.floor(Math.random()*SP_WARM.length)];}
 const spA=document.createElement('canvas'),spB=document.createElement('canvas'),spM=document.createElement('canvas');
 spA.width=spB.width=spM.width=Math.round(CW*SP_SCALE);spA.height=spB.height=spM.height=Math.round(CH*SP_SCALE);
 const spxA=spA.getContext('2d'),spxB=spB.getContext('2d'),spxM=spM.getContext('2d');
+const spC=document.createElement('canvas');spC.width=spM.width;spC.height=spM.height;const spxC=spC.getContext('2d');
 let spaceT=0,spaceA=0,spTick=0;const spSpots=[];
 function spDark(hex,a){const n=parseInt(hex.slice(1),16),k=1-a;return 'rgb('+Math.round((n>>16&255)*k)+','+Math.round((n>>8&255)*k)+','+Math.round((n&255)*k)+')';}
 function spaceDraw(bg){
   spaceA+=(spaceT-spaceA)*0.08;
 
+  if(!window.entryActive)rgCanvas.style.opacity=(1-spaceA).toFixed(3); // rings disappear into the dark
   if(spaceA<0.004)return;
   const now=performance.now(),np=fbPts.length/2;
   // Fragments: each sits on a word, lives 2–6 s, fades in and out, then moves to another word
   for(let i=0;i<SP_SPOTS;i++){
     let s=spSpots[i];
-    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:25+Math.random()*90};}
+    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:25+Math.random()*90,c:spColour()};}
   }
   // 1) snapshot of the frame, small and blurred (every 2nd frame); 'difference' with the bg colour
   //    turns the background black and the content bright, so fragments glow on any background
   if((spTick++&1)===0){
     spxA.globalCompositeOperation='source-over';spxA.clearRect(0,0,spA.width,spA.height);spxA.drawImage(canvas,0,0,spA.width,spA.height);
     spxA.globalCompositeOperation='difference';spxA.fillStyle=bg;spxA.fillRect(0,0,spA.width,spA.height);
-    // tint: orange at one side drifting to red at the other, the gradient slowly turning
-    const ta=now*0.00015,cx=spA.width/2,cy=spA.height/2,L=spA.height*0.6;
-    const tg=spxA.createLinearGradient(cx-Math.cos(ta)*L,cy-Math.sin(ta)*L,cx+Math.cos(ta)*L,cy+Math.sin(ta)*L);
-    tg.addColorStop(0,'#ff9a2e');tg.addColorStop(0.5,'#ff5a1e');tg.addColorStop(1,'#ff2414');
-    spxA.globalCompositeOperation='multiply';spxA.fillStyle=tg;spxA.fillRect(0,0,spA.width,spA.height);
     spxA.globalCompositeOperation='source-over';
     spxB.clearRect(0,0,spB.width,spB.height);if('filter' in spxB)spxB.filter='blur('+SP_BLUR+'px)';spxB.drawImage(spA,0,0);spxB.filter='none';
   }
-  // 2) mask of soft spots on the fragment words
-  spxM.globalCompositeOperation='source-over';spxM.clearRect(0,0,spM.width,spM.height);
+  // 2) colour layer: black everywhere, each fragment a soft spot in its own colour;
+  //    multiplied with the content → coloured glow inside the spots, black (adds nothing) outside
+  spxC.globalCompositeOperation='source-over';spxC.globalAlpha=1;spxC.fillStyle='#000';spxC.fillRect(0,0,spC.width,spC.height);
   if(np>0)for(let i=0;i<SP_SPOTS;i++){
     const s=spSpots[i],u=(now-s.born)/s.life,env=u<0.25?u/0.25:u>0.7?(1-u)/0.3:1;
     const k=Math.floor(s.w*np),x=fbPts[k*2]*SP_SCALE,y=fbPts[k*2+1]*SP_SCALE,r=s.r*SP_SCALE;
-    const g=spxM.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,255,255,'+env.toFixed(3)+')');g.addColorStop(1,'rgba(255,255,255,0)');
-    spxM.fillStyle=g;spxM.fillRect(x-r,y-r,r*2,r*2);
+    const n=parseInt(s.c.slice(1),16),rgb=(n>>16&255)+','+(n>>8&255)+','+(n&255);
+    const g=spxC.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba('+rgb+','+env.toFixed(3)+')');g.addColorStop(1,'rgba('+rgb+',0)');
+    spxC.fillStyle=g;spxC.fillRect(x-r,y-r,r*2,r*2);
   }
-  spxM.globalCompositeOperation='source-in';spxM.drawImage(spB,0,0);
+  spxM.globalCompositeOperation='source-over';spxM.clearRect(0,0,spM.width,spM.height);spxM.drawImage(spB,0,0);
+  spxM.globalCompositeOperation='multiply';spxM.drawImage(spC,0,0);spxM.globalCompositeOperation='source-over';
   // 3) darken everything, 4) add the fragments back on top as glow
   ctx.save();ctx.globalAlpha=spaceA*SP_DARK;ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
   ctx.globalCompositeOperation='lighter';ctx.imageSmoothingEnabled=true;
