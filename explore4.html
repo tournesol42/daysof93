@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v90-frame-grey -->
+<!-- build: explore4-v91-start-idle-dist -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -81,7 +81,7 @@ function fbRoll(){
 fbRoll();
 // ── Rings (v82) — own full-viewport canvas; big ring draggable with inertia, small ring rides its inside edge ──
 // Size scales with vertical position: 0.5× at top of screen → 1.4× at bottom
-const RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.12,RG_TOP=0.5,RG_BOT=1.4;
+const RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.12,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
 Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
 document.body.appendChild(rgCanvas);
@@ -94,7 +94,7 @@ function rgR(){const vh=window.innerHeight,t=Math.max(0,Math.min(1,rg.y/vh));ret
 function rgSmall(){const R=rgR(),r=R*RG_RATIO,d=R-r;return {x:rg.x+Math.cos(rg.th)*d,y:rg.y+Math.sin(rg.th)*d,r:r};}
 function rgFree(e){return e.target===document.body||e.target===document.documentElement||e.target===canvas;}
 window.addEventListener('pointerdown',function(e){
-  if(!rgFree(e))return;
+  if(!rgFree(e)||!window.bsStarted)return;
   const p={x:e.clientX,y:e.clientY},sm=rgSmall();
   if(Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r){rg.drag='small';rg.w=0;rg.la=Math.atan2(p.y-rg.y,p.x-rg.x);}
   else if(Math.hypot(p.x-rg.x,p.y-rg.y)<rgR()){rg.drag='big';rg.vx=rg.vy=0;rg.ox=p.x-rg.x;rg.oy=p.y-rg.y;}
@@ -112,7 +112,7 @@ window.addEventListener('pointermove',function(e){
     let da=a-rg.la;da=Math.atan2(Math.sin(da),Math.cos(da));
     rg.th+=da;rg.w=rg.w*0.5+(da/dts)*0.5;rg.la=a;
   }else{
-    if(!rgFree(e)){return;}
+    if(!rgFree(e)||!window.bsStarted){return;}
     const sm=rgSmall();
     const over=Math.hypot(p.x-sm.x,p.y-sm.y)<sm.r||Math.hypot(p.x-rg.x,p.y-rg.y)<rgR();
     document.body.style.cursor=over?'grab':'';
@@ -126,6 +126,7 @@ window.addEventListener('pointerup',function(){
   rg.drag=null;document.body.style.cursor='grab';
 });
 function drawRings(dt,bg){
+  if(!window.bsStarted){rctx.setTransform(1,0,0,1,0,0);rctx.clearRect(0,0,rgCanvas.width,rgCanvas.height);return;}
   const vw=window.innerWidth,vh=window.innerHeight;
   if(rg.drag!=='big'){
     const f=Math.pow(RG_FRICTION,dt);
@@ -140,11 +141,17 @@ function drawRings(dt,bg){
   if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
   const n=parseInt(bg.slice(1),16);
   const lum=((n>>16&255)*0.299+(n>>8&255)*0.587+(n&255)*0.114)/255;
-  const R=rgR(),sm=rgSmall();
+  const R=rgR(),sm0=rgSmall();
+  // Gentle idle motion: small smooth wobble so the rings are never completely still
+  const it=performance.now()*0.00025;
+  const wx=(vnoise(it,3.7)*2-1)*RG_IDLE,wy=(vnoise(8.1,it)*2-1)*RG_IDLE;
+  const wa=(vnoise(it*0.8,12.9)*2-1)*0.12,d0=R-sm0.r;
+  const bx=rg.x+wx,by=rg.y+wy;
+  const sm={x:bx+Math.cos(rg.th+wa)*d0,y:by+Math.sin(rg.th+wa)*d0,r:sm0.r};
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
   rctx.strokeStyle=splash?splash.ring:(lum<0.2?'#ffffff':'#000000');rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
-  rctx.beginPath();rctx.arc(rg.x,rg.y,R,0,Math.PI*2);rctx.stroke();
+  rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
 }
 function fbReset(){midiRectK+=(midiRectT-midiRectK)*(midiRectT>midiRectK?0.5:0.03);fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
@@ -383,6 +390,7 @@ function assignShapes(winStart){
   shapesDirty=false;
 }
 function drawShapes(dispMax,noiseModAmt,winStart){
+  if(!window.bsStarted)return;
   if(shapesDirty)assignShapes(winStart);
   const lvl=typeof window.bsGetLevel==='function'?window.bsGetLevel():0;
   const opT=performance.now()*0.0004;
@@ -507,25 +515,33 @@ function draw(ms){
       lastConnectMS=now;
       const used=new Map();
       const candidates=[];
-      for(let a=0;a<points.length;a++){
+      // Positions computed once per pass (was recomputed inside the inner loop)
+      const n=points.length,PX=new Float32Array(n),PY=new Float32Array(n);
+      for(let a=0;a<n;a++){
         const pa=points[a];
-        const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-        const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
-        for(let b=a+1;b<points.length;b++){
-          const pb=points[b];
-          const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
-          const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
-          const dx=ax-bx,dy=ay-by;
-          const dist=Math.sqrt(dx*dx+dy*dy);
-          if(dist<maxDist)candidates.push({a,b,dist});
+        PX[a]=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
+        PY[a]=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+      }
+      const md2=maxDist*maxDist;
+      for(let a=0;a<n;a++){
+        const ax=PX[a],ay=PY[a];
+        for(let b=a+1;b<n;b++){
+          const dx=ax-PX[b],dy=ay-PY[b];
+          if(dx*dx+dy*dy<md2)candidates.push(a,b);
         }
       }
-      candidates.sort((x,y)=>x.dist-y.dist);
-      for(const{a,b}of candidates){
+      // Random pick within the distance (not nearest-first), so F2 reaches far partners
+      const pairs=candidates.length/2,order=new Uint32Array(pairs);
+      for(let i=0;i<pairs;i++)order[i]=i;
+      for(let i=pairs-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=order[i];order[i]=order[j];order[j]=t;}
+      const live=new Set();
+      for(let i=0;i<connections.length;i++){const c=connections[i];live.add(c.i<c.j?c.i*65536+c.j:c.j*65536+c.i);}
+      for(let o=0;o<pairs;o++){
+        const a=candidates[order[o]*2],b=candidates[order[o]*2+1];
         const ca=used.get(a)||0;
         const cb=used.get(b)||0;
         if(ca>=maxPer||cb>=maxPer)continue;
-        if(connections.find(c=>(c.i===a&&c.j===b)||(c.i===b&&c.j===a)))continue;
+        if(live.has(a*65536+b))continue;
         connections.push({i:a,j:b,born:now,dur:durMs*(0.7+Math.random()*0.6),maxOpacity:maxOpac*(0.4+Math.random()*0.6)});
         used.set(a,ca+1);
         used.set(b,cb+1);
@@ -695,6 +711,7 @@ function queueLoop(origin) {
 }
 
 function firePreset() {
+  window.bsStarted = true;
   const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
   if (!filled.length) return;
   const slot   = filled[Math.floor(Math.random() * filled.length)];
