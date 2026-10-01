@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v102-xf-earlier -->
+<!-- build: explore4-v103-m1-earlier -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -735,7 +735,7 @@ const MP3_URL  = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic.mp3';
 const MP3_2_URL = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic2.mp3';
 // ── Two-track crossfade (v99): rings' vertical position balances music 1 / music 2 ──
 const XF_STEEP = 14; // higher = more sudden switch, less overlap
-const XF_MID = 0.35; // where the switch happens (0 = top, 1 = bottom)
+const XF_M1_MID = 0.3; // music 1 reaches its minimum earlier (music 2 keeps the middle switch point)
 const M1_FLOOR = 0.7;  // music 1 never below 70%
 const REV_MAX = 0.25;  // reverb send on music 2 (follows music 2's volume)
 let g1 = null, g2 = null, hp2 = null, revIn = null, mix2Buf = null, mix2Started = false;
@@ -755,15 +755,15 @@ function startMusic2() {
   s2.buffer = mix2Buf; s2.loop = true; s2.connect(hp2); s2.start(0);
   mix2Started = true;
 }
-function xfCurve(x) { // steep S-curve, exactly 0 at x=0 and 1 at x=1
-  const f = function (v) { return 1 / (1 + Math.exp(-XF_STEEP * (v - XF_MID))); };
+function xfCurve(x, mid) { // steep S-curve, exactly 0 at x=0 and 1 at x=1
+  const f = function (v) { return 1 / (1 + Math.exp(-XF_STEEP * (v - mid))); };
   return (f(x) - f(0)) / (f(1) - f(0));
 }
 setInterval(function () {
   if (!g1 || !g2) return;
-  const m = xfCurve(window.rgY01 ? window.rgY01() : 0);
+  const y = window.rgY01 ? window.rgY01() : 0, m1 = xfCurve(y, XF_M1_MID), m = xfCurve(y, 0.5);
   const t = audioCtx.currentTime;
-  g1.gain.setTargetAtTime(M1_FLOOR + (1 - M1_FLOOR) * Math.cos(m * Math.PI / 2), t, 0.04);
+  g1.gain.setTargetAtTime(M1_FLOOR + (1 - M1_FLOOR) * Math.cos(m1 * Math.PI / 2), t, 0.04);
   if (revIn) revIn.gain.setTargetAtTime(REV_MAX, t, 0.08);
   g2.gain.setTargetAtTime(mix2Started ? Math.sin(m * Math.PI / 2) : 0, t, 0.04);
 }, 30);
