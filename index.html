@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v221-prox-fog -->
+<!-- build: v222-prox-particles -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -877,14 +877,16 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   }
   resizePCv();
   window.addEventListener('resize',resizePCv);
-  // Scatter cloud — invisible world-space pts (don't rotate with mesh, fixed in scene)
-  var SCAT_N=45,scatPts=[];
-  for(var _si=0;_si<SCAT_N;_si++) scatPts.push({
-    x:(Math.random()-0.5)*2.8,
-    y:(Math.random()-0.5)*2.0+0.7,
-    z:(Math.random()-0.5)*0.8
-  });
-  var PROX_TH=145;
+  // Live 2D particle cloud — 200 pts filling full screen, each moves independently
+  var CLOUD_N=200,cloudPts=[];
+  (function(){
+    var W2=window.innerWidth,H2=window.innerHeight;
+    for(var i=0;i<CLOUD_N;i++) cloudPts.push({
+      x:Math.random()*W2, y:Math.random()*H2,
+      vx:(Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6
+    });
+  })();
+  var PROX_TH=190;
   var _pv2=new THREE.Vector3();
   // --- END PROXIMITY SETUP ---
 
@@ -1196,9 +1198,18 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
           if(sx>-80&&sx<W+80&&sy>-80&&sy<H+80) pts.push([sx,sy]);
         }
       });
-      for(var i=0;i<scatPts.length;i++){
-        _pv2.set(scatPts[i].x,scatPts[i].y,scatPts[i].z).project(camera);
-        pts.push([(_pv2.x+1)/2*W,(-_pv2.y+1)/2*H]);
+      // Live cloud: update physics + push 2D positions
+      for(var i=0;i<cloudPts.length;i++){
+        var p=cloudPts[i];
+        p.x+=p.vx; p.y+=p.vy;
+        p.vx+=(Math.random()-0.5)*0.04; p.vy+=(Math.random()-0.5)*0.04;
+        var spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+        if(spd>0.8){p.vx=p.vx/spd*0.8;p.vy=p.vy/spd*0.8;}
+        if(p.x<0){p.x=0;p.vx=Math.abs(p.vx);}
+        if(p.x>W){p.x=W;p.vx=-Math.abs(p.vx);}
+        if(p.y<0){p.y=0;p.vy=Math.abs(p.vy);}
+        if(p.y>H){p.y=H;p.vy=-Math.abs(p.vy);}
+        pts.push([p.x,p.y]);
       }
       var TH2=PROX_TH*PROX_TH,COL='#2d2d2d';
       var doFog=(fogTick&1)===0;
@@ -1213,7 +1224,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
         for(var j=i+1;j<pts.length;j++){
           var dx=pts[j][0]-pts[i][0],dy=pts[j][1]-pts[i][1],d2=dx*dx+dy*dy;
           if(d2<TH2){
-            var t=1-Math.sqrt(d2)/PROX_TH,op=t*t*0.28;
+            var t=1-Math.sqrt(d2)/PROX_TH,op=t*t*0.80;
             pCtx.globalAlpha=op;
             pCtx.beginPath();pCtx.moveTo(pts[i][0],pts[i][1]);pCtx.lineTo(pts[j][0],pts[j][1]);pCtx.stroke();
             if(doFog){fcA.globalAlpha=op*0.45;fcA.beginPath();fcA.moveTo(pts[i][0],pts[i][1]);fcA.lineTo(pts[j][0],pts[j][1]);fcA.stroke();}
