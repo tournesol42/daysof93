@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v224-transparent-bg -->
+<!-- build: v225-3d-words -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1154,6 +1154,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     }
     updateSpring();
     renderer.render(scene,camera);
+    window._meshRotY = mesh ? mesh.rotation.y : 0;
   })();
 
   window.addEventListener('resize', function(){
@@ -1629,7 +1630,8 @@ function packRectangle(n,preserveSizes){
       oy:prev[i]!=null?prev[i].oy:Math.random()*64,
       sz,
       opacityRand:prev[i]!=null?prev[i].opacityRand:Math.random(),
-      noiseMod:prev[i]!=null?prev[i].noiseMod:Math.random()
+      noiseMod:prev[i]!=null?prev[i].noiseMod:Math.random(),
+      bz:(Math.random()-0.5)*0.8
     });
   }
 }
@@ -1776,6 +1778,9 @@ function draw(ms){
         curX+=ww+GAP;placed++;
       }
     }else{
+      const rotY=window._meshRotY||0;
+      const cosR=Math.cos(rotY),sinR=Math.sin(rotY);
+      const FL=600; // focal length in canvas px
       for(let i=0;i<points.length;i++){
         const wi=winStart+i;
         if(wi>=words.length)continue;
@@ -1784,9 +1789,20 @@ function draw(ms){
         const nx=vnoise(p.ox+anim*0.6,p.oy+17.3)*2-1;
         const ny=vnoise(p.ox+31.7,p.oy+anim*0.6)*2-1;
         const nMod=1+((p.noiseMod??0.5)-0.5)*noiseModAmt*2;
-        ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";
-        ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(p.opacityRand-0.5)*opacitySpread));
-        fbText(word,p.bx*CW+nx*dispMax*nMod,p.by*CH+ny*dispMax*nMod);
+        // 3D Y-axis rotation
+        const wx=(p.bx-0.5)*CW+nx*dispMax*nMod;
+        const wz=(p.bz||0)*400;
+        const rx=wx*cosR+wz*sinR;
+        const rz=-wx*sinR+wz*cosR;
+        const sc=FL/(FL+rz);
+        const sx=rx*sc+CW/2;
+        const sy=p.by*CH+ny*dispMax*nMod;
+        p.sx3d=sx; p.sy3d=sy; // cache for proximity lines
+        const sz3d=Math.max(4,Math.round(p.sz*sc));
+        const depthOp=Math.max(0.05,Math.min(1,sc));
+        ctx.font=sz3d+"px '"+fontName+"', 'Courier New', monospace";
+        ctx.globalAlpha=Math.max(0.01,Math.min(1,(globalOpacity+(p.opacityRand-0.5)*opacitySpread)*depthOp));
+        fbText(word,sx,sy);
         ctx.globalAlpha=1;
       }
     }
@@ -1805,8 +1821,8 @@ function draw(ms){
       const n=points.length,PX=new Float32Array(n),PY=new Float32Array(n);
       for(let a=0;a<n;a++){
         const pa=points[a];
-        PX[a]=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-        PY[a]=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+        PX[a]=pa.sx3d!==undefined?pa.sx3d:pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
+        PY[a]=pa.sy3d!==undefined?pa.sy3d:pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
       }
       const md2=maxDist*maxDist;
       for(let a=0;a<n;a++){
@@ -1841,10 +1857,10 @@ function draw(ms){
       const op=c.maxOpacity*opT;
       const pa=points[c.i],pb=points[c.j];
       if(!pa||!pb)return false;
-      const ax=pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-      const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
-      const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
-      const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
+      const ax=pa.sx3d!==undefined?pa.sx3d:pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
+      const ay=pa.sy3d!==undefined?pa.sy3d:pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
+      const bx=pb.sx3d!==undefined?pb.sx3d:pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
+      const by=pb.sy3d!==undefined?pb.sy3d:pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
       ctx.save();ctx.globalAlpha=Math.min(1,op*meshOp*meshAud);ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
       if(op>0.02)fbLinesDrawn++;
