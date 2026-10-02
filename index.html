@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v233-intro-anim -->
+<!-- build: v234-intro-fix -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -422,6 +422,7 @@
   @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
   @keyframes dot-intro-blink { 0%,100%{opacity:0.7} 50%{opacity:0.08} }
   .dot-intro-blink { animation: dot-intro-blink 0.6s ease-in-out infinite !important; }
+  .dot-intro-dim { opacity: 0.7 !important; animation: none !important; }
   @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
   @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
   #explore3-btn {
@@ -1158,7 +1159,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       window._meshOpCurrent+=(window._meshOpTarget-window._meshOpCurrent)*0.04;
       var _mOp=window._meshOpCurrent;
       mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd;
-      meshDatas.forEach(function(md){ if(md.mat) md.mat.opacity=_mOp; });
+      if(mesh) mesh.traverse(function(c){ if(c.isMesh&&c.material) c.material.opacity=_mOp; });
     }
     updateSpring();
     renderer.render(scene,camera);
@@ -1978,9 +1979,9 @@ requestAnimationFrame(draw);
   setTimeout(function(){ window._meshOpTarget=0.19; }, 3000);
   var ids=['explore-btn','explore3-btn','explore4-btn','music-btn'];
   function each(fn){ ids.forEach(function(id){ var el=document.getElementById(id); if(el)fn(el); }); }
-  each(function(el){ el.style.opacity='0.7'; });
+  each(function(el){ el.classList.add('dot-intro-dim'); });
   setTimeout(function(){
-    each(function(el){ el.style.opacity=''; el.classList.add('dot-intro-blink'); });
+    each(function(el){ el.classList.remove('dot-intro-dim'); el.classList.add('dot-intro-blink'); });
   }, 3000);
   setTimeout(function(){
     each(function(el){ el.classList.remove('dot-intro-blink'); });
