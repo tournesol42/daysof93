@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v131-lights-spread-blink -->
+<!-- build: explore4-v132-bounce-sounds -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -161,10 +161,12 @@ function drawRings(dt,bg){
     rg.x+=rg.vx*dt;rg.y+=rg.vy*dt;
     // Soft bounce so the ring never leaves the screen
     const R=rgR();
-    if(rg.x<R){rg.x=R;rg.vx=Math.abs(rg.vx)*0.6;}
-    if(rg.x>vw-R){rg.x=vw-R;rg.vx=-Math.abs(rg.vx)*0.6;}
-    if(rg.y<R){rg.y=R;rg.vy=Math.abs(rg.vy)*RG_BOUNCE_Y;}
-    if(rg.y>vh-R){rg.y=vh-R;rg.vy=-Math.abs(rg.vy)*RG_BOUNCE_Y;}
+    // Wall bounces: soft rebound + a bounce sound scaled by impact speed
+    const hit=function(v){if(window.bsBounce)window.bsBounce(Math.abs(v));};
+    if(rg.x<R){rg.x=R;hit(rg.vx);rg.vx=Math.abs(rg.vx)*0.6;}
+    if(rg.x>vw-R){rg.x=vw-R;hit(rg.vx);rg.vx=-Math.abs(rg.vx)*0.6;}
+    if(rg.y<R){rg.y=R;hit(rg.vy);rg.vy=Math.abs(rg.vy)*RG_BOUNCE_Y;}
+    if(rg.y>vh-R){rg.y=vh-R;hit(rg.vy);rg.vy=-Math.abs(rg.vy)*RG_BOUNCE_Y;}
   }
   if(rg.drag!=='small'){rg.w*=Math.pow(RG_FRICTION,dt);rg.th+=rg.w*dt;}
   // Inner ring turns the proximity opacity: clockwise = up, counter-clockwise = down (one full turn = full range)
@@ -636,7 +638,7 @@ function spaceDraw(bg){
   // Fragments: each sits on a word, lives 2–6 s, fades in and out, then moves to another word
   for(let i=0;i<SP_SPOTS;i++){
     let s=spSpots[i];
-    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:12+Math.random()*45,c:spColour(),side:Math.random()<0.5?-1:1,amt:0.3+Math.random()*0.7,nz:Math.random()*900};}
+    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:3+Math.pow(Math.random(),1.6)*54,c:spColour(),side:Math.random()<0.5?-1:1,amt:0.3+Math.random()*0.7,nz:Math.random()*900};}
   }
   // 1) snapshot of the frame, small and blurred (every 2nd frame); 'difference' with the bg colour
   //    turns the background black and the content bright, so fragments glow on any background
@@ -1103,6 +1105,28 @@ function boot() {
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 1024;
       const _td = new Uint8Array(analyser.fftSize);
+      // Bounce sounds (v132): six samples, a random one per wall hit (never the same twice in a row),
+      // louder for harder hits; ignores tiny touches (e.g. the idle drift resting on an edge)
+      const BOUNCE_URL = 'https://daysof93-cdn.b-cdn.net/Explore4_Bouncing_sounds/Bounce';
+      const BOUNCE_MIN = 60, BOUNCE_FULL = 900, BOUNCE_GAP = 120; // px/s, px/s, ms
+      const bounceBufs = []; let lastBounce = -1, lastBounceT = 0;
+      for (let i = 1; i <= 6; i++) {
+        xhrGet(BOUNCE_URL + i + '.wav').then(function (b) {
+          audioCtx.decodeAudioData(b, function (buf) { bounceBufs.push(buf); });
+        }).catch(function (e) { console.warn('Bounce ' + i + ' error:', e); });
+      }
+      window.bsBounce = function (speed) {
+        const now = performance.now();
+        if (speed < BOUNCE_MIN || !bounceBufs.length || now - lastBounceT < BOUNCE_GAP) return;
+        lastBounceT = now;
+        let i = Math.floor(Math.random() * bounceBufs.length);
+        if (bounceBufs.length > 1 && i === lastBounce) i = (i + 1) % bounceBufs.length;
+        lastBounce = i;
+        const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+        src.buffer = bounceBufs[i];
+        g.gain.value = 0.25 + 0.75 * Math.min(1, (speed - BOUNCE_MIN) / (BOUNCE_FULL - BOUNCE_MIN));
+        src.connect(g); g.connect(audioCtx.destination); src.start();
+      };
       window.bsGetLevel = function () {
         analyser.getByteTimeDomainData(_td);
         let sum = 0;
