@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v135-open-preset31 -->
+<!-- build: explore4-v136-console-closed -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1442,7 +1442,6 @@ function updBtn(){btn.style.background=open?'rgba(255,173,0,.9)':'rgba(20,20,20,
 btn.onclick=()=>{open=!open;box.style.display=open?'block':'none';updBtn();if(open)rPanel();};
 document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='m')btn.click();});
 updBtn();
-open=true;box.style.display='block';rPanel();
 if(navigator.requestMIDIAccess){
   navigator.requestMIDIAccess().then(acc=>{
     const h=msg=>{
