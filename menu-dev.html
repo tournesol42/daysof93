@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v227-dark-mode -->
+<!-- build: v228-orange-dots-connected -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1552,7 +1552,7 @@ const S={
   smin:10,smax:32,sbias:50,
   opacity:80,opSpread:40,
   noiseAmt:30,noiseSpd:20,noiseMod:0,
-  textColor:'#cc6600',bgColor:'#ffffff',
+  textColor:'#FF6600',bgColor:'#ffffff',
   focusType:'none',attract:65,
   focusCX:0.5,focusCY:0.5,circleRadius:0.25,rectW:0.4,rectH:0.3
 };
@@ -1907,6 +1907,35 @@ function draw(ms){
     }
     ctx.globalAlpha=1;
   }
+  // Connect orange nav dots to nearest word (1 line each)
+  (function(){
+    var bsR=bsCanvas.getBoundingClientRect();
+    if(!bsR.width||!points.length)return;
+    var scX=CW/bsR.width, scY=CH/bsR.height;
+    var dotIds=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+    ctx.strokeStyle=textCol;
+    ctx.lineWidth=0.8;
+    dotIds.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el)return;
+      var r=el.getBoundingClientRect();
+      var cx=(r.left+r.width/2-bsR.left)*scX;
+      var cy=(r.top+r.height/2-bsR.top)*scY;
+      var best=null,bestD=Infinity;
+      for(var i=0;i<points.length;i++){
+        var p=points[i];
+        var px=p.sx3d!==undefined?p.sx3d:p.bx*CW;
+        var py=p.sy3d!==undefined?p.sy3d:p.by*CH;
+        var d=Math.sqrt((cx-px)*(cx-px)+(cy-py)*(cy-py));
+        if(d<bestD){bestD=d;best={x:px,y:py};}
+      }
+      if(best){
+        ctx.globalAlpha=0.55;
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(best.x,best.y);ctx.stroke();
+        ctx.globalAlpha=1;
+      }
+    });
+  })();
   fbDraw();
   spaceDraw(bgCol);
   drawRings(dt,bgCol);
@@ -1932,7 +1961,7 @@ fetch('https://daysof93-cdn.b-cdn.net/binary-scatter-menupresets.json').then(fun
   if(Array.isArray(arr)){
     for(var i=0;i<arr.length;i++) BAKED_PRESETS[i]=arr[i];
     var fp=arr.find(function(p){return p!=null;});
-    if(fp){fp.textColor='#ffffff';window.bsSetInterp(100);applyState(fp);}
+    if(fp){fp.textColor='#FF6600';window.bsSetInterp(100);applyState(fp);}
   }
 }).catch(function(){});
 requestAnimationFrame(draw);
