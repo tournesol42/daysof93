@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v235-css-intro -->
+<!-- build: v236-intro-veil -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -32,8 +32,8 @@
   :root{
     --field: #000000;
     --line:  rgba(255,255,255,0.18);
-    --axis-x: rgba(0,0,0,0.28);
-    --axis-y: rgba(0,0,0,0.28);
+    --axis-x: rgba(255,255,255,0.28);
+    --axis-y: rgba(255,255,255,0.28);
     --ink:   #ffffff;
     --hair:  0.75px;
   }
@@ -420,11 +420,10 @@
   #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
   #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
   @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
-  #mesh-canvas { transition: opacity 0.8s ease; }
-  #dot-group { position:fixed;inset:0;pointer-events:none;z-index:51;transition:opacity 0.8s ease; }
-  @keyframes intro-blink { 0%,100%{opacity:0.7} 50%{opacity:0.04} }
-  .intro-dim  { opacity:0.7; }
-  .intro-blink{ animation:intro-blink 0.55s ease-in-out infinite; }
+  #mesh-canvas { opacity:0; transition: opacity 2s ease; }
+  #dot-veil { position:fixed;inset:0;z-index:55;pointer-events:none;background:rgba(0,0,0,0.3);transition:opacity 0.5s ease; }
+  @keyframes veil-blink { 0%,100%{opacity:1} 50%{opacity:0.04} }
+  .veil-blinking { animation:veil-blink 0.55s ease-in-out infinite; }
   @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
   @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
   #explore3-btn {
@@ -490,7 +489,7 @@
           var t = ((now - t0) % period) / period;
           var s = (1 - Math.cos(t * Math.PI * 2)) / 2;
           var a = (baseAlpha + s * (peakAlpha - baseAlpha)).toFixed(4);
-          field.style.setProperty('--line', 'rgba(0,0,0,' + a + ')');
+          field.style.setProperty('--line', 'rgba(255,255,255,' + a + ')');
           requestAnimationFrame(loop);
         })(performance.now());
       }
@@ -1411,6 +1410,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 <a href="explore3.html" id="explore4-btn" aria-label="Explore 3" style="pointer-events:auto;"></a>
 <a href="music.html" id="music-btn" aria-label="Music" style="pointer-events:auto;"></a>
 </div>
+<div id="dot-veil"></div>
 <div id="dot-hint">push dots to explore →</div>
 <script>
 (function() {
@@ -1972,20 +1972,21 @@ requestAnimationFrame(draw);
 })();
 </script>
 <script>
-/* intro: dim 3s → blink 3s → normal — CSS canvas + parent div */
+/* intro: mesh fades in after 3s; dots dimmed by veil 3s then blink 3s */
 (function(){
-  var mc=document.getElementById('mesh-canvas');
-  var dg=document.getElementById('dot-group');
-  if(mc)mc.classList.add('intro-dim');
-  if(dg)dg.classList.add('intro-dim');
   setTimeout(function(){
-    if(mc){mc.classList.remove('intro-dim');mc.classList.add('intro-blink');}
-    if(dg){dg.classList.remove('intro-dim');dg.classList.add('intro-blink');}
+    var mc=document.getElementById('mesh-canvas');
+    if(mc) mc.style.opacity='1';
   },3000);
-  setTimeout(function(){
-    if(mc)mc.classList.remove('intro-blink');
-    if(dg)dg.classList.remove('intro-blink');
-  },6000);
+  var veil=document.getElementById('dot-veil');
+  if(veil){
+    setTimeout(function(){ veil.classList.add('veil-blinking'); },3000);
+    setTimeout(function(){
+      veil.classList.remove('veil-blinking');
+      veil.style.opacity='0';
+      setTimeout(function(){ veil.style.display='none'; },600);
+    },6000);
+  }
 })();
 </script>
 </body>
