@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v220-explore4-dot -->
+<!-- build: v221-thinner-dots -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1131,7 +1131,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.rotation.y = 0.35;
       root.rotation.x = 0.08;
       root.traverse(function(child){
-        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.38, transparent:true});
+        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.18, transparent:true});
       });
       scene.add(root);
       mesh=root;
@@ -1399,8 +1399,8 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 </script>
 
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
-<a href="https://daysof93.com/explore3" id="explore3-btn" aria-label="Explore 3"></a>
-<a href="https://daysof93.com/explore4" id="explore4-btn" aria-label="Explore 4"></a>
+<a href="explore3.html" id="explore3-btn" aria-label="Explore 3"></a>
+<a href="explore4.html" id="explore4-btn" aria-label="Explore 4"></a>
 <a href="music.html" id="music-btn" aria-label="Music"></a>
 <div id="dot-hint">push dots to explore →</div>
 <script>
