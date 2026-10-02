@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v129-space-colours -->
+<!-- build: explore4-v130-audio-mesh -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -89,6 +89,13 @@ document.body.appendChild(strobeEl);
 let strobeOn=false,strobeSp=0;
 let rgLastUser=0;const RG_WANDER_AFTER=3,RG_WANDER_SPEED=40,RG_WANDER_DOWN=0.6;
 let meshOp=1,meshRecover=false,rgLastTh=0,meshDir=0;const MESH_TURN=1,MESH_RECOVER_S=10;
+// Audio → proximity opacity (v130): lagged music level lifts the mesh a bit (quiet ×0.8 … loud ×1.4)
+let meshAud=0.8,meshLvl=0;const AUD_ATK=0.04,AUD_REL=0.012,AUD_GAIN=3.5;
+function meshAudUpdate(){
+  const raw=window.bsGetLevel?Math.min(1,window.bsGetLevel()*AUD_GAIN):0;
+  meshLvl+=(raw-meshLvl)*(raw>meshLvl?AUD_ATK:AUD_REL); // slow rise, slower fall
+  meshAud=0.8+0.6*meshLvl;
+}
 const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.55,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
 Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
@@ -208,7 +215,7 @@ function txtHit(ax,ay,bx,by){
   for(let k=0;k<=n;k++){const u=k/n;if(txtOcc.has(Math.floor((ax+(bx-ax)*u)/TXT_CELL)*4096+Math.floor((ay+(by-ay)*u)/TXT_CELL)))return true;}
   return false;
 }
-function fbReset(){if(splash)txtBuildOcc();else txtBoxes.length=0;midiRectK+=(midiRectT-midiRectK)*(midiRectT>midiRectK?0.5:0.03);fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
+function fbReset(){meshAudUpdate();if(splash)txtBuildOcc();else txtBoxes.length=0;midiRectK+=(midiRectT-midiRectK)*(midiRectT>midiRectK?0.5:0.03);fbPts.length=0;fbMinX=1e9;fbMinY=1e9;fbMaxX=-1e9;fbMaxY=-1e9;fbSX=0;fbSY=0;fbN=0;fbLinesDrawn=0;}
 function fbText(w,x,y){
   ctx.fillText(w,x,y);
   if(ctx.globalAlpha<0.05)return;
@@ -393,7 +400,7 @@ function webDraw(col){
     return true;
   });
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.75;
-  const lk=(web.is3d?1:WEB_2D_OP)*meshOp; // 2D reveal: fainter, thinner-looking lines; inner ring opacity
+  const lk=(web.is3d?1:WEB_2D_OP)*meshOp*meshAud; // 2D reveal: fainter, thinner-looking lines; inner ring opacity
   // Fog pass: thick soft lines at 1/6 resolution, blurred, then stretched under the sharp lines
   if(FOG_ON&&splash&&splash.bg==='#000000'){ // fog only on black backgrounds
   if((fogTick++&1)===0){ // fog layer refreshed every 2nd frame (it's soft, the difference is invisible)
@@ -628,7 +635,7 @@ function spaceDraw(bg){
   // Fragments: each sits on a word, lives 2–6 s, fades in and out, then moves to another word
   for(let i=0;i<SP_SPOTS;i++){
     let s=spSpots[i];
-    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:25+Math.random()*90,c:spColour()};}
+    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:12+Math.random()*45,c:spColour()};}
   }
   // 1) snapshot of the frame, small and blurred (every 2nd frame); 'difference' with the bg colour
   //    turns the background black and the content bright, so fragments glow on any background
@@ -853,7 +860,7 @@ function draw(ms){
       const ay=pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
       const bx=pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
       const by=pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
-      ctx.save();ctx.globalAlpha=op*meshOp;ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
+      ctx.save();ctx.globalAlpha=Math.min(1,op*meshOp*meshAud);ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
       if(op>0.02)fbLinesDrawn++;
       ctx.restore();
