@@ -1,0 +1,1528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>days of 93</title>
+<!-- build: v222-dot-swap -->
+<meta name="build" content="v168-anchor-flicker">
+<script>console.log('days of 93 — build v168-anchor-flicker');</script>
+
+<meta name="description" content="Film Composer Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream." />
+<meta name="keywords" content="film composer, organic electronic music, R&S Records, modular synthesizers, No AI, Copenhagen Denmark, Days of 93" />
+<meta name="author" content="Tommy Gee" />
+<meta property="og:title" content="days of 93" />
+<meta property="og:description" content="Film Composer Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://daysof93.com" />
+<meta property="og:image" content="https://daysof93-cdn.b-cdn.net/indeximage.jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="theme-color" id="theme-color-meta" content="#ffffff" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Google+Sans+Code:wght@300..800&family=Bungee+Hairline&family=B612+Mono:ital@0;1&family=Space+Grotesk:wght@300;400;500&family=Jost:wght@200;300;400;600;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/commodore-64-pixelized" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<style>
+  :root{
+    --field: #ffffff;
+    --line:  rgba(0,0,0,0.18);
+    --axis-x: rgba(0,0,0,0.28);
+    --axis-y: rgba(0,0,0,0.28);
+    --ink:   #000000;
+    --hair:  0.75px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--field); }
+  body{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink);
+  }
+  header{
+    position: fixed; top:0; left:0; right:0; z-index:50;
+    padding: 20px 52px; display:flex; align-items:center; justify-content:flex-end;
+  }
+  .nav-logo{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:300;
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:1;
+  }
+  .nav-logo:hover{ opacity:1; }
+  nav{ display:flex; gap:28px; align-items:center; }
+  nav a{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:11px; letter-spacing:0.22em; font-weight:500;
+    text-transform:uppercase; color:#000; text-decoration:none; opacity:1;
+  }
+  nav a:hover{ opacity:1; }
+  nav a.nav-active{ border-bottom:1.5px solid currentColor; padding-bottom:1px; opacity:1; }
+  @media (max-width:720px){
+    .hero-sub{ order:-1; margin-top:0; margin-bottom:12px; }
+    header{
+      top:auto; bottom:0; padding:14px 18px 20px;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+      justify-content:center;
+    }
+    nav{ gap:14px; overflow-x:auto; white-space:nowrap; }
+    nav a, .nav-logo{ font-size:9px; letter-spacing:0.16em; }
+    nav svg{ width:20px; height:20px; }
+  }
+
+  /* hero */
+  .hero{
+    position:relative; z-index:10;
+    padding: 52px 28px 20px;
+    min-height:54vh; display:flex; flex-direction:row;
+    align-items:flex-start; justify-content:space-between;
+  }
+  .hero-left{ display:flex; flex-direction:column; }
+  .hero-title{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size: clamp(4.5rem, 13vw, 16rem);
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:-0.02em; line-height:0.88;
+    color:#000;
+  }
+  .hero-sub{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size: clamp(0.7rem, 1.2vw, 1rem);
+    font-weight:300; letter-spacing:0.28em;
+    text-transform:uppercase; color:#000; opacity:0.85;
+    margin-top:28px;
+    transition: opacity 1.5s ease;
+  }
+  @media (max-width:720px){
+    .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
+  }
+  #music-btn {
+    position: fixed; right: 5vw; top: 40vh;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: #E85500; display: none; z-index: 51;
+    text-decoration: none;
+    animation: dot-slow 2.8s ease-in-out infinite;
+  }
+  @media (max-width:720px) {
+    #music-btn { right: 18px; bottom: 90px; top: auto; width: 100px; height: 100px; }
+  }
+  #dot-hint {
+    position: fixed;
+    left: calc(50vw - 12.87vh - 14px);
+    top: calc(55.1vh);
+    transform: translate(-100%, -50%);
+    font-family: 'Jost', 'Helvetica Neue', sans-serif;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #000; opacity: 0; pointer-events: none; z-index: 52;
+    transition: opacity 1s ease;
+  }
+  @media (max-width:720px) {
+    #dot-hint {
+      left: calc(31.8vw - 14px);
+      top: calc(50vh + 7.22vw);
+      transform: translate(-100%, -50%);
+    }
+  }
+  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
+  @keyframes bgvector-breathe{
+    0%  { transform:scale(1); }
+    50% { transform:scale(1.30); }
+    100%{ transform:scale(1); }
+  }
+  .bgvector-breathing{ animation:bgvector-breathe 18s cubic-bezier(0.45,0.05,0.55,0.95) infinite; animation-delay:4s; }
+  @keyframes mesh-breathe{
+    0%  { transform:scale(1); }
+    50% { transform:scale(0.70); }
+    100%{ transform:scale(1); }
+  }
+  .mesh-breathing{ animation:mesh-breathe 18s cubic-bezier(0.45,0.05,0.55,0.95) infinite; animation-delay:4s; }
+  .field{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+#mesh-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
+  #redblack-video{
+    position:fixed; z-index:1; pointer-events:none;
+    left:50%; top:48%; transform:translate(-50%,-50%);
+    width:39vw; height:auto;
+    opacity:0; transition:opacity 1.2s ease;
+    animation: rbRotate 22s linear infinite;
+  }
+  @keyframes rbRotate{
+    from { transform: translate(-50%,-50%) rotate(0deg); }
+    to   { transform: translate(-50%,-50%) rotate(360deg); }
+  }
+  #glitch-canvas{ position:fixed; inset:0; z-index:3; pointer-events:none; }
+  .plane{ position:relative; z-index:10; width:100%; }
+
+  .piece{ position:absolute; cursor:pointer; opacity:0; transition: opacity 5s ease; }
+  .piece .slot{
+    position:relative; width:100%; overflow:visible;
+  }
+  .piece .slot.framed{
+    border: 1.5px solid #000000; border-radius: 0;
+  }
+  .piece .poster{ display:block; width:100%; height:100%; object-fit:cover; }
+  .piece .vid{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    border:none; pointer-events:none;
+  }
+  .piece .stamp{
+    position:absolute; top:calc(100% + 6px); left:0;
+    font-family:'Google Sans Code', monospace; font-size:11px; letter-spacing:0.05em; color:#000000;
+    opacity:0.7; font-variant-numeric:tabular-nums;
+  }
+  @media (max-width:720px){
+    .piece .stamp{ font-size:9.5px; }
+  }
+  .tail{ height:40vh; }
+
+  /* ---- days of 93 overlay ---- */
+  .bio-title{
+    font-family:'Jost', 'Helvetica Neue', sans-serif;
+    font-size:clamp(4.5rem, 13vw, 16rem);
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:-0.02em; line-height:0.88;
+    color:#000; margin-bottom:18px;
+    text-shadow: 0 0 18px #fff, 0 0 36px #fff, 0 0 54px rgba(255,255,255,0.7);
+  }
+  .bio-text{
+    font-family:'Jost', sans-serif; font-size:4rem; font-weight:500;
+    letter-spacing:0.02em; line-height:1.2;
+    color:#000; margin-bottom:32px;
+    text-shadow: 0 0 22px #fff, 0 0 44px #fff, 0 0 66px rgba(255,255,255,0.6);
+  }
+  .client-list-small li{
+    font-size:11px; font-weight:400; letter-spacing:0.08em; line-height:2.2;
+    color:#000; opacity:0.65;
+    text-shadow: 0 0 12px #fff, 0 0 24px #fff;
+  }
+  /* ---- past clients overlay ---- */
+  .overlay{
+    position:fixed; inset:0; z-index:100;
+    background:var(--field);
+    display:none; opacity:0; transition:opacity .3s ease;
+    overflow:hidden;
+  }
+  /* about overlay: page-style scroll, no scrollbar */
+  #about{ overflow-y:scroll; scrollbar-width:none; }
+  #about::-webkit-scrollbar{ width:0; }
+  .overlay.open{ display:block; opacity:1; }
+  /* default overlay-inner (clients overlay) */
+  .overlay-inner{
+    position:absolute; top:14vh; left:20px; right:20px;
+    max-width:520px; z-index:1;
+  }
+  /* about overlay-inner: normal flow so it scrolls with the page */
+  #about .overlay-inner{
+    position:relative; margin:28px 0 15vh 28px;
+    max-width:none; z-index:1;
+  }
+  #about .bio-text,
+  #about .overlay-close{ max-width:520px; }
+  .about-field{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    display:none;
+  }
+  /* about overlay: video bg — decorative strips muted (display:none, not removed) */
+  #about{ background:#fff; }
+  .about-bg-video{
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:contain; z-index:0; pointer-events:none;
+  }
+  #about .comfy-strip,
+  #about .comfy68-strip,
+  #about .cstrip,
+  #about .vstrip,
+  #about .fg-strip { display:none; }
+  #about-field{ display:block; z-index:1; }
+  #about .overlay-inner{ z-index:2; }
+  #about .bio-title,
+  #about .bio-text,
+  #about .overlay-close{ color:#000; text-shadow:none; }
+
+  /* ---- comfy68 image strip — narrow, right of red lines, upward ---- */
+  .comfy68-strip{
+    position:fixed; top:0; bottom:0;
+    left:calc(50% + 160px); width:14vw; overflow:hidden;
+    pointer-events:none; opacity:0.3;
+  }
+  .comfy68-inner{
+    display:flex; flex-direction:column;
+    animation: comfy68Scroll 90s linear infinite;
+  }
+  .comfy68-inner img{
+    width:100%; height:100vh; object-fit:cover;
+    display:block; flex-shrink:0;
+    filter:grayscale(1);
+  }
+  @keyframes comfy68Scroll{
+    from { transform: translateY(0); }
+    to   { transform: translateY(-100vh); }
+  }
+  /* collage strips — behind red vstrips, sine-wave centered */
+  .cstrip{
+    position:fixed; top:0; pointer-events:none; z-index:0;
+    will-change:transform;
+  }
+  .cstrip img{ display:block; }
+  .cstrip-1{ left:calc(50% + 40px);  opacity:0.65; }
+  .cstrip-1 img{ width:36px; height:auto; }
+  .cstrip-2{ left:calc(50% + 108px); opacity:0.55; }
+  .cstrip-2 img{ width:13px; height:auto; }
+  /* vertical color strips */
+  .vstrip{
+    position:fixed; top:0; pointer-events:none; z-index:0;
+    will-change:transform;
+  }
+  .vstrip img{ display:block; object-fit:cover; }
+  /* widths halved, varied gaps: 5 / 9 / 6 / 12 / 4px */
+  .vstrip-1{ left:calc(50% + 26px); }
+  .vstrip-1 img{ width:2px;  height:58vh; }
+  .vstrip-2{ left:calc(50% + 33px);  }
+  .vstrip-2 img{ width:17px; height:45vh; }
+  .vstrip-3{ left:calc(50% + 59px); }
+  .vstrip-3 img{ width:9px;  height:70vh; }
+  .vstrip-4{ left:calc(50% + 74px); }
+  .vstrip-4 img{ width:34px; height:55vh; }
+  .vstrip-5{ left:calc(50% + 120px); }
+  .vstrip-5 img{ width:7px;  height:40vh; }
+  .vstrip-black{ left:calc(50% + 131px); width:3px; }
+  .vstrip-black .vstrip-inner{ height:65vh; background:#111111; width:3px; }
+  .fg-strip{
+    position:fixed; left:0;
+    display:flex;
+    pointer-events:none; z-index:0;
+    mix-blend-mode:multiply;
+    will-change:transform;
+  }
+  .fg-strip.h{ flex-direction:row; width:200vw; }
+  .fg-strip.h img{ width:100vw; height:auto; flex-shrink:0; }
+  .fg-strip.v{ flex-direction:column; width:100%; left:0; top:0; }
+  .fg-strip.v img{ width:100%; height:auto; flex-shrink:0; }
+  /* positions & base opacity — JS drives transform + lfo opacity */
+  .fg-strip-1{ top:3vh;  opacity:0.24; }
+  .fg-strip-2{ top:26vh; opacity:0.22; }
+  .fg-strip-3{ top:52vh; opacity:0.14; }
+  .fg-strip-5{ top:0; left:auto; right:0; width:38%; opacity:0.13; }
+  @media(max-width:720px){
+    .bio-title{ text-shadow:none; }
+    .bio-text{ text-shadow:none; font-size:1.5rem; }
+    .client-list-small li{ text-shadow:none; }
+    #about .overlay-inner{ margin-right:20px; }
+    #about .bio-title{ font-weight:800; }
+    #about .bio-text{ font-weight:300; font-size:clamp(1.6rem, 5vw, 2.2rem); line-height:1.35; }
+    #about header{
+      bottom:auto; background:transparent;
+      backdrop-filter:none; -webkit-backdrop-filter:none;
+    }
+  }
+    font-size:11px; letter-spacing:0.08em; text-transform:lowercase;
+    color:#000; opacity:0.55; margin-bottom:22px;
+    font-variant-numeric:tabular-nums;
+  }
+  .client-list{ list-style:none; }
+  .client-list li{
+    font-size:15px; letter-spacing:0.01em; line-height:2.05;
+    color:#000; opacity:0.9;
+  }
+  .overlay-close{
+    display:inline-block; margin-top:26px;
+    font-size:11px; letter-spacing:0.06em; color:#000;
+    opacity:0.5; text-decoration:none;
+  }
+  .contact-email{
+    display:inline-block;
+    font-family:'Jost',sans-serif; font-size:1.1rem; font-weight:300;
+    letter-spacing:0.03em; color:#000; text-decoration:none;
+    opacity:0.85;
+  }
+  .contact-email:hover{ opacity:1; }
+  /* ---- work overlay ---- */
+  #work{ overflow-y:scroll; scrollbar-width:none; }
+  #work::-webkit-scrollbar{ width:0; }
+  .work-login-inner{
+    position:absolute; top:50%; left:28px; transform:translateY(-50%);
+  }
+  .work-label{
+    font-family:'Jost',sans-serif; font-size:11px; letter-spacing:0.08em;
+    text-transform:lowercase; color:#000; opacity:0.55; margin-bottom:20px;
+  }
+  .work-pw-input{
+    display:block; font-family:'Jost',sans-serif; font-size:2rem; font-weight:300;
+    letter-spacing:0.05em; color:#000; background:none;
+    border:none; border-bottom:1px solid rgba(0,0,0,0.22);
+    outline:none; width:240px; padding-bottom:6px;
+  }
+  .work-pw-error{
+    font-family:'Jost',sans-serif; font-size:11px; letter-spacing:0.06em;
+    color:#000; opacity:0; margin-top:12px; transition:opacity .3s;
+  }
+  .work-pw-error.show{ opacity:0.45; }
+  .work-videos-inner{
+    position:relative; margin:52px 0 15vh 28px;
+  }
+  .work-video{
+    display:block; width:100%; max-width:calc(100vw - 56px);
+    height:auto; max-height:80vh; object-fit:contain;
+  }
+  .work-close-btn{
+    position:fixed; bottom:28px; left:28px;
+  }
+  @keyframes d93pulse {
+    0%, 100% { opacity: 0.85; }
+    50%       { opacity: 0.25; }
+  }
+  .d93-pulse { animation: d93pulse 2.4s ease-in-out infinite; }
+
+  /* ---- comfy image strip — behind everything in about overlay ---- */
+  .comfy-strip{
+    position:fixed; top:0; bottom:0; left:48vw; right:0; overflow:hidden;
+    pointer-events:none; opacity:0.4;
+  }
+  .comfy-inner{
+    display:flex; flex-direction:column;
+    animation: comfyScroll 60s linear infinite;
+  }
+  .comfy-inner img{
+    height:100vh; width:auto; display:block; flex-shrink:0;
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
+    mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
+  }
+  @keyframes comfyScroll{
+    from { transform: translateY(-100vh); }
+    to   { transform: translateY(0); }
+  }
+  #explore-btn {
+    display: none;
+    position: fixed;
+    left: calc(31.8vw - 14px);
+    top: calc(50vh + 7.22vw - 14px);
+    right: auto;
+    bottom: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #E85500;
+    text-decoration: none;
+    z-index: 51;
+  }
+  @media (min-width: 720px) {
+    #explore-btn {
+      left: calc(50vw - 12.87vh - 14px);
+      top: calc(55.1vh - 14px);
+    }
+  }
+  #explore-btn.visible { display: block; }
+  #explore-btn.phase2 { animation: dot-slow 2s ease-in-out infinite; }
+  #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
+  #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
+  @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
+  @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
+  #explore3-btn {
+    display: none;
+    position: fixed;
+    left: calc(31.8vw - 14px + 180px);
+    top: calc(50vh + 7.22vw - 14px + 110px);
+    right: auto; bottom: auto;
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: #E85500;
+    text-decoration: none;
+    z-index: 51;
+    animation: dot-slow 2.4s ease-in-out infinite;
+  }
+  @media (min-width: 720px) {
+    #explore3-btn {
+      left: calc(50vw - 12.87vh - 14px + 180px);
+      top: calc(55.1vh - 14px + 110px);
+    }
+  }
+  #explore4-btn {
+    display: none;
+    position: fixed;
+    left: calc(31.8vw - 14px - 60px);
+    top: calc(50vh + 7.22vw - 14px + 220px);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #E85500;
+    text-decoration: none;
+    z-index: 51;
+    animation: dot-slow 2.6s ease-in-out infinite;
+  }
+  @media (min-width: 720px) {
+    #explore4-btn {
+      left: calc(50vw - 12.87vh - 14px + 400px);
+      top: calc(55.1vh - 14px + 250px);
+    }
+  }
+</style>
+</head>
+<body>
+<script>
+(function(){
+  if (false && location.search.indexOf('from=explore') === -1) {
+    document.documentElement.style.background = '#E85500';
+    document.body.style.background = '#E85500';
+    setTimeout(function(){ window.location.href = 'explore.html'; }, 50);
+  } else {
+    history.replaceState({}, '', '/');
+    // Trigger image + mesh breathing + grid darkening after 2s
+    setTimeout(function() {
+      var v = document.getElementById('bg-vector');
+      if (v) { v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
+      var mc = document.getElementById('mesh-canvas');
+      if (mc) mc.classList.add('mesh-breathing');
+
+      var field = document.getElementById('field');
+      if (field) {
+        var baseAlpha = 0.12, peakAlpha = 0.45, period = 18000;
+        var t0 = performance.now();
+        (function loop(now) {
+          var t = ((now - t0) % period) / period;
+          var s = (1 - Math.cos(t * Math.PI * 2)) / 2;
+          var a = (baseAlpha + s * (peakAlpha - baseAlpha)).toFixed(4);
+          field.style.setProperty('--line', 'rgba(0,0,0,' + a + ')');
+          requestAnimationFrame(loop);
+        })(performance.now());
+      }
+    }, 2000);
+  }
+})();
+</script>
+
+  <header>
+    <nav>
+      <a href="#" id="nav-days">about</a>
+      <a href="music.html">music</a>
+      <a href="#" id="nav-work">work</a>
+      <a href="past-clients.html">past clients</a>
+      <a href="#" id="nav-clients">contact</a>
+            <div id="d93-vol-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:4px;">
+        <button id="d93-mute-btn" aria-label="Volume" style="background:none;border:none;padding:0 0 0 2px;cursor:pointer;display:flex;align-items:center;color:var(--ink,#000);opacity:0.65;transition:opacity .2s;-webkit-tap-highlight-color:transparent;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.65">
+          <svg id="d93-spk" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <path id="d93-spk-path" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+          </svg>
+        </button>
+        <div id="d93-vol-popup" style="position:absolute;display:none;flex-direction:column;align-items:center;padding:10px 8px;z-index:9998;background:var(--field,#fff);border:1px solid rgba(128,128,128,0.2);">
+          <input type="range" id="d93-vol-sl" min="0" max="1" step="0.01" style="height:72px;writing-mode:vertical-lr;direction:rtl;accent-color:var(--ink,#000);cursor:pointer;width:18px;">
+        </div>
+<a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" id="nav-ig" aria-label="Instagram" style="display:flex;align-items:center;opacity:1;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
+          <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
+          <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="#000" stroke="white" stroke-width="2"/>
+          <circle cx="12" cy="12" r="4.5" fill="none" stroke="white" stroke-width="2"/>
+          <circle cx="17" cy="7" r="1.2" fill="white"/>
+        </svg>
+      </a>
+      </div>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-title">DAYS<br>OF 93.</div>
+      <div class="hero-sub">Film Composer — Tommy Gee</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="about">
+    <video class="about-bg-video" autoplay loop muted playsinline>
+      <source src="https://daysof93-cdn.b-cdn.net/Orange%206.webm" type="video/webm">
+    </video>
+    <header style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
+      <nav style="display:flex;gap:28px;align-items:center;">
+        <a href="#" id="about-nav-work" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">work</a>
+        <a href="music.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">music</a>
+        <a href="past-clients.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">past clients</a>
+        <a href="mailto:contact@daysof93.com" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">contact</a>
+        <a href="#" id="about-close-nav" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;border-bottom:1.5px solid #000;padding-bottom:1px;">about</a>
+        <a href="https://www.instagram.com/days_of_93/" target="_blank" rel="noopener" aria-label="Instagram" style="display:flex;align-items:center;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=1">
+          <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000">
+            <rect x="0" y="0" width="24" height="24" rx="6" ry="6" fill="#000"/>
+            <rect x="3" y="3" width="18" height="18" rx="4" ry="4" fill="#000" stroke="white" stroke-width="2"/>
+            <circle cx="12" cy="12" r="4.5" fill="none" stroke="white" stroke-width="2"/>
+            <circle cx="17" cy="7" r="1.2" fill="white"/>
+          </svg>
+        </a>
+      </nav>
+    </header>
+    <div class="comfy-strip">
+      <div class="comfy-inner">
+        <img src="/ComfyUI_00008_.png" alt="">
+        <img src="/ComfyUI_00008_.png" alt="">
+      </div>
+    </div>
+    <div class="comfy68-strip">
+      <div class="comfy68-inner">
+        <img src="/ComfyUI_00068_.png" alt="">
+        <img src="/ComfyUI_00068_.png" alt="">
+      </div>
+    </div>
+    <div class="cstrip cstrip-1"><img src="/collagestrip_1.png" alt=""></div>
+    <div class="cstrip cstrip-2"><img src="/collagestrip_2.png" alt=""></div>
+    <div class="vstrip vstrip-1"><img src="/ral_red_strip_1.png" alt=""><img src="/ral_red_strip_1.png" alt=""></div>
+    <div class="vstrip vstrip-2"><img src="/ral_red_strip_2.png" alt=""><img src="/ral_red_strip_2.png" alt=""></div>
+    <div class="vstrip vstrip-3"><img src="/ral_red_strip_3.png" alt=""><img src="/ral_red_strip_3.png" alt=""></div>
+    <div class="vstrip vstrip-4"><img src="/ral_red_strip_4.png" alt=""><img src="/ral_red_strip_4.png" alt=""></div>
+    <div class="vstrip vstrip-5"><img src="/ral_red_strip_5.png" alt=""><img src="/ral_red_strip_5.png" alt=""></div>
+    <div class="vstrip vstrip-black"><div class="vstrip-inner"></div><div class="vstrip-inner"></div></div>
+    <svg class="about-field" id="about-field" preserveAspectRatio="xMidYMid slice"></svg>
+    <div class="fg-strip h fg-strip-1">
+      <img src="/Fontgraphics_1.png?v=3" alt=""><img src="/Fontgraphics_1.png?v=3" alt="">
+    </div>
+    <div class="fg-strip h fg-strip-2">
+      <img src="/Fontgraphics_2.png?v=3" alt=""><img src="/Fontgraphics_2.png?v=3" alt="">
+    </div>
+    <div class="fg-strip h fg-strip-3">
+      <img src="/Fontgraphics_3.png?v=3" alt=""><img src="/Fontgraphics_3.png?v=3" alt="">
+    </div>
+    <div class="fg-strip v fg-strip-5">
+      <img src="/Fontgraphics_5.png?v=1" alt=""><img src="/Fontgraphics_5.png?v=1" alt="">
+    </div>
+    <div class="overlay-inner">
+      <p class="bio-title">DAYS<br>OF 93.</p>
+      <p class="bio-text">Human. Danish Composer, Tommy Gee. Crafting organic electronic sounds since the days when digital was an analog dream. Composing for film and television</p>
+      <a href="#" class="overlay-close" id="about-close">close</a>
+    </div>
+  </div>
+
+  <div class="overlay" id="work">
+    <svg class="about-field" id="work-field" preserveAspectRatio="xMidYMid slice"></svg>
+    <!-- login state -->
+    <div class="work-login-inner" id="work-login">
+      <p class="work-label">client access</p>
+      <input type="password" id="work-pw" class="work-pw-input" placeholder="password" autocomplete="off" spellcheck="false">
+      <p class="work-pw-error" id="work-pw-error">incorrect password</p>
+    </div>
+    <!-- video state -->
+    <div class="work-videos-inner" id="work-videos" style="display:none">
+      <video class="work-video" id="work-video-1"
+        src="https://daysof93-cdn.b-cdn.net/Trailer_Tommy_Gee_and_Toke_Odin-001.mp4"
+        controls preload="metadata" playsinline></video>
+    </div>
+    <a href="#" class="overlay-close work-close-btn" id="work-close">close</a>
+  </div>
+
+  <div class="overlay" id="clients">
+    <div class="overlay-inner">
+      <div class="overlay-label">contact</div>
+      <a href="mailto:inquiries@daysof93.com" class="contact-email">inquiries@daysof93.com</a>
+      <div class="overlay-label" style="margin-top:32px;"><a href="past-clients.html" style="color:var(--ink); opacity:0.7; text-decoration:none;">past clients &rarr;</a></div>
+      <a href="#" class="overlay-close" id="clients-close">close</a>
+    </div>
+  </div>
+
+  <img id="bg-vector" src="/Vector%20image_no_BG.png" alt="">
+  <svg class="field" id="field" preserveAspectRatio="xMidYMid slice"></svg>
+<canvas id="mesh-canvas"></canvas>
+  <canvas id="glitch-canvas"></canvas>
+
+
+
+<script>
+function daySeed(){ const d=new Date(); return d.getFullYear()*1000 + dayOfYear(d); }
+function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+function seededRand(seed){ const x=Math.sin(seed)*10000; return x-Math.floor(x); }
+const SEED = daySeed();
+
+// layout() removed — pieces live on music.html
+
+
+function drawField(targetId){
+  const svg = document.getElementById(targetId || 'field');
+  const w = window.innerWidth, h = window.innerHeight;
+  svg.setAttribute('viewBox', "0 0 "+w+" "+h);
+  const camX = (seededRand(SEED+1)-0.5)*40;
+  const camTilt = (seededRand(SEED+2)-0.5)*0.02;
+  const vpX = w*0.5 + camX, vpY = h*0.62;
+  let lines = '';
+  const bands = 18;
+  for(let i=0;i<=bands;i++){
+    const t=i/bands, y=vpY+Math.pow(t,1.8)*(h-vpY), op=0.34*(1-t*0.65);
+    lines += '<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+op.toFixed(3)+'"/>';
+  }
+  const cols=16;
+  for(let i=0;i<=cols;i++){
+    const x=(i/cols)*w;
+    lines += '<line x1="'+x+'" y1="'+h+'" x2="'+(vpX+(x-vpX)*0.12)+'" y2="'+vpY+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.18"/>';
+  }
+  const ay=Math.sin(camTilt);
+  lines += '<line x1="0" y1="'+vpY+'" x2="'+w+'" y2="'+(vpY+ay*w)+'" stroke="var(--axis-x)" stroke-width="var(--hair)" opacity="0.48"/>';
+  lines += '<line x1="'+vpX+'" y1="0" x2="'+vpX+'" y2="'+h+'" stroke="var(--axis-y)" stroke-width="var(--hair)" opacity="0.42"/>';
+  const gx=vpX, gy=vpY, r=9;
+  lines += '<circle cx="'+gx+'" cy="'+gy+'" r="'+r+'" fill="none" stroke="var(--ink)" stroke-width="var(--hair)" stroke-dasharray="2 3" opacity="0.55"/>';
+  lines += '<line x1="'+(gx-r-4)+'" y1="'+gy+'" x2="'+(gx+r+4)+'" y2="'+gy+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
+  lines += '<line x1="'+gx+'" y1="'+(gy-r-4)+'" x2="'+gx+'" y2="'+(gy+r+4)+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
+
+  // --- lines that break symmetry & straightness, living in the UPPER field ---
+  // (the negative space around the nav, above where the pieces begin) — desktop only
+  if(w >= 720){
+    const upperBand = vpY * 0.72;   // confine to the top zone, above the horizon
+    const strays = 4;
+    for(let i=0;i<strays;i++){
+      const s1 = seededRand(SEED + 100 + i*3.1);
+      const s2 = seededRand(SEED + 200 + i*5.7);
+      const s3 = seededRand(SEED + 300 + i*2.3);
+      const s4 = seededRand(SEED + 350 + i*4.9);
+      // both endpoints roam the upper band, at irregular positions
+      const x1 = s1 * w;
+      const y1 = s2 * upperBand;
+      const x2 = s3 * w;
+      const y2 = s4 * upperBand;
+      if(s2 > 0.5){
+        // gentle bow — deviates from straightness
+        const mx = (x1+x2)/2 + (s3-0.5)*140;
+        const my = (y1+y2)/2 + (s1-0.5)*70;
+        lines += '<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'" fill="none" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s4*0.12).toFixed(3)+'"/>';
+      } else {
+        // straight but off-grid
+        lines += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s1*0.12).toFixed(3)+'"/>';
+      }
+    }
+    // a couple of long faint diagonals sweeping across the upper field
+    for(let i=0;i<1;i++){
+      const s1 = seededRand(SEED + 600 + i*7.9);
+      const s2 = seededRand(SEED + 700 + i*3.3);
+      lines += '<line x1="'+(s1*w*0.4).toFixed(1)+'" y1="'+(s2*upperBand*0.5).toFixed(1)+'" x2="'+((0.5+s2*0.5)*w).toFixed(1)+'" y2="'+((0.4+s1*0.6)*upperBand).toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.14"/>';
+    }
+  }
+
+  svg.innerHTML = lines;
+}
+
+function build(){ drawField(); drawField('about-field'); drawField('work-field'); }
+
+build();
+
+// fade out hero-sub after 6s
+setTimeout(function(){
+  var sub=document.querySelector('.hero-sub'); if(sub) sub.style.opacity='0';
+}, 6000);
+
+// redblack video — appears after 12s on first anchor hover, then cycles
+(function(){
+  var rbReady   = false;
+  var rbCycling = false;
+  var rbPrevHit = null;
+
+  setTimeout(function(){ rbReady = true; }, 12000);
+
+  function rbShow(){
+    var v = document.getElementById('redblack-video');
+    if(!v) return;
+    v.play().catch(function(){});
+    v.style.opacity = '1';
+    setTimeout(rbHide, 15000);
+  }
+
+  function rbHide(){
+    var v = document.getElementById('redblack-video');
+    if(!v) return;
+    v.style.opacity = '0';
+    var delay = 5000 + Math.random() * 5000; // 5–10s
+    setTimeout(rbShow, delay);
+  }
+
+  setInterval(function(){
+    if(!rbReady || rbCycling) return;
+    var hit = window._d93AnchorHit;
+    if(hit && !rbPrevHit){
+      rbCycling = true;
+      rbShow();
+    }
+    rbPrevHit = hit;
+  }, 50);
+})();
+
+let rt;
+window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
+
+/* ---- days of 93 overlay ---- */
+(function(){
+  const overlay = document.getElementById('about');
+  const open  = document.getElementById('nav-days');
+  const close = document.getElementById('about-close');
+  if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
+  if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  const closeNav = document.getElementById('about-close-nav');
+  if(closeNav) closeNav.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  const workNav = document.getElementById('about-nav-work');
+  if(workNav) workNav.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); document.getElementById('nav-work').click(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+  if(window.location.hash === '#about') overlay.classList.add('open');
+})();
+
+/* ---- past clients overlay ---- */
+(function(){
+  const overlay = document.getElementById('clients');
+  const open  = document.getElementById('nav-clients');
+  const close = document.getElementById('clients-close');
+  if(open) open.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.add('open'); });
+  if(close) close.addEventListener('click', e=>{ e.preventDefault(); overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+})();
+
+/* ---- work overlay ---- */
+(function(){
+  const overlay  = document.getElementById('work');
+  const loginEl  = document.getElementById('work-login');
+  const videosEl = document.getElementById('work-videos');
+  const pwInput  = document.getElementById('work-pw');
+  const pwError  = document.getElementById('work-pw-error');
+  const video1   = document.getElementById('work-video-1');
+  const PW       = 'sirius';
+
+  function showLogin(){
+    loginEl.style.display  = '';
+    videosEl.style.display = 'none';
+    setTimeout(function(){ if(pwInput) pwInput.focus(); }, 80);
+  }
+  function showVideos(){
+    loginEl.style.display  = 'none';
+    videosEl.style.display = '';
+  }
+  function openWork(){
+    overlay.classList.add('open');
+    overlay.scrollTop = 0;
+    if(sessionStorage.getItem('d93-work-auth') === '1') showVideos();
+    else showLogin();
+  }
+  function closeWork(){
+    overlay.classList.remove('open');
+    if(video1) video1.pause();
+  }
+
+  const navWork = document.getElementById('nav-work');
+  if(navWork) navWork.addEventListener('click', e=>{ e.preventDefault(); openWork(); });
+
+  const closeBtn = document.getElementById('work-close');
+  if(closeBtn) closeBtn.addEventListener('click', e=>{ e.preventDefault(); closeWork(); });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape') closeWork();
+    if(e.key === 'Enter' && overlay.classList.contains('open') && loginEl.style.display !== 'none'){
+      const val = pwInput ? pwInput.value.trim().toLowerCase() : '';
+      if(val === PW){
+        sessionStorage.setItem('d93-work-auth','1');
+        pwError.classList.remove('show');
+        showVideos();
+      } else {
+        pwError.classList.add('show');
+        if(pwInput){ pwInput.value=''; pwInput.focus(); }
+      }
+    }
+  });
+})();
+
+/* ---- back button: close overlay instead of leaving site ---- */
+(function(){
+  var _pushed = false;
+
+  function onOpen() {
+    if (!_pushed) { history.pushState({d93: 'overlay'}, ''); _pushed = true; }
+  }
+  function onClose() {
+    if (_pushed) { _pushed = false; history.back(); }
+  }
+
+  window.addEventListener('popstate', function() {
+    _pushed = false;
+    document.querySelectorAll('.overlay.open').forEach(function(el){ el.classList.remove('open'); });
+    var v = document.getElementById('work-video-1'); if(v) v.pause();
+  });
+
+  ['nav-days','nav-clients','nav-work'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('click', onOpen);
+  });
+  ['about-close','clients-close','work-close'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('click', onClose);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') onClose(); });
+})();
+
+
+</script>
+
+<script>
+(function(){
+  if(typeof THREE==='undefined'){ console.error('d93: THREE not loaded'); return; }
+  if(typeof THREE.GLTFLoader==='undefined'){ console.error('d93: GLTFLoader not loaded'); return; }
+
+  var canvas = document.getElementById('mesh-canvas');
+  var renderer = new THREE.WebGLRenderer({canvas:canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0,0,5);
+
+  var mesh = null;
+  var springReady = false;
+  var meshDatas = [];
+  var anchorLocal = [];
+
+  var SPRING  = 0.05;
+  var DAMPING = 0.80;
+  var PUSH    = 0.08;
+  var HOVER_R = 1.2;
+
+  var _m2d    = new THREE.Vector2(-9999,-9999);
+  var _ray    = new THREE.Raycaster();
+  var _plane  = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+  var _mW     = new THREE.Vector3();
+  var _mL     = new THREE.Vector3();
+  var _aW     = [new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
+  var _tmpInv = new THREE.Matrix4();
+  var _tmpV3  = new THREE.Vector3();
+  var _prevActiveA = -1;
+
+  /* ---- AUDIO CAROUSEL ---- */
+  var TRACKS  = ['/Common_frequencis_remix.mp3'];
+  var VOLUME  = 1.0;
+  var played  = new Set();
+  var audioEl = null;
+  var audioPlaying   = false;
+  var audioScheduled = false;
+  var audioUnlocked  = false;
+  var bottomWasActive = false;
+
+  function nextTrack(){
+    var pool = TRACKS.filter(function(t){ return !played.has(t); });
+    if(!pool.length) return null;
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  function scheduleAudio(){
+    if(audioPlaying || audioScheduled) return;
+    audioScheduled = true;
+    setTimeout(startAudio, 3000);
+  }
+
+  function startAudio(){
+    audioScheduled = false;
+    if(audioPlaying) return;
+    var track = nextTrack();
+    if(!track){ console.log('d93: all tracks played'); return; }
+    console.log('d93: starting', track);
+    played.add(track);
+    audioPlaying = true;
+    audioEl.src = track;
+    audioEl.volume = 0;
+    var p = audioEl.play();
+    if(p) p.catch(function(e){ console.error('d93: play error',e); audioPlaying=false; });
+    // Fade in over 2.5s
+    var t0 = performance.now();
+    (function fade(){
+      var pct = Math.min((performance.now()-t0)/2500, 1);
+      audioEl.volume = pct * (window._d93vol ? window._d93vol() : VOLUME);
+      if(pct<1) requestAnimationFrame(fade);
+    })();
+  }
+
+  function initAudio(){
+    if(audioUnlocked) return;
+    audioEl = document.createElement('audio');
+    audioEl.preload = 'auto';
+    audioEl.volume  = 0;
+    audioEl.addEventListener('ended', function(){ audioPlaying=false; });
+    document.body.appendChild(audioEl);
+    audioUnlocked = true;
+    console.log('d93: audio unlocked');
+    // Already hovering bottom anchor when click fired
+    if(bottomWasActive && !audioPlaying) scheduleAudio();
+  }
+
+  document.addEventListener('click', initAudio);
+
+  /* d93: pause audio when leaving page / backgrounding on iOS */
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && audioEl) audioEl.pause();
+  });
+  window.addEventListener('pagehide', function(){
+    if(audioEl){ audioEl.pause(); audioEl.src=''; }
+  });
+  /* ---- END AUDIO ---- */
+
+  setTimeout(function(){
+    window.addEventListener('mousemove', function(e){
+      _m2d.x = (e.clientX/window.innerWidth)*2-1;
+      _m2d.y = -(e.clientY/window.innerHeight)*2+1;
+    });
+  }, 8000);
+
+  function setupSpring(root){
+    root.updateMatrixWorld(true);
+    var rootInv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+
+    var lBox = new THREE.Box3();
+    root.traverse(function(child){
+      if(!child.isMesh) return;
+      var geo = child.geometry;
+      if(!geo.boundingBox) geo.computeBoundingBox();
+      var b2 = geo.boundingBox.clone().applyMatrix4(new THREE.Matrix4().copy(rootInv).multiply(child.matrixWorld));
+      lBox.union(b2);
+    });
+
+    var lMin=lBox.min, lMax=lBox.max;
+    var lCx=(lMin.x+lMax.x)/2, lCy=(lMin.y+lMax.y)/2, lCz=(lMin.z+lMax.z)/2;
+    var lW=lMax.x-lMin.x, lH=lMax.y-lMin.y;
+
+    anchorLocal = [
+      new THREE.Vector3(lCx-lW*0.28, lCy+lH*0.28, lCz),
+      new THREE.Vector3(lCx+lW*0.28, lCy+lH*0.28, lCz),
+      new THREE.Vector3(lCx-lW*0.28, lCy-lH*0.28, lCz),
+      new THREE.Vector3(lCx+lW*0.28, lCy-lH*0.28, lCz)
+    ];
+
+    var VRAD = Math.max(lW,lH)*0.38;
+    var vrl  = new THREE.Vector3();
+
+    root.traverse(function(child){
+      if(!child.isMesh) return;
+      var geo = child.geometry;
+      var pos = geo.attributes.position;
+      var n   = pos.count;
+      var childToRoot = new THREE.Matrix4().copy(rootInv).multiply(child.matrixWorld);
+
+      var md = {
+        geo:  geo,
+        orig: new Float32Array(pos.array),
+        vx:   new Float32Array(n),
+        vy:   new Float32Array(n),
+        n:    n,
+        aIdx: new Int8Array(n).fill(-1),
+        aW:   new Float32Array(n),
+        mW:   child.matrixWorld
+      };
+
+      for(var i=0;i<n;i++){
+        vrl.set(md.orig[i*3], md.orig[i*3+1], md.orig[i*3+2]).applyMatrix4(childToRoot);
+        var bd=VRAD, ba=-1;
+        for(var a=0;a<4;a++){
+          var d=vrl.distanceTo(anchorLocal[a]);
+          if(d<bd){bd=d;ba=a;}
+        }
+        if(ba>=0){md.aIdx[i]=ba; md.aW[i]=1-bd/VRAD;}
+      }
+
+      pos.setUsage(THREE.DynamicDrawUsage);
+      meshDatas.push(md);
+    });
+
+    springReady = true;
+    console.log('d93: spring ready');
+  }
+
+  var rotDirTarget   = 1;
+  var rotDirCurrent  = 1;
+  var rotBoostTarget = 0;
+  var rotBoostCurrent= 0;
+  var hasHitRight    = false;
+
+  function updateSpring(){
+    if(!springReady||!mesh) return;
+
+    _ray.setFromCamera(_m2d, camera);
+    _ray.ray.intersectPlane(_plane, _mW);
+
+    for(var a=0;a<4;a++) _aW[a].copy(anchorLocal[a]).applyMatrix4(mesh.matrixWorld);
+
+    var activeA=-1, minD=HOVER_R;
+    for(var a=0;a<4;a++){
+      var dx=_mW.x-_aW[a].x, dy=_mW.y-_aW[a].y;
+      var d=Math.sqrt(dx*dx+dy*dy); // 2D only — ignore Z
+      if(d<minD){minD=d;activeA=a;}
+    }
+    var prox = activeA>=0 ? 1-minD/HOVER_R : 0;
+
+    /* ---- expose anchor hit to glitch system ---- */
+    if(activeA>=0 && activeA!==_prevActiveA){
+      _tmpV3.copy(_aW[activeA]).project(camera);
+      window._d93AnchorHit = {
+        idx: activeA,
+        sx: (_tmpV3.x+1)/2*window.innerWidth,
+        sy: (1-_tmpV3.y)/2*window.innerHeight
+      };
+    } else if(activeA<0 && _prevActiveA>=0){
+      window._d93AnchorHit = null;
+    }
+    /* ---- rotation speed / direction trigger ---- */
+    if(activeA >= 0 && activeA !== _prevActiveA){
+      var isRight = (activeA === 1 || activeA === 3);
+      var isLeft  = (activeA === 0 || activeA === 2);
+      if(isRight){
+        rotBoostTarget = 0.010;
+        hasHitRight = true;
+      } else if(isLeft && hasHitRight){
+        rotDirTarget  *= -1;
+        rotBoostTarget = 0.008;
+        hasHitRight    = false;
+      }
+    }
+    /* ---- end rotation trigger ---- */
+
+    _prevActiveA = activeA;
+    /* ---- end anchor hit ---- */
+
+    /* ---- audio trigger: whichever anchor is currently lowest world Y ---- */
+    var bottomAnchorIdx=0;
+    for(var a=1;a<4;a++){ if(_aW[a].y<_aW[bottomAnchorIdx].y) bottomAnchorIdx=a; }
+    var bottomActive = (activeA===bottomAnchorIdx);
+    if(bottomActive && !bottomWasActive){
+      console.log('d93: bottom anchor hit, unlocked='+audioUnlocked);
+      if(audioUnlocked && !audioPlaying) scheduleAudio();
+    }
+    bottomWasActive = bottomActive;
+    /* ---- end audio trigger ---- */
+
+    meshDatas.forEach(function(md){
+      var arr = md.geo.attributes.position.array;
+      _tmpInv.copy(md.mW).invert();
+      _mL.copy(_mW).applyMatrix4(_tmpInv);
+      var dirty = false;
+
+      for(var i=0;i<md.n;i++){
+        var ox=md.orig[i*3], oy=md.orig[i*3+1];
+        var cx=arr[i*3],     cy=arr[i*3+1];
+        var dvx=md.vx[i],    dvy=md.vy[i];
+        var dx=ox-cx,         dy=oy-cy;
+
+        if(activeA<0 && Math.abs(dx)<1e-4 && Math.abs(dy)<1e-4 && Math.abs(dvx)<1e-4 && Math.abs(dvy)<1e-4) continue;
+
+        if(activeA>=0 && md.aIdx[i]===activeA){
+          var w2=md.aW[i]*prox*PUSH;
+          dvx+=(_mL.x-cx)*w2;
+          dvy+=(_mL.y-cy)*w2;
+        }
+
+        dvx+=dx*SPRING;
+        dvy+=dy*SPRING;
+        dvx*=DAMPING;
+        dvy*=DAMPING;
+
+        arr[i*3]  =cx+dvx;
+        arr[i*3+1]=cy+dvy;
+        md.vx[i]=dvx;
+        md.vy[i]=dvy;
+        dirty=true;
+      }
+
+      if(dirty) md.geo.attributes.position.needsUpdate=true;
+    });
+  }
+
+  new THREE.GLTFLoader().load(
+    '/Indexvector4.glb',
+    function(gltf){
+      console.log('d93: GLB loaded OK');
+      var root = gltf.scene;
+      var box  = new THREE.Box3().setFromObject(root);
+      var center = box.getCenter(new THREE.Vector3());
+      var size   = box.getSize(new THREE.Vector3());
+      root.position.sub(center);
+      root.scale.setScalar(3.15/Math.max(size.x,size.y,size.z));
+      root.position.y+=0.75;
+      root.position.x -= (window.innerWidth < 720) ? 0 : 0.3;
+      root.rotation.y = 0.35;
+      root.rotation.x = 0.08;
+      root.traverse(function(child){
+        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.18, transparent:true});
+      });
+      scene.add(root);
+      mesh=root;
+      requestAnimationFrame(function(){
+        scene.updateMatrixWorld(true);
+        setupSpring(root);
+      });
+    },
+    null,
+    function(err){ console.error('d93: GLB load error', err); }
+  );
+
+  (function animate(){
+    requestAnimationFrame(animate);
+    if(mesh){
+      rotBoostCurrent += (rotBoostTarget  - rotBoostCurrent) * 0.12;
+      rotBoostTarget  *= 0.992;
+      rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
+      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent;
+    }
+    updateSpring();
+    renderer.render(scene,camera);
+  })();
+
+  window.addEventListener('resize', function(){
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+
+
+
+<script>
+/* GLITCH SYSTEM — disabled, re-enable later
+(function(){
+  var canvas = document.getElementById('glitch-canvas');
+  var ctx    = canvas.getContext('2d');
+  function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ---- WEB AUDIO: pre-load on first click ----
+  var SOUNDS=['/glitch/Glitchdrone1.mp3','/glitch/Glitchsound1.mp3','/glitch/Glitchsound2.mp3',
+              '/glitch/Glitchsound3.mp3','/glitch/Glitchsound4.mp3','/glitch/Glitchsound5.mp3'];
+  var gCtx=null, gBuffers={};
+
+  document.addEventListener('click', function(){
+    if(gCtx) return;
+    gCtx = new (window.AudioContext||window.webkitAudioContext)();
+    SOUNDS.forEach(function(url){
+      fetch(url)
+        .then(function(r){
+          if(!r.ok) throw new Error(r.status+' '+url);
+          return r.arrayBuffer();
+        })
+        .then(function(b){ return gCtx.decodeAudioData(b); })
+        .then(function(buf){ gBuffers[url]=buf; console.log('d93: loaded',url); })
+        .catch(function(e){ console.error('d93: sound load fail',e.message); });
+    });
+  });
+
+  function playGlitch(){
+    if(!gCtx) return;
+    var url=SOUNDS[Math.floor(Math.random()*SOUNDS.length)];
+    var buf=gBuffers[url];
+    if(!buf){ console.warn('d93: buffer not ready',url); return; }
+    var src=gCtx.createBufferSource();
+    src.buffer=buf;
+    var gain=gCtx.createGain();
+    gain.gain.value=window._d93vol ? window._d93vol() : 1;
+    src.connect(gain);
+    gain.connect(gCtx.destination);
+    src.start(0);
+    console.log('d93: playing glitch',url);
+  }
+
+  // ---- FRAGMENTS: thin triangles spawned at mesh edge ----
+  var frags=[];
+
+  // Approx mesh center in screen-fraction coords
+  var MCX=0.40, MCY=0.40, MR=0.30;
+
+  function spawnFromEdge(anchorSX, anchorSY){
+    var W=canvas.width, H=canvas.height;
+    var cx=W*MCX, cy=H*MCY, r=Math.min(W,H)*MR;
+    // Direction: mesh center → anchor screen pos
+    var dx=anchorSX-cx, dy=anchorSY-cy;
+    var dist=Math.sqrt(dx*dx+dy*dy)||1;
+    var nx=dx/dist, ny=dy/dist;
+    // Spawn at mesh edge
+    var ex=cx+nx*r, ey=cy+ny*r;
+    // Add slight angle spread
+    var spread=(Math.random()-0.5)*0.6;
+    var cos=Math.cos(spread), sin=Math.sin(spread);
+    var fx=nx*cos-ny*sin, fy=nx*sin+ny*cos;
+    var speed=0.5+Math.random()*0.9;
+
+    var n=1+Math.floor(Math.random()*2);
+    var tris=[];
+    for(var i=0;i<n;i++){
+      var len=40+Math.random()*60, wid=2+Math.random()*5;
+      var ang=Math.atan2(fy,fx)+(Math.random()-0.5)*0.4;
+      var ax=Math.cos(ang),ay=Math.sin(ang);
+      var px=-ay,py=ax;
+      var hw=wid/2;
+      var ox=(Math.random()-0.5)*12, oy=(Math.random()-0.5)*12;
+      tris.push({
+        x1:ox+ax*len,  y1:oy+ay*len,
+        x2:ox+px*hw,   y2:oy+py*hw,
+        x3:ox-px*hw,   y3:oy-py*hw
+      });
+    }
+    frags.push({
+      tris:tris, cx:ex, cy:ey,
+      vx:fx*speed, vy:fy*speed,
+      t0:performance.now(), dur:2000+Math.random()*800
+    });
+  }
+
+  // ---- ANCHOR HIT POLLING ----
+  var lastHitIdx=-1;
+
+  // ---- DRAW LOOP ----
+  var lastT=performance.now();
+  (function loop(now){
+    requestAnimationFrame(loop);
+    var W=canvas.width, H=canvas.height;
+
+    // Check for new anchor hit from Three.js
+    var hit=window._d93AnchorHit;
+    if(hit && hit.idx!==lastHitIdx){
+      lastHitIdx=hit.idx;
+      spawnFromEdge(hit.sx, hit.sy);
+      playGlitch();
+    }
+    if(!hit) lastHitIdx=-1;
+
+    // Draw
+    ctx.clearRect(0,0,W,H);
+    frags=frags.filter(function(f){
+      var t=(now-f.t0)/f.dur;
+      if(t>=1) return false;
+      f.cx+=f.vx; f.cy+=f.vy;
+      ctx.save();
+      ctx.globalAlpha=Math.pow(1-t,1.2);
+      ctx.translate(f.cx,f.cy);
+      ctx.strokeStyle='#1a1a1a';
+      ctx.lineWidth=0.8;
+      f.tris.forEach(function(tri){
+        ctx.beginPath();
+        ctx.moveTo(tri.x1,tri.y1);
+        ctx.lineTo(tri.x2,tri.y2);
+        ctx.lineTo(tri.x3,tri.y3);
+        ctx.closePath();
+        ctx.stroke();
+      });
+      ctx.restore();
+      return true;
+    });
+  })(performance.now());
+})();
+// end disabled glitch system */
+</script>
+
+<script>
+/* d93: fg-strips unified scroll + lfo — JS drives all transforms */
+(function(){
+  // spd = fraction of image width/height to advance per second
+  // e.g. 0.008 → crosses full image in ~125s
+  var strips = [
+    { sel:'.fg-strip-1', axis:'x', dir:1,  spd:0.009, lfo:true,  f:[0.00019,0.00043,0.00091], p:[0.7,3.1,5.4] },
+    { sel:'.fg-strip-2', axis:'x', dir:-1, spd:0.006, lfo:false },
+    { sel:'.fg-strip-3', axis:'x', dir:1,  spd:0.003, lfo:true,  f:[0.00025,0.00058,0.00079], p:[4.2,1.8,2.6] },
+    { sel:'.fg-strip-5', axis:'y', dir:1,  spd:0.007, lfo:false }
+  ];
+  strips.forEach(function(s){ s.el=document.querySelector(s.sel); s.pos=0; });
+
+  var last = null;
+  function tick(ts){
+    var dt = last ? Math.min(ts - last, 50) : 16;
+    last = ts;
+    strips.forEach(function(s){
+      if(!s.el) return;
+      var img = s.el.querySelector('img');
+      if(!img) return;
+      var size = s.axis==='x' ? img.offsetWidth : img.offsetHeight;
+      if(!size) return;
+      s.pos = (s.pos + s.spd * size * dt / 1000) % size;
+      s.el.style.transform = s.axis==='x'
+        ? 'translateX('+(s.dir * -s.pos)+'px)'
+        : 'translateY('+(s.dir * -s.pos)+'px)';
+      if(s.lfo){
+        var raw = Math.sin(ts*s.f[0]+s.p[0])*0.5
+                + Math.sin(ts*s.f[1]+s.p[1])*0.33
+                + Math.sin(ts*s.f[2]+s.p[2])*0.17;
+        s.el.style.opacity = ((0.15 + (raw+1)*0.5*0.85) * (s.scale||1)).toFixed(3);
+      }
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+/* d93: vertical color strips rAF */
+(function(){
+  var vstrips = [
+    { sel:'.vstrip-1',     dir:-1,  spd:0.004,  pos:0, initFrac:0.0  },
+    { sel:'.vstrip-2',     dir:1,   spd:0.003,  pos:0, initFrac:0.55 },
+    { sel:'.vstrip-3',     dir:-1,  spd:0.0025, pos:0, initFrac:0.3  },
+    { sel:'.vstrip-4',     dir:1,   spd:0.010,  pos:0, initFrac:0.7  },
+    { sel:'.vstrip-5',     dir:-1,  spd:0.005,  pos:0, initFrac:0.15 },
+    { sel:'.vstrip-black', dir:1,   spd:0.002,  pos:0, initFrac:0.45 }
+  ];
+  vstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
+  var last = null;
+  function tick(ts){
+    var dt = last ? Math.min(ts - last, 50) : 16;
+    last = ts;
+    vstrips.forEach(function(s){
+      if(!s.el) return;
+      var child = s.el.querySelector('img') || s.el.querySelector('.vstrip-inner');
+      var h = child ? child.offsetHeight : 600;
+      if(!h) return;
+      if(!s.inited){ s.pos = (s.initFrac||0) * h; s.inited = true; }
+      s.pos = (s.pos + s.spd * h * dt / 1000) % h;
+      var ty = s.dir === -1 ? -s.pos : s.pos - h;
+      s.el.style.transform = 'translateY(' + ty.toFixed(2) + 'px)';
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+/* d93: collage strips — sine-wave centered oscillation */
+(function(){
+  var cstrips = [
+    { sel:'.cstrip-1', freq:0.000035, dir:-1, phase:0,       skew:0    },
+    { sel:'.cstrip-2', freq:0.000025, dir:1,  phase:Math.PI, skew:0.03 }
+  ];
+  cstrips.forEach(function(s){ s.el = document.querySelector(s.sel); });
+
+  function tick(ts){
+    cstrips.forEach(function(s){
+      if(!s.el) return;
+      var img = s.el.querySelector('img');
+      if(!img || !img.offsetHeight) return;
+      var h  = img.offsetHeight;
+      var vh = window.innerHeight;
+      var center = (vh - h) / 2;
+      var amp    = vh * 0.22;
+      var ty = center + Math.sin(ts * s.freq + s.phase) * amp * s.dir;
+      var tx = ty * (s.skew || 0);
+      s.el.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px)';
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<a href="explore.html" id="explore-btn" aria-label="Explore"></a>
+<a href="explore4.html" id="explore3-btn" aria-label="Explore 4"></a>
+<a href="explore3.html" id="explore4-btn" aria-label="Explore 3"></a>
+<a href="music.html" id="music-btn" aria-label="Music"></a>
+<div id="dot-hint">push dots to explore →</div>
+<script>
+(function() {
+  var musicBtn    = document.getElementById('music-btn');
+  var explore3Btn = document.getElementById('explore3-btn');
+  var exploreBtn  = document.getElementById('explore-btn');
+  var hint        = document.getElementById('dot-hint');
+  setTimeout(function() { musicBtn.style.display = 'block'; }, 2000);
+  setTimeout(function() { explore3Btn.style.display = 'block'; }, 3200);
+  setTimeout(function() { document.getElementById('explore4-btn').style.display = 'block'; }, 3800);
+  setTimeout(function() {
+    exploreBtn.classList.add('visible');
+    setTimeout(function() { exploreBtn.classList.add('phase2'); }, 2000);
+    setTimeout(function() {
+      exploreBtn.classList.remove('phase2');
+      exploreBtn.classList.add('phase3-grow');
+      setTimeout(function() {
+        exploreBtn.classList.remove('phase3-grow');
+        exploreBtn.classList.add('phase3-pulse');
+      }, 500);
+    }, 5500);
+  }, 4200);
+  setTimeout(function() {
+    hint.style.opacity = '0.55';
+    setTimeout(function() { hint.style.opacity = '0'; }, 5000);
+  }, 5200);
+})();
+</script>
+
+<script>
+(function() {
+  var dot = document.getElementById('explore-btn');
+  if (!dot) return;
+
+  var x = 0, y = 0, vx = 0, vy = 0;
+  var animating = false;
+
+  var SPRING  = 0.06;
+  var DAMPING = 0.68;
+  var IMPULSE = 22;
+
+  function frame() {
+    vx += -x * SPRING;
+    vy += -y * SPRING;
+    vx *= DAMPING;
+    vy *= DAMPING;
+    x  += vx;
+    y  += vy;
+
+    dot.style.marginLeft = x.toFixed(2) + 'px';
+    dot.style.marginTop  = y.toFixed(2) + 'px';
+
+    var settled = Math.abs(x)  < 0.2 && Math.abs(y)  < 0.2
+               && Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2;
+
+    if (settled) {
+      animating = false;
+      dot.style.marginLeft = '';
+      dot.style.marginTop  = '';
+    } else {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  dot.addEventListener('mouseenter', function() {
+    var angle    = Math.random() * Math.PI * 2;
+    var strength = IMPULSE * (0.6 + Math.random() * 0.4);
+    vx += Math.cos(angle) * strength;
+    vy += Math.sin(angle) * strength;
+    if (!animating) { animating = true; requestAnimationFrame(frame); }
+  });
+})();
+</script>
+
+<script>
+(function(){
+  var DFLT=0.3162;
+  var s=parseFloat(localStorage.getItem('d93vol'));
+  var vol=isNaN(s)?DFLT:Math.max(0,Math.min(1,s));
+  var muted=localStorage.getItem('d93mute')==='1';
+  var wrap=document.getElementById('d93-vol-wrap');
+  var popup=document.getElementById('d93-vol-popup');
+  var sl=document.getElementById('d93-vol-sl');
+  var btn=document.getElementById('d93-mute-btn');
+  var sp=document.getElementById('d93-spk-path');
+  var ON='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z';
+  var OFF='M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z';
+  sl.value=vol;
+  sp.setAttribute('d',muted?OFF:ON);
+  window._d93vol=function(){ return muted?0:vol; };
+  function applyAll(){
+    var v=muted?0:vol;
+    document.querySelectorAll('audio,video').forEach(function(el){ el.volume=v; });
+  }
+  document.addEventListener('play',applyAll,true);
+  function openPopup(){
+    var rect=wrap.getBoundingClientRect();
+    if(rect.top>window.innerHeight/2){
+      popup.style.top='auto'; popup.style.bottom=(wrap.offsetHeight+4)+'px';
+    } else {
+      popup.style.bottom='auto'; popup.style.top=(wrap.offsetHeight+4)+'px';
+    }
+    popup.style.display='flex';
+  }
+  wrap.addEventListener('mouseenter',openPopup);
+  wrap.addEventListener('mouseleave',function(){ popup.style.display='none'; });
+  wrap.addEventListener('touchstart',function(e){
+    e.stopPropagation();
+    if(!popup.contains(e.target)){ popup.style.display==='flex'?popup.style.display='none':openPopup(); }
+  },{passive:true});
+  document.addEventListener('touchstart',function(){ popup.style.display='none'; },{passive:true});
+  sl.addEventListener('input',function(){
+    vol=parseFloat(this.value); localStorage.setItem('d93vol',vol); applyAll();
+  });
+  btn.addEventListener('click',function(){
+    muted=!muted; localStorage.setItem('d93mute',muted?'1':'0');
+    sp.setAttribute('d',muted?OFF:ON); applyAll();
+  });
+  applyAll();
+})();
+</script>
+
+</body>
+</html>
