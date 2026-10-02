@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v229-baked-white-dots -->
+<!-- build: v230-fix-mesh-scale -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1152,9 +1152,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
       var _mSpd=1.65;
       var _mOp =0.19;
-      var _mSc =1.05;
       mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd;
-      mesh.scale.setScalar(_mSc);
       meshDatas.forEach(function(md){ if(md.mat) md.mat.opacity=_mOp; });
     }
     updateSpring();
