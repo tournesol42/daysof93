@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v219-hint-left-dot1 -->
+<!-- build: v220-explore4-dot -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -439,6 +439,24 @@
     #explore3-btn {
       left: calc(50vw - 12.87vh - 14px + 180px);
       top: calc(55.1vh - 14px + 110px);
+    }
+  }
+  #explore4-btn {
+    display: none;
+    position: fixed;
+    left: calc(31.8vw - 14px - 60px);
+    top: calc(50vh + 7.22vw - 14px + 220px);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #E85500;
+    text-decoration: none;
+    z-index: 51;
+    animation: dot-slow 2.6s ease-in-out infinite;
+  }
+  @media (min-width: 720px) {
+    #explore4-btn {
+      left: calc(50vw - 12.87vh - 14px + 400px);
+      top: calc(55.1vh - 14px + 250px);
     }
   }
 </style>
@@ -1382,6 +1400,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 
 <a href="explore.html" id="explore-btn" aria-label="Explore"></a>
 <a href="https://daysof93.com/explore3" id="explore3-btn" aria-label="Explore 3"></a>
+<a href="https://daysof93.com/explore4" id="explore4-btn" aria-label="Explore 4"></a>
 <a href="music.html" id="music-btn" aria-label="Music"></a>
 <div id="dot-hint">push dots to explore →</div>
 <script>
@@ -1392,6 +1411,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var hint        = document.getElementById('dot-hint');
   setTimeout(function() { musicBtn.style.display = 'block'; }, 2000);
   setTimeout(function() { explore3Btn.style.display = 'block'; }, 3200);
+  setTimeout(function() { document.getElementById('explore4-btn').style.display = 'block'; }, 3800);
   setTimeout(function() {
     exploreBtn.classList.add('visible');
     setTimeout(function() { exploreBtn.classList.add('phase2'); }, 2000);

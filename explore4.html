@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v137-preset-loop -->
+<!-- build: explore4-v138-mastervol-menu -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,9 +8,25 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+#e4-home{position:fixed;bottom:28px;right:28px;font-family:'Jost',sans-serif;font-weight:300;font-size:32px;letter-spacing:.22em;text-transform:uppercase;color:#fff;mix-blend-mode:difference;text-decoration:none;z-index:600;opacity:0;pointer-events:none}
+#e4-home.visible{pointer-events:auto;animation:e4-home-pulse 1.8s ease-in-out infinite}
+@keyframes e4-home-pulse{0%,100%{opacity:1}50%{opacity:.12}}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 </head>
 <body>
+<!-- Master volume (v138): same fader + placement as explore/explore3; controls ALL audio (post-limiter) -->
+<div id="d93-vol-wrap" style="position:fixed;top:16px;right:20px;z-index:600;display:inline-flex;align-items:center;mix-blend-mode:difference;">
+  <button id="d93-mute-btn" aria-label="Volume" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;color:#fff;opacity:0.45;transition:opacity .2s;-webkit-tap-highlight-color:transparent;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.45">
+    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+    </svg>
+  </button>
+</div>
+<div id="d93-vol-popup" style="position:fixed;top:44px;right:20px;display:none;flex-direction:column;align-items:center;padding:10px 8px;z-index:9998;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.15);">
+  <input type="range" id="d93-vol-sl" min="0" max="1" step="0.01" value="1" style="height:72px;writing-mode:vertical-lr;direction:rtl;accent-color:#fff;cursor:pointer;width:18px;">
+</div>
+<a href="index.html?from=explore4" id="e4-home">&#8592; menu</a>
 <script>
 (function(){
 'use strict';
@@ -1112,6 +1128,13 @@ function boot() {
       const src  = audioCtx.createBufferSource();
       src.buffer = mp3Buf;
       src.loop   = true;
+      // Master chain (v138): EVERYTHING → masterIn (limiter, -1 dB ceiling) → masterVol (fader, max 1.0) → speakers
+      const masterIn = audioCtx.createDynamicsCompressor();
+      masterIn.threshold.value = -1.0; masterIn.knee.value = 0; masterIn.ratio.value = 20;
+      masterIn.attack.value = 0.001; masterIn.release.value = 0.08;
+      const masterVol = audioCtx.createGain(); masterVol.gain.value = window._masterVolPending != null ? window._masterVolPending : 1;
+      masterIn.connect(masterVol); masterVol.connect(audioCtx.destination);
+      window.setMasterVol = function (v) { masterVol.gain.setTargetAtTime(Math.min(1, Math.max(0, v)), audioCtx.currentTime, 0.02); };
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 1024;
       const _td = new Uint8Array(analyser.fftSize);
@@ -1135,7 +1158,7 @@ function boot() {
         const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
         src.buffer = bounceBufs[i];
         g.gain.value = 0.25 + 0.75 * Math.min(1, (speed - BOUNCE_MIN) / (BOUNCE_FULL - BOUNCE_MIN));
-        src.connect(g); g.connect(audioCtx.destination); src.start();
+        src.connect(g); g.connect(masterIn); src.start();
       };
       window.bsGetLevel = function () {
         analyser.getByteTimeDomainData(_td);
@@ -1153,7 +1176,7 @@ function boot() {
       revIn = audioCtx.createGain(); revIn.gain.value = 0;
       const conv = audioCtx.createConvolver(); conv.buffer = createReverbIR(audioCtx, 8.0, 1.2);
       g2.connect(revIn); revIn.connect(conv); conv.connect(analyser);
-      analyser.connect(audioCtx.destination);
+      analyser.connect(masterIn);
       src.start(0);
       // Music 2: loads in the background, starts (silent) at the first MIDI gate
       xhrGet(MP3_2_URL).then(function (b2) {
@@ -1468,5 +1491,17 @@ if(navigator.requestMIDIAccess){
 })();
 </script>
 <!-- /MIDI CONSOLE -->
+<script>
+(function(){
+  var popup=document.getElementById('d93-vol-popup'),sl=document.getElementById('d93-vol-sl');
+  document.getElementById('d93-mute-btn').addEventListener('click',function(e){e.stopPropagation();popup.style.display=popup.style.display==='flex'?'none':'flex';});
+  popup.addEventListener('click',function(e){e.stopPropagation();});
+  document.addEventListener('click',function(){popup.style.display='none';});
+  sl.addEventListener('input',function(){var v=parseFloat(this.value);if(window.setMasterVol)window.setMasterVol(v);else window._masterVolPending=v;});
+  // Pulsing menu link appears once the entry screen is gone
+  var home=document.getElementById('e4-home');
+  (function waitEntry(){if(window.entryActive===false)home.classList.add('visible');else setTimeout(waitEntry,300);})();
+})();
+</script>
 </body>
 </html>
