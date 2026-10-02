@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v225-3d-words -->
+<!-- build: v226-macro-faders -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1131,7 +1131,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.rotation.y = 0.35;
       root.rotation.x = 0.08;
       root.traverse(function(child){
-        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.18, transparent:true});
+        if(child.isMesh){ var _mat=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.18, transparent:true}); child.material=_mat; if(meshDatas.length&&meshDatas[meshDatas.length-1].mat===undefined) meshDatas[meshDatas.length-1].mat=_mat; }
       });
       scene.add(root);
       mesh=root;
@@ -1150,7 +1150,12 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       rotBoostCurrent += (rotBoostTarget  - rotBoostCurrent) * 0.12;
       rotBoostTarget  *= 0.992;
       rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
-      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent;
+      var _mSpd=window._macroNoise!==undefined?0.3+window._macroNoise*2.7:1.0;
+      var _mOp =window._macroPersp!==undefined?0.06+window._macroPersp*0.26:0.18;
+      var _mSc =window._macroDepth!==undefined?0.7+window._macroDepth*0.7:1.0;
+      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd;
+      mesh.scale.setScalar(_mSc);
+      meshDatas.forEach(function(md){ if(md.mat) md.mat.opacity=_mOp; });
     }
     updateSpring();
     renderer.render(scene,camera);
@@ -1735,7 +1740,7 @@ function draw(ms){
   const motionMode=S.motion;
   const count=Math.round(S.count);
   const winStart=Math.round(S.win);
-  const noiseAmt=S.noiseAmt/100;
+  const noiseAmt=(S.noiseAmt/100)*(window._macroNoise!==undefined?window._macroNoise*2:1);
   const noiseSpd=S.noiseSpd/100;
   const noiseModAmt=S.noiseMod/100;
   const bgCol=splash?splash.bg:S.bgColor;
@@ -1780,7 +1785,7 @@ function draw(ms){
     }else{
       const rotY=window._meshRotY||0;
       const cosR=Math.cos(rotY),sinR=Math.sin(rotY);
-      const FL=600; // focal length in canvas px
+      const FL=window._macroPersp!==undefined?900-window._macroPersp*700:600;
       for(let i=0;i<points.length;i++){
         const wi=winStart+i;
         if(wi>=words.length)continue;
@@ -1791,7 +1796,7 @@ function draw(ms){
         const nMod=1+((p.noiseMod??0.5)-0.5)*noiseModAmt*2;
         // 3D Y-axis rotation
         const wx=(p.bx-0.5)*CW+nx*dispMax*nMod;
-        const wz=(p.bz||0)*400;
+        const wz=(p.bz||0)*(window._macroDepth!==undefined?window._macroDepth*800:400);
         const rx=wx*cosR+wz*sinR;
         const rz=-wx*sinR+wz*cosR;
         const sc=FL/(FL+rz);
@@ -1932,6 +1937,81 @@ fetch('https://daysof93-cdn.b-cdn.net/binary-scatter-menupresets.json').then(fun
 }).catch(function(){});
 requestAnimationFrame(draw);
 
+})();
+</script>
+<script>
+/* ── Macro fader panel (PERSP / DEPTH / NOISE) + Web MIDI ── */
+(function(){
+  var MACROS=[
+    {key:'_macroPersp', label:'PERSP', cc:5, val:0.5},
+    {key:'_macroDepth', label:'DEPTH', cc:6, val:0.5},
+    {key:'_macroNoise', label:'NOISE', cc:7, val:0.5}
+  ];
+  // Init globals at default 0.5
+  MACROS.forEach(function(m){ window[m.key]=m.val; });
+
+  // ── Panel UI ──
+  var panel=document.createElement('div');
+  panel.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:600;display:flex;gap:18px;background:rgba(0,0,0,0.62);backdrop-filter:blur(10px);border-radius:20px;padding:14px 20px 10px;pointer-events:auto;user-select:none;';
+  document.body.appendChild(panel);
+
+  MACROS.forEach(function(m,idx){
+    var col=document.createElement('div');
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;';
+
+    var lbl=document.createElement('div');
+    lbl.textContent=m.label;
+    lbl.style.cssText='font-family:"Jost",sans-serif;font-size:8px;letter-spacing:.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;';
+
+    var track=document.createElement('div');
+    track.style.cssText='width:6px;height:80px;background:rgba(255,255,255,0.12);border-radius:3px;position:relative;cursor:ns-resize;';
+
+    var thumb=document.createElement('div');
+    thumb.style.cssText='width:14px;height:6px;background:#fff;border-radius:3px;position:absolute;left:-4px;';
+    function setThumb(v){ thumb.style.top=((1-v)*74)+'px'; }
+    setThumb(m.val);
+    track.appendChild(thumb);
+
+    var cc=document.createElement('div');
+    cc.textContent='CC'+m.cc;
+    cc.style.cssText='font-family:"B612 Mono",monospace;font-size:7px;color:rgba(255,255,255,0.3);';
+
+    col.appendChild(lbl); col.appendChild(track); col.appendChild(cc);
+    panel.appendChild(col);
+
+    // Mouse drag
+    var dragging=false,startY=0,startVal=0;
+    track.addEventListener('mousedown',function(e){
+      dragging=true;startY=e.clientY;startVal=m.val;e.preventDefault();
+    });
+    document.addEventListener('mousemove',function(e){
+      if(!dragging)return;
+      var delta=(startY-e.clientY)/80;
+      m.val=Math.max(0,Math.min(1,startVal+delta));
+      window[m.key]=m.val;
+      setThumb(m.val);
+    });
+    document.addEventListener('mouseup',function(){ dragging=false; });
+
+    m._setThumb=setThumb;
+  });
+
+  // ── Web MIDI ──
+  if(navigator.requestMIDIAccess){
+    navigator.requestMIDIAccess().then(function(access){
+      function listen(input){
+        input.onmidimessage=function(e){
+          if((e.data[0]&0xf0)!==0xb0)return;
+          var cc=e.data[1],val=e.data[2]/127;
+          MACROS.forEach(function(m){
+            if(m.cc===cc){ m.val=val; window[m.key]=val; m._setThumb(val); }
+          });
+        };
+      }
+      access.inputs.forEach(listen);
+      access.onstatechange=function(e){ if(e.port.type==='input'&&e.port.state==='connected') listen(e.port); };
+    }).catch(function(){});
+  }
 })();
 </script>
 </body>
