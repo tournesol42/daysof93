@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v231-new-menu -->
+<!-- build: v222-dot-swap -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -30,11 +30,11 @@
 
 <style>
   :root{
-    --field: #000000;
-    --line:  rgba(255,255,255,0.18);
+    --field: #ffffff;
+    --line:  rgba(0,0,0,0.18);
     --axis-x: rgba(0,0,0,0.28);
     --axis-y: rgba(0,0,0,0.28);
-    --ink:   #ffffff;
+    --ink:   #000000;
     --hair:  0.75px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -88,7 +88,7 @@
     font-size: clamp(4.5rem, 13vw, 16rem);
     font-weight:700; text-transform:uppercase;
     letter-spacing:-0.02em; line-height:0.88;
-    color:#fff;
+    color:#000;
   }
   .hero-sub{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
@@ -104,7 +104,7 @@
   #music-btn {
     position: fixed; right: 5vw; top: 40vh;
     width: 140px; height: 140px; border-radius: 50%;
-    background: #ffffff; display: none; z-index: 51;
+    background: #E85500; display: none; z-index: 51;
     text-decoration: none;
     animation: dot-slow 2.8s ease-in-out infinite;
   }
@@ -405,7 +405,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #ffffff;
+    background: #E85500;
     text-decoration: none;
     z-index: 51;
   }
@@ -430,7 +430,7 @@
     right: auto; bottom: auto;
     width: 84px; height: 84px;
     border-radius: 50%;
-    background: #ffffff;
+    background: #E85500;
     text-decoration: none;
     z-index: 51;
     animation: dot-slow 2.4s ease-in-out infinite;
@@ -448,7 +448,7 @@
     top: calc(50vh + 7.22vw - 14px + 220px);
     width: 56px; height: 56px;
     border-radius: 50%;
-    background: #ffffff;
+    background: #E85500;
     text-decoration: none;
     z-index: 51;
     animation: dot-slow 2.6s ease-in-out infinite;
@@ -473,7 +473,7 @@
     // Trigger image + mesh breathing + grid darkening after 2s
     setTimeout(function() {
       var v = document.getElementById('bg-vector');
-      // bg-vector muted (menu-dev)
+      if (v) { v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
       var mc = document.getElementById('mesh-canvas');
       if (mc) mc.classList.add('mesh-breathing');
 
@@ -1131,7 +1131,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       root.rotation.y = 0.35;
       root.rotation.x = 0.08;
       root.traverse(function(child){
-        if(child.isMesh){ var _mat=new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, opacity:0.18, transparent:true}); child.material=_mat; if(meshDatas.length&&meshDatas[meshDatas.length-1].mat===undefined) meshDatas[meshDatas.length-1].mat=_mat; }
+        if(child.isMesh) child.material=new THREE.MeshBasicMaterial({color:0x2d2d2d, wireframe:true, opacity:0.18, transparent:true});
       });
       scene.add(root);
       mesh=root;
@@ -1150,14 +1150,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       rotBoostCurrent += (rotBoostTarget  - rotBoostCurrent) * 0.12;
       rotBoostTarget  *= 0.992;
       rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
-      var _mSpd=1.65;
-      var _mOp =0.19;
-      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd;
-      meshDatas.forEach(function(md){ if(md.mat) md.mat.opacity=_mOp; });
+      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent;
     }
     updateSpring();
     renderer.render(scene,camera);
-    window._meshRotY = mesh ? mesh.rotation.y : 0;
   })();
 
   window.addEventListener('resize', function(){
@@ -1528,442 +1524,5 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 
-
-<script>
-/* Binary Scatter — ported from explore4.html (words only, no rings/sparks/shapes) */
-(function(){
-const CW=1080,CH=1920;
-const bsCanvas=document.createElement('canvas');
-bsCanvas.width=CW;bsCanvas.height=CH;
-Object.assign(bsCanvas.style,{position:'fixed',display:'block',pointerEvents:'none',zIndex:'1'});
-document.body.appendChild(bsCanvas);
-const ctx=bsCanvas.getContext('2d');
-function fitCanvas(){
-  const scale=Math.min(window.innerHeight/CH,window.innerWidth/CW);
-  const w=CW*scale,h=CH*scale;
-  Object.assign(bsCanvas.style,{width:w+'px',height:h+'px',left:((window.innerWidth-w)/2)+'px',top:((window.innerHeight-h)/2)+'px'});
-}
-window.addEventListener('resize',fitCanvas);
-fitCanvas();
-const S={
-  motion:'noise',count:80,win:0,
-  smin:10,smax:32,sbias:50,
-  opacity:80,opSpread:40,
-  noiseAmt:30,noiseSpd:20,noiseMod:0,
-  textColor:'#FF7900',bgColor:'#ffffff',
-  focusType:'none',attract:65,
-  focusCX:0.5,focusCY:0.5,circleRadius:0.25,rectW:0.4,rectH:0.3
-};
-let currentInterp=0;
-let smoothTarget={},smoothActive=false;
-const SMOOTH_FIELDS=['noiseAmt','noiseSpd','noiseMod','opacity','opSpread'];
-let _currentTextColor=S.textColor;
-const PERM=new Uint8Array(512);
-const NVAL=new Float32Array(256);
-(function(){
-  for(let i=0;i<256;i++)PERM[i]=i;
-  for(let i=255;i>0;i--){const j=(Math.random()*(i+1))|0;const t=PERM[i];PERM[i]=PERM[j];PERM[j]=t;}
-  for(let i=0;i<256;i++){PERM[i+256]=PERM[i];NVAL[i]=Math.random();}
-})();
-function smoothstep(t){return t*t*t*(t*(t*6-15)+10);}
-function lerp(a,b,t){return a+(b-a)*t;}
-function vnoise(x,y){
-  const xi=Math.floor(x)&255,yi=Math.floor(y)&255;
-  const xf=smoothstep(x-Math.floor(x)),yf=smoothstep(y-Math.floor(y));
-  const aa=NVAL[PERM[PERM[xi]+yi]],ba=NVAL[PERM[PERM[xi+1]+yi]];
-  const ab=NVAL[PERM[PERM[xi]+yi+1]],bb=NVAL[PERM[PERM[xi+1]+yi+1]];
-  return lerp(lerp(aa,ba,xf),lerp(ab,bb,xf),yf);
-}
-function gaussRand(){
-  const u=1-Math.random(),v=1-Math.random();
-  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
-}
-function biasExp(s){return s<=50?4.0-(s/50)*3.0:1.0-((s-50)/50)*0.75;}
-function sizeSample(mn,mx,e){return Math.round(mn+Math.pow(Math.random(),e)*(mx-mn));}
-function readSizeParams(){
-  return{sizeMin:S.smin,sizeMax:Math.max(S.smin,S.smax),bExp:biasExp(S.sbias)};
-}
-let rainDrops=[],lastRainSpawnMS=0,points=[];
-let connections=[],lastConnectMS=0;
-// ── Bounding frame (v79) — shows when no proximity lines are drawn ──
-
-// ── Stubs: explore4-specific features not used in menu-dev ──
-var splash=null, meshOp=1, meshAud=1, spaceA=0, midiRectK=1, meshLvl=0;
-var midiLinesDist=null, midiLinesPer=null;
-var lastBodyBg='';
-var fbPts=[], fbPairs=[], fbOffX=0, fbOffY=0;
-var fbMinX=0, fbMinY=0, fbMaxX=CW, fbMaxY=CH, fbSX=0, fbSY=0, fbN=0, fbLinesDrawn=0, fbA=0, fbBox=null;
-var shapesDirty=false, SHAPES=[], SHAPE_ANCHORS=[];
-function fbRoll(){}
-function fbReset(){}
-function fbText(w,x,y){ ctx.fillText(w,x,y); }
-function fbDraw(){}
-function webDraw(){ return 0; }
-function spDark(c){ return c; }
-function spaceDraw(){}
-function drawRings(){}
-function drawShapes(){}
-function assignShapes(){}
-
-function focusBiasedPos(){
-  const rx=Math.random(),ry=Math.random();
-  if(S.focusType==='none'||S.focusType==='rect'||S.focusType==='circle')return{x:rx,y:ry};
-  const attraction=S.attract/100;
-  if(attraction<=0)return{x:rx,y:ry};
-  let ox,oy;
-  switch(S.focusType){
-    case'point':ox=S.focusCX;oy=S.focusCY;break;
-    case'vline':ox=S.focusCX;oy=Math.random();break;
-    case'hline':ox=Math.random();oy=S.focusCY;break;
-    default:return{x:rx,y:ry};
-  }
-  const jitter=0.018*(1-attraction*0.4);
-  return{
-    x:Math.max(0,Math.min(1,lerp(rx,ox,attraction)+gaussRand()*jitter)),
-    y:Math.max(0,Math.min(1,lerp(ry,oy,attraction)+gaussRand()*jitter))
-  };
-}
-function packRectangle(n,preserveSizes){
-  const{sizeMin,sizeMax,bExp}=readSizeParams();
-  const prev=points;points=[];
-  for(let i=0;i<n;i++){
-    const sz=(preserveSizes&&prev[i]!=null)?prev[i].sz:Math.max(6,sizeSample(sizeMin,sizeMax,bExp));
-    points.push({
-      ox:prev[i]!=null?prev[i].ox:Math.random()*64,
-      oy:prev[i]!=null?prev[i].oy:Math.random()*64,
-      sz,
-      opacityRand:prev[i]!=null?prev[i].opacityRand:Math.random(),
-      noiseMod:prev[i]!=null?prev[i].noiseMod:Math.random(),
-      bz:(Math.random()-0.5)*0.8
-    });
-  }
-}
-function repackRectangle(){
-  if(S.focusType==='rect'&&S.motion==='noise')packRectangle(S.count,true);
-}
-function makePoints(n){
-  if(S.focusType==='rect'){packRectangle(n);return;}
-  const{sizeMin,sizeMax,bExp}=readSizeParams();
-  points=Array.from({length:n},function(){
-    const pos=S.focusType==='circle'?randomPointInCircle():focusBiasedPos();
-    return{bx:Math.max(0,Math.min(1,pos.x)),by:Math.max(0,Math.min(1,pos.y)),ox:Math.random()*64,oy:Math.random()*64,sz:sizeSample(sizeMin,sizeMax,bExp),opacityRand:Math.random(),noiseMod:Math.random()};
-  });
-}
-function makeGridPoints(){
-  const n=Math.min(S.count,144);
-  const{sizeMin,sizeMax,bExp}=readSizeParams();
-  const maxSpd=lerp(0.2,8,(S.noiseSpd-1)/499);
-  points=[];
-  for(let i=0;i<n;i++){
-    const row=Math.floor(i/9),col=i%9;
-    const speed=maxSpd*(0.4+Math.random()*0.8);
-    const axis=Math.random()<0.5?'x':'y',sign=Math.random()<0.5?1:-1;
-    points.push({bx:(col+0.5)/9,by:(row+0.5)/16,dx:0,dy:0,vx:axis==='x'?sign*speed:0,vy:axis==='y'?sign*speed:0,sz:sizeSample(sizeMin,sizeMax,bExp),opacityRand:Math.random()});
-  }
-}
-function respawnPoints(){
-  if(S.motion==='grid'){makeGridPoints();}
-  else if(S.motion==='rain'){rainDrops=[];lastRainSpawnMS=0;}
-  else{makePoints(S.count);}
-}
-const DEFAULTS=[
-  '0','1','2','4','8','16','32','64','128','256','512','1024',
-  'AND','OR','NOT','NAND','NOR','XOR','flip-flop','latch','Boolean',
-  'truth','false','true','on','off','high','low','zero','one',
-  'Leibniz','Shannon','Turing',
-  '11111111','10101010','01010101',
-  '0xFF','0x00','255','128',
-  'binary','bit','byte','ASCII','Unicode','entropy','information',
-  'signal','noise','discrete','continuous'
-];
-let words=DEFAULTS.slice(),fontName='Courier New',anim=0,lastMS=null;
-function applyState(s){
-  S.motion=s.motion;S.count=s.count;S.win=s.win;
-  S.smin=s.smin;S.smax=s.smax;S.sbias=s.sbias;
-  S.opacity=s.opacity;S.opSpread=s.opSpread;
-  S.noiseAmt=s.noiseAmt;S.noiseSpd=s.noiseSpd;S.noiseMod=s.noiseMod;
-  S.textColor=s.textColor;S.bgColor=s.bgColor;
-  S.focusType=s.focusType;S.attract=s.attract;
-  S.focusCX=s.focusCX;S.focusCY=s.focusCY;
-  S.circleRadius=s.circleRadius;S.rectW=s.rectW;S.rectH=s.rectH;
-  _currentTextColor=s.textColor;
-  lastBodyBg='';
-  linesOn=s.linesOn!==undefined?s.linesOn:true;
-  linesMaxDist=s.linesMaxDist!==undefined?s.linesMaxDist:120;
-  linesMaxPer=s.linesMaxPer!==undefined?s.linesMaxPer:2;
-  linesDurMs=s.linesDur!==undefined?s.linesDur*16:960;
-  linesOpac=s.linesOpac!==undefined?s.linesOpac/100:0.40;
-  if(!linesOn)connections=[];
-  respawnPoints();repackRectangle();
-  shapesDirty=true;
-  fbRoll();
-}
-(function smoothTick(){
-  requestAnimationFrame(smoothTick);
-  if(!smoothActive)return;
-  const speed=currentInterp<=0?1.0:(1.0-currentInterp/100*0.992);
-  let moving=false;
-  SMOOTH_FIELDS.forEach(function(f){
-    if(smoothTarget[f]===undefined)return;
-    const t=smoothTarget[f],c=S[f],d=t-c;
-    if(Math.abs(d)<0.05){S[f]=t;}else{S[f]=c+d*speed;moving=true;}
-  });
-  if(!moving)smoothActive=false;
-})();
-function recallWithInterp(s){
-  smoothActive=false;smoothTarget={};
-  if(currentInterp===0){applyState(s);return;}
-  applyState(Object.assign({},s,{noiseAmt:S.noiseAmt,noiseSpd:S.noiseSpd,noiseMod:S.noiseMod,opacity:S.opacity,opSpread:S.opSpread}));
-  smoothTarget={noiseAmt:s.noiseAmt,noiseSpd:s.noiseSpd,noiseMod:s.noiseMod,opacity:s.opacity,opSpread:s.opSpread};
-  smoothActive=true;
-}
-let BAKED_PRESETS=[];
-window.bsRecall=function(i){const s=BAKED_PRESETS[i];if(s)recallWithInterp(s);};
-window.bsFilledSlots=function(){return BAKED_PRESETS.map(function(p,i){return p!=null?i:null;}).filter(function(i){return i!==null;});};
-window.bsSetInterp=function(v){currentInterp=Math.max(0,Math.min(100,v));};
-window.bsLines=function(on){linesOn=on;if(!on)connections=[];};
-window.bsLinesParams=function(dist,perPt,durFrames,opac100){
-  if(dist!==undefined)linesMaxDist=dist;
-  if(perPt!==undefined)linesMaxPer=perPt;
-  if(durFrames!==undefined)linesDurMs=durFrames*16;
-  if(opac100!==undefined)linesOpac=opac100/100;
-};
-
-function draw(ms){
-  requestAnimationFrame(draw);
-  if(lastMS===null)lastMS=ms;
-  const dt=Math.min((ms-lastMS)/1000,0.05);
-  lastMS=ms;
-  _currentTextColor=S.textColor;
-  const motionMode=S.motion;
-  const count=Math.round(S.count);
-  const winStart=Math.round(S.win);
-  const noiseAmt=S.noiseAmt/100;
-  const noiseSpd=S.noiseSpd/100;
-  const noiseModAmt=S.noiseMod/100;
-  const bgCol=splash?splash.bg:S.bgColor;
-  const textCol=splash?splash.text:_currentTextColor;
-  const globalOpacity=S.opacity/100;
-  const opacitySpread=S.opSpread/100;
-  ctx.clearRect(0,0,CW,CH);
-  fbReset();
-  if(splash)fbLinesDrawn+=webDraw(splash.web); // splash web replaces proximity + frame
-  ctx.fillStyle=textCol;ctx.textBaseline='middle';ctx.textAlign='left';
-  if(motionMode==='noise'){
-    anim+=dt*noiseSpd*1.8;
-    const dispMax=noiseAmt*120;
-    if(S.focusType!=='rect')drawShapes(dispMax,noiseModAmt,winStart);
-    if(S.focusType==='rect'){
-      const winSize=Math.max(1,count);
-      const{sizeMin,sizeMax}=readSizeParams();
-      const lineHeight=Math.max(6,Math.round((sizeMin+sizeMax)/2))*1.4;
-      const left=(S.focusCX-S.rectW/2)*CW,top=(S.focusCY-S.rectH/2)*CH;
-      const right=left+S.rectW*CW,bottom=top+S.rectH*CH;
-      const GAP=8,poolLen=Math.max(1,points.length);
-      let curX=left,curY=top+lineHeight,placed=0;
-      while(placed<count){
-        const wordIdx=winStart+(placed%winSize);
-        if(wordIdx>=words.length){placed++;continue;}
-        const word=words[wordIdx];
-        const pool=points[placed%poolLen];
-        const sz=pool?pool.sz:Math.round((sizeMin+sizeMax)/2);
-        ctx.font=sz+"px '"+fontName+"', 'Courier New', monospace";
-        const ww=ctx.measureText(word).width;
-        if(curX+ww>right){curX=left;curY+=lineHeight;}
-        if(curY>bottom){curY=top+lineHeight;curX=left;}
-        const nx=pool?vnoise(pool.ox+anim*0.6,pool.oy+17.3)*2-1:0;
-        const ny=pool?vnoise(pool.ox+31.7,pool.oy+anim*0.6)*2-1:0;
-        const opR=pool?pool.opacityRand:0.5;
-        const nMod=1+(((pool?pool.noiseMod:0.5)??0.5)-0.5)*noiseModAmt*2;
-        ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(opR-0.5)*opacitySpread));
-        fbText(word,curX+nx*dispMax*nMod,curY+ny*dispMax*nMod);
-        ctx.globalAlpha=1;
-        curX+=ww+GAP;placed++;
-      }
-    }else{
-      const rotY=window._meshRotY||0;
-      const cosR=Math.cos(rotY),sinR=Math.sin(rotY);
-      const FL=550;
-      for(let i=0;i<points.length;i++){
-        const wi=winStart+i;
-        if(wi>=words.length)continue;
-        const word=words[wi];if(!word)continue;
-        const p=points[i];if(!p)continue;
-        const nx=vnoise(p.ox+anim*0.6,p.oy+17.3)*2-1;
-        const ny=vnoise(p.ox+31.7,p.oy+anim*0.6)*2-1;
-        const nMod=1+((p.noiseMod??0.5)-0.5)*noiseModAmt*2;
-        // 3D Y-axis rotation
-        const wx=(p.bx-0.5)*CW+nx*dispMax*nMod;
-        const wz=(p.bz||0)*400;
-        const rx=wx*cosR+wz*sinR;
-        const rz=-wx*sinR+wz*cosR;
-        const sc=FL/(FL+rz);
-        const sx=rx*sc+CW/2;
-        const sy=p.by*CH+ny*dispMax*nMod;
-        p.sx3d=sx; p.sy3d=sy; // cache for proximity lines
-        const sz3d=Math.max(4,Math.round(p.sz*sc));
-        const depthOp=Math.max(0.05,Math.min(1,sc));
-        ctx.font=sz3d+"px '"+fontName+"', 'Courier New', monospace";
-        ctx.globalAlpha=Math.max(0.01,Math.min(1,(globalOpacity+(p.opacityRand-0.5)*opacitySpread)*depthOp));
-        fbText(word,sx,sy);
-        ctx.globalAlpha=1;
-      }
-    }
-  if(linesOn&&!splash&&motionMode==='noise'&&S.focusType!=='rect'){
-    const now=ms;
-    const maxDist=midiLinesDist!==null?midiLinesDist:linesMaxDist;
-    const maxPer=midiLinesPer!==null?midiLinesPer:linesMaxPer;
-    const durMs=linesDurMs;
-    const maxOpac=linesOpac;
-    const disp=noiseAmt*120;
-    if(now-lastConnectMS>48){
-      lastConnectMS=now;
-      const used=new Map();
-      const candidates=[];
-      // Positions computed once per pass (was recomputed inside the inner loop)
-      const n=points.length,PX=new Float32Array(n),PY=new Float32Array(n);
-      for(let a=0;a<n;a++){
-        const pa=points[a];
-        PX[a]=pa.sx3d!==undefined?pa.sx3d:pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-        PY[a]=pa.sy3d!==undefined?pa.sy3d:pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
-      }
-      const md2=maxDist*maxDist;
-      for(let a=0;a<n;a++){
-        const ax=PX[a],ay=PY[a];
-        for(let b=a+1;b<n;b++){
-          const dx=ax-PX[b],dy=ay-PY[b];
-          if(dx*dx+dy*dy<md2)candidates.push(a,b);
-        }
-      }
-      // Random pick within the distance (not nearest-first), so F2 reaches far partners
-      const pairs=candidates.length/2,order=new Uint32Array(pairs);
-      for(let i=0;i<pairs;i++)order[i]=i;
-      for(let i=pairs-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=order[i];order[i]=order[j];order[j]=t;}
-      const live=new Set();
-      for(let i=0;i<connections.length;i++){const c=connections[i];live.add(c.i<c.j?c.i*65536+c.j:c.j*65536+c.i);}
-      for(let o=0;o<pairs;o++){
-        const a=candidates[order[o]*2],b=candidates[order[o]*2+1];
-        const ca=used.get(a)||0;
-        const cb=used.get(b)||0;
-        if(ca>=maxPer||cb>=maxPer)continue;
-        if(live.has(a*65536+b))continue;
-        connections.push({i:a,j:b,born:now,dur:durMs*(0.7+Math.random()*0.6),maxOpacity:maxOpac*(0.4+Math.random()*0.6)});
-        used.set(a,ca+1);
-        used.set(b,cb+1);
-      }
-    }
-    connections=connections.filter(c=>{
-      const age=now-c.born;
-      if(age>c.dur)return false;
-      const t=age/c.dur;
-      const opT=t<0.15?t/0.15:t>0.6?1-(t-0.6)/0.4:1;
-      const op=c.maxOpacity*opT;
-      const pa=points[c.i],pb=points[c.j];
-      if(!pa||!pb)return false;
-      const ax=pa.sx3d!==undefined?pa.sx3d:pa.bx*CW+(vnoise(pa.ox+anim*0.6,pa.oy+17.3)*2-1)*disp;
-      const ay=pa.sy3d!==undefined?pa.sy3d:pa.by*CH+(vnoise(pa.ox+31.7,pa.oy+anim*0.6)*2-1)*disp;
-      const bx=pb.sx3d!==undefined?pb.sx3d:pb.bx*CW+(vnoise(pb.ox+anim*0.6,pb.oy+17.3)*2-1)*disp;
-      const by=pb.sy3d!==undefined?pb.sy3d:pb.by*CH+(vnoise(pb.ox+31.7,pb.oy+anim*0.6)*2-1)*disp;
-      ctx.save();ctx.globalAlpha=Math.min(1,op*meshOp*meshAud);ctx.strokeStyle=textCol;ctx.lineWidth=0.75;
-      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
-      if(op>0.02)fbLinesDrawn++;
-      ctx.restore();
-      return true;
-    });
-  }
-  }else if(motionMode==='grid'){
-    const windowSize=Math.max(1,words.length-winStart);
-    for(let i=0;i<points.length;i++){
-      const p=points[i];
-      const word=words[winStart+(i%windowSize)];
-      if(!word||!p)continue;
-      p.dx+=p.vx;p.dy+=p.vy;
-      if(Math.abs(p.dx)>300){p.vx=-Math.abs(p.vx)*Math.sign(p.dx);p.dx=Math.sign(p.dx)*300;}
-      if(Math.abs(p.dy)>300){p.vy=-Math.abs(p.vy)*Math.sign(p.dy);p.dy=Math.sign(p.dy)*300;}
-      ctx.font=p.sz+"px '"+fontName+"', 'Courier New', monospace";
-      ctx.globalAlpha=Math.max(0.01,Math.min(1,globalOpacity+(p.opacityRand-0.5)*opacitySpread));
-      fbText(word,p.bx*CW+p.dx,p.by*CH+p.dy);
-      ctx.globalAlpha=1;
-    }
-  }else if(motionMode==='rain'){
-    const now=Date.now();
-    if(now-lastRainSpawnMS>=180){
-      if(rainDrops.length>=count)rainDrops.shift();
-      const pos=focusBiasedPos();
-      const{sizeMin,sizeMax,bExp}=readSizeParams();
-      const windowSize=Math.max(1,Math.min(count,words.length-winStart));
-      const word=words[winStart+Math.floor(Math.random()*windowSize)];
-      if(word){rainDrops.push({x:pos.x*CW,y:pos.y*CH,word,sz:sizeSample(sizeMin,sizeMax,bExp),opacity:1.0,fadeRate:0.003+Math.random()*0.015,fadeExp:0.6+Math.random()*1.6});}
-      lastRainSpawnMS=now;
-    }
-    for(let i=rainDrops.length-1;i>=0;i--){
-      const d=rainDrops[i];d.opacity-=d.fadeRate;
-      if(d.opacity<=0){rainDrops.splice(i,1);continue;}
-      ctx.globalAlpha=Math.pow(Math.max(0,d.opacity),d.fadeExp);
-      ctx.font=d.sz+"px '"+fontName+"', 'Courier New', monospace";
-      fbText(d.word,d.x,d.y);
-    }
-    ctx.globalAlpha=1;
-  }
-  // Connect orange nav dots to nearest word (1 line each)
-  (function(){
-    var bsR=bsCanvas.getBoundingClientRect();
-    if(!bsR.width||!points.length)return;
-    var scX=CW/bsR.width, scY=CH/bsR.height;
-    var dotIds=['explore-btn','explore3-btn','explore4-btn','music-btn'];
-    ctx.strokeStyle=textCol;
-    ctx.lineWidth=0.8;
-    dotIds.forEach(function(id){
-      var el=document.getElementById(id);
-      if(!el)return;
-      var r=el.getBoundingClientRect();
-      var cx=(r.left+r.width/2-bsR.left)*scX;
-      var cy=(r.top+r.height/2-bsR.top)*scY;
-      var best=null,bestD=Infinity;
-      for(var i=0;i<points.length;i++){
-        var p=points[i];
-        var px=p.sx3d!==undefined?p.sx3d:p.bx*CW;
-        var py=p.sy3d!==undefined?p.sy3d:p.by*CH;
-        var d=Math.sqrt((cx-px)*(cx-px)+(cy-py)*(cy-py));
-        if(d<bestD){bestD=d;best={x:px,y:py};}
-      }
-      if(best){
-        ctx.globalAlpha=0.55;
-        ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(best.x,best.y);ctx.stroke();
-        ctx.globalAlpha=1;
-      }
-    });
-  })();
-  fbDraw();
-  spaceDraw(bgCol);
-  drawRings(dt,bgCol);
-
-}
-
-// ── Startup ──
-ctx.clearRect(0,0,CW,CH);
-window.bsSetInterp(100);
-makePoints(S.count);
-new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
-  document.fonts.add(face); fontName='VectorBattle'; respawnPoints();
-}).catch(function(){});
-fetch('https://daysof93-cdn.b-cdn.net/90s_UK_gaming_500_words.csv').then(function(r){
-  return r.text();
-}).then(function(text){
-  var ls=text.split('\n').map(function(s){return s.trim();}).filter(Boolean);
-  if(ls.length){words=ls;respawnPoints();}
-}).catch(function(){});
-fetch('https://daysof93-cdn.b-cdn.net/binary-scatter-menupresets.json').then(function(r){
-  return r.json();
-}).then(function(arr){
-  if(Array.isArray(arr)){
-    for(var i=0;i<arr.length;i++) BAKED_PRESETS[i]=arr[i];
-    var fp=arr.find(function(p){return p!=null;});
-    if(fp){fp.textColor='#FF7900';window.bsSetInterp(100);applyState(fp);}
-  }
-}).catch(function(){});
-requestAnimationFrame(draw);
-
-})();
-</script>
 </body>
+</html>
