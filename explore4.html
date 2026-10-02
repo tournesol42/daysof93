@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v130-audio-mesh -->
+<!-- build: explore4-v131-lights-spread-blink -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -451,7 +451,7 @@ window.addEventListener('midicc',function(e){
   if(cc===0)midiLinesPer=1+Math.round(raw/127*5);          // F1: connections per word 1–6
   else if(cc===1)midiLinesDist=20+Math.round(raw/127*380); // F2: max distance 20–400px
   else if(cc===2)midiRectT=0.5*Math.pow(4,raw/127);
-  else if(cc===4)spaceT=raw/127; // F5: big space
+  else if(cc===4){const v=raw/127;if(spaceT<0.02&&v>=0.02)spaceBlink();spaceT=v;} // F5: big space (white blink as it starts)
   else if(cc===3){ // F4: odd activations = new splash in 2D, even activations = same splash transforms to 3D
     if(raw>15){
       if(!splash){
@@ -616,26 +616,27 @@ window.bsLinesParams=function(dist,perPt,durFrames,opac100){
 };
 
 // ── F5 "big space" (v127): everything sinks into darkness; a few small fragments stay, blurred and glowing ──
-const SP_SCALE=1/6,SP_SPOTS=14,SP_BLUR=3,SP_DARK=0.995;
+const SP_SCALE=1/6,SP_SPOTS=14,SP_BLUR=3,SP_DARK=0.995,SP_SPREAD=420,SP_WOBBLE=40;
 // Each fragment gets its own colour: mostly oranges and reds, now and then a green or a blue
 const SP_WARM=['#ffb347','#ff9a2e','#ff7a1a','#ff5a1e','#ff3a14','#e8401c','#ff2414'],SP_COOL=['#3dff7a','#2ea8ff','#5cc8ff'];
 function spColour(){return Math.random()<0.15?SP_COOL[Math.floor(Math.random()*SP_COOL.length)]:SP_WARM[Math.floor(Math.random()*SP_WARM.length)];}
 const spA=document.createElement('canvas'),spB=document.createElement('canvas'),spM=document.createElement('canvas');
 spA.width=spB.width=spM.width=Math.round(CW*SP_SCALE);spA.height=spB.height=spM.height=Math.round(CH*SP_SCALE);
 const spxA=spA.getContext('2d'),spxB=spB.getContext('2d'),spxM=spM.getContext('2d');
-const spC=document.createElement('canvas');spC.width=spM.width;spC.height=spM.height;const spxC=spC.getContext('2d');
+const spT=document.createElement('canvas');spT.width=spT.height=32;const spxT=spT.getContext('2d'); // one light at a time
 let spaceT=0,spaceA=0,spTick=0;const spSpots=[];
 function spDark(hex,a){const n=parseInt(hex.slice(1),16),k=1-a;return 'rgb('+Math.round((n>>16&255)*k)+','+Math.round((n>>8&255)*k)+','+Math.round((n&255)*k)+')';}
+// Ultra-short full white frame right before the dark sets in
+function spaceBlink(){strobeEl.style.background='#ffffff';strobeEl.style.opacity='1';setTimeout(function(){strobeEl.style.opacity='0';},45);}
 function spaceDraw(bg){
   spaceA+=(spaceT-spaceA)*0.08;
-
   if(!window.entryActive)rgCanvas.style.opacity=(1-spaceA).toFixed(3); // rings disappear into the dark
   if(spaceA<0.004)return;
   const now=performance.now(),np=fbPts.length/2;
   // Fragments: each sits on a word, lives 2–6 s, fades in and out, then moves to another word
   for(let i=0;i<SP_SPOTS;i++){
     let s=spSpots[i];
-    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:12+Math.random()*45,c:spColour()};}
+    if(!s||now-s.born>s.life){s=spSpots[i]={w:Math.random(),born:now,life:2000+Math.random()*4000,r:12+Math.random()*45,c:spColour(),side:Math.random()<0.5?-1:1,amt:0.3+Math.random()*0.7,nz:Math.random()*900};}
   }
   // 1) snapshot of the frame, small and blurred (every 2nd frame); 'difference' with the bg colour
   //    turns the background black and the content bright, so fragments glow on any background
@@ -645,22 +646,26 @@ function spaceDraw(bg){
     spxA.globalCompositeOperation='source-over';
     spxB.clearRect(0,0,spB.width,spB.height);if('filter' in spxB)spxB.filter='blur('+SP_BLUR+'px)';spxB.drawImage(spA,0,0);spxB.filter='none';
   }
-  // 2) colour layer: black everywhere, each fragment a soft spot in its own colour;
-  //    multiplied with the content → coloured glow inside the spots, black (adds nothing) outside
-  spxC.globalCompositeOperation='source-over';spxC.globalAlpha=1;spxC.fillStyle='#000';spxC.fillRect(0,0,spC.width,spC.height);
-  if(np>0)for(let i=0;i<SP_SPOTS;i++){
-    const s=spSpots[i],u=(now-s.born)/s.life,env=u<0.25?u/0.25:u>0.7?(1-u)/0.3:1;
-    const k=Math.floor(s.w*np),x=fbPts[k*2]*SP_SCALE,y=fbPts[k*2+1]*SP_SCALE,r=s.r*SP_SCALE;
-    const n=parseInt(s.c.slice(1),16),rgb=(n>>16&255)+','+(n>>8&255)+','+(n&255);
-    const g=spxC.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba('+rgb+','+env.toFixed(3)+')');g.addColorStop(1,'rgba('+rgb+',0)');
-    spxC.fillStyle=g;spxC.fillRect(x-r,y-r,r*2,r*2);
-  }
-  spxM.globalCompositeOperation='source-over';spxM.clearRect(0,0,spM.width,spM.height);spxM.drawImage(spB,0,0);
-  spxM.globalCompositeOperation='multiply';spxM.drawImage(spC,0,0);spxM.globalCompositeOperation='source-over';
-  // 3) darken everything, 4) add the fragments back on top as glow
+  // 2) darken everything
   ctx.save();ctx.globalAlpha=spaceA*SP_DARK;ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
   ctx.globalCompositeOperation='lighter';ctx.imageSmoothingEnabled=true;
-  ctx.globalAlpha=Math.min(1,spaceA*1.2);ctx.drawImage(spM,0,0,CW,CH);ctx.drawImage(spM,0,0,CW,CH);
+  ctx.globalAlpha=Math.min(1,spaceA*1.2);
+  // 3) each light separately: its colour spot × the glowing content under its word, then pushed sideways
+  //    (own side, own distance) by the lagged music level, with a slow organic wobble
+  const st=now*0.0004;
+  if(np>0)for(let i=0;i<SP_SPOTS;i++){
+    const s=spSpots[i],u=(now-s.born)/s.life,env=u<0.25?u/0.25:u>0.7?(1-u)/0.3:1;
+    const k=Math.floor(s.w*np),x=fbPts[k*2]*SP_SCALE,y=fbPts[k*2+1]*SP_SCALE,r=s.r*SP_SCALE,d=Math.ceil(r*2);
+    const n=parseInt(s.c.slice(1),16),rgb=(n>>16&255)+','+(n>>8&255)+','+(n&255);
+    spxT.globalCompositeOperation='source-over';spxT.fillStyle='#000';spxT.fillRect(0,0,spT.width,spT.height); // whole tile black, so edges add nothing
+    const g=spxT.createRadialGradient(r,r,0,r,r,r);g.addColorStop(0,'rgba('+rgb+','+env.toFixed(3)+')');g.addColorStop(1,'rgba('+rgb+',0)');
+    spxT.fillStyle=g;spxT.fillRect(0,0,d,d);
+    spxT.globalCompositeOperation='multiply';spxT.drawImage(spB,x-r,y-r,d,d,0,0,d,d);
+    const dx=s.side*SP_SPREAD*meshLvl*s.amt+(vnoise(s.nz+st,3.3)*2-1)*SP_WOBBLE;
+    const dy=(vnoise(5.5,s.nz+st)*2-1)*SP_WOBBLE*0.6;
+    const R=1/SP_SCALE;
+    const m=2;ctx.drawImage(spT,0,0,d+m,d+m,(x-r)*R+dx,(y-r)*R+dy,(d+m)*R,(d+m)*R);ctx.drawImage(spT,0,0,d+m,d+m,(x-r)*R+dx,(y-r)*R+dy,(d+m)*R,(d+m)*R);
+  }
   ctx.restore();
 }
 
