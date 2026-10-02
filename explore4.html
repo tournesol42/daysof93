@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v136-console-closed -->
+<!-- build: explore4-v137-preset-loop -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1054,7 +1054,8 @@ function queueLoop(origin) {
   }
 }
 
-const PRESET_SEQ = [31, 4, 9, 13, 28, 30, 31, 25, 32, 6, 16, 22, 24];
+const PRESET_SEQ = [31, 4, 9, 13, 28, 30, 31, 25, 32, 6, 16, 22, 24, 2, 7, 3, 11, 14, 15, 19, 23, 27, 21, 28, 30, 29, 32, 1, 3];
+let presetSeqPos = 0;
 function firePreset() {
   const firstGate = !window.bsStarted;
   window.bsStarted = true;
@@ -1062,10 +1063,13 @@ function firePreset() {
   startMusic2();
   const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
   if (!filled.length) return;
-  // Scripted opening: preset 30 on the 1st gate, then this list (tool numbering 1–32), then random selection
+  // Fixed preset order (tool numbering 1–32), one per MIDI gate, looping forever — no random selection
   let slot;
-  while (PRESET_SEQ.length) { const n = PRESET_SEQ.shift() - 1; if (filled.indexOf(n) !== -1) { slot = n; break; } }
-  if (slot === undefined) slot = filled[Math.floor(Math.random() * filled.length)];
+  for (let k = 0; k < PRESET_SEQ.length && slot === undefined; k++) {
+    const n = PRESET_SEQ[presetSeqPos] - 1; presetSeqPos = (presetSeqPos + 1) % PRESET_SEQ.length;
+    if (filled.indexOf(n) !== -1) slot = n;
+  }
+  if (slot === undefined) return;
   const interp = Math.round(Math.random() * 100);
   if (window.bsSetInterp) window.bsSetInterp(interp);
   if (window.bsRecall)    window.bsRecall(slot);
