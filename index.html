@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v222-prox-particles -->
+<!-- build: v220-explore4-dot -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -473,7 +473,7 @@
     // Trigger image + mesh breathing + grid darkening after 2s
     setTimeout(function() {
       var v = document.getElementById('bg-vector');
-      // bg-vector muted v221
+      if (v) { v.style.opacity = '1'; v.classList.add('bgvector-breathing'); }
       var mc = document.getElementById('mesh-canvas');
       if (mc) mc.classList.add('mesh-breathing');
 
@@ -861,35 +861,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   var camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
   camera.position.set(0,0,5);
 
-  // --- PROXIMITY WEB + FOG v221 ---
-  var pCv=document.createElement('canvas');
-  pCv.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;';
-  document.body.appendChild(pCv);
-  var pCtx=pCv.getContext('2d');
-  var FOG_SC=1/6,FOG_OP=0.40,FOG_BL=3.0;
-  var fgA=document.createElement('canvas'),fgB=document.createElement('canvas');
-  var fcA=fgA.getContext('2d'),fcB=fgB.getContext('2d');
-  var fogTick=0;
-  function resizePCv(){
-    pCv.width=window.innerWidth; pCv.height=window.innerHeight;
-    fgA.width=fgB.width=Math.round(window.innerWidth*FOG_SC);
-    fgA.height=fgB.height=Math.round(window.innerHeight*FOG_SC);
-  }
-  resizePCv();
-  window.addEventListener('resize',resizePCv);
-  // Live 2D particle cloud — 200 pts filling full screen, each moves independently
-  var CLOUD_N=200,cloudPts=[];
-  (function(){
-    var W2=window.innerWidth,H2=window.innerHeight;
-    for(var i=0;i<CLOUD_N;i++) cloudPts.push({
-      x:Math.random()*W2, y:Math.random()*H2,
-      vx:(Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6
-    });
-  })();
-  var PROX_TH=190;
-  var _pv2=new THREE.Vector3();
-  // --- END PROXIMITY SETUP ---
-
   var mesh = null;
   var springReady = false;
   var meshDatas = [];
@@ -1183,64 +1154,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
     }
     updateSpring();
     renderer.render(scene,camera);
-    // --- PROXIMITY WEB + FOG DRAW ---
-    (function drawProx(){
-      if(!mesh) return;
-      var W=pCv.width,H=pCv.height;
-      pCtx.clearRect(0,0,W,H);
-      var pts=[];
-      meshDatas.forEach(function(md){
-        var arr=md.geo.attributes.position.array;
-        var step=Math.max(1,Math.floor(md.n/55));
-        for(var i=0;i<md.n;i+=step){
-          _pv2.set(arr[i*3],arr[i*3+1],arr[i*3+2]).applyMatrix4(md.mW).project(camera);
-          var sx=(_pv2.x+1)/2*W,sy=(-_pv2.y+1)/2*H;
-          if(sx>-80&&sx<W+80&&sy>-80&&sy<H+80) pts.push([sx,sy]);
-        }
-      });
-      // Live cloud: update physics + push 2D positions
-      for(var i=0;i<cloudPts.length;i++){
-        var p=cloudPts[i];
-        p.x+=p.vx; p.y+=p.vy;
-        p.vx+=(Math.random()-0.5)*0.04; p.vy+=(Math.random()-0.5)*0.04;
-        var spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
-        if(spd>0.8){p.vx=p.vx/spd*0.8;p.vy=p.vy/spd*0.8;}
-        if(p.x<0){p.x=0;p.vx=Math.abs(p.vx);}
-        if(p.x>W){p.x=W;p.vx=-Math.abs(p.vx);}
-        if(p.y<0){p.y=0;p.vy=Math.abs(p.vy);}
-        if(p.y>H){p.y=H;p.vy=-Math.abs(p.vy);}
-        pts.push([p.x,p.y]);
-      }
-      var TH2=PROX_TH*PROX_TH,COL='#2d2d2d';
-      var doFog=(fogTick&1)===0;
-      if(doFog){
-        fcA.setTransform(1,0,0,1,0,0);
-        fcA.clearRect(0,0,fgA.width,fgA.height);
-        fcA.setTransform(FOG_SC,0,0,FOG_SC,0,0);
-        fcA.strokeStyle=COL; fcA.lineWidth=2.2/FOG_SC; fcA.lineCap='round';
-      }
-      pCtx.strokeStyle=COL; pCtx.lineWidth=0.75; pCtx.lineCap='round';
-      for(var i=0;i<pts.length-1;i++){
-        for(var j=i+1;j<pts.length;j++){
-          var dx=pts[j][0]-pts[i][0],dy=pts[j][1]-pts[i][1],d2=dx*dx+dy*dy;
-          if(d2<TH2){
-            var t=1-Math.sqrt(d2)/PROX_TH,op=t*t*0.80;
-            pCtx.globalAlpha=op;
-            pCtx.beginPath();pCtx.moveTo(pts[i][0],pts[i][1]);pCtx.lineTo(pts[j][0],pts[j][1]);pCtx.stroke();
-            if(doFog){fcA.globalAlpha=op*0.45;fcA.beginPath();fcA.moveTo(pts[i][0],pts[i][1]);fcA.lineTo(pts[j][0],pts[j][1]);fcA.stroke();}
-          }
-        }
-      }
-      if(doFog){
-        fcA.setTransform(1,0,0,1,0,0);
-        fcB.clearRect(0,0,fgB.width,fgB.height);
-        fcB.filter='blur('+FOG_BL+'px)';fcB.drawImage(fgA,0,0);fcB.filter='none';
-      }
-      pCtx.globalAlpha=FOG_OP;pCtx.imageSmoothingEnabled=true;
-      pCtx.drawImage(fgB,0,0,W,H);
-      pCtx.globalAlpha=1;
-      fogTick++;
-    })();
   })();
 
   window.addEventListener('resize', function(){
