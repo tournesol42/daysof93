@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v133-baked-automation -->
+<!-- build: explore4-v134-preset-sequence -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -917,7 +917,7 @@ ctx.fillStyle=S.bgColor;
 ctx.fillRect(0,0,CW,CH);
 // Always open on slot 30 at max interpolation
 window.bsSetInterp(100);
-if(BAKED_PRESETS[30]){applyState(BAKED_PRESETS[30]);}
+if(BAKED_PRESETS[29]){applyState(BAKED_PRESETS[29]);} // 'Preset 30' in the tool (slots are numbered 1–32)
 else{const _fp=BAKED_PRESETS.find(function(p){return p!=null;});if(_fp)applyState(_fp);else makePoints(S.count);}
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
   document.fonts.add(face);fontName='VectorBattle';respawnPoints();
@@ -1054,6 +1054,7 @@ function queueLoop(origin) {
   }
 }
 
+const PRESET_SEQ = [30, 4, 9, 13, 28, 30, 31, 25, 32, 6, 16, 22, 24];
 function firePreset() {
   const firstGate = !window.bsStarted;
   window.bsStarted = true;
@@ -1061,7 +1062,10 @@ function firePreset() {
   startMusic2();
   const filled = window.bsFilledSlots ? window.bsFilledSlots() : [];
   if (!filled.length) return;
-  const slot   = filled[Math.floor(Math.random() * filled.length)];
+  // Scripted opening: preset 30 on the 1st gate, then this list (tool numbering 1–32), then random selection
+  let slot;
+  while (PRESET_SEQ.length) { const n = PRESET_SEQ.shift() - 1; if (filled.indexOf(n) !== -1) { slot = n; break; } }
+  if (slot === undefined) slot = filled[Math.floor(Math.random() * filled.length)];
   const interp = Math.round(Math.random() * 100);
   if (window.bsSetInterp) window.bsSetInterp(interp);
   if (window.bsRecall)    window.bsRecall(slot);
@@ -1261,8 +1265,8 @@ let presets=Array.from({length:NP},(_,i)=>({name:'P'+(i+1),faders:null,rec:null}
 try{const s=JSON.parse(localStorage.getItem(SK));if(Array.isArray(s))s.slice(0,N).forEach((f,i)=>Object.assign(F[i],f,{value:+(f.value??64)}));}catch{}
 F[0].label='LINKS';F[1].label='DIST';F[2].label='RECT';F[3].label='SPLASH';F[4].label='SPACE';
 try{const s=JSON.parse(localStorage.getItem(SPK));if(Array.isArray(s))s.slice(0,NP).forEach((p,i)=>Object.assign(presets[i],p));}catch{}
-// Baked automation (v133): P1 gets the recorded take unless this browser has its own P1 recording
-if(BAKED_P1&&!presets[0].rec){const ev=[];for(let i=0;i<BAKED_P1.e.length;i+=3)ev.push({t:BAKED_P1.e[i],cc:BAKED_P1.e[i+1],v:BAKED_P1.e[i+2]});presets[0].rec={dur:BAKED_P1.dur,evts:ev};}
+// Baked automation (v134): the baked take always wins over this browser's saved P1
+if(BAKED_P1){const ev=[];for(let i=0;i<BAKED_P1.e.length;i+=3)ev.push({t:BAKED_P1.e[i],cc:BAKED_P1.e[i+1],v:BAKED_P1.e[i+2]});presets[0].rec={dur:BAKED_P1.dur,evts:ev};}
 try{const s=JSON.parse(localStorage.getItem(SK+'_k'));if(Array.isArray(s))s.slice(0,NK).forEach((k,i)=>Object.assign(K[i],k,{value:+(k.value??64)}));}catch{}
 let open=false,eIdx=null,midi=false,drag=null,selP=null;
 let recState='idle',recStart=0,recEvts=[],playTmrs=[];
@@ -1276,6 +1280,7 @@ const btn=document.createElement('div');
 Object.assign(btn.style,{position:'fixed',bottom:'14px',left:'14px',zIndex:'999999',fontFamily:'monospace',fontSize:'9px',letterSpacing:'.2em',padding:'4px 11px',cursor:'pointer',userSelect:'none',border:'1px solid rgba(255,255,255,.1)'});
 const box=document.createElement('div');
 Object.assign(box.style,{position:'fixed',bottom:'44px',left:'14px',zIndex:'999999',width:'444px',background:'rgba(8,8,8,.97)',border:'1px solid rgba(255,255,255,.09)',padding:'10px',fontFamily:'monospace',display:'none'});
+btn.style.display='none'; // console hidden for visitors; Alt+M still toggles it
 document.body.appendChild(btn);document.body.appendChild(box);
 
 function onFV(i,v){
