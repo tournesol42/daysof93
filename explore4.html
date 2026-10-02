@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v138-mastervol-menu -->
+<!-- build: explore4-v139-entry-white -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -206,7 +206,7 @@ function drawRings(dt,bg){
   rctx.setTransform(rgDpr,0,0,rgDpr,0,0);
   rctx.clearRect(0,0,vw,vh);
   const lumE=lum*(1-0.995*spaceA); // F5 darkness counts as a dark background for rings + strobe
-  rctx.strokeStyle=window.entryActive?'#ffffff':(splash&&spaceA<0.5?splash.ring:(lumE<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
+  rctx.strokeStyle=window.entryActive?'#000000':(splash&&spaceA<0.5?splash.ring:(lumE<0.2?'#ffffff':'#000000'));rctx.lineWidth=1/rgDpr;rctx.globalAlpha=0.6;
   rctx.beginPath();rctx.arc(bx,by,R,0,Math.PI*2);rctx.stroke();
   rctx.beginPath();rctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2);rctx.stroke();
   // Strobe: inner ring spin speed → flash chance; never two 'on' frames in a row (hard blinks)
@@ -1211,17 +1211,17 @@ function unlockAudio() {
 </script>
 <!-- ENTRY (v123): 4 bits with countdowns → 12 more stream in after 2 s → rings + hint. Grabbing a ring (or clicking) unlocks audio and opens the page. -->
 <div id="entry"><div id="entry-row"></div></div>
-<div id="entry-hint"><span>move rings to discover</span><svg width="64" height="12" viewBox="0 0 64 12"><line x1="0" y1="6" x2="62" y2="6" stroke="#fff" stroke-width="1"/><polyline points="55,1 62,6 55,11" fill="none" stroke="#fff" stroke-width="1"/></svg></div>
+<div id="entry-hint"><span>move rings to discover</span><svg width="64" height="12" viewBox="0 0 64 12"><line x1="0" y1="6" x2="62" y2="6" stroke="#000" stroke-width="1"/><polyline points="55,1 62,6 55,11" fill="none" stroke="#000" stroke-width="1"/></svg></div>
 <style>
-#entry{position:fixed;inset:0;background:#000;z-index:2147483000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .7s ease;-webkit-tap-highlight-color:transparent}
-#entry-row{display:flex;width:21.6em;font-family:'VectorBattle','Courier New',monospace;font-size:clamp(18px,2.6vw,32px);color:#fff;transition:transform .12s linear;user-select:none}
+#entry{position:fixed;inset:0;background:#fff;z-index:2147483000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .7s ease;-webkit-tap-highlight-color:transparent}
+#entry-row{display:flex;width:21.6em;font-family:'VectorBattle','Courier New',monospace;font-size:clamp(18px,2.6vw,32px);color:#000;transition:transform .12s linear;user-select:none}
 #entry-row .eb{flex:0 0 1.35em;text-align:center;position:relative}
 #entry-row .ec{position:absolute;left:0;right:0;top:0;opacity:.3;z-index:-1;pointer-events:none}
 #entry-row .eb.pulse{animation:ebPulse 1.6s ease-in-out infinite}
 #entry-row .eb.in{animation:ebIn .16s ease-out both}
 @keyframes ebPulse{0%,100%{opacity:.25}50%{opacity:1}}
 @keyframes ebIn{from{opacity:0;transform:translateX(.9em)}to{opacity:1;transform:none}}
-#entry-hint{position:fixed;z-index:2147483002;display:flex;align-items:center;gap:14px;color:#fff;font-family:'VectorBattle','Courier New',monospace;font-size:13px;letter-spacing:.18em;opacity:0;transition:opacity 1.2s ease;pointer-events:none;white-space:nowrap}
+#entry-hint{position:fixed;z-index:2147483002;display:flex;align-items:center;gap:14px;color:#000;font-family:'VectorBattle','Courier New',monospace;font-size:13px;letter-spacing:.18em;opacity:0;transition:opacity 1.2s ease;pointer-events:none;white-space:nowrap}
 #entry-hint.below{flex-direction:column-reverse;gap:10px}
 #entry-hint.below svg{transform:rotate(-90deg)}
 </style>
