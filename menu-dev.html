@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v223-binary-scatter -->
+<!-- build: v224-transparent-bg -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1682,7 +1682,7 @@ function applyState(s){
   S.focusCX=s.focusCX;S.focusCY=s.focusCY;
   S.circleRadius=s.circleRadius;S.rectW=s.rectW;S.rectH=s.rectH;
   _currentTextColor=s.textColor;
-  document.body.style.background=s.bgColor;lastBodyBg=''; // force draw() to re-apply (splash bg wins)
+  lastBodyBg='';
   linesOn=s.linesOn!==undefined?s.linesOn:true;
   linesMaxDist=s.linesMaxDist!==undefined?s.linesMaxDist:120;
   linesMaxPer=s.linesMaxPer!==undefined?s.linesMaxPer:2;
@@ -1738,11 +1738,9 @@ function draw(ms){
   const noiseModAmt=S.noiseMod/100;
   const bgCol=splash?splash.bg:S.bgColor;
   const textCol=splash?splash.text:_currentTextColor;
-  const spDarkBg=spaceA>0.004?spDark(bgCol,spaceA*SP_DARK):bgCol;
-  if(spDarkBg!==lastBodyBg){document.body.style.background=spDarkBg;lastBodyBg=spDarkBg;}
   const globalOpacity=S.opacity/100;
   const opacitySpread=S.opSpread/100;
-  ctx.fillStyle=bgCol;ctx.fillRect(0,0,CW,CH);
+  ctx.clearRect(0,0,CW,CH);
   fbReset();
   if(splash)fbLinesDrawn+=webDraw(splash.web); // splash web replaces proximity + frame
   ctx.fillStyle=textCol;ctx.textBaseline='middle';ctx.textAlign='left';
@@ -1895,7 +1893,7 @@ function draw(ms){
 }
 
 // ── Startup ──
-ctx.fillStyle=S.bgColor; ctx.fillRect(0,0,CW,CH);
+ctx.clearRect(0,0,CW,CH);
 window.bsSetInterp(100);
 makePoints(S.count);
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
