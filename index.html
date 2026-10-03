@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v240-hero-fixes -->
+<!-- build: v241-3d-dots -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -92,7 +92,7 @@
   }
   .hero-sub{
     font-family:'Jost', 'Helvetica Neue', sans-serif;
-    font-size: clamp(0.7rem, 1.2vw, 1rem);
+    font-size: clamp(0.5rem, 0.85vw, 0.72rem);
     font-weight:300; letter-spacing:0.28em;
     text-transform:uppercase; color:#fff; opacity:0.85;
     margin-top:28px;
@@ -1130,7 +1130,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var center = box.getCenter(new THREE.Vector3());
       var size   = box.getSize(new THREE.Vector3());
       root.position.sub(center);
-      root.scale.setScalar(3.15/Math.max(size.x,size.y,size.z));
+      var _sc=3.15/Math.max(size.x,size.y,size.z);
+      root.scale.setScalar(_sc);
+      window._meshScale=_sc;
       root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0 : 0.3;
       root.rotation.y = 0.35;
@@ -1986,6 +1988,68 @@ requestAnimationFrame(draw);
       setTimeout(function(){ veil.style.display='none'; },600);
     },3000);
   }
+})();
+</script>
+<script>
+/* Dots join mesh rotation after 5.5s */
+(function(){
+  var DOTS={
+    'explore-btn':  {x:-1.8, y: 0.1, z: 0.5, r:14},
+    'explore3-btn': {x:-1.3, y:-0.9, z:-0.4, r:42},
+    'explore4-btn': {x: 1.5, y:-0.7, z: 0.3, r:28},
+    'music-btn':    {x: 2.0, y: 0.7, z:-0.4, r:50}
+  };
+  var ids=Object.keys(DOTS);
+  var active=false, entered=false;
+  setTimeout(function(){ active=true; },5500);
+
+  var FOV50=50*Math.PI/180;
+  function tick(){
+    requestAnimationFrame(tick);
+    if(!active) return;
+    var ry=window._meshRotY||0;
+    var sc=window._meshScale||1;
+    var W=window.innerWidth, H=window.innerHeight;
+    var FL=(H/2)/Math.tan(FOV50/2);
+    var cosR=Math.cos(ry), sinR=Math.sin(ry);
+
+    if(!entered){
+      ids.forEach(function(id){
+        var el=document.getElementById(id);
+        if(el) el.style.transition='left 1s ease,top 1s ease,width 1s ease,height 1s ease';
+      });
+      setTimeout(function(){
+        ids.forEach(function(id){
+          var el=document.getElementById(id);
+          if(el) el.style.transition='none';
+        });
+      },1100);
+      entered=true;
+    }
+
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el) return;
+      var d=DOTS[id];
+      // Y-axis rotate in world space, add mesh Y offset
+      var wx=(d.x*cosR+d.z*sinR)*sc;
+      var wy= d.y*sc+0.75;
+      var wz=(-d.x*sinR+d.z*cosR)*sc;
+      // Project through camera (z=5, FOV 50)
+      var cz=5-wz;
+      if(cz<0.1) return;
+      var pf=FL/cz;
+      var sx=wx*pf+W/2;
+      var sy=-wy*pf+H/2;
+      // Depth-scaled radius
+      var rr=Math.max(3,Math.round(d.r*(pf/(FL/5))));
+      el.style.left=(sx-rr)+'px';
+      el.style.top= (sy-rr)+'px';
+      el.style.right='auto'; el.style.bottom='auto';
+      el.style.width=(rr*2)+'px'; el.style.height=(rr*2)+'px';
+    });
+  }
+  tick();
 })();
 </script>
 </body>
