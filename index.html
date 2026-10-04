@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v259-baked-rotation -->
+<!-- build: v260-breathe-loop -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1516,6 +1516,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 (function(){
 const CW=1080,CH=1920;
 const bsCanvas=document.createElement('canvas');
+window._bsCv=bsCanvas;
 bsCanvas.width=CW;bsCanvas.height=CH;
 Object.assign(bsCanvas.style,{position:'fixed',display:'block',pointerEvents:'none',zIndex:'1'});
 document.body.appendChild(bsCanvas);
@@ -1926,7 +1927,7 @@ function draw(ms){
 ctx.clearRect(0,0,CW,CH);
 bsCanvas.style.opacity='0';
 bsCanvas.style.transition='opacity 2s ease';
-setTimeout(function(){ bsCanvas.style.opacity='1'; },6000);
+setTimeout(function(){ bsCanvas.style.transition='none'; },8100);
 window.bsSetInterp(100);
 makePoints(S.count);
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
@@ -2074,6 +2075,30 @@ requestAnimationFrame(draw);
       editOn?exit():enter();
     if(e.key==='Escape')exit();
   });
+})();
+</script>
+<script>
+/* Antiphase breathe loop: mesh ↔ binary scatter */
+(function(){
+  var START=8000, PERIOD=9;
+  var mc=document.getElementById('mesh-canvas');
+  function loop(){
+    requestAnimationFrame(loop);
+    var now=performance.now();
+    if(now<START) return;
+    var t=Math.sin((now-START)/1000*(2*Math.PI/PERIOD)-Math.PI/2);
+    /* t goes -1→+1. At t=-1: BS bright, mesh dim. At t=+1: mesh bright, BS dim */
+    var meshOp=(0.18+0.82*(0.5+0.5*t)).toFixed(3);   /* 0.18 → 1.0 */
+    var bsOp  =(1.0 -0.82*(0.5+0.5*t)).toFixed(3);   /* 1.0 → 0.18 */
+    if(mc) mc.style.opacity=meshOp;
+    if(window._bsCv) window._bsCv.style.opacity=bsOp;
+  }
+  /* Fade BS in first, then hand off to loop */
+  if(window._bsCv){ window._bsCv.style.opacity='0'; window._bsCv.style.transition='opacity 2s ease'; }
+  setTimeout(function(){
+    if(window._bsCv){ window._bsCv.style.opacity='1'; }
+    setTimeout(loop, 2000);
+  }, 6000);
 })();
 </script>
 </body>
