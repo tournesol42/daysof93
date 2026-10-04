@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v247-layout-editor -->
+<!-- build: v248-header-drag-fix -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -539,7 +539,7 @@
     <video class="about-bg-video" autoplay loop muted playsinline>
       <source src="https://daysof93-cdn.b-cdn.net/Orange%206.webm" type="video/webm">
     </video>
-    <header style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
+    <header id="site-nav-header" style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
       <nav style="display:flex;gap:28px;align-items:center;">
         <a href="#" id="about-nav-work" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">work</a>
         <a href="music.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">music</a>
@@ -1159,7 +1159,9 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       rotBoostTarget  *= 0.992;
       rotDirCurrent   += (rotDirTarget - rotDirCurrent) * 0.05;
       var _mSpd=1.65;
-      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd;
+      var _tp=Math.min(1,performance.now()/6000);
+      var _ramp=0.15+0.85*(_tp*_tp);
+      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd * _ramp;
     }
     updateSpring();
     renderer.render(scene,camera);
@@ -1995,7 +1997,7 @@ requestAnimationFrame(draw);
 /* Dot position editor — E to toggle, drag to reposition, Export to copy CSS */
 (function(){
   var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
-  var HDR=document.querySelector('header[style]');
+  var HDR=document.getElementById('site-nav-header');
   var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
 
   /* ── UI ── */
@@ -2071,7 +2073,7 @@ requestAnimationFrame(draw);
   /* ── Drag ── */
   document.addEventListener('mousedown',function(e){
     if(!editOn)return;
-    if(HDR&&(HDR===e.target||HDR.contains(e.target))){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; HDR.style.cursor='grabbing'; e.preventDefault(); return; }
+    if(HDR&&e.target.closest&&e.target.closest('#site-nav-header')){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; HDR.style.cursor='grabbing'; e.preventDefault(); return; }
     var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
     if(!id)return;
     var el=document.getElementById(id);
