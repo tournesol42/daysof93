@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v255-no-stray-lines -->
+<!-- build: v256-bs-fadein -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1921,6 +1921,9 @@ function draw(ms){
 
 // ── Startup ──
 ctx.clearRect(0,0,CW,CH);
+bsCanvas.style.opacity='0';
+bsCanvas.style.transition='opacity 2s ease';
+setTimeout(function(){ bsCanvas.style.opacity='1'; },6000);
 window.bsSetInterp(100);
 makePoints(S.count);
 new FontFace('VectorBattle','url(/fonts/VectorBattle-e9XO.ttf)').load().then(function(face){
