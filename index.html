@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v248-header-drag-fix -->
+<!-- build: v249-header-overlay-drag -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -2022,8 +2022,14 @@ requestAnimationFrame(draw);
   function enter(){
     editOn=true;
     toggleBtn.textContent='Done editing';
-    // Freeze header into fixed position for dragging
-    if(HDR){ var hr=HDR.getBoundingClientRect(); HDR.style.position='fixed'; HDR.style.top=hr.top+'px'; HDR.style.left=hr.left+'px'; HDR.style.right='auto'; HDR.style.cursor='grab'; HDR.style.zIndex='9990'; HDR.style.transition='none'; HDR.style.width=hr.width+'px'; }
+    // Freeze header + add drag overlay above nav links
+    if(HDR){
+      var hr=HDR.getBoundingClientRect();
+      HDR.style.position='fixed'; HDR.style.top=hr.top+'px'; HDR.style.left=hr.left+'px'; HDR.style.right='auto'; HDR.style.zIndex='9990'; HDR.style.transition='none'; HDR.style.width=hr.width+'px';
+      var hov=document.createElement('div');
+      hov.id='hdr-ov'; hov.style.cssText='position:fixed;top:'+hr.top+'px;left:0;right:0;height:'+hr.height+'px;z-index:9995;cursor:grab;';
+      document.body.appendChild(hov);
+    }
     toggleBtn.style.color='#FF7900';
     toggleBtn.style.borderColor='rgba(255,120,0,0.5)';
     exportBtn.style.display='block';
@@ -2042,6 +2048,7 @@ requestAnimationFrame(draw);
     editOn=false;
     toggleBtn.textContent='Edit layout';
     if(HDR){ HDR.style.cursor=''; HDR.style.zIndex=''; }
+    var hov=document.getElementById('hdr-ov'); if(hov) hov.remove();
     toggleBtn.style.color='rgba(255,255,255,0.6)';
     toggleBtn.style.borderColor='rgba(255,255,255,0.2)';
     exportBtn.style.display='none';
@@ -2073,7 +2080,7 @@ requestAnimationFrame(draw);
   /* ── Drag ── */
   document.addEventListener('mousedown',function(e){
     if(!editOn)return;
-    if(HDR&&e.target.closest&&e.target.closest('#site-nav-header')){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; HDR.style.cursor='grabbing'; e.preventDefault(); return; }
+    if(e.target.id==='hdr-ov'){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; e.target.style.cursor='grabbing'; e.preventDefault(); return; }
     var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
     if(!id)return;
     var el=document.getElementById(id);
@@ -2087,6 +2094,8 @@ requestAnimationFrame(draw);
     if(!drag)return;
     drag.style.left=(e.clientX-offX)+'px';
     drag.style.top=(e.clientY-offY)+'px';
+    var hov=document.getElementById('hdr-ov');
+    if(hov){ hov.style.left=(e.clientX-offX)+'px'; hov.style.top=(e.clientY-offY)+'px'; }
     didDrag=true;
   });
 
