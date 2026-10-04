@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v257-mesh-rotate-editor -->
+<!-- build: v258-mesh-drag-fixed -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1388,7 +1388,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 <a href="explore3.html" id="explore4-btn" aria-label="Explore 3" style="pointer-events:auto;"></a>
 <a href="music.html" id="music-btn" aria-label="Music" style="pointer-events:auto;"></a>
 </div>
-<div id="dot-veil"></div>
 <div id="dot-hint">push dots to explore →</div>
 <script>
 (function() {
@@ -1955,13 +1954,6 @@ requestAnimationFrame(draw);
 <script>
 /* intro: mesh fades in after 3s; dots dimmed by veil 3s then blink 3s */
 (function(){
-  var veil=document.getElementById('dot-veil');
-  if(veil){
-    setTimeout(function(){
-      veil.style.opacity='0';
-      setTimeout(function(){ veil.style.display='none'; },600);
-    },3000);
-  }
 })();
 </script>
 <script>
@@ -2000,23 +1992,13 @@ requestAnimationFrame(draw);
     // Lock mesh rotation + enable drag-to-rotate
     window._meshRotManual=window._meshRotY||0;
     window._meshRotLocked=true;
-    if(meshCv){ meshCv.style.cursor='ew-resize'; }
-    // Freeze dot positions for dragging
-    IDS.forEach(function(id){
-      var el=document.getElementById(id);
-      if(!el)return;
-      var r=el.getBoundingClientRect();
-      el.style.left=r.left+'px'; el.style.top=r.top+'px';
-      el.style.right='auto'; el.style.bottom='auto';
-      el.style.cursor='grab'; el.style.zIndex='9990';
-      el.style.transition='none';
-    });
+    if(meshCv){ meshCv.style.cursor='ew-resize'; meshCv.style.pointerEvents='auto'; meshCv.style.zIndex='9995'; }
   }
 
   function exit(){
     editOn=false;
     window._meshRotLocked=false;
-    if(meshCv){ meshCv.style.cursor=''; }
+    if(meshCv){ meshCv.style.cursor=''; meshCv.style.pointerEvents='none'; meshCv.style.zIndex=''; }
     toggleBtn.textContent='Edit layout';
     toggleBtn.style.color='rgba(255,255,255,0.6)';
     toggleBtn.style.borderColor='rgba(255,255,255,0.2)';
