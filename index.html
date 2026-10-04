@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v251-labels-at-anchor -->
+<!-- build: v252-line-to-label -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1929,7 +1929,7 @@ function draw(ms){
       if(!el)return;
       var r=el.getBoundingClientRect();
       var cx=(r.left+r.width/2-bsR.left)*scX;
-      var cy=(r.top+r.height/2-bsR.top)*scY;
+      var cy=(r.top-bsR.top)*scY;
       var best=null,bestD=Infinity;
       for(var i=0;i<points.length;i++){
         var p=points[i];
@@ -2138,7 +2138,7 @@ requestAnimationFrame(draw);
     el.style.cssText='position:fixed;z-index:52;text-decoration:none;cursor:pointer;'
       +'font-family:"Google Sans Code","B612 Mono","Courier New",monospace;color:'+COL+';'
       +'left:'+(a.ax*100)+'vw;top:'+(a.ay*100)+'vh;'
-      +'transform:translate(-50%,calc(-100% - 8px));';
+      +'transform:translate(-50%,-100%);';
     el.innerHTML=
       '<span style="display:block;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;white-space:nowrap;">'+a.title+'</span>'
       +'<span style="display:block;font-size:10px;letter-spacing:.09em;opacity:0.75;margin-top:4px;white-space:nowrap;">'+a.data+'</span>';
