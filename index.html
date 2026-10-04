@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v243-2d-dots -->
+<!-- build: v244-dot-editor -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1988,6 +1988,116 @@ requestAnimationFrame(draw);
       setTimeout(function(){ veil.style.display='none'; },600);
     },3000);
   }
+})();
+</script>
+<script>
+/* Dot position editor — E to toggle, drag to reposition, Export to copy CSS */
+(function(){
+  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+  var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
+
+  /* ── UI ── */
+  var toggleBtn=document.createElement('div');
+  toggleBtn.style.cssText='position:fixed;bottom:22px;right:22px;z-index:9999;padding:7px 14px;background:rgba(0,0,0,0.75);color:rgba(255,255,255,0.6);font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(255,255,255,0.2);border-radius:20px;backdrop-filter:blur(10px);user-select:none;';
+  toggleBtn.textContent='Edit dots';
+  document.body.appendChild(toggleBtn);
+
+  var exportBtn=document.createElement('div');
+  exportBtn.style.cssText='display:none;position:fixed;bottom:22px;right:110px;z-index:9999;padding:7px 14px;background:#FF7900;color:#000;font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border-radius:20px;user-select:none;';
+  exportBtn.textContent='Export';
+  document.body.appendChild(exportBtn);
+
+  var panel=document.createElement('div');
+  panel.style.cssText='display:none;position:fixed;bottom:62px;right:22px;z-index:9999;background:rgba(0,0,0,0.92);color:#FF7900;font-family:"B612 Mono",monospace;font-size:11px;line-height:1.8;padding:16px 20px;border:1px solid rgba(255,120,0,0.3);border-radius:10px;white-space:pre;backdrop-filter:blur(10px);min-width:340px;';
+  document.body.appendChild(panel);
+
+  /* ── Helpers ── */
+  function vw(px){ return (px/window.innerWidth*100).toFixed(1)+'vw'; }
+  function vh(px){ return (px/window.innerHeight*100).toFixed(1)+'vh'; }
+
+  function enter(){
+    editOn=true;
+    toggleBtn.textContent='Done';
+    toggleBtn.style.color='#FF7900';
+    toggleBtn.style.borderColor='rgba(255,120,0,0.5)';
+    exportBtn.style.display='block';
+    IDS.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el)return;
+      var r=el.getBoundingClientRect();
+      el.style.left=r.left+'px'; el.style.top=r.top+'px';
+      el.style.right='auto'; el.style.bottom='auto';
+      el.style.cursor='grab'; el.style.zIndex='9990';
+      el.style.transition='none';
+    });
+  }
+
+  function exit(){
+    editOn=false;
+    toggleBtn.textContent='Edit dots';
+    toggleBtn.style.color='rgba(255,255,255,0.6)';
+    toggleBtn.style.borderColor='rgba(255,255,255,0.2)';
+    exportBtn.style.display='none';
+    panel.style.display='none';
+    IDS.forEach(function(id){
+      var el=document.getElementById(id);
+      if(el){ el.style.cursor=''; el.style.zIndex=''; }
+    });
+  }
+
+  function doExport(){
+    var out='Send these values to Claude:\n\n';
+    IDS.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el)return;
+      var r=el.getBoundingClientRect();
+      out+='#'+id+'\n  left: '+vw(r.left)+'   top: '+vh(r.top)+'\n\n';
+    });
+    panel.textContent=out;
+    panel.style.display='block';
+    /* also copy to clipboard */
+    navigator.clipboard&&navigator.clipboard.writeText(out).catch(function(){});
+  }
+
+  toggleBtn.addEventListener('click',function(){ editOn?exit():enter(); });
+  exportBtn.addEventListener('click',doExport);
+
+  /* ── Drag ── */
+  document.addEventListener('mousedown',function(e){
+    if(!editOn)return;
+    var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
+    if(!id)return;
+    var el=document.getElementById(id);
+    var r=el.getBoundingClientRect();
+    drag=el; offX=e.clientX-r.left; offY=e.clientY-r.top; didDrag=false;
+    el.style.cursor='grabbing';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove',function(e){
+    if(!drag)return;
+    drag.style.left=(e.clientX-offX)+'px';
+    drag.style.top=(e.clientY-offY)+'px';
+    didDrag=true;
+  });
+
+  document.addEventListener('mouseup',function(){
+    if(!drag)return;
+    drag.style.cursor='grab';
+    /* swallow click if it was a drag */
+    if(didDrag){
+      var captured=drag;
+      var stop=function(e){ e.stopImmediatePropagation(); e.preventDefault(); captured.removeEventListener('click',stop,true); };
+      captured.addEventListener('click',stop,true);
+    }
+    drag=null;
+  });
+
+  document.addEventListener('keydown',function(e){
+    if((e.key==='e'||e.key==='E')&&document.activeElement.tagName!=='INPUT')
+      editOn?exit():enter();
+    if(e.key==='Escape')exit();
+  });
 })();
 </script>
 </body>
