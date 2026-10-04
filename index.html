@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v253-dots-restored -->
+<!-- build: v255-no-stray-lines -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -664,38 +664,6 @@ function drawField(targetId){
   lines += '<line x1="'+(gx-r-4)+'" y1="'+gy+'" x2="'+(gx+r+4)+'" y2="'+gy+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
   lines += '<line x1="'+gx+'" y1="'+(gy-r-4)+'" x2="'+gx+'" y2="'+(gy+r+4)+'" stroke="var(--ink)" stroke-width="var(--hair)" opacity="0.55"/>';
 
-  // --- lines that break symmetry & straightness, living in the UPPER field ---
-  // (the negative space around the nav, above where the pieces begin) — desktop only
-  if(w >= 720){
-    const upperBand = vpY * 0.72;   // confine to the top zone, above the horizon
-    const strays = 4;
-    for(let i=0;i<strays;i++){
-      const s1 = seededRand(SEED + 100 + i*3.1);
-      const s2 = seededRand(SEED + 200 + i*5.7);
-      const s3 = seededRand(SEED + 300 + i*2.3);
-      const s4 = seededRand(SEED + 350 + i*4.9);
-      // both endpoints roam the upper band, at irregular positions
-      const x1 = s1 * w;
-      const y1 = s2 * upperBand;
-      const x2 = s3 * w;
-      const y2 = s4 * upperBand;
-      if(s2 > 0.5){
-        // gentle bow — deviates from straightness
-        const mx = (x1+x2)/2 + (s3-0.5)*140;
-        const my = (y1+y2)/2 + (s1-0.5)*70;
-        lines += '<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'" fill="none" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s4*0.12).toFixed(3)+'"/>';
-      } else {
-        // straight but off-grid
-        lines += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="'+(0.17+s1*0.12).toFixed(3)+'"/>';
-      }
-    }
-    // a couple of long faint diagonals sweeping across the upper field
-    for(let i=0;i<1;i++){
-      const s1 = seededRand(SEED + 600 + i*7.9);
-      const s2 = seededRand(SEED + 700 + i*3.3);
-      lines += '<line x1="'+(s1*w*0.4).toFixed(1)+'" y1="'+(s2*upperBand*0.5).toFixed(1)+'" x2="'+((0.5+s2*0.5)*w).toFixed(1)+'" y2="'+((0.4+s1*0.6)*upperBand).toFixed(1)+'" stroke="var(--line)" stroke-width="var(--hair)" opacity="0.14"/>';
-    }
-  }
 
   svg.innerHTML = lines;
 }
