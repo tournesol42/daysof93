@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v246-no-period -->
+<!-- build: v247-layout-editor -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -102,7 +102,7 @@
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
   }
   #music-btn {
-    position: fixed; left: 78.2vw; right: auto; top: 54.8vh;
+    position: fixed; left: 76.3vw; right: auto; top: 63.0vh;
     width: 100px; height: 100px; border-radius: 50%;
     background: #d0d0d0; display: none; z-index: 51;
     text-decoration: none;
@@ -411,8 +411,8 @@
   }
   @media (min-width: 720px) {
     #explore-btn {
-      left: 27.0vw;
-      top: 27.5vh;
+      left: 27.2vw;
+      top: 31.2vh;
     }
   }
   #explore-btn.visible { display: block; }
@@ -441,8 +441,8 @@
   }
   @media (min-width: 720px) {
     #explore3-btn {
-      left: 5.6vw;
-      top: 35.8vh;
+      left: 18.6vw;
+      top: 50.1vh;
     }
   }
   #explore4-btn {
@@ -460,9 +460,9 @@
   @media (min-width: 720px) {
     #explore4-btn {
       left: auto;
-      left: 89.4vw;
+      left: 87.5vw;
       right: auto;
-      top: 72.0vh;
+      top: 80.8vh;
     }
   }
 </style>
@@ -1995,12 +1995,13 @@ requestAnimationFrame(draw);
 /* Dot position editor — E to toggle, drag to reposition, Export to copy CSS */
 (function(){
   var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+  var HDR=document.querySelector('header[style]');
   var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
 
   /* ── UI ── */
   var toggleBtn=document.createElement('div');
   toggleBtn.style.cssText='position:fixed;bottom:22px;right:22px;z-index:9999;padding:7px 14px;background:rgba(0,0,0,0.75);color:rgba(255,255,255,0.6);font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(255,255,255,0.2);border-radius:20px;backdrop-filter:blur(10px);user-select:none;';
-  toggleBtn.textContent='Edit dots';
+  toggleBtn.textContent='Edit layout';
   document.body.appendChild(toggleBtn);
 
   var exportBtn=document.createElement('div');
@@ -2018,7 +2019,9 @@ requestAnimationFrame(draw);
 
   function enter(){
     editOn=true;
-    toggleBtn.textContent='Done';
+    toggleBtn.textContent='Done editing';
+    // Freeze header into fixed position for dragging
+    if(HDR){ var hr=HDR.getBoundingClientRect(); HDR.style.position='fixed'; HDR.style.top=hr.top+'px'; HDR.style.left=hr.left+'px'; HDR.style.right='auto'; HDR.style.cursor='grab'; HDR.style.zIndex='9990'; HDR.style.transition='none'; HDR.style.width=hr.width+'px'; }
     toggleBtn.style.color='#FF7900';
     toggleBtn.style.borderColor='rgba(255,120,0,0.5)';
     exportBtn.style.display='block';
@@ -2035,7 +2038,8 @@ requestAnimationFrame(draw);
 
   function exit(){
     editOn=false;
-    toggleBtn.textContent='Edit dots';
+    toggleBtn.textContent='Edit layout';
+    if(HDR){ HDR.style.cursor=''; HDR.style.zIndex=''; }
     toggleBtn.style.color='rgba(255,255,255,0.6)';
     toggleBtn.style.borderColor='rgba(255,255,255,0.2)';
     exportBtn.style.display='none';
@@ -2054,6 +2058,7 @@ requestAnimationFrame(draw);
       var r=el.getBoundingClientRect();
       out+='#'+id+'\n  left: '+vw(r.left)+'   top: '+vh(r.top)+'\n\n';
     });
+    if(HDR){ var hr=HDR.getBoundingClientRect(); out+='header\n  left: '+vw(hr.left)+'   top: '+vh(hr.top)+'\n\n'; }
     panel.textContent=out;
     panel.style.display='block';
     /* also copy to clipboard */
@@ -2066,6 +2071,7 @@ requestAnimationFrame(draw);
   /* ── Drag ── */
   document.addEventListener('mousedown',function(e){
     if(!editOn)return;
+    if(HDR&&(HDR===e.target||HDR.contains(e.target))){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; HDR.style.cursor='grabbing'; e.preventDefault(); return; }
     var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
     if(!id)return;
     var el=document.getElementById(id);
@@ -2084,7 +2090,7 @@ requestAnimationFrame(draw);
 
   document.addEventListener('mouseup',function(){
     if(!drag)return;
-    drag.style.cursor='grab';
+    drag.style.cursor= drag===HDR ? 'grab' : 'grab';
     /* swallow click if it was a drag */
     if(didDrag){
       var captured=drag;
