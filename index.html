@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v256-bs-fadein -->
+<!-- build: v257-mesh-rotate-editor -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -420,7 +420,7 @@
   #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
   #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
   @keyframes dot-slow { 0%,100%{opacity:1} 50%{opacity:0.15} }
-  #mesh-canvas { opacity:0.85; transition: opacity 1.5s ease; }
+  #mesh-canvas { opacity:1; }
   #dot-veil { position:fixed;inset:0;z-index:55;pointer-events:none;background:rgba(0,0,0,0.3);transition:opacity 0.5s ease; }
   @keyframes veil-blink { 0%,100%{opacity:1} 50%{opacity:0.04} }
   .veil-blinking { animation:veil-blink 0.55s ease-in-out infinite; }
@@ -1129,7 +1129,11 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       var _mSpd=1.65;
       var _tp=Math.min(1,performance.now()/6000);
       var _ramp=0.15+0.85*(_tp*_tp);
-      mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd * _ramp;
+      if(!window._meshRotLocked){
+        mesh.rotation.y += (0.002 + rotBoostCurrent) * rotDirCurrent * _mSpd * _ramp;
+      } else if(window._meshRotManual!==undefined){
+        mesh.rotation.y=window._meshRotManual;
+      }
     }
     updateSpring();
     renderer.render(scene,camera);
@@ -1951,10 +1955,6 @@ requestAnimationFrame(draw);
 <script>
 /* intro: mesh fades in after 3s; dots dimmed by veil 3s then blink 3s */
 (function(){
-  setTimeout(function(){
-    var mc=document.getElementById('mesh-canvas');
-    if(mc) mc.style.opacity='1';
-  },10000);
   var veil=document.getElementById('dot-veil');
   if(veil){
     setTimeout(function(){
@@ -1965,11 +1965,12 @@ requestAnimationFrame(draw);
 })();
 </script>
 <script>
-/* Dot position editor — E to toggle, drag to reposition, Export to copy CSS */
+/* Layout + rotation editor — E to toggle */
 (function(){
   var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
-  var HDR=document.getElementById('site-nav-header');
   var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
+  var meshCv=document.getElementById('mesh-canvas');
+  var meshDragging=false, meshDragX=0, meshDragStartRot=0;
 
   /* ── UI ── */
   var toggleBtn=document.createElement('div');
@@ -1993,17 +1994,14 @@ requestAnimationFrame(draw);
   function enter(){
     editOn=true;
     toggleBtn.textContent='Done editing';
-    // Freeze header + add drag overlay above nav links
-    if(HDR){
-      var hr=HDR.getBoundingClientRect();
-      HDR.style.position='fixed'; HDR.style.top=hr.top+'px'; HDR.style.left=hr.left+'px'; HDR.style.right='auto'; HDR.style.zIndex='9990'; HDR.style.transition='none'; HDR.style.width=hr.width+'px';
-      var hov=document.createElement('div');
-      hov.id='hdr-ov'; hov.style.cssText='position:fixed;top:'+hr.top+'px;left:0;right:0;height:'+hr.height+'px;z-index:9995;cursor:grab;';
-      document.body.appendChild(hov);
-    }
     toggleBtn.style.color='#FF7900';
     toggleBtn.style.borderColor='rgba(255,120,0,0.5)';
     exportBtn.style.display='block';
+    // Lock mesh rotation + enable drag-to-rotate
+    window._meshRotManual=window._meshRotY||0;
+    window._meshRotLocked=true;
+    if(meshCv){ meshCv.style.cursor='ew-resize'; }
+    // Freeze dot positions for dragging
     IDS.forEach(function(id){
       var el=document.getElementById(id);
       if(!el)return;
@@ -2017,9 +2015,9 @@ requestAnimationFrame(draw);
 
   function exit(){
     editOn=false;
+    window._meshRotLocked=false;
+    if(meshCv){ meshCv.style.cursor=''; }
     toggleBtn.textContent='Edit layout';
-    if(HDR){ HDR.style.cursor=''; HDR.style.zIndex=''; }
-    var hov=document.getElementById('hdr-ov'); if(hov) hov.remove();
     toggleBtn.style.color='rgba(255,255,255,0.6)';
     toggleBtn.style.borderColor='rgba(255,255,255,0.2)';
     exportBtn.style.display='none';
@@ -2038,10 +2036,10 @@ requestAnimationFrame(draw);
       var r=el.getBoundingClientRect();
       out+='#'+id+'\n  left: '+vw(r.left)+'   top: '+vh(r.top)+'\n\n';
     });
-    if(HDR){ var hr=HDR.getBoundingClientRect(); out+='header\n  left: '+vw(hr.left)+'   top: '+vh(hr.top)+'\n\n'; }
+    var rot=window._meshRotManual!==undefined?window._meshRotManual:(window._meshRotY||0);
+    out+='mesh.rotation.y = '+rot.toFixed(4)+';  // '+(rot*180/Math.PI).toFixed(1)+'deg\n';
     panel.textContent=out;
     panel.style.display='block';
-    /* also copy to clipboard */
     navigator.clipboard&&navigator.clipboard.writeText(out).catch(function(){});
   }
 
@@ -2051,7 +2049,12 @@ requestAnimationFrame(draw);
   /* ── Drag ── */
   document.addEventListener('mousedown',function(e){
     if(!editOn)return;
-    if(e.target.id==='hdr-ov'){ var hr=HDR.getBoundingClientRect(); drag=HDR; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false; e.target.style.cursor='grabbing'; e.preventDefault(); return; }
+    // Mesh rotate drag
+    if(e.target===meshCv||e.target.id==='mesh-canvas'){
+      meshDragging=true; meshDragX=e.clientX;
+      meshDragStartRot=window._meshRotManual||0;
+      e.preventDefault(); return;
+    }
     var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
     if(!id)return;
     var el=document.getElementById(id);
@@ -2062,18 +2065,20 @@ requestAnimationFrame(draw);
   });
 
   document.addEventListener('mousemove',function(e){
+    if(meshDragging){
+      window._meshRotManual=meshDragStartRot+(e.clientX-meshDragX)*0.005;
+      return;
+    }
     if(!drag)return;
     drag.style.left=(e.clientX-offX)+'px';
     drag.style.top=(e.clientY-offY)+'px';
-    var hov=document.getElementById('hdr-ov');
-    if(hov){ hov.style.left=(e.clientX-offX)+'px'; hov.style.top=(e.clientY-offY)+'px'; }
     didDrag=true;
   });
 
   document.addEventListener('mouseup',function(){
+    if(meshDragging){ meshDragging=false; return; }
     if(!drag)return;
-    drag.style.cursor= drag===HDR ? 'grab' : 'grab';
-    /* swallow click if it was a drag */
+    drag.style.cursor='grab';
     if(didDrag){
       var captured=drag;
       var stop=function(e){ e.stopImmediatePropagation(); e.preventDefault(); captured.removeEventListener('click',stop,true); };
