@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v258-mesh-drag-fixed -->
+<!-- build: v259-baked-rotation -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1104,10 +1104,10 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
       window._meshScale=_sc;
       root.position.y+=0.75;
       root.position.x -= (window.innerWidth < 720) ? 0 : 0.3;
-      root.rotation.y = 0.35;
+      root.rotation.y = 4.3112;
       root.rotation.x = 0.08;
       root.traverse(function(child){
-        if(child.isMesh){ var _mat=new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, opacity:0.18, transparent:true}); child.material=_mat; if(meshDatas.length&&meshDatas[meshDatas.length-1].mat===undefined) meshDatas[meshDatas.length-1].mat=_mat; }
+        if(child.isMesh){ var _mat=new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, opacity:0.32, transparent:true}); child.material=_mat; if(meshDatas.length&&meshDatas[meshDatas.length-1].mat===undefined) meshDatas[meshDatas.length-1].mat=_mat; }
       });
       scene.add(root);
       mesh=root;
