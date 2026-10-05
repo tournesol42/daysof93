@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v260-breathe-loop -->
+<!-- build: v261-touch-editor -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -2070,6 +2070,37 @@ requestAnimationFrame(draw);
     drag=null;
   });
 
+  /* Touch support for iOS */
+  function getTouchPt(e){ return e.touches&&e.touches[0]?e.touches[0]:e.changedTouches[0]; }
+  document.addEventListener('touchstart',function(e){
+    if(!editOn)return;
+    var pt=getTouchPt(e);
+    var t=document.elementFromPoint(pt.clientX,pt.clientY);
+    if(t&&(t===meshCv||t.id==='mesh-canvas')){
+      meshDragging=true; meshDragX=pt.clientX;
+      meshDragStartRot=window._meshRotManual||0;
+      e.preventDefault(); return;
+    }
+    var id=IDS.find(function(id){ var el=document.getElementById(id); return el&&el.contains(t); });
+    if(!id)return;
+    var el=document.getElementById(id);
+    var r=el.getBoundingClientRect();
+    drag=el; offX=pt.clientX-r.left; offY=pt.clientY-r.top; didDrag=false;
+    e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchmove',function(e){
+    if(!editOn)return;
+    var pt=getTouchPt(e);
+    if(meshDragging){ window._meshRotManual=meshDragStartRot+(pt.clientX-meshDragX)*0.005; e.preventDefault(); return; }
+    if(!drag)return;
+    drag.style.left=(pt.clientX-offX)+'px';
+    drag.style.top=(pt.clientY-offY)+'px';
+    didDrag=true; e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',function(){
+    if(meshDragging){ meshDragging=false; return; }
+    drag=null;
+  });
   document.addEventListener('keydown',function(e){
     if((e.key==='e'||e.key==='E')&&document.activeElement.tagName!=='INPUT')
       editOn?exit():enter();
