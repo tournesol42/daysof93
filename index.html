@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v267-letter-boost -->
+<!-- build: v268-letter-scale -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1582,9 +1582,13 @@ function fbReset(){}
 function fbText(w,x,y){
   var base=ctx.globalAlpha;
   var t=Math.max(0,((window._bsOp||0.18)-0.18)/0.82); /* 0=dim, 1=bright */
-  ctx.globalAlpha=Math.min(1, base+(1-base)*t*0.75);
-  ctx.fillText(w,x,y);
-  ctx.globalAlpha=base;
+  var s=1+t*0.18; /* up to 18% bigger at full brightness */
+  ctx.save();
+  ctx.globalAlpha=Math.min(1,base+(1-base)*t*0.75);
+  ctx.translate(x,y);
+  ctx.scale(s,s);
+  ctx.fillText(w,0,0);
+  ctx.restore();
 }
 function fbDraw(){}
 function webDraw(){ return 0; }
