@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<!-- build: explore4-v139-entry-white -->
+<!-- build: explore4-v140-touch-fixes -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>explore4 — days of 93</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+/* Touch (v140): the page never scrolls, bounces or zooms under a finger, so ring drags aren't cancelled by iOS */
+html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #e4-home{position:fixed;bottom:28px;right:28px;font-family:'Jost',sans-serif;font-weight:300;font-size:32px;letter-spacing:.22em;text-transform:uppercase;color:#fff;mix-blend-mode:difference;text-decoration:none;z-index:600;opacity:0;pointer-events:none}
 #e4-home.visible{pointer-events:auto;animation:e4-home-pulse 1.8s ease-in-out infinite}
 @keyframes e4-home-pulse{0%,100%{opacity:1}50%{opacity:.12}}
@@ -114,11 +116,11 @@ function meshAudUpdate(){
 }
 const RG_BOUNCE_Y=0.25,RG_IDLE=8,RG_BASE=0.167,RG_RATIO=145/320,RG_W=0.75,RG_FRICTION=0.55,RG_TOP=0.5,RG_BOT=1.4;
 const rgCanvas=document.createElement('canvas');
-Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'3'});
+Object.assign(rgCanvas.style,{position:'fixed',left:'0',top:'0',pointerEvents:'none',zIndex:'3'});
 rgCanvas.id='rings';document.body.appendChild(rgCanvas);
 const rctx=rgCanvas.getContext('2d');
 let rgDpr=1;
-function rgFit(){rgDpr=window.devicePixelRatio||1;rgCanvas.width=Math.round(window.innerWidth*rgDpr);rgCanvas.height=Math.round(window.innerHeight*rgDpr);}
+function rgFit(){rgDpr=window.devicePixelRatio||1;rgCanvas.width=Math.round(window.innerWidth*rgDpr);rgCanvas.height=Math.round(window.innerHeight*rgDpr);rgCanvas.style.width=window.innerWidth+'px';rgCanvas.style.height=window.innerHeight+'px';}
 window.addEventListener('resize',rgFit);rgFit();
 const rg={x:window.innerWidth*0.62,y:window.innerHeight*0.3,vx:0,vy:0,th:0,w:0,drag:null,lx:0,ly:0,lt:0,la:0,ox:0,oy:0};
 function rgR(){const vh=window.innerHeight,t=Math.max(0,Math.min(1,rg.y/vh));return vh*RG_BASE*(RG_TOP+(RG_BOT-RG_TOP)*t);}
@@ -156,12 +158,16 @@ window.addEventListener('pointermove',function(e){
   }
   rg.lx=p.x;rg.ly=p.y;rg.lt=now;
 });
-window.addEventListener('pointerup',function(){
+function rgRelease(){
   if(!rg.drag)return;
   // Stale motion (mouse held still before release) = no throw
   if(performance.now()-rg.lt>80){rg.vx=rg.vy=0;rg.w=0;}
   rg.drag=null;document.body.style.cursor='grab';
-});
+}
+window.addEventListener('pointerup',rgRelease);
+window.addEventListener('pointercancel',rgRelease);
+// iOS: block the page's own touch scrolling/zoom so finger drags stay with the rings
+document.addEventListener('touchmove',function(e){if(!(e.target.closest&&e.target.closest('#d93-vol-popup')))e.preventDefault();},{passive:false});
 function drawRings(dt,bg){
   if(!rgOn()){rctx.setTransform(1,0,0,1,0,0);rctx.clearRect(0,0,rgCanvas.width,rgCanvas.height);return;}
   const vw=window.innerWidth,vh=window.innerHeight;
