@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v266-editor-hidden -->
+<!-- build: v267-letter-boost -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1579,7 +1579,13 @@ var fbMinX=0, fbMinY=0, fbMaxX=CW, fbMaxY=CH, fbSX=0, fbSY=0, fbN=0, fbLinesDraw
 var shapesDirty=false, SHAPES=[], SHAPE_ANCHORS=[];
 function fbRoll(){}
 function fbReset(){}
-function fbText(w,x,y){ ctx.fillText(w,x,y); }
+function fbText(w,x,y){
+  var base=ctx.globalAlpha;
+  var t=Math.max(0,((window._bsOp||0.18)-0.18)/0.82); /* 0=dim, 1=bright */
+  ctx.globalAlpha=Math.min(1, base+(1-base)*t*0.75);
+  ctx.fillText(w,x,y);
+  ctx.globalAlpha=base;
+}
 function fbDraw(){}
 function webDraw(){ return 0; }
 function spDark(c){ return c; }
@@ -2124,6 +2130,7 @@ requestAnimationFrame(draw);
     var meshOp=(0.18+0.82*(0.5+0.5*t)).toFixed(3);   /* 0.18 → 1.0 */
     var bsOp  =(1.0 -0.82*(0.5+0.5*t)).toFixed(3);   /* 1.0 → 0.18 */
     if(mc) mc.style.opacity=meshOp;
+    window._bsOp=parseFloat(bsOp);
     if(window._bsCv) window._bsCv.style.opacity=bsOp;
   }
   /* Fade BS in first, then hand off to loop */
