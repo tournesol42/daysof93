@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v141-debug-readout -->
+<!-- build: explore4-v142-m1-floor-touch -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -965,7 +965,8 @@ const MP3_2_URL = 'https://daysof93-cdn.b-cdn.net/Explore4binaryMainmusic2.mp3';
 // ── Two-track crossfade (v99): rings' vertical position balances music 1 / music 2 ──
 const XF_STEEP = 14; // higher = more sudden switch, less overlap
 const XF_M1_MID = 0.3; // music 1 reaches its minimum earlier (music 2 keeps the middle switch point)
-const M1_FLOOR = 0.3;  // music 1 turned down by at most 70% (-10.5 dB)
+// Music 1 floor: desktop 30% (-10.5 dB); phones/tablets 5% (-26 dB), since small speakers + iOS loudness processing mask a -10 dB drop
+const M1_FLOOR = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 0.05 : 0.3;
 const REV_MAX = 0.25;  // reverb send on music 2 (follows music 2's volume)
 let g1 = null, g2 = null, hp2 = null, revIn = null, mix2Buf = null, mix2Started = false;
 // Same church reverb as explore.html: 8s tail, decay 1.2, 40ms pre-delay
