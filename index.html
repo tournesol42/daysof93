@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v265-music-dot-nudge -->
+<!-- build: v266-editor-hidden -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1969,7 +1969,7 @@ requestAnimationFrame(draw);
   var toggleBtn=document.createElement('div');
   toggleBtn.style.cssText='position:fixed;bottom:22px;right:22px;z-index:9999;padding:7px 14px;background:rgba(0,0,0,0.75);color:rgba(255,255,255,0.6);font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(255,255,255,0.2);border-radius:20px;backdrop-filter:blur(10px);user-select:none;';
   toggleBtn.textContent='Edit layout';
-  document.body.appendChild(toggleBtn);
+  toggleBtn.style.display='none'; document.body.appendChild(toggleBtn);
 
   var exportBtn=document.createElement('div');
   exportBtn.style.cssText='display:none;position:fixed;bottom:22px;right:110px;z-index:9999;padding:7px 14px;background:#FF7900;color:#000;font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border-radius:20px;user-select:none;';
