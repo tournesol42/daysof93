@@ -1113,6 +1113,7 @@ function scheduler() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 let started = false;
+const _preload = Promise.all([xhrGet(MP3_URL), xhrGet(MIDI_URL)]);
 
 function boot() {
   if (started) return;
@@ -1120,7 +1121,7 @@ function boot() {
 
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  Promise.all([xhrGet(MP3_URL), xhrGet(MIDI_URL)]).then(function (results) {
+  _preload.then(function (results) {
     audioCtx.decodeAudioData(results[0], function (mp3Buf) {
       // Parse MIDI
       noteTimes = parseMidi(results[1]);
@@ -1191,12 +1192,7 @@ function boot() {
   }).catch(function (e) { console.warn('Music engine error:', e); });
 }
 
-// Try immediately (works on desktop); fall back to first gesture (iOS/mobile)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot);
-} else {
-  boot();
-}
+// AudioContext created inside first gesture only (required for iOS)
 // Browsers start the AudioContext 'suspended' unless the page already has user activation,
 // so every gesture (re)starts it — boot() alone returned early and left it suspended.
 function unlockAudio() {
