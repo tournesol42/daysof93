@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v144-music1-v3 -->
+<!-- build: explore4-v145-rects-2d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -732,7 +732,7 @@ function drawShapes(dispMax,noiseModAmt,winStart){
     f*=midiRectK;
     const sw=s.w*midiRectK,sh=s.h*midiRectK;
     // Splash 3D: rectangles turn around their own vertical axis (through the anchor), in sync with the web's spin
-    const is3=!!(splash&&web&&web.is3d);
+    const is3=false; // v145: rectangles stay 2D (3D boxes/turning off)
     let rot3=is3?Math.cos(web.rot):1;const rsn=is3?Math.sin(web.rot):0,dz=s.dz*midiRectK;
     const grey=s.c==='#898d8d';
     const sc=splash?splash.shapes[k]:s.c;
