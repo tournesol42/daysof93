@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v272-mobile-dot-positions -->
+<!-- build: v273-hide-edit-layout -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -1982,6 +1982,7 @@ requestAnimationFrame(draw);
   var toggleBtn=document.createElement('div');
   toggleBtn.style.cssText='position:fixed;bottom:22px;right:22px;z-index:9999;padding:7px 14px;background:rgba(0,0,0,0.75);color:rgba(255,255,255,0.6);font-family:"Jost",sans-serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(255,255,255,0.2);border-radius:20px;backdrop-filter:blur(10px);user-select:none;';
   toggleBtn.textContent='Edit layout';
+  toggleBtn.style.display='none'; // hidden for visitors; press E to open the layout editor
   document.body.appendChild(toggleBtn);
 
   var exportBtn=document.createElement('div');
