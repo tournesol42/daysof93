@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v273-hide-edit-layout -->
+<!-- build: v274-dot-ripple -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -2147,6 +2147,37 @@ requestAnimationFrame(draw);
     if(window._bsCv){ window._bsCv.style.opacity='1'; }
     setTimeout(loop, 2000);
   }, 6000);
+})();
+</script>
+<script>
+/* Ripple on dot click — ring expands 1x→5x, fades, then navigates */
+(function(){
+  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+  IDS.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    var href=el.getAttribute('href');
+    el.addEventListener('click',function(e){
+      e.preventDefault();
+      var r=el.getBoundingClientRect();
+      var sz=r.width;
+      var cx=r.left+r.width/2, cy=r.top+r.height/2;
+      var ring=document.createElement('div');
+      ring.style.cssText='position:fixed;border-radius:50%;border:1px solid rgba(255,255,255,0.9);pointer-events:none;z-index:9000;box-sizing:border-box;';
+      document.body.appendChild(ring);
+      var t0=null, DUR=750, MAX=sz*5;
+      (function frame(ts){
+        if(!t0) t0=ts;
+        var p=Math.min(1,(ts-t0)/DUR);
+        var cur=sz+(MAX-sz)*p;
+        var op=1-p;
+        ring.style.cssText='position:fixed;border-radius:50%;border:1px solid rgba(255,255,255,'+op.toFixed(3)+');pointer-events:none;z-index:9000;box-sizing:border-box;'
+          +'width:'+cur+'px;height:'+cur+'px;left:'+(cx-cur/2)+'px;top:'+(cy-cur/2)+'px;';
+        if(p<1){ requestAnimationFrame(frame); }
+        else{ ring.remove(); window.location.href=href; }
+      })(performance.now());
+    });
+  });
 })();
 </script>
 </body>
