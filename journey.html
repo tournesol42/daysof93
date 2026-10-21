@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v04-calibrated -->
+<!-- build: journey-v05-fix -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -49,9 +49,9 @@ const P = {
   BASE_ROWS: 20, BASE_COLS: 20, DIV: 4, SEED: 1,
 
   // calibrated noise constants (matched to TD measurements within ~10% on r_med)
-  N1_FREQ: 1.0,  N1_EXP: 0.7,   N1_K: 1.92,
-  N2_FREQ: 1.0,  N2_EXP: 1.02,  N2_K: 0.12,
-  FRACTAL_K: 0.10,
+  N1_FREQ: 1.0,  N1_EXP: 0.7,   N1_K: 0.30,
+  N2_FREQ: 1.0,  N2_EXP: 1.02,  N2_K: 0.04,
+  FRACTAL_K: 0.02,
 
   // point sprite: base size in px at 1920 canvas height
   PT_DEFAULT_PX: 4.0,
