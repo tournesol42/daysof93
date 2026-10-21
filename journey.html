@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v02-bunnyaudio -->
+<!-- build: journey-v03-tdgrid -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -38,18 +38,18 @@ const P = {
   NOISE2:  [1, 12],              // noise2 amp
   PTSIZE:  [2, 30],              // line1 pointsizemultiplier
 
-  // geometry: sphere1 20×20, fractal1 divisions 2, smoothness 0.92, seed 1
-  ROWS: 20, COLS: 20, DIVISIONS: 2, SMOOTH: 0.92, SEED: 1,
+  // geometry: sphere1 20 rows × 20 cols → fractal1 divisions 2 (×4) → quad grid, lines on rows/cols only
+  BASE_ROWS: 20, BASE_COLS: 20, DIV: 4, SEED: 1,
 
-  // noise1 (alligator → approximated w/ simplex fBm): harmonics 5, spread 2, rough 0.596, exp 0.7
-  N1_FREQ: 1.0, N1_EXP: 0.7,
+  // noise1: period 0 in TD → per-base-point jitter, interpolated by fractal subdivision
+  N1_FREQ: 6.0, N1_EXP: 0.7,
   // noise2 (hermite): harmonics 0, period 1, exp 1.02
   N2_FREQ: 1.0, N2_EXP: 1.02,
 
   // translation scale factors — TD→GLSL noise ranges differ, tune by eye
-  NOISE_K: 0.5,
-  FRACTAL_K: 0.25,
-  PX_PER_PTSIZE: 1.0,            // screen px per unit of pointsizemultiplier
+  NOISE_K: 0.55,                 // matched to TD bbox growth (noise2: 2.6 → 3.6)
+  FRACTAL_K: 0.4,                // matched to TD per-point roughness (~0.24 median)
+  PX_PER_PTSIZE: 0.9,            // screen px per unit of pointsizemultiplier
 
   // line1 colours (RGBA) + depth fade (dist near 0 → far 2.4)
   PT_NEAR: [1.0, 0.3891, 0.106, 0.371],
@@ -57,6 +57,8 @@ const P = {
   LN_NEAR: [1.0, 1.0,    1.0,   0.459],
   LN_FAR:  [1.0, 1.0,    1.0,   0.124],
   FADE_SPAN: 2.4,
+  COLOR_BIAS: 0.26,              // line1 color bias -0.26 → leans toward far colour
+  LINE_ALPHA: 0.35,              // TD draws 0.8–1.4px lines at 1080×1920 then scales down; WebGL lines are 1px
   MESH_RADIUS: 1.2,              // near-fade starts at front surface of mesh
 
   // geo1 rotate Y = absTime.frame * .2  (deg, 60fps)
@@ -64,12 +66,12 @@ const P = {
 
   // camera journey
   FOV: 45,
-  CAM_START: [0.9, 0.35, 6.5],   // in front, slightly angled (pic 1)
+  CAM_START: [1.1, 0.45, 8.5],   // in front, slightly angled (pic 1)
   CAM_END_Z: -6,                 // through and out the back
   SCROLL_PX: 5000,               // wheel px for full journey
   TOUCH_K: 2.5,                  // touch px multiplier
   CAM_EASE: 0.05,                // camera follow smoothing
-  FOG_NEAR: 7, FOG_FAR: 14,      // emerge from darkness
+  FOG_NEAR: 10, FOG_FAR: 18,      // emerge from darkness
   INTRO_SEC: 3
 };
 
@@ -95,57 +97,34 @@ function rng(seed){ let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F
 
 function buildGeometry(){
   const rand = rng(P.SEED);
-  const src = new THREE.SphereGeometry(1, P.COLS, P.ROWS);
-  const sp = src.attributes.position.array, si = src.index.array;
-  const pos = [], frac = [], keyMap = new Map(), remap = [];
-  for (let i = 0; i < sp.length / 3; i++){
-    const x = sp[i*3], y = sp[i*3+1], z = sp[i*3+2];
-    const k = x.toFixed(4)+','+y.toFixed(4)+','+z.toFixed(4);
-    if (!keyMap.has(k)){ keyMap.set(k, pos.length/3); pos.push(x,y,z); frac.push(rand()*2-1); }
-    remap[i] = keyMap.get(k);
-  }
-  let tris = [];
-  for (let i = 0; i < si.length; i += 3){
-    const a = remap[si[i]], b = remap[si[i+1]], c = remap[si[i+2]];
-    if (a !== b && b !== c && a !== c) tris.push(a,b,c);
-  }
-  // midpoint subdivision with fractal-style random offset per level
-  for (let lvl = 1; lvl <= P.DIVISIONS; lvl++){
-    const amp = Math.pow(0.5, lvl * P.SMOOTH);
-    const mids = new Map(), next = [];
-    const mid = (a,b) => {
-      const k = a < b ? a+'_'+b : b+'_'+a;
-      if (mids.has(k)) return mids.get(k);
-      const n = pos.length/3;
-      pos.push((pos[a*3]+pos[b*3])/2, (pos[a*3+1]+pos[b*3+1])/2, (pos[a*3+2]+pos[b*3+2])/2);
-      frac.push((frac[a]+frac[b])/2 + (rand()*2-1)*amp);
-      mids.set(k, n); return n;
-    };
-    for (let i = 0; i < tris.length; i += 3){
-      const a = tris[i], b = tris[i+1], c = tris[i+2];
-      const ab = mid(a,b), bc = mid(b,c), ca = mid(c,a);
-      next.push(a,ab,ca, ab,b,bc, ca,bc,c, ab,bc,ca);
+  const R = P.BASE_ROWS * P.DIV, C = P.BASE_COLS * P.DIV;   // 80 × 80 fine grid, cols wrap
+  const pos = [], grid = [], jit = [], edges = [];
+  const id = (r,c) => r * C + (c % C);
+  const poleJ = [[rand()*2-1, rand()*2-1, rand()*2-1],[rand()*2-1, rand()*2-1, rand()*2-1]];
+  for (let r = 0; r <= R; r++){
+    for (let c = 0; c < C; c++){
+      const th = r / R * Math.PI, ph = c / C * Math.PI * 2;
+      pos.push(Math.sin(th)*Math.cos(ph), Math.cos(th), Math.sin(th)*Math.sin(ph));
+      grid.push(r, c);
+      if (r === 0 || r === R) jit.push(...poleJ[r ? 1 : 0]);    // poles are single points in TD
+      else jit.push(rand()*2-1, rand()*2-1, rand()*2-1);
     }
-    tris = next;
   }
-  // unique edges for lines
-  const edges = [], seen = new Set();
-  for (let i = 0; i < tris.length; i += 3){
-    for (const [a,b] of [[tris[i],tris[i+1]],[tris[i+1],tris[i+2]],[tris[i+2],tris[i]]]){
-      const k = a < b ? a+'_'+b : b+'_'+a;
-      if (!seen.has(k)){ seen.add(k); edges.push(a,b); }
+  for (let r = 0; r <= R; r++){
+    for (let c = 0; c < C; c++){
+      if (r > 0 && r < R) edges.push(id(r,c), id(r,c+1));   // row lines
+      if (r < R) edges.push(id(r,c), id(r+1,c));             // column lines
     }
   }
   const pAttr = new THREE.Float32BufferAttribute(pos, 3);
-  const fAttr = new THREE.Float32BufferAttribute(frac, 1);
-  const gPts = new THREE.BufferGeometry();
-  gPts.setAttribute('position', pAttr); gPts.setAttribute('aFrac', fAttr);
-  const gLin = new THREE.BufferGeometry();
-  gLin.setAttribute('position', pAttr); gLin.setAttribute('aFrac', fAttr);
+  const gAttr = new THREE.Float32BufferAttribute(grid, 2);
+  const jAttr = new THREE.Float32BufferAttribute(jit, 3);
+  const mk = () => { const g = new THREE.BufferGeometry();
+    g.setAttribute('position', pAttr); g.setAttribute('aGrid', gAttr); g.setAttribute('aJit', jAttr); return g; };
+  const gPts = mk(), gLin = mk();
   gLin.setIndex(edges);
-  // shader displaces vertices — use a big bounding sphere so culling never drops it
   gPts.boundingSphere = gLin.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 50);
-  return {gPts, gLin, count: pos.length/3};
+  return {gPts, gLin};
 }
 
 /* ================= SHADERS ================= */
@@ -178,27 +157,29 @@ vec3 shapeE(vec3 n,float e){return sign(n)*pow(abs(n),vec3(e));}
 
 const VERT = `
 precision highp float;
-uniform float uTime,uN1,uN2,uFrac,uPt,uPx,uNear,uSpan,uFogNear,uFogFar;
-uniform float uN1Freq,uN1Exp,uN2Freq,uN2Exp,uNK,uFK;
-attribute float aFrac;
+uniform float uBias,uTime,uN1,uN2,uFrac,uPt,uPx,uNear,uSpan,uFogNear,uFogFar;
+uniform float uN1Freq,uN1Exp,uN2Freq,uN2Exp,uNK,uFK,uBR,uBC,uDiv;
+attribute vec2 aGrid; attribute vec3 aJit;
 varying float vT; varying float vFog;
 ${NOISE}
-vec3 fbm1(vec3 p){
-  // noise1: harmonics 5, spread 2.0, roughness 0.596
-  vec3 v=vec3(0.0); float a=1.0,f=1.0,s=0.0;
-  for(int i=0;i<6;i++){ v+=a*snoise3(p*f); s+=a; a*=0.596; f*=2.0; }
-  return v/s;
+vec3 sph(float r,float c){ float th=r/uBR*3.14159265; float ph=c/uBC*6.28318531;
+  return vec3(sin(th)*cos(ph),cos(th),sin(th)*sin(ph)); }
+vec3 n1(float r,float c,vec3 tz){
+  vec3 q=sph(r,c)*uN1Freq+tz;
+  return shapeE(0.7*snoise3(q)+0.3*snoise3(q*2.0),uN1Exp);   // harmonics, spread 2
 }
 void main(){
-  vec3 p=position;
-  vec3 nrm=normalize(position);
   vec3 tz=vec3(0.0,0.0,uTime);                                   // translate Z = absTime.seconds
-  p+=shapeE(fbm1(p*uN1Freq+tz),uN1Exp)*uN1*uNK;                   // noise1
-  p+=nrm*aFrac*uFrac*uFK;                                         // fractal1
+  // noise1 on the 20×20 base points, bilinearly interpolated (fractal subdivision)
+  vec2 b=aGrid/uDiv; vec2 b0=floor(b); vec2 f=b-b0;
+  vec3 nA=n1(b0.x,b0.y,tz), nB=n1(b0.x,b0.y+1.0,tz), nC=n1(b0.x+1.0,b0.y,tz), nD=n1(b0.x+1.0,b0.y+1.0,tz);
+  vec3 nz=mix(mix(nA,nB,f.y),mix(nC,nD,f.y),f.x);
+  vec3 p=position+nz*uN1*uNK;                                     // noise1
+  p+=aJit*uFrac*uFK;                                              // fractal1 per-point jitter
   p+=shapeE(snoise3(p*uN2Freq+tz+vec3(100.0)),uN2Exp)*uN2*uNK;    // noise2
   vec4 mv=modelViewMatrix*vec4(p,1.0);
   float d=-mv.z;
-  vT=clamp((d-uNear)/uSpan,0.0,1.0);
+  vT=clamp((d-uNear)/uSpan+uBias,0.0,1.0);
   vFog=1.0-smoothstep(uFogNear,uFogFar,d);
   gl_Position=projectionMatrix*mv;
   gl_PointSize=uPt*uPx;
@@ -216,11 +197,11 @@ void main(){
 
 const FRAG_LIN = `
 precision highp float;
-uniform vec4 uNearC,uFarC; uniform float uIntro;
+uniform vec4 uNearC,uFarC; uniform float uIntro,uLineA;
 varying float vT; varying float vFog;
 void main(){
   vec4 col=mix(uNearC,uFarC,vT);
-  gl_FragColor=vec4(col.rgb,col.a*vFog*uIntro);
+  gl_FragColor=vec4(col.rgb,col.a*vFog*uIntro*uLineA);
 }`;
 
 /* ================= MESH ================= */
@@ -229,7 +210,8 @@ const U = {
   uPt:{value:P.PTSIZE[0]}, uPx:{value:1}, uNear:{value:0}, uSpan:{value:P.FADE_SPAN},
   uFogNear:{value:P.FOG_NEAR}, uFogFar:{value:P.FOG_FAR},
   uN1Freq:{value:P.N1_FREQ}, uN1Exp:{value:P.N1_EXP}, uN2Freq:{value:P.N2_FREQ}, uN2Exp:{value:P.N2_EXP},
-  uNK:{value:P.NOISE_K}, uFK:{value:P.FRACTAL_K}, uIntro:{value:0}
+  uNK:{value:P.NOISE_K}, uFK:{value:P.FRACTAL_K}, uIntro:{value:0},
+  uBias:{value:P.COLOR_BIAS}, uLineA:{value:P.LINE_ALPHA}, uBR:{value:P.BASE_ROWS}, uBC:{value:P.BASE_COLS}, uDiv:{value:P.DIV}
 };
 const v4 = a => new THREE.Vector4(a[0],a[1],a[2],a[3]);
 const mkMat = (frag, near, far) => new THREE.ShaderMaterial({
