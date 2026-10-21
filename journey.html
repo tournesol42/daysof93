@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Journey</title>
+<!-- build: journey-v02-bunnyaudio -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
+  canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;image-rendering:pixelated}
+  #start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer}
+  .pill{font:300 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#fff;
+        padding:11px 20px;border-radius:999px;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22)}
+  #file{display:none}
+</style>
+</head>
+<body>
+<div id="start"><div class="pill">enter</div></div>
+<input id="file" type="file" accept="audio/*">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================= PARAMETERS (from TD patch "Line Tutorial Orange Dots") ================= */
+const P = {
+  AUDIO_URL: 'https://daysof93-cdn.b-cdn.net/journey150bpm.mp3',
+
+  // analyze1 = rmspower → mean square of samples; lag1: up 0s, down 0.8s
+  LAG_DOWN: 0.8,
+
+  // math1–4 range maps (audio 0→1)
+  FRACTAL: [0, 9],               // fractal1 scale
+  NOISE1:  [0, 10],              // noise1 amp
+  NOISE2:  [1, 12],              // noise2 amp
+  PTSIZE:  [2, 30],              // line1 pointsizemultiplier
+
+  // geometry: sphere1 20×20, fractal1 divisions 2, smoothness 0.92, seed 1
+  ROWS: 20, COLS: 20, DIVISIONS: 2, SMOOTH: 0.92, SEED: 1,
+
+  // noise1 (alligator → approximated w/ simplex fBm): harmonics 5, spread 2, rough 0.596, exp 0.7
+  N1_FREQ: 1.0, N1_EXP: 0.7,
+  // noise2 (hermite): harmonics 0, period 1, exp 1.02
+  N2_FREQ: 1.0, N2_EXP: 1.02,
+
+  // translation scale factors — TD→GLSL noise ranges differ, tune by eye
+  NOISE_K: 0.5,
+  FRACTAL_K: 0.25,
+  PX_PER_PTSIZE: 1.0,            // screen px per unit of pointsizemultiplier
+
+  // line1 colours (RGBA) + depth fade (dist near 0 → far 2.4)
+  PT_NEAR: [1.0, 0.3891, 0.106, 0.371],
+  PT_FAR:  [1.0, 0.5451, 0.0,   0.176],
+  LN_NEAR: [1.0, 1.0,    1.0,   0.459],
+  LN_FAR:  [1.0, 1.0,    1.0,   0.124],
+  FADE_SPAN: 2.4,
+  MESH_RADIUS: 1.2,              // near-fade starts at front surface of mesh
+
+  // geo1 rotate Y = absTime.frame * .2  (deg, 60fps)
+  ROT_DEG_PER_FRAME: 0.2,
+
+  // camera journey
+  FOV: 45,
+  CAM_START: [0.9, 0.35, 6.5],   // in front, slightly angled (pic 1)
+  CAM_END_Z: -6,                 // through and out the back
+  SCROLL_PX: 5000,               // wheel px for full journey
+  TOUCH_K: 2.5,                  // touch px multiplier
+  CAM_EASE: 0.05,                // camera follow smoothing
+  FOG_NEAR: 7, FOG_FAR: 14,      // emerge from darkness
+  INTRO_SEC: 3
+};
+
+/* ================= RENDERER ================= */
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
+renderer.setClearColor(0x000000, 1);
+document.body.prepend(renderer.domElement);
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(P.FOV, 1, 0.1, 1000);
+
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  U.uPx.value = P.PX_PER_PTSIZE * dpr;
+}
+
+/* ================= GEOMETRY: sphere → subdivide (fractal divisions) ================= */
+function rng(seed){ let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function buildGeometry(){
+  const rand = rng(P.SEED);
+  const src = new THREE.SphereGeometry(1, P.COLS, P.ROWS);
+  const sp = src.attributes.position.array, si = src.index.array;
+  const pos = [], frac = [], keyMap = new Map(), remap = [];
+  for (let i = 0; i < sp.length / 3; i++){
+    const x = sp[i*3], y = sp[i*3+1], z = sp[i*3+2];
+    const k = x.toFixed(4)+','+y.toFixed(4)+','+z.toFixed(4);
+    if (!keyMap.has(k)){ keyMap.set(k, pos.length/3); pos.push(x,y,z); frac.push(rand()*2-1); }
+    remap[i] = keyMap.get(k);
+  }
+  let tris = [];
+  for (let i = 0; i < si.length; i += 3){
+    const a = remap[si[i]], b = remap[si[i+1]], c = remap[si[i+2]];
+    if (a !== b && b !== c && a !== c) tris.push(a,b,c);
+  }
+  // midpoint subdivision with fractal-style random offset per level
+  for (let lvl = 1; lvl <= P.DIVISIONS; lvl++){
+    const amp = Math.pow(0.5, lvl * P.SMOOTH);
+    const mids = new Map(), next = [];
+    const mid = (a,b) => {
+      const k = a < b ? a+'_'+b : b+'_'+a;
+      if (mids.has(k)) return mids.get(k);
+      const n = pos.length/3;
+      pos.push((pos[a*3]+pos[b*3])/2, (pos[a*3+1]+pos[b*3+1])/2, (pos[a*3+2]+pos[b*3+2])/2);
+      frac.push((frac[a]+frac[b])/2 + (rand()*2-1)*amp);
+      mids.set(k, n); return n;
+    };
+    for (let i = 0; i < tris.length; i += 3){
+      const a = tris[i], b = tris[i+1], c = tris[i+2];
+      const ab = mid(a,b), bc = mid(b,c), ca = mid(c,a);
+      next.push(a,ab,ca, ab,b,bc, ca,bc,c, ab,bc,ca);
+    }
+    tris = next;
+  }
+  // unique edges for lines
+  const edges = [], seen = new Set();
+  for (let i = 0; i < tris.length; i += 3){
+    for (const [a,b] of [[tris[i],tris[i+1]],[tris[i+1],tris[i+2]],[tris[i+2],tris[i]]]){
+      const k = a < b ? a+'_'+b : b+'_'+a;
+      if (!seen.has(k)){ seen.add(k); edges.push(a,b); }
+    }
+  }
+  const pAttr = new THREE.Float32BufferAttribute(pos, 3);
+  const fAttr = new THREE.Float32BufferAttribute(frac, 1);
+  const gPts = new THREE.BufferGeometry();
+  gPts.setAttribute('position', pAttr); gPts.setAttribute('aFrac', fAttr);
+  const gLin = new THREE.BufferGeometry();
+  gLin.setAttribute('position', pAttr); gLin.setAttribute('aFrac', fAttr);
+  gLin.setIndex(edges);
+  // shader displaces vertices — use a big bounding sphere so culling never drops it
+  gPts.boundingSphere = gLin.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 50);
+  return {gPts, gLin, count: pos.length/3};
+}
+
+/* ================= SHADERS ================= */
+const NOISE = `
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){
+  const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
+  vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy; i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+  float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
+  vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
+  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}
+vec3 snoise3(vec3 p){return vec3(snoise(p),snoise(p+vec3(31.4,17.1,7.3)),snoise(p+vec3(-11.7,53.2,23.9)));}
+vec3 shapeE(vec3 n,float e){return sign(n)*pow(abs(n),vec3(e));}
+`;
+
+const VERT = `
+precision highp float;
+uniform float uTime,uN1,uN2,uFrac,uPt,uPx,uNear,uSpan,uFogNear,uFogFar;
+uniform float uN1Freq,uN1Exp,uN2Freq,uN2Exp,uNK,uFK;
+attribute float aFrac;
+varying float vT; varying float vFog;
+${NOISE}
+vec3 fbm1(vec3 p){
+  // noise1: harmonics 5, spread 2.0, roughness 0.596
+  vec3 v=vec3(0.0); float a=1.0,f=1.0,s=0.0;
+  for(int i=0;i<6;i++){ v+=a*snoise3(p*f); s+=a; a*=0.596; f*=2.0; }
+  return v/s;
+}
+void main(){
+  vec3 p=position;
+  vec3 nrm=normalize(position);
+  vec3 tz=vec3(0.0,0.0,uTime);                                   // translate Z = absTime.seconds
+  p+=shapeE(fbm1(p*uN1Freq+tz),uN1Exp)*uN1*uNK;                   // noise1
+  p+=nrm*aFrac*uFrac*uFK;                                         // fractal1
+  p+=shapeE(snoise3(p*uN2Freq+tz+vec3(100.0)),uN2Exp)*uN2*uNK;    // noise2
+  vec4 mv=modelViewMatrix*vec4(p,1.0);
+  float d=-mv.z;
+  vT=clamp((d-uNear)/uSpan,0.0,1.0);
+  vFog=1.0-smoothstep(uFogNear,uFogFar,d);
+  gl_Position=projectionMatrix*mv;
+  gl_PointSize=uPt*uPx;
+}`;
+
+const FRAG_PTS = `
+precision highp float;
+uniform vec4 uNearC,uFarC; uniform float uIntro;
+varying float vT; varying float vFog;
+void main(){
+  vec2 c=gl_PointCoord-0.5; if(dot(c,c)>0.25) discard;
+  vec4 col=mix(uNearC,uFarC,vT);
+  gl_FragColor=vec4(col.rgb,col.a*vFog*uIntro);
+}`;
+
+const FRAG_LIN = `
+precision highp float;
+uniform vec4 uNearC,uFarC; uniform float uIntro;
+varying float vT; varying float vFog;
+void main(){
+  vec4 col=mix(uNearC,uFarC,vT);
+  gl_FragColor=vec4(col.rgb,col.a*vFog*uIntro);
+}`;
+
+/* ================= MESH ================= */
+const U = {
+  uTime:{value:0}, uN1:{value:P.NOISE1[0]}, uN2:{value:P.NOISE2[0]}, uFrac:{value:P.FRACTAL[0]},
+  uPt:{value:P.PTSIZE[0]}, uPx:{value:1}, uNear:{value:0}, uSpan:{value:P.FADE_SPAN},
+  uFogNear:{value:P.FOG_NEAR}, uFogFar:{value:P.FOG_FAR},
+  uN1Freq:{value:P.N1_FREQ}, uN1Exp:{value:P.N1_EXP}, uN2Freq:{value:P.N2_FREQ}, uN2Exp:{value:P.N2_EXP},
+  uNK:{value:P.NOISE_K}, uFK:{value:P.FRACTAL_K}, uIntro:{value:0}
+};
+const v4 = a => new THREE.Vector4(a[0],a[1],a[2],a[3]);
+const mkMat = (frag, near, far) => new THREE.ShaderMaterial({
+  uniforms: Object.assign({}, U, {uNearC:{value:v4(near)}, uFarC:{value:v4(far)}}),
+  vertexShader: VERT, fragmentShader: frag,
+  transparent:true, depthWrite:false, depthTest:false, blending:THREE.NormalBlending
+});
+
+const {gPts, gLin} = buildGeometry();
+const group = new THREE.Group();
+const lines  = new THREE.LineSegments(gLin, mkMat(FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const points = new THREE.Points(gPts, mkMat(FRAG_PTS, P.PT_NEAR, P.PT_FAR));
+lines.renderOrder = 0; points.renderOrder = 1;
+group.add(lines, points);
+scene.add(group);
+
+/* ================= AUDIO (XHR + decodeAudioData, iOS-safe) ================= */
+let actx = null, analyser = null, abuf = null, env = 0;
+
+function playBuffer(arr){
+  actx.decodeAudioData(arr, buf => {
+    const src = actx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    analyser = actx.createAnalyser(); analyser.fftSize = 2048;
+    abuf = new Float32Array(analyser.fftSize);
+    src.connect(analyser); analyser.connect(actx.destination);
+    src.start(0);
+  });
+}
+function loadURL(url){
+  const x = new XMLHttpRequest();
+  x.open('GET', url, true); x.responseType = 'arraybuffer';
+  x.onload = () => playBuffer(x.response);
+  x.send();
+}
+function readLevel(dt){
+  let ms = 0;
+  if (analyser){
+    analyser.getFloatTimeDomainData(abuf);
+    for (let i = 0; i < abuf.length; i++) ms += abuf[i]*abuf[i];
+    ms /= abuf.length;                                   // rmspower = mean square
+  }
+  if (ms >= env) env = ms;                               // lag up 0s
+  else env += (ms - env) * (1 - Math.exp(-dt / P.LAG_DOWN)); // lag down 0.8s
+  return env;
+}
+
+const startEl = document.getElementById('start');
+const fileEl  = document.getElementById('file');
+startEl.addEventListener('click', () => {
+  // AudioContext created + resumed inside the gesture
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  actx.resume();
+  if (P.AUDIO_URL) loadURL(P.AUDIO_URL);
+  else fileEl.click();
+  startEl.style.display = 'none';
+  introStart = performance.now();
+});
+fileEl.addEventListener('change', () => {
+  const f = fileEl.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => playBuffer(r.result);
+  r.readAsArrayBuffer(f);
+});
+
+/* ================= SCROLL → CAMERA ================= */
+let target = 0, prog = 0, introStart = null;
+addEventListener('wheel', e => {
+  e.preventDefault();
+  target = Math.min(1, Math.max(0, target + e.deltaY / P.SCROLL_PX));
+}, {passive:false});
+let ty = null;
+addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
+addEventListener('touchmove', e => {
+  e.preventDefault();
+  const y = e.touches[0].clientY;
+  target = Math.min(1, Math.max(0, target + (ty - y) * P.TOUCH_K / P.SCROLL_PX));
+  ty = y;
+}, {passive:false});
+
+const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+const look = new THREE.Vector3();
+
+/* ================= LOOP ================= */
+const t0 = performance.now(); let last = t0;
+function frame(now){
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const t = (now - t0) / 1000;
+
+  const a = readLevel(dt);
+  const lerp = (r, x) => r[0] + (r[1] - r[0]) * x;
+  U.uN1.value   = lerp(P.NOISE1,  a);
+  U.uN2.value   = lerp(P.NOISE2,  a);
+  U.uFrac.value = lerp(P.FRACTAL, a);
+  U.uPt.value   = lerp(P.PTSIZE,  a);
+  U.uTime.value = t;
+  U.uIntro.value = introStart === null ? 0.6 : Math.min(1, 0.6 + (now - introStart) / 1000 / P.INTRO_SEC);
+
+  group.rotation.y = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
+
+  prog += (target - prog) * P.CAM_EASE;
+  const e = ease(prog), s = P.CAM_START;
+  camera.position.set(s[0]*(1-e) + Math.sin(t*0.31)*0.04,
+                      s[1]*(1-e) + Math.sin(t*0.23)*0.03,
+                      s[2] + (P.CAM_END_Z - s[2]) * e);
+  look.set(0, 0, camera.position.z - 5);
+  if (e < 0.5) look.lerp(new THREE.Vector3(0,0,0), 1 - e*2);  // watch the mesh on approach
+  camera.lookAt(look);
+
+  U.uNear.value = Math.max(0, camera.position.length() - P.MESH_RADIUS);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
