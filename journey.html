@@ -368,7 +368,7 @@ function frame(now){
   if (gaudio.AUDIO_ON) {
     const thresh = gaudio.AUDIO_THRESH;
     const amod = Math.max(0, (rawLevel - thresh) / Math.max(0.001, 1 - thresh));
-    U.uN1K.value = gfx.N1_K    * (1 + amod * 5);
+    U.uN1K.value = gfx.N1_K    * (1 + amod * 8);
     U.uFK.value  = gfx.FRAC_K  * (1 + amod * 3);
     U.uPt.value  = gpts.PT_SCALE * (1 + amod * 2);
   } else {
