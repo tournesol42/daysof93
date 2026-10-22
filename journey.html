@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v08b-copyshader-fix -->
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
+<!-- build: journey-v09-binary-scatter-engine -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
   canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;image-rendering:pixelated}
@@ -77,8 +77,8 @@ const P = {
 
   FOV: 45,
   CAM_START: [1.1, 0.45, 8.5],
-  CAM_END_Z: -6,
-  SCROLL_PX: 5000,
+  CAM_END_Z: -35,
+  SCROLL_PX: 8000,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
   FOG_NEAR: 10, FOG_FAR: 18,
@@ -272,6 +272,170 @@ const bloomPass = new THREE.UnrealBloomPass(
   new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.5, 0.2);
 composer.addPass(bloomPass);
 
+/* ===== ENGINE 2: BINARY SCATTER WORDS ===== */
+const WORDS = [
+'item','DC2','network','bus','synchronization','stack','cyclic','positional','XNOR','machine',
+'Gary Arlen Kildall','line','signal','digital','frequency','computability','information','binary','1/32','algebra',
+'low','serial','comparator','flip-flop','least','video','high','Douglas Engelbart','shell','logic',
+'development','edge','PROM','lookahead','type','encoding','assembly','64','system','sorting',
+'Konrad Zuse','SNR','Edsger Dijkstra','PET','graphics','decimal','channel','DMA','CMOS','63',
+'BBC','Steve Jobs','socket','port-mapped','MAC','digital-to-analog','ESC','capacity','memory','code',
+'pathname','stack','serial','circular','logic','state','modem','word','two','4096',
+'Gordon Moore','ICMP','tri-state','jump','waveform','512','divider','bit','address','base',
+'bitmapped','NUL','ROM','line','workstation','Hollerith','ISA','automaton','CRC','Carver Mead',
+'ROM','ENQ','SYN','local','coding','CPU','switch','DAC','data','acknowledgement',
+'line','1023','11111111','sequential','distribution','counter','point','alphabet','raster','Marvin Minsky',
+'sixteen','bus','hexadecimal','logarithm','code','Atari','switching','virtual','Motorola','0x10',
+'framebuffer','ANSI','compiler','computational','buffer','space','delta','rise','UTF-16','cycle',
+'entropy','TCP','plotter','binary','digital','bandwidth','binary','word','checksum','network',
+'instruction','tri-state','font','packet','block','home','Bob Metcalfe','ring','Nyquist','switching',
+'register','ASCII','hardware','graph','pixel','00001111','decoder','1/256','screen','microcontroller',
+'character','ALU','indexing','escape','depth','256','interpreter','register','memory','quotient',
+'instruction','function','information','logic','DRAM','interface','carry','correction','converter','EEPROM',
+'login','register','payload','8086','timer','cell','bitfield','address','frame','formal',
+'information','TTL','track','rate','DC4','point','transform','SID','Rod Canion','floating',
+'NAND','little','error','fixed','tube','MOS','high','theory','core','PROM',
+'area','Bill Gates','finite','00111100','plotter','UART','command','dump','6502','arbitration',
+'00110011','oscilloscope','Harvard','discrete','hash','memory-mapped','5.25-inch','ASCII','wave','character',
+'bus','layer','baud','code','8192','monitor','current','check','latch','buffer',
+'teletype','Grace Hopper','George Stibitz','context','complement','error','parallel','timeout','8','text',
+'remainder','mainframe','filesystem','XOR','base','amplifier','32767','machine','Boolean','transport',
+'RS-422','bitmask','modem','US','noisy','Robert Dennard','11000011','overflow','IP','state',
+'state','ADC','John McCarthy','board','Claude Shannon','01111110','John von Neumann','signal','0x01','joystick',
+'length','acoustic','machine','FM','FF','PIA','read','diskette','system','assembler',
+'entropy','cylinder','signal','train','Shannon','allocation','acoustic','bootloader','PETSCII','sample',
+'modulation','microcomputer','quantization','toggle','control','filter','true','Sinclair','thread','memory',
+'STX','frequency','square','demultiplexer','binary','console','gate','MOSFET','regular','ASCII',
+'George Boole','Gary Kildall','BS','logic','NMOS','big','delay','tree','iteration','counter',
+'low-level','finite','31','chip','process','debugger','triggered','operating','flip-flop','stack',
+'clock','retransmission','state','interface','flip-flop','0x00','architecture','wave','recursion','modulation',
+'64-bit','file','clock','array','database','mass','refresh','hold','banging','11110000',
+'cycle','logic','pull-down','storage','input','output','memory','to','EBCDIC','ready',
+'ACK','bit','real','data','database','BIOS','monitor','hash','disk','quantization',
+'8-bit','graphics','Marcian Hoff','font','assembly','EEPROM','computer','bit','carrier','Nyquist',
+'128','level','language','low-pass','RTC','cassette','searching','debounce','8080','Commodore',
+'noise','DOS','buffer','transfer','reconstruction','DFT','voltage','Tim Berners-Lee','integrated','abstract',
+'programmer','AND','rate','endianness','OR','0x80','sense','of','bitmap','logic',
+'one-hot','opcode','0x08','sine','parallel','display','SRAM','Commodore','system','terminal',
+'channel','filter','reset','channel','2047','8-inch','aliasing','packet','memory','physical',
+'timing','semaphore','link','tape','terminal','problem','10101010','modulation','write','array',
+'binary','RAM','video','code','6800','comparator','decoder','library','debugger','packet',
+'truth','prototype','Brian Kernighan','Dennis Ritchie','forward','language','base','command','USART','heap',
+'cursor','VIC-20','amplitude','Chuck Thacker','vector','pseudocode','ten','function','16',"two's",
+'bit','data','significant','address','Ada Lovelace','modem','Unicode','high-pass','controller','unit',
+'HT','8085','field','language','architecture','threshold','power','LF','branch','noiseless',
+'excess-three','2^10','circuit','low','asynchronous','logic','bitplane','CR','Richard Stallman','32-bit',
+'operating','Stephen Wozniak','polling','query','interpreter','GAL','row','wait','PAL','analyzer',
+'multimeter','detection','distance','automaton','flag','sequence','editor','direct','two-state','dump',
+'fast','contention','string','NULL','point','ZX81','duty','bit','interface','time',
+'character','setup','ready','port','logic','datagram','volatile','sector','carrier','cassette',
+'buffer','Baudot','complexity','65536','cell','Fourier','map','Niklaus Wirth','demodulation','rate',
+'PCM','adder','synchronous','Vannevar Bush','computer','character','serial','memory','NOT','program',
+'false','Gray','0x02','reference','Hamming','shift','opcode','SO','C','truth',
+'sprite','task','open','64','logic','DC1','ZX80','theory','code','vector',
+'7','ECL','I/O','most','FPGA','divider','127','RS-485','programmer','flag',
+'CP/M','table','RS-232','DC3','Seymour Cray','communication','binary','filter','pulse','Norbert Wiener',
+'pulse','boot','pull-up','wave','graphics','cellular','file','vector','storage','2',
+'interface','PROM','memory','disk','1/128','memory','1/8','text','character','logic',
+'01100110','circuit','code','magnetic','language','cycle','value','entropy','triggered','bitmap',
+'terminal','set','boot','tile','multitasking','enable','memory','SOH','layer','Masatoshi Shima',
+'codeword','mode','cursor','bitwise','firmware','carry','ripple','clear','Smalltalk','Ken Thompson',
+'10011001','transistor','II','JK','command','protocol','architecture','16-bit','static','accumulator',
+'machine','EPROM','disk','CIA','remote','Z80','modulo','carrier','3','matrix',
+'Acorn','converter','telephone','bus','ETB','nibble','error','point','modem','RAM',
+'level','protocol','theory','VIC-II','PMOS','0x40','Chuck Peddle','bit','subroutine','microinstruction',
+'machine','condition','timeslice','code','glyph','search','FFT','interrupt','counter','sampling',
+'bus','sector','mutex','11001100','address','output','UTF-8','halting','0x20','amplitude',
+'stored','disk','Steve Wozniak','instruction','Nyquist','BCD','index','Apple','memory','diode',
+'entropy','phase','routing','255','computer','floppy','Atari','Jack Kilby','heap','programmable',
+'WAN','state','variable','emulator','scheduler','BASIC','memory','carrier','real-time','dump',
+'0xFF','LIFO','instruction','rate','CMOS','coding','inverter','redundancy','von','column',
+'computer','65535','signed','DRAM','algorithm','dump','array','full','reception','hard',
+'character','2^8','RAM','parallel','bit','data','Lisp','disk','file','EPROM',
+'Boolean','IP','32','coded','combinational','compiler','01010101','frequency','Forth','set',
+'bit','cycle','511','line','microcode','symbol','Alan Turing','significant','Turing','Ted Hoff',
+'code','access','reset','layer','schema','table','68000','code','Donald Knuth','memory',
+'UDP','4095','memory','raster','address','high-level','architecture','pulse','Micro','ETX',
+'Fourier','decimal','Donald Knuth','object','endian','function','carry','enable','source','protocol',
+'I/O','cycle','race','time','machine','linker','control','0','scan','FORTRAN',
+'protocol','Fourier','microcomputer','header','adder',"one's",'semiconductor','jitter','state','EOT',
+'terminal','pulse','Federico Faggin','address','bit','Hamming','RS','conditional','John Draper','decoder',
+'Atom','mode','oscillator','escape','transmission','terminal','CP/M','linker','DOS','CRT',
+'AM','machine','Vint Cerf','filter','Ethernet','propagation','buffer','John Backus','character','host',
+'family','handshake','complementary','drive','assembler','waveform','voltage','modulation','gateway','application',
+'interrupt','DLE','core','machine','D','interface','discrete','1/64','flip-flop','half',
+'SR','loop','disk','TRS-80','voltage','ROM','bit','bit','universal','word',
+'32768','reset','nonvolatile','area','unsigned','file','error','diagram','cycle','MOS',
+'Jay Miner','character','procedure','dynamic','tape','page','adder','8191','EM','Sinclair',
+'hex','floppy','Robert Noyce','interface','ZX','octal','2^16','port','FS','system',
+'clock','Niklaus Wirth','to','fall','ROM','status','address','level','time','address',
+'packet','language','address','2^64','eight','select','LAN','channel','handshake','sign',
+'bit','800','CAN','source','record','interrupt','transform','code','flag','EPROM',
+'complement','endian','channel','time','NOR','exponent','metastability','refresh','ASCII','minicomputer',
+'space','integer','queue','memory','art','code','parity','Boolean','Lynn Conway','expression',
+'firmware','network','redundancy','4','UNIX','linked','analog-to-digital','UART','Tommy Flowers','automata',
+'bit serial'
+];
+
+function vnoise(px, py, pz) {
+  const ix=Math.floor(px),iy=Math.floor(py),iz=Math.floor(pz);
+  const fx=px-ix,fy=py-iy,fz=pz-iz;
+  const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);
+  const h=(a,b,c)=>{let n=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return n-Math.floor(n);};
+  return -1+2*(h(ix,iy,iz)*(1-ux)*(1-uy)*(1-uz)+h(ix+1,iy,iz)*ux*(1-uy)*(1-uz)+
+    h(ix,iy+1,iz)*(1-ux)*uy*(1-uz)+h(ix+1,iy+1,iz)*ux*uy*(1-uz)+
+    h(ix,iy,iz+1)*(1-ux)*(1-uy)*uz+h(ix+1,iy,iz+1)*ux*(1-uy)*uz+
+    h(ix,iy+1,iz+1)*(1-ux)*uy*uz+h(ix+1,iy+1,iz+1)*ux*uy*uz);
+}
+
+const wordGroup = new THREE.Group();
+scene.add(wordGroup);
+let wordSprites = [], lastWordCount = -1, lastWordColor = '';
+
+function buildWordSprites() {
+  while (wordGroup.children.length) {
+    const s = wordGroup.children[0];
+    if (s.material.map) s.material.map.dispose();
+    s.material.dispose();
+    wordGroup.remove(s);
+  }
+  wordSprites = [];
+  const count = gwords.WORD_COUNT;
+  const color = gwords.WORD_COLOR;
+  const rand = rng(42);
+  for (let i = 0; i < count; i++) {
+    const word = WORDS[Math.floor(rand() * WORDS.length)];
+    const fs = 32;
+    const cvs = document.createElement('canvas');
+    const ctx2d = cvs.getContext('2d');
+    ctx2d.font = `${fs}px 'Press Start 2P', monospace`;
+    const tw = Math.ceil(ctx2d.measureText(word).width) + 8;
+    const th = fs + 12;
+    cvs.width = tw; cvs.height = th;
+    ctx2d.font = `${fs}px 'Press Start 2P', monospace`;
+    ctx2d.fillStyle = color;
+    ctx2d.textBaseline = 'middle';
+    ctx2d.fillText(word, 4, th / 2);
+    const tex = new THREE.CanvasTexture(cvs);
+    const mat = new THREE.SpriteMaterial({map:tex, transparent:true, opacity:0, depthWrite:false});
+    const spr = new THREE.Sprite(mat);
+    const aspect = tw / th;
+    const sz = gwords.WORD_SIZE;
+    spr.scale.set(aspect * sz, sz, 1);
+    const angle = rand() * Math.PI * 2;
+    const radius = rand() * 3.0;
+    const bx = Math.cos(angle) * radius;
+    const by = Math.sin(angle) * radius;
+    const bz = -15 - rand() * 25;
+    spr.position.set(bx, by, bz);
+    spr.userData = {bx, by, bz, nx: rand()*100, ny: rand()*100, nz: rand()*100, aspect};
+    wordGroup.add(spr);
+    wordSprites.push(spr);
+  }
+  lastWordCount = count;
+  lastWordColor = color;
+}
+
 /* ===== AUDIO (XHR + decodeAudioData, iOS-safe) ===== */
 let actx = null, analyser = null, abuf = null, env = 0;
 
@@ -395,6 +559,30 @@ function frame(now){
   U.uFogNear.value = gatmos.FOG_NEAR;
   U.uFogFar.value  = gatmos.FOG_FAR;
 
+  // ENGINE 2: Binary Scatter Words
+  wordGroup.visible = gwords.WORDS_ON;
+  if (gwords.WORDS_ON) {
+    if (gwords.WORD_COUNT !== lastWordCount || gwords.WORD_COLOR !== lastWordColor) {
+      buildWordSprites();
+    }
+    if (wordSprites.length > 0) {
+      const camZ = camera.position.z;
+      const zoneFade = Math.min(1, Math.max(0, -camZ / 8));
+      const noiseK  = gwords.WORD_NOISE / 50;
+      const timeN   = t * gwords.WORD_SPEED / 100;
+      const sz      = gwords.WORD_SIZE;
+      const targetOp = gwords.WORD_OPACITY * zoneFade;
+      for (let i = 0; i < wordSprites.length; i++) {
+        const s = wordSprites[i];
+        const ud = s.userData;
+        s.position.x = ud.bx + vnoise(ud.nx + timeN, 0, 0) * noiseK;
+        s.position.y = ud.by + vnoise(0, ud.ny + timeN, 0) * noiseK;
+        s.scale.set(ud.aspect * sz, sz, 1);
+        s.material.opacity = targetOp;
+      }
+    }
+  }
+
   if (gbloom.BLOOM_ON) {
     bloomPass.strength  = gbloom.BLOOM_STRENGTH;
     bloomPass.radius    = gbloom.BLOOM_RADIUS;
@@ -458,8 +646,21 @@ fBloom.add(gbloom, 'BLOOM_RADIUS',   0, 2.0, 0.05);
 fBloom.add(gbloom, 'BLOOM_THRESHOLD',0, 1.0, 0.01);
 fBloom.open();
 
+const gwords = {WORDS_ON:true, WORD_COUNT:80, WORD_SIZE:0.8, WORD_OPACITY:0.54, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#EE7C0E'};
+
+const fWords = gui.addFolder('Words');
+fWords.add(gwords, 'WORDS_ON');
+fWords.add(gwords, 'WORD_COUNT',   50, 200, 10);
+fWords.add(gwords, 'WORD_SIZE',   0.1, 2.0, 0.05);
+fWords.add(gwords, 'WORD_OPACITY', 0,  1.0, 0.01);
+fWords.add(gwords, 'WORD_NOISE',   0,  100, 1);
+fWords.add(gwords, 'WORD_SPEED',   0,  200, 5);
+fWords.addColor(gwords, 'WORD_COLOR');
+fWords.open();
+
 addEventListener('resize', resize);
 resize();
+document.fonts.ready.then(buildWordSprites);
 requestAnimationFrame(frame);
 })();
 </script>
