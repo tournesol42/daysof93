@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v08-defaults-audiofix -->
+<!-- build: journey-v08-defaults-bloom-audiofix -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -21,6 +21,11 @@
 <input id="file" type="file" accept="audio/*">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
 <script>
 (function(){
@@ -94,6 +99,7 @@ function resize(){
   camera.updateProjectionMatrix();
   // pt size = 0.74 × PT_DEFAULT_PX × (canvasHeight/1920) × dpr
   U.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
+  if (typeof composer !== 'undefined') composer.setSize(innerWidth, innerHeight);
 }
 
 /* ===== GEOMETRY: sphere → fractal subdivide → 77×80 fine quad grid ===== */
@@ -258,6 +264,13 @@ lines.renderOrder = 0; points.renderOrder = 1;
 group.add(lines, points);
 scene.add(group);
 
+/* ===== POST-PROCESSING ===== */
+const composer = new THREE.EffectComposer(renderer);
+composer.addPass(new THREE.RenderPass(scene, camera));
+const bloomPass = new THREE.UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.5, 0.2);
+composer.addPass(bloomPass);
+
 /* ===== AUDIO (XHR + decodeAudioData, iOS-safe) ===== */
 let actx = null, analyser = null, abuf = null, env = 0;
 
@@ -352,7 +365,6 @@ function frame(now){
   U.uNear.value = Math.max(0, camera.position.length() - P.MESH_RADIUS);
 
   // GUI faders → uniforms (every frame)
-  U.uN1Freq.value  = gfx.N1_FREQ;
   U.uN2K.value     = gfx.N2_K;
   U.uLineA.value   = glines.LINE_ALPHA;
   lines.material.linewidth = glines.LINE_WIDTH; // no-op on most WebGL impls; wire kept for future
@@ -364,23 +376,32 @@ function frame(now){
   nc.z = parseInt(hex.slice(4,6),16)/255;
   nc.w = gpts.PT_ALPHA;
 
-  // audio modulates N1_K, FRAC_K, PT_SCALE when AUDIO_ON; otherwise use GUI values directly
+  // audio modulates N1_K, FRAC_K, PT_SCALE, N1_FREQ when AUDIO_ON; otherwise use GUI values directly
   if (gaudio.AUDIO_ON) {
     const thresh = gaudio.AUDIO_THRESH;
     const amod = Math.max(0, (rawLevel - thresh) / Math.max(0.001, 1 - thresh));
-    U.uN1K.value = gfx.N1_K    * (1 + amod * 8);
-    U.uFK.value  = gfx.FRAC_K  * (1 + amod * 3);
-    U.uPt.value  = gpts.PT_SCALE * (1 + amod * 2);
+    U.uN1K.value    = gfx.N1_K    * (1 + amod * 8);
+    U.uFK.value     = gfx.FRAC_K  * (1 + amod * 3);
+    U.uPt.value     = gpts.PT_SCALE * (1 + amod * 2);
+    U.uN1Freq.value = gfx.N1_FREQ + amod * gaudio.AUDIO_FREQ_MOD;
   } else {
-    U.uN1K.value = gfx.N1_K;
-    U.uFK.value  = gfx.FRAC_K;
-    U.uPt.value  = gpts.PT_SCALE;
+    U.uN1K.value    = gfx.N1_K;
+    U.uFK.value     = gfx.FRAC_K;
+    U.uPt.value     = gpts.PT_SCALE;
+    U.uN1Freq.value = gfx.N1_FREQ;
   }
 
   U.uFogNear.value = gatmos.FOG_NEAR;
   U.uFogFar.value  = gatmos.FOG_FAR;
 
-  renderer.render(scene, camera);
+  if (gbloom.BLOOM_ON) {
+    bloomPass.strength  = gbloom.BLOOM_STRENGTH;
+    bloomPass.radius    = gbloom.BLOOM_RADIUS;
+    bloomPass.threshold = gbloom.BLOOM_THRESHOLD;
+    composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
   requestAnimationFrame(frame);
 }
 /* ===== dat.GUI fader console ===== */
@@ -392,7 +413,8 @@ gui.domElement.style.zIndex = '10';
 
 const gfx   = { N1_K: 0.84, N1_FREQ: 0.9, FRAC_K: 0.165, N2_K: 0.08, SPEED: 0.05 };
 const glines = { LINE_ALPHA: 0.4, LINE_WIDTH: 4.5 };
-const gaudio = { AUDIO_ON: false, AUDIO_THRESH: 0.02 };
+const gaudio = { AUDIO_ON: false, AUDIO_THRESH: 0.02, AUDIO_FREQ_MOD: 0 };
+const gbloom = { BLOOM_ON: true, BLOOM_STRENGTH: 0.4, BLOOM_RADIUS: 0.5, BLOOM_THRESHOLD: 0.2 };
 const gpts   = { PT_SCALE: 1.67, PT_ALPHA: 0.37, PT_COLOR: '#ff631b' };
 const gatmos = { FOG_NEAR: 6, FOG_FAR: 24.5 };
 
@@ -425,7 +447,15 @@ fAtmos.open();
 const fAudio = gui.addFolder('Audio');
 fAudio.add(gaudio, 'AUDIO_ON');
 fAudio.add(gaudio, 'AUDIO_THRESH', 0, 0.3, 0.001);
+fAudio.add(gaudio, 'AUDIO_FREQ_MOD', 0, 5.0, 0.1);
 fAudio.open();
+
+const fBloom = gui.addFolder('Bloom');
+fBloom.add(gbloom, 'BLOOM_ON');
+fBloom.add(gbloom, 'BLOOM_STRENGTH', 0, 3.0, 0.05);
+fBloom.add(gbloom, 'BLOOM_RADIUS',   0, 2.0, 0.05);
+fBloom.add(gbloom, 'BLOOM_THRESHOLD',0, 1.0, 0.01);
+fBloom.open();
 
 addEventListener('resize', resize);
 resize();
