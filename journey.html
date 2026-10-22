@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v11-perspective-grid -->
+<!-- build: journey-v11-grid-fixes -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -14,7 +14,7 @@
         padding:11px 20px;border-radius:999px;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);
         -webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22)}
   #file{display:none}
-  #scatter{position:fixed;inset:0;width:100vw;height:100vh;z-index:5;pointer-events:none;image-rendering:auto;opacity:0;}
+  #scatter{position:fixed;inset:0;width:100vw;height:100vh;z-index:5;pointer-events:none;image-rendering:auto;opacity:1;}
 </style>
 <style>
 @font-face {
@@ -109,7 +109,7 @@ function resize(){
   // pt size = 0.74 × PT_DEFAULT_PX × (canvasHeight/1920) × dpr
   U.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
   if (typeof composer !== 'undefined') composer.setSize(innerWidth, innerHeight);
-  if (typeof scatterCanvas !== 'undefined') { scatterCanvas.width = innerWidth; scatterCanvas.height = innerHeight; }
+  if (typeof scatterCanvas !== 'undefined') { scatterCanvas.width = innerWidth * dpr; scatterCanvas.height = innerHeight * dpr; sctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
 
 /* ===== GEOMETRY: sphere → fractal subdivide → 77×80 fine quad grid ===== */
@@ -430,17 +430,15 @@ function drawScatter(ms) {
   const dt = Math.min((ms - scatterLastMS) / 1000, 0.05);
   scatterLastMS = ms;
 
-  const W = scatterCanvas.width, H = scatterCanvas.height;
+  // use CSS pixel dimensions (sctx transform handles DPR)
+  const W = innerWidth, H = innerHeight;
   sctx.clearRect(0, 0, W, H);
 
-  if (!gwords.WORDS_ON || scatterPts.length === 0) {
-    requestAnimationFrame(drawScatter);
-    return;
-  }
-
   // depth scale: 0.05 when cam Z = -6 → 1.0 when cam Z = -35
-  const camZs   = camera.position.z;
-  const s       = Math.min(1.0, Math.max(0.05, 0.05 + 0.95 * (-camZs - 6) / 29));
+  const camZs    = camera.position.z;
+  const s        = Math.min(1.0, Math.max(0.05, 0.05 + 0.95 * (-camZs - 6) / 29));
+  // zone fade: 0 at camZ > -2, ramps to 1 at camZ < -6
+  const zoneFade = Math.min(1, Math.max(0, (-camZs - 2) / 4));
 
   const noiseAmt = gwords.WORD_NOISE / 100;
   const noiseSpd = gwords.WORD_SPEED / 100;
@@ -451,19 +449,17 @@ function drawScatter(ms) {
 
   scatterAnim += dt * noiseSpd * 1.8;
 
-  // ── perspective grid (matching main site drawField style) ──────────────────
+  // ── perspective grid — always visible ────────────────────────────────────
   if (gwords.GRID_ON) {
     const vpX = W * 0.5;
     const vpY = H * 0.62;
     const opK = gwords.GRID_OPACITY / 0.18;
     sctx.save();
-    // scale grid around the vanishing point using depth scale s
     sctx.translate(vpX, vpY);
     sctx.scale(s, s);
     sctx.translate(-vpX, -vpY);
     sctx.strokeStyle = '#ffffff';
     sctx.lineWidth   = 0.75;
-    // horizontal bands: 18 lines fading from horizon down
     const bands = 18;
     for (let i = 0; i <= bands; i++) {
       const t  = i / bands;
@@ -474,7 +470,6 @@ function drawScatter(ms) {
       sctx.lineTo(W, y);
       sctx.stroke();
     }
-    // vertical perspective lines: 16 cols radiating from bottom to VP
     const cols = 16;
     sctx.globalAlpha = 0.18 * opK;
     for (let i = 0; i <= cols; i++) {
@@ -487,90 +482,91 @@ function drawScatter(ms) {
     sctx.restore();
   }
 
-  // ── words ────────────────────────────────────────────────────────────────
-  sctx.textBaseline = 'middle';
-  sctx.textAlign    = 'left';
-  sctx.fillStyle    = textCol;
+  // ── words + lines — only when in scroll zone ─────────────────────────────
+  if (gwords.WORDS_ON && scatterPts.length > 0 && zoneFade > 0) {
+    sctx.textBaseline = 'middle';
+    sctx.textAlign    = 'left';
+    sctx.fillStyle    = textCol;
 
-  for (let i = 0; i < scatterPts.length; i++) {
-    const p    = scatterPts[i];
-    const word = WORDS[p.wordIdx];
-    const nx   = vnoise2(p.ox + scatterAnim * 0.6, p.oy + 17.3) * 2 - 1;
-    const ny   = vnoise2(p.ox + 31.7, p.oy + scatterAnim * 0.6) * 2 - 1;
-    const px   = (0.5 + (p.bx - 0.5) * s) * W + nx * dispMax;
-    const py   = (0.5 + (p.by - 0.5) * s) * H + ny * dispMax;
-    const fsz  = Math.max(4, Math.round(p.sz * s));
-    sctx.font        = fsz + "px 'VectorBattle', 'Courier New', monospace";
-    sctx.globalAlpha = Math.max(0.01, Math.min(1, gOpacity + (p.opacityRand - 0.5) * opSpread));
-    sctx.fillText(word, px, py);
-  }
-  sctx.globalAlpha = 1;
+    for (let i = 0; i < scatterPts.length; i++) {
+      const p    = scatterPts[i];
+      const word = WORDS[p.wordIdx];
+      const nx   = vnoise2(p.ox + scatterAnim * 0.6, p.oy + 17.3) * 2 - 1;
+      const ny   = vnoise2(p.ox + 31.7, p.oy + scatterAnim * 0.6) * 2 - 1;
+      const px   = (0.5 + (p.bx - 0.5) * s) * W + nx * dispMax;
+      const py   = (0.5 + (p.by - 0.5) * s) * H + ny * dispMax;
+      const fsz  = Math.max(4, Math.round(p.sz * s));
+      sctx.font        = fsz + "px 'VectorBattle', 'Courier New', monospace";
+      sctx.globalAlpha = Math.min(1, Math.max(0, gOpacity + (p.opacityRand - 0.5) * opSpread)) * zoneFade;
+      sctx.fillText(word, px, py);
+    }
+    sctx.globalAlpha = 1;
 
-  // ── connection lines ─────────────────────────────────────────────────────
-  if (gwords.LINES_ON && scatterPts.length > 1) {
-    const now     = ms;
-    const maxDist = Math.min(W, H) * 0.25 * s;
-    const maxPer  = 2;
-    const durMs   = 1664;
-    const lMaxOp  = gwords.LINES_OPACITY / 100;
+    if (gwords.LINES_ON && scatterPts.length > 1) {
+      const now     = ms;
+      const maxDist = Math.min(W, H) * 0.25 * s;
+      const maxPer  = 2;
+      const durMs   = 1664;
+      const lMaxOp  = gwords.LINES_OPACITY / 100;
 
-    if (now - scatterConnLastMS > 48) {
-      scatterConnLastMS = now;
-      const used  = new Map();
-      const cands = [];
-      for (let a = 0; a < scatterPts.length; a++) {
-        const pa = scatterPts[a];
+      if (now - scatterConnLastMS > 48) {
+        scatterConnLastMS = now;
+        const used  = new Map();
+        const cands = [];
+        for (let a = 0; a < scatterPts.length; a++) {
+          const pa = scatterPts[a];
+          const ax = (0.5 + (pa.bx - 0.5) * s) * W + (vnoise2(pa.ox + scatterAnim * 0.6, pa.oy + 17.3) * 2 - 1) * dispMax;
+          const ay = (0.5 + (pa.by - 0.5) * s) * H + (vnoise2(pa.ox + 31.7, pa.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
+          for (let b = a + 1; b < scatterPts.length; b++) {
+            const pb = scatterPts[b];
+            const bx = (0.5 + (pb.bx - 0.5) * s) * W + (vnoise2(pb.ox + scatterAnim * 0.6, pb.oy + 17.3) * 2 - 1) * dispMax;
+            const by = (0.5 + (pb.by - 0.5) * s) * H + (vnoise2(pb.ox + 31.7, pb.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
+            const ddx = ax - bx, ddy = ay - by;
+            const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+            if (dist < maxDist) cands.push({a, b, dist});
+          }
+        }
+        cands.sort(function(x, y) { return x.dist - y.dist; });
+        for (let k = 0; k < cands.length; k++) {
+          const c = cands[k], a = c.a, b = c.b;
+          const ca = used.get(a) || 0, cb = used.get(b) || 0;
+          if (ca >= maxPer || cb >= maxPer) continue;
+          let already = false;
+          for (let m = 0; m < scatterConns.length; m++) {
+            const sc = scatterConns[m];
+            if ((sc.i === a && sc.j === b) || (sc.i === b && sc.j === a)) { already = true; break; }
+          }
+          if (already) continue;
+          scatterConns.push({i: a, j: b, born: now,
+            dur: durMs * (0.7 + Math.random() * 0.6),
+            maxOpacity: lMaxOp * (0.4 + Math.random() * 0.6)});
+          used.set(a, ca + 1);
+          used.set(b, cb + 1);
+        }
+      }
+
+      sctx.strokeStyle = textCol;
+      sctx.lineWidth   = 0.75;
+      scatterConns = scatterConns.filter(function(c) {
+        const age = now - c.born;
+        if (age > c.dur) return false;
+        const tl  = age / c.dur;
+        const opT = tl < 0.15 ? tl / 0.15 : tl > 0.6 ? 1 - (tl - 0.6) / 0.4 : 1;
+        const pa  = scatterPts[c.i], pb = scatterPts[c.j];
+        if (!pa || !pb) return false;
         const ax = (0.5 + (pa.bx - 0.5) * s) * W + (vnoise2(pa.ox + scatterAnim * 0.6, pa.oy + 17.3) * 2 - 1) * dispMax;
         const ay = (0.5 + (pa.by - 0.5) * s) * H + (vnoise2(pa.ox + 31.7, pa.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
-        for (let b = a + 1; b < scatterPts.length; b++) {
-          const pb = scatterPts[b];
-          const bx = (0.5 + (pb.bx - 0.5) * s) * W + (vnoise2(pb.ox + scatterAnim * 0.6, pb.oy + 17.3) * 2 - 1) * dispMax;
-          const by = (0.5 + (pb.by - 0.5) * s) * H + (vnoise2(pb.ox + 31.7, pb.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
-          const ddx = ax - bx, ddy = ay - by;
-          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
-          if (dist < maxDist) cands.push({a, b, dist});
-        }
-      }
-      cands.sort(function(x, y) { return x.dist - y.dist; });
-      for (let k = 0; k < cands.length; k++) {
-        const c = cands[k], a = c.a, b = c.b;
-        const ca = used.get(a) || 0, cb = used.get(b) || 0;
-        if (ca >= maxPer || cb >= maxPer) continue;
-        let already = false;
-        for (let m = 0; m < scatterConns.length; m++) {
-          const sc = scatterConns[m];
-          if ((sc.i === a && sc.j === b) || (sc.i === b && sc.j === a)) { already = true; break; }
-        }
-        if (already) continue;
-        scatterConns.push({i: a, j: b, born: now,
-          dur: durMs * (0.7 + Math.random() * 0.6),
-          maxOpacity: lMaxOp * (0.4 + Math.random() * 0.6)});
-        used.set(a, ca + 1);
-        used.set(b, cb + 1);
-      }
+        const bx = (0.5 + (pb.bx - 0.5) * s) * W + (vnoise2(pb.ox + scatterAnim * 0.6, pb.oy + 17.3) * 2 - 1) * dispMax;
+        const by = (0.5 + (pb.by - 0.5) * s) * H + (vnoise2(pb.ox + 31.7, pb.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
+        sctx.globalAlpha = c.maxOpacity * opT * zoneFade;
+        sctx.beginPath();
+        sctx.moveTo(ax, ay);
+        sctx.lineTo(bx, by);
+        sctx.stroke();
+        return true;
+      });
+      sctx.globalAlpha = 1;
     }
-
-    sctx.strokeStyle = textCol;
-    sctx.lineWidth   = 0.75;
-    scatterConns = scatterConns.filter(function(c) {
-      const age = now - c.born;
-      if (age > c.dur) return false;
-      const tl  = age / c.dur;
-      const opT = tl < 0.15 ? tl / 0.15 : tl > 0.6 ? 1 - (tl - 0.6) / 0.4 : 1;
-      const pa  = scatterPts[c.i], pb = scatterPts[c.j];
-      if (!pa || !pb) return false;
-      const ax = (0.5 + (pa.bx - 0.5) * s) * W + (vnoise2(pa.ox + scatterAnim * 0.6, pa.oy + 17.3) * 2 - 1) * dispMax;
-      const ay = (0.5 + (pa.by - 0.5) * s) * H + (vnoise2(pa.ox + 31.7, pa.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
-      const bx = (0.5 + (pb.bx - 0.5) * s) * W + (vnoise2(pb.ox + scatterAnim * 0.6, pb.oy + 17.3) * 2 - 1) * dispMax;
-      const by = (0.5 + (pb.by - 0.5) * s) * H + (vnoise2(pb.ox + 31.7, pb.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
-      sctx.globalAlpha = c.maxOpacity * opT;
-      sctx.beginPath();
-      sctx.moveTo(ax, ay);
-      sctx.lineTo(bx, by);
-      sctx.stroke();
-      return true;
-    });
-    sctx.globalAlpha = 1;
   }
 
   requestAnimationFrame(drawScatter);
@@ -700,10 +696,7 @@ function frame(now){
   U.uFogNear.value = gatmos.FOG_NEAR;
   U.uFogFar.value  = gatmos.FOG_FAR;
 
-  // ENGINE 2: scatter canvas zone fade
-  scatterCanvas.style.opacity = gwords.WORDS_ON
-    ? Math.min(1, Math.max(0, (-camera.position.z - 2) / 4))
-    : 0;
+
 
   if (gbloom.BLOOM_ON) {
     bloomPass.strength  = gbloom.BLOOM_STRENGTH;
@@ -789,8 +782,10 @@ fWords.open();
 
 addEventListener('resize', resize);
 resize();
-scatterCanvas.width  = innerWidth;
-scatterCanvas.height = innerHeight;
+const scatterDpr = Math.min(window.devicePixelRatio || 1, 2);
+scatterCanvas.width  = innerWidth * scatterDpr;
+scatterCanvas.height = innerHeight * scatterDpr;
+sctx.setTransform(scatterDpr, 0, 0, scatterDpr, 0, 0);
 document.fonts.ready.then(function() {
   makeScatterPoints(gwords.WORD_COUNT);
   requestAnimationFrame(drawScatter);
