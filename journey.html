@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v12-remove-grid -->
+<!-- build: journey-v13-second-mesh -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -85,8 +85,8 @@ const P = {
 
   FOV: 45,
   CAM_START: [1.1, 0.45, 8.5],
-  CAM_END_Z: -35,
-  SCROLL_PX: 8000,
+  CAM_END_Z: -65,
+  SCROLL_PX: 16000,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
   FOG_NEAR: 10, FOG_FAR: 18,
@@ -108,6 +108,7 @@ function resize(){
   camera.updateProjectionMatrix();
   // pt size = 0.74 × PT_DEFAULT_PX × (canvasHeight/1920) × dpr
   U.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
+  if (typeof U2 !== 'undefined') U2.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
   if (typeof composer !== 'undefined') composer.setSize(innerWidth, innerHeight);
   if (typeof scatterCanvas !== 'undefined') { scatterCanvas.width = innerWidth * dpr; scatterCanvas.height = innerHeight * dpr; sctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
@@ -257,8 +258,8 @@ const U = {
   uBR:{value:P.BASE_ROWS}, uBC:{value:P.BASE_COLS}, uDiv:{value:P.DIV}
 };
 const v4 = a => new THREE.Vector4(a[0],a[1],a[2],a[3]);
-const mkMat = (frag, near, far) => new THREE.ShaderMaterial({
-  uniforms: Object.assign({}, U, {uNearC:{value:v4(near)}, uFarC:{value:v4(far)}}),
+const mkMat = (U_set, frag, near, far) => new THREE.ShaderMaterial({
+  uniforms: Object.assign({}, U_set, {uNearC:{value:v4(near)}, uFarC:{value:v4(far)}}),
   vertexShader: VERT, fragmentShader: frag,
   transparent: true, depthWrite: false, depthTest: false,
   blending: THREE.CustomBlending,
@@ -268,11 +269,42 @@ const mkMat = (frag, near, far) => new THREE.ShaderMaterial({
 
 const {gPts, gLin} = buildGeometry();
 const group = new THREE.Group();
-const lines  = new THREE.LineSegments(gLin, mkMat(FRAG_LIN, P.LN_NEAR, P.LN_FAR));
-const points = new THREE.Points(gPts, mkMat(FRAG_PTS, P.PT_NEAR, P.PT_FAR));
+const lines  = new THREE.LineSegments(gLin, mkMat(U, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const points = new THREE.Points(gPts, mkMat(U, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
 lines.renderOrder = 0; points.renderOrder = 1;
 group.add(lines, points);
 scene.add(group);
+
+/* ===== ZONE3 CONFIG ===== */
+const ZONE3 = {
+  N1_K: 1.42, N1_FREQ: 2.7, FRAC_K: 0.085, N2_K: 0.32,
+  SPEED: 0, LINE_ALPHA: 0.09, LINE_WIDTH: 3.1,
+  PT_SCALE: 1.67, PT_ALPHA: 0.42, PT_COLOR: '#ff631b',
+  FOG_NEAR: 6, FOG_FAR: 24.5,
+  BLOOM_ON: true, BLOOM_STRENGTH: 1.1, BLOOM_RADIUS: 0.4, BLOOM_THRESHOLD: 0.25
+};
+
+/* ===== SECOND MESH (zone 3, centered at Z=-48) ===== */
+const U2 = {};
+for (const k in U) U2[k] = {value: U[k].value};
+U2.uN1K.value     = ZONE3.N1_K;
+U2.uN1Freq.value  = ZONE3.N1_FREQ;
+U2.uFK.value      = ZONE3.FRAC_K;
+U2.uN2K.value     = ZONE3.N2_K;
+U2.uFogNear.value = ZONE3.FOG_NEAR;
+U2.uFogFar.value  = ZONE3.FOG_FAR;
+U2.uLineA.value   = ZONE3.LINE_ALPHA;
+U2.uIntro.value   = 0;
+U2.uTime.value    = 0;
+
+const group2  = new THREE.Group();
+const lines2  = new THREE.LineSegments(gLin, mkMat(U2, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const points2 = new THREE.Points(gPts, mkMat(U2, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
+lines2.renderOrder = 0; points2.renderOrder = 1;
+group2.add(lines2, points2);
+group2.position.z = -48;
+scene.add(group2);
+const mesh2Pos = new THREE.Vector3(0, 0, -48);
 
 /* ===== POST-PROCESSING ===== */
 const composer = new THREE.EffectComposer(renderer);
@@ -437,8 +469,11 @@ function drawScatter(ms) {
   // depth scale: 0.05 when cam Z = -6 → 1.0 when cam Z = -35
   const camZs    = camera.position.z;
   const s        = Math.min(1.0, Math.max(0.05, 0.05 + 0.95 * (-camZs - 6) / 29));
-  // zone fade: 0 at camZ > -2, ramps to 1 at camZ < -6
+  // zone fade in: 0 at camZ > -2, ramps to 1 at camZ < -6
   const zoneFade = Math.min(1, Math.max(0, (-camZs - 2) / 4));
+  // scatter fade out: 1 at camZ > -28, ramps to 0 at camZ < -32
+  const scatterFade = Math.min(1, Math.max(0, (camZs + 32) / 4));
+  const combinedFade = zoneFade * scatterFade;
 
   const noiseAmt = gwords.WORD_NOISE / 100;
   const noiseSpd = gwords.WORD_SPEED / 100;
@@ -450,7 +485,7 @@ function drawScatter(ms) {
   scatterAnim += dt * noiseSpd * 1.8;
 
   // ── words + lines — only when in scroll zone ─────────────────────────────
-  if (gwords.WORDS_ON && scatterPts.length > 0 && zoneFade > 0) {
+  if (gwords.WORDS_ON && scatterPts.length > 0 && combinedFade > 0) {
     sctx.textBaseline = 'middle';
     sctx.textAlign    = 'left';
     sctx.fillStyle    = textCol;
@@ -464,7 +499,7 @@ function drawScatter(ms) {
       const py   = (0.5 + (p.by - 0.5) * s) * H + ny * dispMax;
       const fsz  = Math.max(4, Math.round(p.sz * s));
       sctx.font        = fsz + "px 'VectorBattle', 'Courier New', monospace";
-      sctx.globalAlpha = Math.min(1, Math.max(0, gOpacity + (p.opacityRand - 0.5) * opSpread)) * zoneFade;
+      sctx.globalAlpha = Math.min(1, Math.max(0, gOpacity + (p.opacityRand - 0.5) * opSpread)) * combinedFade;
       sctx.fillText(word, px, py);
     }
     sctx.globalAlpha = 1;
@@ -525,7 +560,7 @@ function drawScatter(ms) {
         const ay = (0.5 + (pa.by - 0.5) * s) * H + (vnoise2(pa.ox + 31.7, pa.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
         const bx = (0.5 + (pb.bx - 0.5) * s) * W + (vnoise2(pb.ox + scatterAnim * 0.6, pb.oy + 17.3) * 2 - 1) * dispMax;
         const by = (0.5 + (pb.by - 0.5) * s) * H + (vnoise2(pb.ox + 31.7, pb.oy + scatterAnim * 0.6) * 2 - 1) * dispMax;
-        sctx.globalAlpha = c.maxOpacity * opT * zoneFade;
+        sctx.globalAlpha = c.maxOpacity * opT * combinedFade;
         sctx.beginPath();
         sctx.moveTo(ax, ay);
         sctx.lineTo(bx, by);
@@ -663,12 +698,48 @@ function frame(now){
   U.uFogNear.value = gatmos.FOG_NEAR;
   U.uFogFar.value  = gatmos.FOG_FAR;
 
+  // ── group2 / zone 3 ────────────────────────────────────────────────────────
+  group2.rotation.y = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
 
+  const camZf = camera.position.z;
+  // zone3Factor: 0 when camZ > -28, ramps to 1 at camZ < -32
+  const zone3Factor = Math.min(1, Math.max(0, (-camZf - 28) / 4));
+  // mesh2 fade-in: 0 at camZ=-32, 1 at camZ=-34
+  const mesh2Fade = Math.min(1, Math.max(0, (-camZf - 32) / 2));
 
-  if (gbloom.BLOOM_ON) {
-    bloomPass.strength  = gbloom.BLOOM_STRENGTH;
-    bloomPass.radius    = gbloom.BLOOM_RADIUS;
-    bloomPass.threshold = gbloom.BLOOM_THRESHOLD;
+  U2.uN1.value     = P.TD_N1;
+  U2.uN2.value     = P.TD_N2;
+  U2.uFrac.value   = P.TD_FRAC;
+  U2.uTime.value   = t * ZONE3.SPEED;
+  U2.uN1K.value    = ZONE3.N1_K;
+  U2.uN1Freq.value = ZONE3.N1_FREQ;
+  U2.uFK.value     = ZONE3.FRAC_K;
+  U2.uN2K.value    = ZONE3.N2_K;
+  U2.uFogNear.value  = ZONE3.FOG_NEAR;
+  U2.uFogFar.value   = ZONE3.FOG_FAR;
+  U2.uLineA.value    = ZONE3.LINE_ALPHA;
+  U2.uPt.value       = ZONE3.PT_SCALE;
+  U2.uNear.value     = Math.max(0, camera.position.distanceTo(mesh2Pos) - P.MESH_RADIUS);
+  U2.uIntro.value    = mesh2Fade;
+  lines2.material.linewidth = ZONE3.LINE_WIDTH;
+
+  const nc2 = points2.material.uniforms.uNearC.value;
+  const hex2 = ZONE3.PT_COLOR.replace('#','');
+  nc2.x = parseInt(hex2.slice(0,2),16)/255;
+  nc2.y = parseInt(hex2.slice(2,4),16)/255;
+  nc2.z = parseInt(hex2.slice(4,6),16)/255;
+  nc2.w = ZONE3.PT_ALPHA;
+
+  // blend bloom between dat.GUI and ZONE3 as we transition
+  const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
+  const blmRadius    = gbloom.BLOOM_RADIUS    * (1 - zone3Factor) + ZONE3.BLOOM_RADIUS    * zone3Factor;
+  const blmThreshold = gbloom.BLOOM_THRESHOLD * (1 - zone3Factor) + ZONE3.BLOOM_THRESHOLD * zone3Factor;
+  const blmOn = gbloom.BLOOM_ON || (zone3Factor > 0 && ZONE3.BLOOM_ON);
+
+  if (blmOn) {
+    bloomPass.strength  = blmStrength;
+    bloomPass.radius    = blmRadius;
+    bloomPass.threshold = blmThreshold;
     composer.render();
   } else {
     renderer.render(scene, camera);
