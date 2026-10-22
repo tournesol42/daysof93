@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v10-binary-scatter-canvas2d -->
+<!-- build: journey-v11-perspective-grid -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -451,18 +451,39 @@ function drawScatter(ms) {
 
   scatterAnim += dt * noiseSpd * 1.8;
 
-  // ── reference grid ───────────────────────────────────────────────────────
+  // ── perspective grid (matching main site drawField style) ──────────────────
   if (gwords.GRID_ON) {
-    const spacing = Math.max(4, 80 * s);
+    const vpX = W * 0.5;
+    const vpY = H * 0.62;
+    const opK = gwords.GRID_OPACITY / 0.18;
     sctx.save();
+    // scale grid around the vanishing point using depth scale s
+    sctx.translate(vpX, vpY);
+    sctx.scale(s, s);
+    sctx.translate(-vpX, -vpY);
     sctx.strokeStyle = '#ffffff';
-    sctx.lineWidth   = 0.5;
-    sctx.globalAlpha = gwords.GRID_OPACITY;
-    sctx.beginPath();
-    const cx = W / 2, cy = H / 2;
-    for (let x = cx % spacing; x <= W; x += spacing) { sctx.moveTo(x, 0); sctx.lineTo(x, H); }
-    for (let y = cy % spacing; y <= H; y += spacing) { sctx.moveTo(0, y); sctx.lineTo(W, y); }
-    sctx.stroke();
+    sctx.lineWidth   = 0.75;
+    // horizontal bands: 18 lines fading from horizon down
+    const bands = 18;
+    for (let i = 0; i <= bands; i++) {
+      const t  = i / bands;
+      const y  = vpY + Math.pow(t, 1.8) * (H - vpY);
+      sctx.globalAlpha = 0.34 * (1 - t * 0.65) * opK;
+      sctx.beginPath();
+      sctx.moveTo(0, y);
+      sctx.lineTo(W, y);
+      sctx.stroke();
+    }
+    // vertical perspective lines: 16 cols radiating from bottom to VP
+    const cols = 16;
+    sctx.globalAlpha = 0.18 * opK;
+    for (let i = 0; i <= cols; i++) {
+      const x = (i / cols) * W;
+      sctx.beginPath();
+      sctx.moveTo(x, H);
+      sctx.lineTo(vpX + (x - vpX) * 0.12, vpY);
+      sctx.stroke();
+    }
     sctx.restore();
   }
 
@@ -749,7 +770,7 @@ fBloom.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:54, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#EE7C0E',
-  LINES_ON:true, LINES_OPACITY:67, GRID_ON:true, GRID_OPACITY:0.06};
+  LINES_ON:true, LINES_OPACITY:67, GRID_ON:true, GRID_OPACITY:0.18};
 
 const fWords = gui.addFolder('Words');
 fWords.add(gwords, 'WORDS_ON');
