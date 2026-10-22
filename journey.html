@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v11b-grid-always-on -->
+<!-- build: journey-v12-remove-grid -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -449,36 +449,6 @@ function drawScatter(ms) {
 
   scatterAnim += dt * noiseSpd * 1.8;
 
-  // ── perspective grid — always visible ────────────────────────────────────
-  if (gwords.GRID_ON) {
-    const vpX = W * 0.5;
-    const vpY = H * 0.38;
-    const opK = gwords.GRID_OPACITY / 0.18;
-    sctx.save();
-    sctx.strokeStyle = '#ffffff';
-    sctx.lineWidth   = 0.75;
-    const bands = 18;
-    for (let i = 0; i <= bands; i++) {
-      const t  = i / bands;
-      const y  = vpY + Math.pow(t, 1.8) * (H - vpY);
-      sctx.globalAlpha = 0.34 * (1 - t * 0.65) * opK;
-      sctx.beginPath();
-      sctx.moveTo(0, y);
-      sctx.lineTo(W, y);
-      sctx.stroke();
-    }
-    const cols = 16;
-    sctx.globalAlpha = 0.18 * opK;
-    for (let i = 0; i <= cols; i++) {
-      const x = (i / cols) * W;
-      sctx.beginPath();
-      sctx.moveTo(x, H);
-      sctx.lineTo(vpX + (x - vpX) * 0.12, vpY);
-      sctx.stroke();
-    }
-    sctx.restore();
-  }
-
   // ── words + lines — only when in scroll zone ─────────────────────────────
   if (gwords.WORDS_ON && scatterPts.length > 0 && zoneFade > 0) {
     sctx.textBaseline = 'middle';
@@ -760,7 +730,7 @@ fBloom.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:54, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#EE7C0E',
-  LINES_ON:true, LINES_OPACITY:67, GRID_ON:true, GRID_OPACITY:0.18};
+  LINES_ON:true, LINES_OPACITY:67};
 
 const fWords = gui.addFolder('Words');
 fWords.add(gwords, 'WORDS_ON');
@@ -773,8 +743,7 @@ fWords.add(gwords, 'WORD_SPEED',     0, 300,  5);
 fWords.addColor(gwords, 'WORD_COLOR');
 fWords.add(gwords, 'LINES_ON');
 fWords.add(gwords, 'LINES_OPACITY',  0, 100,  1);
-fWords.add(gwords, 'GRID_ON');
-fWords.add(gwords, 'GRID_OPACITY',   0, 0.3, 0.01);
+
 fWords.open();
 
 addEventListener('resize', resize);
