@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v11-grid-fixes -->
+<!-- build: journey-v11b-grid-always-on -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -452,12 +452,9 @@ function drawScatter(ms) {
   // ── perspective grid — always visible ────────────────────────────────────
   if (gwords.GRID_ON) {
     const vpX = W * 0.5;
-    const vpY = H * 0.62;
+    const vpY = H * 0.38;
     const opK = gwords.GRID_OPACITY / 0.18;
     sctx.save();
-    sctx.translate(vpX, vpY);
-    sctx.scale(s, s);
-    sctx.translate(-vpX, -vpY);
     sctx.strokeStyle = '#ffffff';
     sctx.lineWidth   = 0.75;
     const bands = 18;
