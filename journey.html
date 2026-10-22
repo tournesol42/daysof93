@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v05-fix -->
+<!-- build: journey-v06-faders -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -21,6 +21,7 @@
 <input id="file" type="file" accept="audio/*">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -356,9 +357,43 @@ function frame(now){
 
   U.uNear.value = Math.max(0, camera.position.length() - P.MESH_RADIUS);
 
+  // GUI faders → uniforms
+  U.uN1K.value     = gfx.N1_K;
+  U.uN1Freq.value  = gfx.N1_FREQ;
+  U.uFK.value      = gfx.FRAC_K;
+  U.uN2K.value     = gfx.N2_K;
+  U.uLineA.value   = glook.LINE_ALPHA;
+  U.uPt.value      = glook.PT_SCALE;
+  U.uFogNear.value = glook.FOG_NEAR;
+  U.uFogFar.value  = glook.FOG_FAR;
+
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
+/* ===== dat.GUI fader console ===== */
+const gui = new dat.GUI({autoPlace: true});
+gui.domElement.style.position = 'fixed';
+gui.domElement.style.top = '0';
+gui.domElement.style.right = '0';
+gui.domElement.style.zIndex = '10';
+
+const gfx = { N1_K: 0.15, N1_FREQ: 1.0, FRAC_K: 0.02, N2_K: 0.05 };
+const glook = { LINE_ALPHA: 0.35, PT_SCALE: 0.74, FOG_NEAR: 10, FOG_FAR: 18 };
+
+const fNoise = gui.addFolder('Noise');
+fNoise.add(gfx, 'N1_K',   0, 2.0,  0.01);
+fNoise.add(gfx, 'N1_FREQ',0.1, 5.0, 0.1);
+fNoise.add(gfx, 'FRAC_K', 0, 0.5,  0.005);
+fNoise.add(gfx, 'N2_K',   0, 1.0,  0.01);
+fNoise.open();
+
+const fLook = gui.addFolder('Look');
+fLook.add(glook, 'LINE_ALPHA', 0, 1.0,  0.01);
+fLook.add(glook, 'PT_SCALE',   0, 3.0,  0.01);
+fLook.add(glook, 'FOG_NEAR',   0, 30,   0.5);
+fLook.add(glook, 'FOG_FAR',    0, 40,   0.5);
+fLook.open();
+
 addEventListener('resize', resize);
 resize();
 requestAnimationFrame(frame);
