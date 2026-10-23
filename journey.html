@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v23-colour-rings-subtle -->
+<!-- build: journey-v24-scene5-cad-beams -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -85,9 +85,11 @@ const P = {
 
   FOV: 45,
   CAM_START: [1.1, 0.45, 8.5],
-  CAM_END_Z: -96,
-  SCROLL_PX: 22700,
+  CAM_END_Z: -140,
+  SCROLL_PX: 32200,
   RINGS4_LENGTH: 30, RINGS4_GAP_MIN: 0.4, RINGS4_GAP_MAX: 2.5, RINGS4_SIZE_VAR: 0.15, RINGS4_ALPHA: 0.08,
+  BEAMS_COUNT: 260, BEAMS_INNER: 0.9, BEAMS_OUTER: 9,
+  BEAMS_PANEL: 0.6, BEAMS_DRIFT: 1.2, BEAMS_ALPHA: 0.1,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
   DRIFT_GAIN: 0.08, DRIFT_FRICTION: 0.975,
@@ -838,6 +840,90 @@ function buildGroup4(){
 }
 buildGroup4();
 
+/* ===== SCENE 5 — CAD WIREFRAME BEAMS ===== */
+const beamsUniforms = {
+  uTime:     { value: 0 },
+  uDrift:    { value: P.BEAMS_DRIFT },
+  uCamPos:   { value: new THREE.Vector3() },
+  uAlpha:    { value: P.BEAMS_ALPHA },
+  uNearFade: { value: P.SPACE_NEAR_FADE },
+  uFar:      { value: P.SPACE_FAR },
+  uZoneFade: { value: 0 }
+};
+const beamsMat = new THREE.ShaderMaterial({
+  uniforms: beamsUniforms,
+  vertexShader: `
+attribute vec2 aBeam;
+uniform float uTime; uniform float uDrift; uniform vec3 uCamPos;
+varying float vDist;
+void main(){
+  vec3 pos = position;
+  float d = mod(uTime * uDrift, 74.0);
+  float newBZ = mod(aBeam.x + 140.0 + d, 74.0) - 140.0;
+  pos.z += newBZ - aBeam.x;
+  vDist = distance(pos, uCamPos);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+}`,
+  fragmentShader: `
+uniform float uAlpha; uniform float uNearFade; uniform float uFar; uniform float uZoneFade;
+varying float vDist;
+void main(){
+  float near = smoothstep(0.3, 2.0, vDist);
+  float far = 1.0 - smoothstep(uNearFade, uFar, vDist);
+  gl_FragColor = vec4(1.0, 1.0, 1.0, uAlpha * near * far * uZoneFade);
+}`,
+  transparent: true, depthWrite: false
+});
+const g5 = { BEAMS_ON: true, BEAMS_ALPHA: P.BEAMS_ALPHA, BEAMS_DRIFT: P.BEAMS_DRIFT,
+  BEAMS_COUNT: P.BEAMS_COUNT, BEAMS_INNER: P.BEAMS_INNER, BEAMS_OUTER: P.BEAMS_OUTER, BEAMS_PANEL: P.BEAMS_PANEL };
+let beamsMesh;
+function buildBeams(){
+  if(beamsMesh && beamsMesh.parent) beamsMesh.parent.remove(beamsMesh);
+  const rand = rng(7);
+  const NC = 7;
+  const cAngles = [];
+  for(let i = 0; i < NC; i++) cAngles.push(rand() * Math.PI * 2);
+  const ZEND = -140, ZLEN = 74;
+  const pos = [], ab = [];
+  const seg = (x0,y0,z0,x1,y1,z1,zs,bl) => {
+    pos.push(x0,y0,z0, x1,y1,z1);
+    ab.push(zs,bl, zs,bl);
+  };
+  for(let bi = 0; bi < g5.BEAMS_COUNT; bi++){
+    const bw   = 0.05 + rand() * 0.40;
+    const bh   = 0.05 + rand() * 0.40;
+    const bLen = 2 + Math.pow(rand(), 2) * 12;
+    const zs   = ZEND + rand() * ZLEN;
+    const ci   = Math.min(Math.floor(rand() * NC), NC - 1);
+    const θ    = cAngles[ci] + (rand() - 0.5) * 0.70;
+    const r    = g5.BEAMS_INNER + Math.pow(rand(), 0.7) * (g5.BEAMS_OUTER - g5.BEAMS_INNER);
+    const cT = Math.cos(θ), sT = Math.sin(θ);
+    const bcx = r * cT, bcy = r * sT;
+    const p0x = bcx + bw/2*cT - bh/2*sT, p0y = bcy + bw/2*sT + bh/2*cT;
+    const p1x = bcx + bw/2*cT + bh/2*sT, p1y = bcy + bw/2*sT - bh/2*cT;
+    const p2x = bcx - bw/2*cT + bh/2*sT, p2y = bcy - bw/2*sT - bh/2*cT;
+    const p3x = bcx - bw/2*cT - bh/2*sT, p3y = bcy - bw/2*sT + bh/2*cT;
+    seg(p0x,p0y,zs, p0x,p0y,zs+bLen, zs,bLen);
+    seg(p1x,p1y,zs, p1x,p1y,zs+bLen, zs,bLen);
+    seg(p2x,p2y,zs, p2x,p2y,zs+bLen, zs,bLen);
+    seg(p3x,p3y,zs, p3x,p3y,zs+bLen, zs,bLen);
+    const nP = Math.ceil(bLen / g5.BEAMS_PANEL);
+    for(let pi = 0; pi <= nP; pi++){
+      const z = zs + Math.min(pi * g5.BEAMS_PANEL, bLen);
+      seg(p0x,p0y,z, p1x,p1y,z, zs,bLen);
+      seg(p1x,p1y,z, p2x,p2y,z, zs,bLen);
+      seg(p2x,p2y,z, p3x,p3y,z, zs,bLen);
+      seg(p3x,p3y,z, p0x,p0y,z, zs,bLen);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('aBeam',    new THREE.Float32BufferAttribute(ab,  2));
+  beamsMesh = new THREE.LineSegments(geo, beamsMat);
+  scene4.add(beamsMesh);
+}
+buildBeams();
+
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
 let prevCamZ = P.CAM_START[2];
@@ -970,6 +1056,21 @@ function frame(now){
     group4.visible = false;
   }
 
+  // ── scene 5 ──
+  const beamsZoneFade = Math.min(1, Math.max(0, (-camZf - 68) / 10));
+  if (g5.BEAMS_ON) {
+    beamsMesh.visible = true;
+    beamsUniforms.uTime.value     = t;
+    beamsUniforms.uDrift.value    = g5.BEAMS_DRIFT;
+    beamsUniforms.uCamPos.value.copy(camera.position);
+    beamsUniforms.uAlpha.value    = g5.BEAMS_ALPHA;
+    beamsUniforms.uNearFade.value = P.SPACE_NEAR_FADE;
+    beamsUniforms.uFar.value      = gspace.SPACE_FAR;
+    beamsUniforms.uZoneFade.value = beamsZoneFade;
+  } else {
+    beamsMesh.visible = false;
+  }
+
   // blend bloom between dat.GUI and ZONE3 as we transition
   const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
   const blmRadius    = gbloom.BLOOM_RADIUS    * (1 - zone3Factor) + ZONE3.BLOOM_RADIUS    * zone3Factor;
@@ -985,7 +1086,7 @@ function frame(now){
     renderer.render(scene, camera);
   }
   // composite scene4 after bloom — crisp, no glow
-  if (g4.RINGS4_ON) {
+  if (g4.RINGS4_ON || g5.BEAMS_ON) {
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(scene4, camera);
@@ -1103,6 +1204,16 @@ fScene4.add(g4, 'RINGS4_GAP_MAX',  0.5, 8,  0.1).onChange(() => buildGroup4());
 fScene4.add(g4, 'RINGS4_SIZE_VAR', 0, 0.5,  0.01).onChange(() => buildGroup4());
 fScene4.add(g4, 'RINGS4_LENGTH',   5, 30,   1).onChange(() => buildGroup4());
 fScene4.open();
+
+const fScene5 = gui.addFolder('Scene5');
+fScene5.add(g5, 'BEAMS_ON');
+fScene5.add(g5, 'BEAMS_ALPHA',  0, 0.5,  0.005);
+fScene5.add(g5, 'BEAMS_DRIFT',  0, 6,    0.1);
+fScene5.add(g5, 'BEAMS_COUNT',  50, 600, 10).onChange(() => buildBeams());
+fScene5.add(g5, 'BEAMS_INNER',  0.3, 4,  0.1).onChange(() => buildBeams());
+fScene5.add(g5, 'BEAMS_OUTER',  3, 20,   0.5).onChange(() => buildBeams());
+fScene5.add(g5, 'BEAMS_PANEL',  0.2, 3,  0.1).onChange(() => buildBeams());
+fScene5.open();
 gui.close();
 
 addEventListener('resize', resize);
