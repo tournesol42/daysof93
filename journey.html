@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v16-orbit-drag -->
+<!-- build: journey-v17-axes-120bpm -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -42,7 +42,7 @@
 
 /* ===== PARAMETERS ===== */
 const P = {
-  AUDIO_URL: 'https://daysof93-cdn.b-cdn.net/journey150bpm.mp3',
+  AUDIO_URL: 'https://daysof93-cdn.b-cdn.net/JourneyV1_120bm_92bars.mp3',
 
   // When false: freeze mesh at TD constants (noise/frac/pt not driven by audio)
   AUDIO_MOD: false,
@@ -92,8 +92,14 @@ const P = {
   DRIFT_GAIN: 0.08, DRIFT_FRICTION: 0.975,
   ORBIT_GAIN: 0.0004, ORBIT_FRICTION: 0.95,
   FOG_NEAR: 10, FOG_FAR: 18,
-  INTRO_SEC: 3
+  INTRO_SEC: 3,
+  BPM: 120, BARS: 92, BEATS_PER_BAR: 4,
+  AXES_ALPHA: 0.35
 };
+
+const BEAT_SEC = 60 / P.BPM;
+const BAR_SEC  = BEAT_SEC * P.BEATS_PER_BAR;
+const LOOP_SEC = BAR_SEC * P.BARS;
 
 /* ===== RENDERER ===== */
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
@@ -580,15 +586,17 @@ function drawScatter(ms) {
 
 
 /* ===== AUDIO (XHR + decodeAudioData, iOS-safe) ===== */
-let actx = null, analyser = null, abuf = null, env = 0;
+let actx = null, analyser = null, abuf = null, env = 0, audioStartTime = null;
 
 function playBuffer(arr){
   actx.decodeAudioData(arr, buf => {
     const src = actx.createBufferSource();
     src.buffer = buf; src.loop = true;
+    src.loopStart = 0; src.loopEnd = LOOP_SEC;
     analyser = actx.createAnalyser(); analyser.fftSize = 2048;
     abuf = new Float32Array(analyser.fftSize);
     src.connect(analyser); analyser.connect(actx.destination);
+    audioStartTime = actx.currentTime;
     src.start(0);
   });
 }
@@ -598,6 +606,7 @@ function loadURL(url){
   x.onload = () => playBuffer(x.response);
   x.send();
 }
+function musicBeat(){ return actx && audioStartTime != null ? ((actx.currentTime - audioStartTime) % LOOP_SEC) / BEAT_SEC : 0; }
 function readLevel(dt){
   let ms = 0;
   if (analyser){
@@ -687,6 +696,57 @@ addEventListener('touchmove', e => {
 addEventListener('touchend', e => { if (e.touches.length < 2) twoFinger = false; }, {passive:true});
 
 const look = new THREE.Vector3();
+
+/* ===== CAD AXES ===== */
+function makeAxes(len){
+  const group = new THREE.Group();
+  const a = 0.12, ang = 25 * Math.PI / 180;
+  const ac = a * Math.cos(ang), as_ = a * Math.sin(ang);
+  const pos = [];
+  // 3 axis lines
+  pos.push(-len,0,0, len,0,0, 0,-len,0, 0,len,0, 0,0,-len, 0,0,len);
+  // arrowheads: [tip xyz, axis dir xyz, perp xyz]
+  const tips = [
+    [ len,0,0,  -1,0,0, 0,1,0],[-len,0,0,  1,0,0, 0,1,0],
+    [0, len,0,  0,-1,0, 1,0,0],[0,-len,0,  0, 1,0, 1,0,0],
+    [0,0, len,  0,0,-1, 1,0,0],[0,0,-len,  0,0, 1, 1,0,0],
+  ];
+  for(const [tx,ty,tz, dx,dy,dz, px,py,pz] of tips){
+    const bx=tx+dx*ac, by=ty+dy*ac, bz=tz+dz*ac;
+    pos.push(tx,ty,tz, bx+px*as_,by+py*as_,bz+pz*as_);
+    pos.push(tx,ty,tz, bx-px*as_,by-py*as_,bz-pz*as_);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const mat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:P.AXES_ALPHA, depthWrite:false });
+  group.add(new THREE.LineSegments(geo, mat));
+  group.userData.mat = mat;
+  // labels
+  const labelDefs = [
+    ['+x', len+0.28,0,0],['-x',-len-0.28,0,0],
+    ['+y',0, len+0.28,0],['-y',0,-len-0.28,0],
+    ['+z',0,0, len+0.28],['-z',0,0,-len-0.28],
+  ];
+  const sprites = [];
+  for(const [text,x,y,z] of labelDefs){
+    const cv=document.createElement('canvas'); cv.width=48; cv.height=24;
+    const cx=cv.getContext('2d');
+    cx.fillStyle='white'; cx.font='bold 16px monospace';
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(text,24,12);
+    const spMat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:P.AXES_ALPHA,depthWrite:false});
+    const sp=new THREE.Sprite(spMat);
+    sp.position.set(x,y,z); sp.scale.set(0.24,0.12,1);
+    group.add(sp); sprites.push(sp);
+  }
+  group.userData.sprites = sprites;
+  return group;
+}
+const gaxes = { AXES_ON: true, AXES_ALPHA: 0.35, AXES_LABELS: true, AXES_LEN: 3.0 };
+let axes1 = makeAxes(gaxes.AXES_LEN);
+let axes2 = makeAxes(gaxes.AXES_LEN);
+axes2.position.set(0, 0, -48);
+scene.add(axes1, axes2);
 
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
@@ -795,6 +855,24 @@ function frame(now){
   nc2.z = parseInt(hex2.slice(4,6),16)/255;
   nc2.w = ZONE3.PT_ALPHA;
 
+  // ── axes ──
+  if (gaxes.AXES_ON) {
+    axes1.visible = true; axes2.visible = true;
+    axes1.rotation.set(orbitPitch, orbitYaw, 0);
+    axes2.rotation.set(orbitPitch, orbitYaw, 0);
+    const sm = (e0,e1,x) => { const tt=Math.max(0,Math.min(1,(x-e0)/(e1-e0))); return tt*tt*(3-2*tt); };
+    const d1 = camera.position.length();
+    const a1 = gaxes.AXES_ALPHA * Math.max(0, 1 - sm(gatmos.FOG_NEAR, gatmos.FOG_FAR, d1));
+    axes1.userData.mat.opacity = a1;
+    axes1.userData.sprites.forEach(s => { s.material.opacity = a1; s.visible = gaxes.AXES_LABELS; });
+    const d2 = camera.position.distanceTo(axes2.position);
+    const a2 = gaxes.AXES_ALPHA * Math.max(0, 1 - sm(ZONE3.FOG_NEAR, ZONE3.FOG_FAR, d2));
+    axes2.userData.mat.opacity = a2;
+    axes2.userData.sprites.forEach(s => { s.material.opacity = a2; s.visible = gaxes.AXES_LABELS; });
+  } else {
+    axes1.visible = false; axes2.visible = false;
+  }
+
   // blend bloom between dat.GUI and ZONE3 as we transition
   const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
   const blmRadius    = gbloom.BLOOM_RADIUS    * (1 - zone3Factor) + ZONE3.BLOOM_RADIUS    * zone3Factor;
@@ -888,6 +966,19 @@ fWords.add(gwords, 'LINES_ON');
 fWords.add(gwords, 'LINES_OPACITY',  0, 100,  1);
 
 fWords.open();
+
+const fAxes = gui.addFolder('Axes');
+fAxes.add(gaxes, 'AXES_ON');
+fAxes.add(gaxes, 'AXES_ALPHA', 0, 1, 0.01).onChange(v => { P.AXES_ALPHA = v; });
+fAxes.add(gaxes, 'AXES_LABELS');
+fAxes.add(gaxes, 'AXES_LEN', 1, 8, 0.1).onChange(() => {
+  scene.remove(axes1); scene.remove(axes2);
+  axes1 = makeAxes(gaxes.AXES_LEN);
+  axes2 = makeAxes(gaxes.AXES_LEN);
+  axes2.position.set(0, 0, -48);
+  scene.add(axes1, axes2);
+});
+fAxes.open();
 gui.close();
 
 addEventListener('resize', resize);
