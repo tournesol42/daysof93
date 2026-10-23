@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v15b-fix-enter -->
+<!-- build: journey-v16-orbit-drag -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -90,6 +90,7 @@ const P = {
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
   DRIFT_GAIN: 0.08, DRIFT_FRICTION: 0.975,
+  ORBIT_GAIN: 0.0004, ORBIT_FRICTION: 0.95,
   FOG_NEAR: 10, FOG_FAR: 18,
   INTRO_SEC: 3
 };
@@ -617,6 +618,7 @@ startEl.addEventListener('click', () => {
   if (P.AUDIO_URL) loadURL(P.AUDIO_URL);
   else fileEl.click();
   startEl.style.display = 'none';
+  document.body.style.cursor = 'grab';
   introStart = performance.now();
 });
 fileEl.addEventListener('change', () => {
@@ -626,20 +628,63 @@ fileEl.addEventListener('change', () => {
   r.readAsArrayBuffer(f);
 });
 
+/* ===== ORBIT STATE ===== */
+let orbitYaw = 0, orbitPitch = 0, yawVel = 0, pitchVel = 0, dragging = false, lastX = 0, lastY = 0;
+
 /* ===== SCROLL → CAMERA ===== */
 let target = 0, prog = 0, vel = 0, introStart = null;
 addEventListener('wheel', e => {
   e.preventDefault();
   vel += e.deltaY / P.SCROLL_PX * P.DRIFT_GAIN;
 }, {passive:false});
-let ty = null;
-addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
+
+/* pointer orbit — ignore gui panel and enter overlay */
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.target === gui.domElement || gui.domElement.contains(e.target)) return;
+  dragging = true;
+  lastX = e.clientX; lastY = e.clientY;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  yawVel   -= dx * P.ORBIT_GAIN;
+  pitchVel += dy * P.ORBIT_GAIN;
+});
+renderer.domElement.addEventListener('pointerup',     () => { dragging = false; });
+renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
+renderer.domElement.addEventListener('pointerleave',  () => { dragging = false; });
+
+/* touch: one finger = scroll, two fingers = orbit */
+let ty = null, twoFinger = false;
+addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    twoFinger = true;
+    lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    lastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  } else {
+    twoFinger = false;
+    ty = e.touches[0].clientY;
+  }
+}, {passive:true});
 addEventListener('touchmove', e => {
   e.preventDefault();
-  const y = e.touches[0].clientY;
-  vel += (ty - y) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN;
-  ty = y;
+  if (e.touches.length === 2) {
+    twoFinger = true;
+    const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    yawVel   -= (mx - lastX) * P.ORBIT_GAIN;
+    pitchVel += (my - lastY) * P.ORBIT_GAIN;
+    lastX = mx; lastY = my;
+  } else if (!twoFinger) {
+    const y = e.touches[0].clientY;
+    vel += (ty - y) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN;
+    ty = y;
+  }
 }, {passive:false});
+addEventListener('touchend', e => { if (e.touches.length < 2) twoFinger = false; }, {passive:true});
 
 const look = new THREE.Vector3();
 
@@ -657,7 +702,14 @@ function frame(now){
   U.uTime.value = t * gfx.SPEED;
   U.uIntro.value = introStart === null ? 0.6 : Math.min(1, 0.6 + (now - introStart) / 1000 / P.INTRO_SEC);
 
-  group.rotation.y = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
+  // orbit physics
+  const orbitF = Math.pow(P.ORBIT_FRICTION, dt * 60);
+  orbitYaw   += yawVel;   yawVel   *= orbitF;
+  orbitPitch += pitchVel; pitchVel *= orbitF;
+  orbitPitch = Math.max(-1.4, Math.min(1.4, orbitPitch));
+
+  const autoYaw = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
+  group.rotation.set(orbitPitch, autoYaw + orbitYaw, 0);
 
   // velocity drift
   target += vel;
@@ -712,7 +764,7 @@ function frame(now){
   U.uFogFar.value  = gatmos.FOG_FAR;
 
   // ── group2 / zone 3 ────────────────────────────────────────────────────────
-  group2.rotation.y = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
+  group2.rotation.set(orbitPitch, autoYaw + orbitYaw, 0);
 
   const camZf = camera.position.z;
   // zone3Factor: 0 when camZ > -28, ramps to 1 at camZ < -32
@@ -813,8 +865,10 @@ fBloom.add(gbloom, 'BLOOM_THRESHOLD',0, 1.0, 0.01);
 fBloom.open();
 
 const fMotion = gui.addFolder('Motion');
-fMotion.add(P, 'DRIFT_GAIN',     0.01, 0.5,   0.01);
-fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995, 0.001);
+fMotion.add(P, 'DRIFT_GAIN',     0.01, 0.5,    0.01);
+fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995,  0.001);
+fMotion.add(P, 'ORBIT_GAIN',     0.0001, 0.002, 0.0001);
+fMotion.add(P, 'ORBIT_FRICTION', 0.85, 0.99,   0.001);
 fMotion.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
