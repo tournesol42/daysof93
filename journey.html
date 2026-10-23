@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v19-audio-scene4-rings -->
+<!-- build: journey-v20-scene4-print-look -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -797,62 +797,72 @@ const dustMesh = new THREE.Points(buildDustGeo(), dustMat);
 let   ringsMesh = new THREE.LineSegments(buildRingsGeo(), ringMat);
 scene.add(dustMesh, ringsMesh);
 
-/* ===== SCENE 4 — CONCENTRIC RINGS ===== */
-function makeCircle4(r, segs){
-  const pos = new Float32Array(segs * 3);
-  for(let i=0;i<segs;i++){
-    const a=(i/segs)*Math.PI*2;
-    pos[i*3]=Math.cos(a)*r; pos[i*3+1]=Math.sin(a)*r; pos[i*3+2]=0;
-  }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-  return g;
-}
+/* ===== SCENE 4 — CONCENTRIC RINGS (print look) ===== */
+const scene4 = new THREE.Scene();
+// bands first (outer→inner, renderOrder 0) then lines on top (renderOrder 1)
 const ITEMS4 = [
-  {type:'lines', radii:[1.00,0.985,0.97,0.955,0.93,0.91,0.89], color:0x8c8c8c, alpha:0.45},
-  {type:'band',  inner:0.80,outer:0.86, color:0xf3e3b0, alpha:0.10},
-  {type:'line',  r:0.82,               color:0x8c8c8c, alpha:0.45},
-  {type:'lines', radii:[0.78,0.76,0.70],color:0xa9c4d6, alpha:0.60},
-  {type:'band',  inner:0.62,outer:0.74, color:0xdfe9ef, alpha:0.08},
-  {type:'band',  inner:0.50,outer:0.60, color:0xf3e3b0, alpha:0.20},
-  {type:'line',  r:0.56,               color:0xe9a38a, alpha:0.85},
-  {type:'line',  r:0.50,               color:0xf2b23a, alpha:0.85},
-  {type:'band',  inner:0.20,outer:0.48, color:0xd9b3b3, alpha:0.22},
-  {type:'band',  inner:0.24,outer:0.30, color:0xf7d77a, alpha:0.45},
-  {type:'band',  inner:0.00,outer:0.17, color:0xfbf3c6, alpha:0.35},
-  {type:'line',  r:0.17,               color:0x8c8c8c, alpha:0.45},
+  {type:'band',  inner:0.80,outer:0.86, color:0xb8a983, alpha:0.35},
+  {type:'band',  inner:0.62,outer:0.74, color:0x8e9ba3, alpha:0.22},
+  {type:'band',  inner:0.50,outer:0.60, color:0xc2b083, alpha:0.55},
+  {type:'band',  inner:0.20,outer:0.48, color:0x9e7f80, alpha:0.45},
+  {type:'band',  inner:0.24,outer:0.30, color:0xd9b65c, alpha:0.80},
+  {type:'band',  inner:0.00,outer:0.17, color:0xd8cfa3, alpha:0.60},
+  {type:'lines', radii:[1.00,0.985,0.97,0.955,0.93,0.91,0.89], color:0x6f6f6f, alpha:0.9, w:0.0025},
+  {type:'line',  r:0.82,                                        color:0x6f6f6f, alpha:0.9, w:0.0025},
+  {type:'lines', radii:[0.78,0.76,0.70],                        color:0x7f97a8, alpha:0.9, w:0.003},
+  {type:'line',  r:0.56,                                        color:0xd98e72, alpha:1.0, w:0.006},
+  {type:'line',  r:0.50,                                        color:0xe0a032, alpha:1.0, w:0.006},
+  {type:'line',  r:0.17,                                        color:0x6f6f6f, alpha:0.9, w:0.0025},
 ];
+const g4 = { RINGS4_ON: true, RINGS4_RADIUS: P.RINGS4_RADIUS, RINGS4_ALPHA: 1.0, RINGS4_GRAIN: 0.08, RINGS4_BLOOM: false };
 let group4;
 function buildGroup4(rad){
-  if(group4) scene.remove(group4);
+  if(group4 && group4.parent) group4.parent.remove(group4);
   group4 = new THREE.Group();
   group4.position.set(0,0,-92);
-  const mats4 = [];
+  const mats4 = [], grainUs = [];
   let idx = 0;
   for(const item of ITEMS4){
-    const addLine = (r) => {
-      const mat = new THREE.LineBasicMaterial({color:item.color,transparent:true,opacity:0,depthWrite:false});
-      const loop = new THREE.LineLoop(makeCircle4(r*rad,256),mat);
-      loop.position.z = 0.001 * idx++;
-      group4.add(loop);
+    const isBand = item.type === 'band';
+    const ro = isBand ? 0 : 1;
+    const addEl = (rIn, rOut) => {
+      const mat = new THREE.MeshBasicMaterial({
+        color:item.color, transparent:true, opacity:0,
+        side:THREE.DoubleSide, depthWrite:false, toneMapped:false
+      });
+      if(isBand){
+        const gu = {value: g4.RINGS4_GRAIN};
+        mat.onBeforeCompile = (sh) => {
+          sh.uniforms.uGrain = gu;
+          sh.fragmentShader = [
+            'uniform float uGrain;',
+            'float _h13(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+            sh.fragmentShader
+          ].join('\n').replace(
+            '#include <output_fragment>',
+            '#include <output_fragment>\ngl_FragColor.rgb*=1.0+(_h13(gl_FragCoord.xy)-0.5)*uGrain;'
+          );
+        };
+        grainUs.push(gu);
+      }
+      const m = new THREE.Mesh(new THREE.RingGeometry(rIn,rOut,256),mat);
+      m.position.z = 0.001 * idx++;
+      m.renderOrder = ro;
+      group4.add(m);
       mats4.push({mat,base:item.alpha});
     };
-    if(item.type==='line'){
-      addLine(item.r);
-    } else if(item.type==='lines'){
-      for(const r of item.radii) addLine(r);
-    } else { // band
-      const mat = new THREE.MeshBasicMaterial({color:item.color,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
-      const mesh = new THREE.Mesh(new THREE.RingGeometry(item.inner*rad,item.outer*rad,128),mat);
-      mesh.position.z = 0.001 * idx++;
-      group4.add(mesh);
-      mats4.push({mat,base:item.alpha});
+    if(isBand){
+      addEl(item.inner*rad, item.outer*rad);
+    } else if(item.type==='line'){
+      addEl(Math.max(0,(item.r-item.w/2)*rad), (item.r+item.w/2)*rad);
+    } else {
+      for(const r of item.radii) addEl(Math.max(0,(r-item.w/2)*rad), (r+item.w/2)*rad);
     }
   }
   group4.userData.mats = mats4;
-  scene.add(group4);
+  group4.userData.grainUs = grainUs;
+  scene4.add(group4);
 }
-const g4 = { RINGS4_ON: true, RINGS4_RADIUS: P.RINGS4_RADIUS, RINGS4_ALPHA: 1.0 };
 buildGroup4(g4.RINGS4_RADIUS);
 
 /* ===== LOOP ===== */
@@ -986,6 +996,13 @@ function frame(now){
   const blmThreshold = gbloom.BLOOM_THRESHOLD * (1 - zone3Factor) + ZONE3.BLOOM_THRESHOLD * zone3Factor;
   const blmOn = gbloom.BLOOM_ON || (zone3Factor > 0 && ZONE3.BLOOM_ON);
 
+  // move group4 between bloomed scene and separate scene4
+  if (g4.RINGS4_BLOOM) {
+    if (group4.parent !== scene) { scene4.remove(group4); scene.add(group4); }
+  } else {
+    if (group4.parent !== scene4) { scene.remove(group4); scene4.add(group4); }
+  }
+
   if (blmOn) {
     bloomPass.strength  = blmStrength;
     bloomPass.radius    = blmRadius;
@@ -994,6 +1011,15 @@ function frame(now){
   } else {
     renderer.render(scene, camera);
   }
+  // composite scene4 after bloom — crisp, no glow
+  if (!g4.RINGS4_BLOOM && g4.RINGS4_ON && scene4Fade > 0) {
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(scene4, camera);
+    renderer.autoClear = true;
+  }
+  // keep grain uniforms in sync with GUI
+  for (const gu of group4.userData.grainUs) gu.value = g4.RINGS4_GRAIN;
   requestAnimationFrame(frame);
 }
 /* ===== dat.GUI fader console ===== */
@@ -1101,6 +1127,8 @@ const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
 fScene4.add(g4, 'RINGS4_RADIUS', 1, 8, 0.1).onChange(() => buildGroup4(g4.RINGS4_RADIUS));
 fScene4.add(g4, 'RINGS4_ALPHA', 0, 2, 0.01);
+fScene4.add(g4, 'RINGS4_GRAIN', 0, 0.3, 0.01);
+fScene4.add(g4, 'RINGS4_BLOOM');
 fScene4.open();
 gui.close();
 
