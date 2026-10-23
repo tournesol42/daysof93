@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v21-scene4-ral-solid -->
+<!-- build: journey-v22-colour-tunnel-rings -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -85,9 +85,9 @@ const P = {
 
   FOV: 45,
   CAM_START: [1.1, 0.45, 8.5],
-  CAM_END_Z: -86,
-  SCROLL_PX: 20500,
-  RINGS4_RADIUS: 3.2,
+  CAM_END_Z: -96,
+  SCROLL_PX: 22700,
+  RINGS4_LENGTH: 30, RINGS4_SPACING: 1, RINGS4_ALPHA: 0.5,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
   DRIFT_GAIN: 0.08, DRIFT_FRICTION: 0.975,
@@ -797,62 +797,49 @@ const dustMesh = new THREE.Points(buildDustGeo(), dustMat);
 let   ringsMesh = new THREE.LineSegments(buildRingsGeo(), ringMat);
 scene.add(dustMesh, ringsMesh);
 
-/* ===== SCENE 4 — CONCENTRIC RINGS (RAL solid) ===== */
+/* ===== SCENE 4 — COLOURED TUNNEL RINGS ===== */
 const scene4 = new THREE.Scene();
-// bands first (outer→inner, renderOrder 0) then lines on top (renderOrder 1)
-const RAL = { '9003':0xebecea, '9001':0xe5e1d4, '5024':0x6c8daa, '6032':0x417e57, '1023':0xe6be05, '2000':0xc7750f };
-const ITEMS4 = [
-  {type:'band',  inner:0.70, outer:0.77, color:RAL['5024'], alpha:1},
-  {type:'band',  inner:0.60, outer:0.66, color:RAL['9001'], alpha:1},
-  {type:'band',  inner:0.28, outer:0.49, color:RAL['6032'], alpha:1},
-  {type:'band',  inner:0.22, outer:0.28, color:RAL['1023'], alpha:1},
-  {type:'band',  inner:0.17, outer:0.22, color:RAL['6032'], alpha:1},
-  {type:'band',  inner:0.00, outer:0.14, color:RAL['9001'], alpha:1},
-  {type:'lines', radii:[1.000,0.988,0.976,0.964,0.952,0.940,0.925,0.910,0.895,0.880], color:RAL['9003'], alpha:1, w:0.002},
-  {type:'lines', radii:[0.850,0.835,0.790],                                            color:RAL['5024'], alpha:1, w:0.003},
-  {type:'line',  r:0.68,  color:RAL['9001'], alpha:1, w:0.002},
-  {type:'line',  r:0.57,  color:RAL['2000'], alpha:1, w:0.006},
-  {type:'line',  r:0.54,  color:RAL['1023'], alpha:1, w:0.005},
-  {type:'line',  r:0.52,  color:RAL['2000'], alpha:1, w:0.003},
-  {type:'line',  r:0.155, color:RAL['9003'], alpha:1, w:0.002},
-];
-const g4 = { RINGS4_ON: true, RINGS4_RADIUS: P.RINGS4_RADIUS, RINGS4_ALPHA: 1.0, RINGS4_BLOOM: false };
+const RAL4_COLORS = [0x6c8daa, 0xe5e1d4, 0x417e57, 0xe6be05, 0xc7750f, 0xebecea];
+const g4 = { RINGS4_ON: true, RINGS4_ALPHA: P.RINGS4_ALPHA, RINGS4_SPACING: P.RINGS4_SPACING, RINGS4_LENGTH: P.RINGS4_LENGTH };
 let group4;
-function buildGroup4(rad){
+function buildGroup4(){
   if(group4 && group4.parent) group4.parent.remove(group4);
   group4 = new THREE.Group();
-  group4.position.set(0,0,-92);
-  const mats4 = [];
-  let idx = 0;
-  for(const item of ITEMS4){
-    const isBand = item.type === 'band';
-    const ro = isBand ? 0 : 1;
-    const addEl = (rIn, rOut) => {
-      const mat = new THREE.MeshBasicMaterial({
-        color:item.color, transparent:true, opacity:1,
-        side:THREE.DoubleSide, depthWrite:false, toneMapped:false
-      });
-      const m = new THREE.Mesh(new THREE.RingGeometry(rIn,rOut,256),mat);
-      m.position.z = 0.001 * idx++;
-      m.renderOrder = ro;
-      group4.add(m);
-      mats4.push({mat, base:1.0});
-    };
-    if(isBand){
-      addEl(item.inner*rad, item.outer*rad);
-    } else if(item.type==='line'){
-      addEl(Math.max(0,(item.r-item.w/2)*rad), (item.r+item.w/2)*rad);
-    } else {
-      for(const r of item.radii) addEl(Math.max(0,(r-item.w/2)*rad), (r+item.w/2)*rad);
-    }
+  const radius = P.RINGS_RADIUS;
+  const segs = 128;
+  const pts = new Float32Array((segs + 1) * 3);
+  for(let i = 0; i <= segs; i++){
+    const a = (i / segs) * Math.PI * 2;
+    pts[i*3]   = Math.cos(a) * radius;
+    pts[i*3+1] = Math.sin(a) * radius;
+    pts[i*3+2] = 0;
   }
-  group4.userData.mats = mats4;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+  const rings4 = [];
+  const zStart = -62;
+  const zEnd   = zStart - g4.RINGS4_LENGTH;
+  let ci = 0;
+  for(let z = zStart; z >= zEnd; z -= g4.RINGS4_SPACING){
+    const mat = new THREE.LineBasicMaterial({
+      color: RAL4_COLORS[ci % RAL4_COLORS.length],
+      transparent: true, opacity: 0, depthWrite: false
+    });
+    const loop = new THREE.LineLoop(geo, mat);
+    loop.position.z = z;
+    group4.add(loop);
+    rings4.push({ mat, z });
+    ci++;
+  }
+  group4.userData.rings4 = rings4;
   scene4.add(group4);
 }
-buildGroup4(g4.RINGS4_RADIUS);
+buildGroup4();
 
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
+let prevCamZ = P.CAM_START[2];
+const gmotion = { CAM_SPEED: 0 };
 function frame(now){
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const t = (now - t0) / 1000;
@@ -883,6 +870,8 @@ function frame(now){
 
   const s = P.CAM_START;
   const camZ = s[2] + (P.CAM_END_Z - s[2]) * prog;
+  gmotion.CAM_SPEED += (Math.abs(camZ - prevCamZ) / dt - gmotion.CAM_SPEED) * Math.min(1, dt / 0.5);
+  prevCamZ = camZ;
   // approach: 1 at start, 0 at Z=2 (just before mesh)
   const approach = Math.min(1, Math.max(0, (camZ - 2) / (s[2] - 2)));
   camera.position.set(
@@ -966,12 +955,15 @@ function frame(now){
   ringsMesh.visible = gspace.RINGS_ON;
 
   // ── scene 4 ──
-  const scene4Fade = Math.min(1, Math.max(0, (-camZf - 62) / 8));
-  if (g4.RINGS4_ON && scene4Fade > 0) {
+  if (g4.RINGS4_ON) {
     group4.visible = true;
-    group4.rotation.set(orbitPitch, orbitYaw, 0);
-    const a4 = scene4Fade * g4.RINGS4_ALPHA;
-    for (const {mat, base} of group4.userData.mats) mat.opacity = base * a4;
+    const zoneFade = Math.min(1, Math.max(0, (-camZf - 60) / 6));
+    for (const {mat, z} of group4.userData.rings4) {
+      const dist = Math.abs(camera.position.z - z);
+      const tf = Math.max(0, Math.min(1, (dist - P.SPACE_NEAR_FADE) / Math.max(0.001, gspace.SPACE_FAR - P.SPACE_NEAR_FADE)));
+      const distFade = 1 - tf * tf * (3 - 2 * tf);
+      mat.opacity = g4.RINGS4_ALPHA * distFade * zoneFade;
+    }
   } else {
     group4.visible = false;
   }
@@ -982,13 +974,6 @@ function frame(now){
   const blmThreshold = gbloom.BLOOM_THRESHOLD * (1 - zone3Factor) + ZONE3.BLOOM_THRESHOLD * zone3Factor;
   const blmOn = gbloom.BLOOM_ON || (zone3Factor > 0 && ZONE3.BLOOM_ON);
 
-  // move group4 between bloomed scene and separate scene4
-  if (g4.RINGS4_BLOOM) {
-    if (group4.parent !== scene) { scene4.remove(group4); scene.add(group4); }
-  } else {
-    if (group4.parent !== scene4) { scene.remove(group4); scene4.add(group4); }
-  }
-
   if (blmOn) {
     bloomPass.strength  = blmStrength;
     bloomPass.radius    = blmRadius;
@@ -998,7 +983,7 @@ function frame(now){
     renderer.render(scene, camera);
   }
   // composite scene4 after bloom — crisp, no glow
-  if (!g4.RINGS4_BLOOM && g4.RINGS4_ON && scene4Fade > 0) {
+  if (g4.RINGS4_ON) {
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(scene4, camera);
@@ -1064,6 +1049,7 @@ fMotion.add(P, 'DRIFT_GAIN',     0.01, 0.5,    0.01);
 fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995,  0.001);
 fMotion.add(P, 'ORBIT_GAIN',     0.0001, 0.002, 0.0001);
 fMotion.add(P, 'ORBIT_FRICTION', 0.85, 0.99,   0.001);
+fMotion.add(gmotion, 'CAM_SPEED').listen();
 fMotion.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
@@ -1109,9 +1095,9 @@ fSpace.open();
 
 const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
-fScene4.add(g4, 'RINGS4_RADIUS', 1, 8, 0.1).onChange(() => buildGroup4(g4.RINGS4_RADIUS));
-fScene4.add(g4, 'RINGS4_ALPHA', 0, 1, 0.01);
-fScene4.add(g4, 'RINGS4_BLOOM');
+fScene4.add(g4, 'RINGS4_ALPHA',   0, 1,    0.01);
+fScene4.add(g4, 'RINGS4_SPACING', 0.25, 4, 0.25).onChange(() => buildGroup4());
+fScene4.add(g4, 'RINGS4_LENGTH',  5, 30,   1).onChange(() => buildGroup4());
 fScene4.open();
 gui.close();
 
