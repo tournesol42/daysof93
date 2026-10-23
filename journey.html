@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v13-second-mesh -->
+<!-- build: journey-v14-defaults-transition-drift -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -89,6 +89,7 @@ const P = {
   SCROLL_PX: 16000,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
+  DRIFT_GAIN: 0.08, DRIFT_FRICTION: 0.975,
   FOG_NEAR: 10, FOG_FAR: 18,
   INTRO_SEC: 3
 };
@@ -624,21 +625,20 @@ fileEl.addEventListener('change', () => {
 });
 
 /* ===== SCROLL → CAMERA ===== */
-let target = 0, prog = 0, introStart = null;
+let target = 0, prog = 0, vel = 0, introStart = null;
 addEventListener('wheel', e => {
   e.preventDefault();
-  target = Math.min(1, Math.max(0, target + e.deltaY / P.SCROLL_PX));
+  vel += e.deltaY / P.SCROLL_PX * P.DRIFT_GAIN;
 }, {passive:false});
 let ty = null;
 addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
 addEventListener('touchmove', e => {
   e.preventDefault();
   const y = e.touches[0].clientY;
-  target = Math.min(1, Math.max(0, target + (ty - y) * P.TOUCH_K / P.SCROLL_PX));
+  vel += (ty - y) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN;
   ty = y;
 }, {passive:false});
 
-const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
 const look = new THREE.Vector3();
 
 /* ===== LOOP ===== */
@@ -657,13 +657,24 @@ function frame(now){
 
   group.rotation.y = THREE.MathUtils.degToRad(t * 60 * P.ROT_DEG_PER_FRAME);
 
+  // velocity drift
+  target += vel;
+  vel *= Math.pow(P.DRIFT_FRICTION, dt * 60);
+  if (target <= 0) { target = 0; vel = 0; }
+  if (target >= 1) { target = 1; vel = 0; }
   prog += (target - prog) * P.CAM_EASE;
-  const e = ease(prog), s = P.CAM_START;
-  camera.position.set(s[0]*(1-e) + Math.sin(t*0.31)*0.04,
-                      s[1]*(1-e) + Math.sin(t*0.23)*0.03,
-                      s[2] + (P.CAM_END_Z - s[2]) * e);
-  look.set(0, 0, camera.position.z - 5);
-  if (e < 0.5) look.lerp(new THREE.Vector3(0,0,0), 1 - e*2);
+
+  const s = P.CAM_START;
+  const camZ = s[2] + (P.CAM_END_Z - s[2]) * prog;
+  // approach: 1 at start, 0 at Z=2 (just before mesh)
+  const approach = Math.min(1, Math.max(0, (camZ - 2) / (s[2] - 2)));
+  camera.position.set(
+    s[0] * approach + Math.sin(t*0.31)*0.04,
+    s[1] * approach + Math.sin(t*0.23)*0.03,
+    camZ
+  );
+  look.set(0, 0, camZ - 5);
+  look.lerp(new THREE.Vector3(0, 0, 0), approach * approach);
   camera.lookAt(look);
 
   U.uNear.value = Math.max(0, camera.position.length() - P.MESH_RADIUS);
@@ -753,11 +764,11 @@ gui.domElement.style.top = '0';
 gui.domElement.style.right = '0';
 gui.domElement.style.zIndex = '10';
 
-const gfx   = { N1_K: 0.84, N1_FREQ: 0.9, FRAC_K: 0.165, N2_K: 0.08, SPEED: 0.05 };
-const glines = { LINE_ALPHA: 0.4, LINE_WIDTH: 4.5 };
+const gfx   = { N1_K: 0.95, N1_FREQ: 1.5, FRAC_K: 0, N2_K: 0.25, SPEED: 0.05 };
+const glines = { LINE_ALPHA: 0.14, LINE_WIDTH: 5 };
 const gaudio = { AUDIO_ON: false, AUDIO_THRESH: 0.02, AUDIO_FREQ_MOD: 0 };
 const gbloom = { BLOOM_ON: true, BLOOM_STRENGTH: 0.4, BLOOM_RADIUS: 0.5, BLOOM_THRESHOLD: 0.2 };
-const gpts   = { PT_SCALE: 1.67, PT_ALPHA: 0.37, PT_COLOR: '#ff631b' };
+const gpts   = { PT_SCALE: 1.6, PT_ALPHA: 0.36, PT_COLOR: '#ff631b' };
 const gatmos = { FOG_NEAR: 6, FOG_FAR: 24.5 };
 
 const fNoise = gui.addFolder('Noise');
@@ -799,9 +810,14 @@ fBloom.add(gbloom, 'BLOOM_RADIUS',   0, 2.0, 0.05);
 fBloom.add(gbloom, 'BLOOM_THRESHOLD',0, 1.0, 0.01);
 fBloom.open();
 
+const fMotion = gui.addFolder('Motion');
+fMotion.add(P, 'DRIFT_GAIN',     0.01, 0.5,   0.01);
+fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995, 0.001);
+fMotion.open();
+
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
-  WORD_OPACITY:54, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#EE7C0E',
-  LINES_ON:true, LINES_OPACITY:67};
+  WORD_OPACITY:100, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#ee7c0e',
+  LINES_ON:true, LINES_OPACITY:28};
 
 const fWords = gui.addFolder('Words');
 fWords.add(gwords, 'WORDS_ON');
