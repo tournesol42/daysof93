@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v14-defaults-transition-drift -->
+<!-- build: journey-v15-composer-pixelratio -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -110,7 +110,7 @@ function resize(){
   // pt size = 0.74 × PT_DEFAULT_PX × (canvasHeight/1920) × dpr
   U.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
   if (typeof U2 !== 'undefined') U2.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
-  if (typeof composer !== 'undefined') composer.setSize(innerWidth, innerHeight);
+  if (typeof composer !== 'undefined') { composer.setPixelRatio(dpr); composer.setSize(innerWidth, innerHeight); }
   if (typeof scatterCanvas !== 'undefined') { scatterCanvas.width = innerWidth * dpr; scatterCanvas.height = innerHeight * dpr; sctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
 
@@ -313,6 +313,7 @@ composer.addPass(new THREE.RenderPass(scene, camera));
 const bloomPass = new THREE.UnrealBloomPass(
   new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.5, 0.2);
 composer.addPass(bloomPass);
+resize();
 
 /* ===== ENGINE 2: BINARY SCATTER WORDS ===== */
 const WORDS = [
