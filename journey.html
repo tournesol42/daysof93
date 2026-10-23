@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v17-axes-120bpm -->
+<!-- build: journey-v18-space-dust-rings -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -94,7 +94,9 @@ const P = {
   FOG_NEAR: 10, FOG_FAR: 18,
   INTRO_SEC: 3,
   BPM: 120, BARS: 92, BEATS_PER_BAR: 4,
-  AXES_ALPHA: 0.35
+  DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5,
+  RINGS_ALPHA: 0.07, RINGS_RADIUS: 3.5, RINGS_SPACING: 4,
+  SPACE_NEAR_FADE: 6, SPACE_FAR: 30
 };
 
 const BEAT_SEC = 60 / P.BPM;
@@ -697,56 +699,102 @@ addEventListener('touchend', e => { if (e.touches.length < 2) twoFinger = false;
 
 const look = new THREE.Vector3();
 
-/* ===== CAD AXES ===== */
-function makeAxes(len){
-  const group = new THREE.Group();
-  const a = 0.12, ang = 25 * Math.PI / 180;
-  const ac = a * Math.cos(ang), as_ = a * Math.sin(ang);
-  const pos = [];
-  // 3 axis lines
-  pos.push(-len,0,0, len,0,0, 0,-len,0, 0,len,0, 0,0,-len, 0,0,len);
-  // arrowheads: [tip xyz, axis dir xyz, perp xyz]
-  const tips = [
-    [ len,0,0,  -1,0,0, 0,1,0],[-len,0,0,  1,0,0, 0,1,0],
-    [0, len,0,  0,-1,0, 1,0,0],[0,-len,0,  0, 1,0, 1,0,0],
-    [0,0, len,  0,0,-1, 1,0,0],[0,0,-len,  0,0, 1, 1,0,0],
-  ];
-  for(const [tx,ty,tz, dx,dy,dz, px,py,pz] of tips){
-    const bx=tx+dx*ac, by=ty+dy*ac, bz=tz+dz*ac;
-    pos.push(tx,ty,tz, bx+px*as_,by+py*as_,bz+pz*as_);
-    pos.push(tx,ty,tz, bx-px*as_,by-py*as_,bz-pz*as_);
+/* ===== SPACE LAYER ===== */
+const DUST_VERT = `
+varying vec3 vWorldPos;
+uniform float uDustSize;
+void main(){
+  vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+  gl_PointSize = uDustSize;
+}`;
+const DUST_FRAG = `
+varying vec3 vWorldPos;
+uniform float uDustAlpha;
+uniform vec3  uCamPos;
+uniform float uNearFade;
+uniform float uFar;
+void main(){
+  if(dot(gl_PointCoord-0.5,gl_PointCoord-0.5)>0.25) discard;
+  float d = distance(vWorldPos, uCamPos);
+  float fi = smoothstep(0.2, 1.5, d);
+  float fo = 1.0 - smoothstep(uNearFade, uFar, d);
+  gl_FragColor = vec4(1.0,1.0,1.0, uDustAlpha * fi * fo);
+}`;
+const RING_VERT = `
+varying vec3 vWorldPos;
+void main(){
+  vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+}`;
+const RING_FRAG = `
+varying vec3 vWorldPos;
+uniform float uRingsAlpha;
+uniform vec3  uCamPos;
+uniform float uNearFade;
+uniform float uFar;
+void main(){
+  float d = distance(vWorldPos, uCamPos);
+  float fi = smoothstep(0.2, 1.5, d);
+  float fo = 1.0 - smoothstep(uNearFade, uFar, d);
+  gl_FragColor = vec4(1.0,1.0,1.0, uRingsAlpha * fi * fo);
+}`;
+
+const dustUniforms = {
+  uDustAlpha: {value: P.DUST_ALPHA},
+  uDustSize:  {value: P.SPACE_DUST_SIZE * Math.min(window.devicePixelRatio||1,2)},
+  uCamPos:    {value: new THREE.Vector3()},
+  uNearFade:  {value: P.SPACE_NEAR_FADE},
+  uFar:       {value: P.SPACE_FAR},
+};
+const ringUniforms = {
+  uRingsAlpha:{value: P.RINGS_ALPHA},
+  uCamPos:    {value: new THREE.Vector3()},
+  uNearFade:  {value: P.SPACE_NEAR_FADE},
+  uFar:       {value: P.SPACE_FAR},
+};
+const dustMat = new THREE.ShaderMaterial({
+  vertexShader: DUST_VERT, fragmentShader: DUST_FRAG,
+  uniforms: dustUniforms, transparent: true, depthWrite: false,
+});
+const ringMat = new THREE.ShaderMaterial({
+  vertexShader: RING_VERT, fragmentShader: RING_FRAG,
+  uniforms: ringUniforms, transparent: true, depthWrite: false,
+});
+
+function buildDustGeo(){
+  const n = 1200; const pos = new Float32Array(n*3);
+  let s = 42;
+  const rand = () => { s = (s*1664525+1013904223)>>>0; return s/4294967296; };
+  const zMax = 12, zMin = P.CAM_END_Z - 10;
+  for(let i=0;i<n;i++){
+    const r = 2 + rand()*10;
+    const a = rand()*Math.PI*2;
+    pos[i*3]   = Math.cos(a)*r;
+    pos[i*3+1] = Math.sin(a)*r;
+    pos[i*3+2] = zMin + rand()*(zMax-zMin);
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  const mat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:P.AXES_ALPHA, depthWrite:false });
-  group.add(new THREE.LineSegments(geo, mat));
-  group.userData.mat = mat;
-  // labels
-  const labelDefs = [
-    ['+x', len+0.28,0,0],['-x',-len-0.28,0,0],
-    ['+y',0, len+0.28,0],['-y',0,-len-0.28,0],
-    ['+z',0,0, len+0.28],['-z',0,0,-len-0.28],
-  ];
-  const sprites = [];
-  for(const [text,x,y,z] of labelDefs){
-    const cv=document.createElement('canvas'); cv.width=48; cv.height=24;
-    const cx=cv.getContext('2d');
-    cx.fillStyle='white'; cx.font='bold 16px monospace';
-    cx.textAlign='center'; cx.textBaseline='middle';
-    cx.fillText(text,24,12);
-    const spMat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:P.AXES_ALPHA,depthWrite:false});
-    const sp=new THREE.Sprite(spMat);
-    sp.position.set(x,y,z); sp.scale.set(0.24,0.12,1);
-    group.add(sp); sprites.push(sp);
-  }
-  group.userData.sprites = sprites;
-  return group;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  return g;
 }
-const gaxes = { AXES_ON: true, AXES_ALPHA: 0.35, AXES_LABELS: true, AXES_LEN: 3.0 };
-let axes1 = makeAxes(gaxes.AXES_LEN);
-let axes2 = makeAxes(gaxes.AXES_LEN);
-axes2.position.set(0, 0, -48);
-scene.add(axes1, axes2);
+function buildRingsGeo(){
+  const segs = 128, pos = [];
+  for(let z=8; z>=P.CAM_END_Z; z-=P.RINGS_SPACING){
+    for(let i=0;i<segs;i++){
+      const a0=(i/segs)*Math.PI*2, a1=((i+1)/segs)*Math.PI*2;
+      pos.push(Math.cos(a0)*P.RINGS_RADIUS, Math.sin(a0)*P.RINGS_RADIUS, z,
+               Math.cos(a1)*P.RINGS_RADIUS, Math.sin(a1)*P.RINGS_RADIUS, z);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  return g;
+}
+
+const dustMesh = new THREE.Points(buildDustGeo(), dustMat);
+let   ringsMesh = new THREE.LineSegments(buildRingsGeo(), ringMat);
+scene.add(dustMesh, ringsMesh);
 
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
@@ -855,23 +903,19 @@ function frame(now){
   nc2.z = parseInt(hex2.slice(4,6),16)/255;
   nc2.w = ZONE3.PT_ALPHA;
 
-  // ── axes ──
-  if (gaxes.AXES_ON) {
-    axes1.visible = true; axes2.visible = true;
-    axes1.rotation.set(orbitPitch, orbitYaw, 0);
-    axes2.rotation.set(orbitPitch, orbitYaw, 0);
-    const sm = (e0,e1,x) => { const tt=Math.max(0,Math.min(1,(x-e0)/(e1-e0))); return tt*tt*(3-2*tt); };
-    const d1 = camera.position.length();
-    const a1 = gaxes.AXES_ALPHA * Math.max(0, 1 - sm(gatmos.FOG_NEAR, gatmos.FOG_FAR, d1));
-    axes1.userData.mat.opacity = a1;
-    axes1.userData.sprites.forEach(s => { s.material.opacity = a1; s.visible = gaxes.AXES_LABELS; });
-    const d2 = camera.position.distanceTo(axes2.position);
-    const a2 = gaxes.AXES_ALPHA * Math.max(0, 1 - sm(ZONE3.FOG_NEAR, ZONE3.FOG_FAR, d2));
-    axes2.userData.mat.opacity = a2;
-    axes2.userData.sprites.forEach(s => { s.material.opacity = a2; s.visible = gaxes.AXES_LABELS; });
-  } else {
-    axes1.visible = false; axes2.visible = false;
-  }
+  // ── space layer ──
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  dustUniforms.uCamPos.value.copy(camera.position);
+  dustUniforms.uDustAlpha.value = gspace.DUST_ALPHA;
+  dustUniforms.uDustSize.value  = gspace.SPACE_DUST_SIZE * dpr;
+  dustUniforms.uNearFade.value  = P.SPACE_NEAR_FADE;
+  dustUniforms.uFar.value       = gspace.SPACE_FAR;
+  ringUniforms.uCamPos.value.copy(camera.position);
+  ringUniforms.uRingsAlpha.value = gspace.RINGS_ALPHA;
+  ringUniforms.uNearFade.value   = P.SPACE_NEAR_FADE;
+  ringUniforms.uFar.value        = gspace.SPACE_FAR;
+  dustMesh.visible  = gspace.DUST_ON;
+  ringsMesh.visible = gspace.RINGS_ON;
 
   // blend bloom between dat.GUI and ZONE3 as we transition
   const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
@@ -967,18 +1011,24 @@ fWords.add(gwords, 'LINES_OPACITY',  0, 100,  1);
 
 fWords.open();
 
-const fAxes = gui.addFolder('Axes');
-fAxes.add(gaxes, 'AXES_ON');
-fAxes.add(gaxes, 'AXES_ALPHA', 0, 1, 0.01).onChange(v => { P.AXES_ALPHA = v; });
-fAxes.add(gaxes, 'AXES_LABELS');
-fAxes.add(gaxes, 'AXES_LEN', 1, 8, 0.1).onChange(() => {
-  scene.remove(axes1); scene.remove(axes2);
-  axes1 = makeAxes(gaxes.AXES_LEN);
-  axes2 = makeAxes(gaxes.AXES_LEN);
-  axes2.position.set(0, 0, -48);
-  scene.add(axes1, axes2);
-});
-fAxes.open();
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA: 0.07, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
+const rebuildRings = () => {
+  scene.remove(ringsMesh);
+  P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
+  P.RINGS_SPACING = gspace.RINGS_SPACING;
+  ringsMesh = new THREE.LineSegments(buildRingsGeo(), ringMat);
+  scene.add(ringsMesh);
+};
+const fSpace = gui.addFolder('Space');
+fSpace.add(gspace, 'DUST_ON');
+fSpace.add(gspace, 'DUST_ALPHA',      0, 1,   0.01);
+fSpace.add(gspace, 'SPACE_DUST_SIZE', 0.5, 4, 0.1);
+fSpace.add(gspace, 'RINGS_ON');
+fSpace.add(gspace, 'RINGS_ALPHA',     0, 0.5, 0.005);
+fSpace.add(gspace, 'RINGS_RADIUS',    1, 10,  0.1).onChange(rebuildRings);
+fSpace.add(gspace, 'RINGS_SPACING',   1, 12,  0.5).onChange(rebuildRings);
+fSpace.add(gspace, 'SPACE_FAR',       10, 60, 1);
+fSpace.open();
 gui.close();
 
 addEventListener('resize', resize);
