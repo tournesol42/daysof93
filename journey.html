@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v27-scene5-transform-fix -->
+<!-- build: journey-v28-scene5-skew-orbit-audio -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -845,10 +845,11 @@ const MESH_LONG_SPAN      = 5.7252; // glTF Y axis span (Blender Z → glTF Y)
 const MESH_MAX_R_GLTF     = 1.323;  // max radius from glTF Y-axis (cross-section outer)
 const MESH_MIN_R_GLTF     = 0.534;  // min radius from glTF Y-axis (hollow centre)
 const g5m = {
-  MESH_ON: true, MESH_ALPHA: 0.18, MESH_COLOR: '#ffffff',
+  MESH_ON: true, MESH_ALPHA: 0.11, MESH_COLOR: '#ffffff',
   MESH_EDGE_ANGLE: 20, MESH_SCALE_R: 1.0, MESH_SCALE_LEN: 1.0,
-  MESH_Z_OFFSET: 0, MESH_OFFSET_X: 0, MESH_OFFSET_Y: 0,
-  MESH_ROT_X: -90, MESH_ROT_Y: 0, MESH_ROT_Z: 0, MESH_SPIN: 0
+  MESH_Z_OFFSET: 0, MESH_OFFSET_X: 0.35, MESH_OFFSET_Y: 0.12,
+  MESH_ROT_X: -90, MESH_ROT_Y: -8, MESH_ROT_Z: 0, MESH_SPIN: 0,
+  MESH_PIVOT_AHEAD: 6, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04
 };
 const group5orbit = new THREE.Group();
 const group5      = new THREE.Group();
@@ -894,11 +895,11 @@ function applyMeshTransform(){
     THREE.MathUtils.degToRad(g5m.MESH_ROT_Y),
     THREE.MathUtils.degToRad(g5m.MESH_ROT_Z)
   );
-  // offsets are fractions of fitted outer radius
+  // offsets are fractions of fitted outer radius; z is relative to orbit pivot
   group5.position.set(
     g5m.MESH_OFFSET_X * fitOuterR,
     g5m.MESH_OFFSET_Y * fitOuterR,
-    -70 + g5m.MESH_Z_OFFSET
+    (-70 + g5m.MESH_Z_OFFSET) - group5orbit.position.z
   );
 }
 
@@ -1052,11 +1053,25 @@ function frame(now){
   const meshZoneFade = Math.min(1, Math.max(0, (-camZf - 58) / 10));
   if (g5m.MESH_ON && group5Mats.length) {
     group5orbit.visible = true;
-    group5orbit.rotation.set(0, 0, t * g5m.MESH_SPIN);
+    group5orbit.position.set(0, 0, camera.position.z - g5m.MESH_PIVOT_AHEAD);
+    group5orbit.rotation.set(orbitPitch, orbitYaw, t * g5m.MESH_SPIN);
+    // update z offset since pivot moves with camera
+    const _minRingR5  = P.RINGS_RADIUS * (1 - g4.RINGS4_SIZE_VAR);
+    const _fitOuterR5 = 0.9 * _minRingR5;
+    group5.position.set(
+      g5m.MESH_OFFSET_X * _fitOuterR5,
+      g5m.MESH_OFFSET_Y * _fitOuterR5,
+      (-70 + g5m.MESH_Z_OFFSET) - group5orbit.position.z
+    );
+    const level5 = gaudio.AUDIO_ON ? Math.max(0, (rawLevel - gaudio.AUDIO_THRESH) / Math.max(0.001, 1 - gaudio.AUDIO_THRESH)) : 0;
+    const audioScale5 = 1 + level5 * g5m.MESH_AUDIO_SCALE;
+    const sR5 = (_fitOuterR5 / MESH_MAX_R_GLTF) * g5m.MESH_SCALE_R * audioScale5;
+    const sLen5 = (70 / MESH_LONG_SPAN) * g5m.MESH_SCALE_LEN;
+    group5.scale.set(sR5, sLen5, sR5);
     const mc = new THREE.Color(g5m.MESH_COLOR);
     for (const mat of group5Mats) {
       mat.color.copy(mc);
-      mat.opacity = g5m.MESH_ALPHA * meshZoneFade;
+      mat.opacity = g5m.MESH_ALPHA * meshZoneFade * (1 + level5 * g5m.MESH_AUDIO_ALPHA);
     }
   } else {
     group5orbit.visible = false;
@@ -1199,17 +1214,48 @@ fScene4.open();
 const fScene5 = gui.addFolder('Scene5 Mesh');
 fScene5.add(g5m, 'MESH_ON');
 fScene5.add(g5m, 'MESH_ALPHA',      0, 0.5,   0.005);
-fScene5.addColor(g5m, 'MESH_COLOR');
 fScene5.add(g5m, 'MESH_EDGE_ANGLE', 1, 60,    1).onChange(() => buildEdges());
 fScene5.add(g5m, 'MESH_SCALE_R',    0.1, 5,   0.05).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_SCALE_LEN',  0.1, 5,   0.05).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_Z_OFFSET',   -50, 50,  1).onChange(() => applyMeshTransform());
-fScene5.add(g5m, 'MESH_OFFSET_X',   -0.8, 0.8, 0.01).onChange(() => applyMeshTransform());
-fScene5.add(g5m, 'MESH_OFFSET_Y',   -0.8, 0.8, 0.01).onChange(() => applyMeshTransform());
+fScene5.add(g5m, 'MESH_OFFSET_X',   -1.5, 1.5, 0.01).onChange(() => applyMeshTransform());
+fScene5.add(g5m, 'MESH_OFFSET_Y',   -1.5, 1.5, 0.01).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_ROT_X',      -180, 180, 1).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_ROT_Y',      -180, 180, 1).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_ROT_Z',      -180, 180, 1).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_SPIN',       0, 2,     0.01);
+fScene5.add(g5m, 'MESH_PIVOT_AHEAD',0, 30,    0.5);
+fScene5.add(g5m, 'MESH_AUDIO_ALPHA',0, 5,     0.05);
+fScene5.add(g5m, 'MESH_AUDIO_SCALE',0, 0.3,   0.005);
+// colour picker — dark-console style matching the project's param panel aesthetic
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = g5m.MESH_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = g5m.MESH_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = g5m.MESH_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applyColor(hex){
+    g5m.MESH_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+    const mc = new THREE.Color(hex);
+    for(const mat of group5Mats) mat.color.copy(mc);
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applyColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fScene5.domElement.querySelector('ul').appendChild(row);
+})();
 fScene5.open();
 gui.close();
 
