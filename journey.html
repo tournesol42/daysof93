@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v32-audio-smooth -->
+<!-- build: journey-v33-scene5-own-orbit -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -654,6 +654,9 @@ fileEl.addEventListener('change', () => {
 
 /* ===== ORBIT STATE ===== */
 let orbitYaw = 0, orbitPitch = 0, yawVel = 0, pitchVel = 0, dragging = false, lastX = 0, lastY = 0;
+let orbit5Yaw = 0, orbit5Pitch = 0;
+let orbit5YawVel = 0, orbit5PitchVel = 0;
+let meshZoneFade = 0; // updated each frame; used by input handlers
 
 /* ===== SCROLL → CAMERA ===== */
 let target = 0, prog = 0, vel = 0, introStart = null;
@@ -674,8 +677,13 @@ renderer.domElement.addEventListener('pointermove', e => {
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
   lastX = e.clientX; lastY = e.clientY;
-  yawVel   -= dx * P.ORBIT_GAIN;
-  pitchVel += dy * P.ORBIT_GAIN;
+  if (meshZoneFade > 0) {
+    orbit5YawVel   -= dx * P.ORBIT_GAIN;
+    orbit5PitchVel += dy * P.ORBIT_GAIN;
+  } else {
+    yawVel   -= dx * P.ORBIT_GAIN;
+    pitchVel += dy * P.ORBIT_GAIN;
+  }
 });
 renderer.domElement.addEventListener('pointerup',     () => { dragging = false; });
 renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
@@ -699,8 +707,13 @@ addEventListener('touchmove', e => {
     twoFinger = true;
     const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    yawVel   -= (mx - lastX) * P.ORBIT_GAIN;
-    pitchVel += (my - lastY) * P.ORBIT_GAIN;
+    if (meshZoneFade > 0) {
+      orbit5YawVel   -= (mx - lastX) * P.ORBIT_GAIN;
+      orbit5PitchVel += (my - lastY) * P.ORBIT_GAIN;
+    } else {
+      yawVel   -= (mx - lastX) * P.ORBIT_GAIN;
+      pitchVel += (my - lastY) * P.ORBIT_GAIN;
+    }
     lastX = mx; lastY = my;
   } else if (!twoFinger) {
     const y = e.touches[0].clientY;
@@ -1083,11 +1096,27 @@ function frame(now){
   }
 
   // ── scene 5 ──
-  const meshZoneFade = Math.min(1, Math.max(0, (-camZf - 58) / 10));
+  meshZoneFade = Math.min(1, Math.max(0, (-camZf - 58) / 10));
+  // orbit5 physics — only active while mesh is visible
+  const orbitF5 = Math.pow(P.ORBIT_FRICTION, dt * 60);
+  if (meshZoneFade > 0.01) {
+    orbit5Yaw   += orbit5YawVel;   orbit5YawVel   *= orbitF5;
+    orbit5Pitch += orbit5PitchVel; orbit5PitchVel *= orbitF5;
+    orbit5Pitch = Math.max(-1.4, Math.min(1.4, orbit5Pitch));
+  } else {
+    // before mesh zone: hold at 0
+    orbit5Yaw = 0; orbit5Pitch = 0; orbit5YawVel = 0; orbit5PitchVel = 0;
+  }
+  // ease back to 0 when scrolling out (meshZoneFade falling back toward 0)
+  if (meshZoneFade < 1) {
+    const easeK = 1 - Math.exp(-dt / 1.0);
+    orbit5Yaw   += (0 - orbit5Yaw)   * easeK * (1 - meshZoneFade);
+    orbit5Pitch += (0 - orbit5Pitch) * easeK * (1 - meshZoneFade);
+  }
   if (g5m.MESH_ON && group5Mats.length) {
     group5orbit.visible = true;
     group5orbit.position.set(0, 0, camera.position.z - g5m.MESH_PIVOT_AHEAD);
-    group5orbit.rotation.set(orbitPitch, orbitYaw, t * g5m.MESH_SPIN);
+    group5orbit.rotation.set(orbit5Pitch, orbit5Yaw, t * g5m.MESH_SPIN);
     // update z offset since pivot moves with camera
     const _minRingR5  = P.RINGS_RADIUS * (1 - g4.RINGS4_SIZE_VAR);
     const _fitOuterR5 = 0.9 * _minRingR5;
