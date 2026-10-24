@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v26-scene5-fit -->
+<!-- build: journey-v26b-scene5-fix -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -1046,7 +1046,15 @@ function frame(now){
   }
 
   // ── scene 5 ──
-  const meshZoneFade = Math.min(1, Math.max(0, (-camZf - 68) / 10));
+  const meshZoneFade = Math.min(1, Math.max(0, (-camZf - 58) / 10));
+  if (Math.floor(t) !== Math.floor(t - dt)) {
+    const s5 = group5.scale; const p5 = group5.position;
+    const op = group5Mats[0] ? group5Mats[0].opacity : 'no mat';
+    console.log('[s5] camZf', camZf.toFixed(2), 'fade', meshZoneFade.toFixed(3),
+      'mats', group5Mats.length, 'vis', group5orbit.visible,
+      'scale', s5.x.toFixed(3), s5.y.toFixed(3), s5.z.toFixed(3),
+      'pos.z', p5.z.toFixed(1), 'opacity', op);
+  }
   if (g5m.MESH_ON && group5Mats.length) {
     group5orbit.visible = true;
     const spinRad = t * g5m.MESH_SPIN;
