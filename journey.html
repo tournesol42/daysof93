@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v28-scene5-skew-orbit-audio -->
+<!-- build: journey-v29-scene5-solid -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -845,30 +845,52 @@ const MESH_LONG_SPAN      = 5.7252; // glTF Y axis span (Blender Z → glTF Y)
 const MESH_MAX_R_GLTF     = 1.323;  // max radius from glTF Y-axis (cross-section outer)
 const MESH_MIN_R_GLTF     = 0.534;  // min radius from glTF Y-axis (hollow centre)
 const g5m = {
-  MESH_ON: true, MESH_ALPHA: 0.11, MESH_COLOR: '#ffffff',
-  MESH_EDGE_ANGLE: 20, MESH_SCALE_R: 1.0, MESH_SCALE_LEN: 1.0,
-  MESH_Z_OFFSET: 0, MESH_OFFSET_X: 0.35, MESH_OFFSET_Y: 0.12,
-  MESH_ROT_X: -90, MESH_ROT_Y: -8, MESH_ROT_Z: 0, MESH_SPIN: 0,
-  MESH_PIVOT_AHEAD: 6, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04
+  MESH_ON: true, MESH_ALPHA: 0.205, MESH_COLOR: '#ffffff',
+  MESH_EDGE_ANGLE: 17, MESH_SCALE_R: 0.85, MESH_SCALE_LEN: 1.0,
+  MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.4,
+  MESH_ROT_X: -96, MESH_ROT_Y: -8, MESH_ROT_Z: 0, MESH_SPIN: 0,
+  MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
+  MESH_SOLID: false, SOLID_COLOR: '#8a8a8a', SOLID_ALPHA: 0.85,
+  SOLID_LIGHT: 1.0, SOLID_AMBIENT: 0.35
 };
 const group5orbit = new THREE.Group();
 const group5      = new THREE.Group();
 group5orbit.add(group5);
 scene4.add(group5orbit);
 let group5Mats = [];
+let group5SolidMats = [];
 let glbScene   = null;
+const scene4AmbientLight = new THREE.AmbientLight(0xffffff, g5m.SOLID_AMBIENT);
+const scene4DirLight     = new THREE.DirectionalLight(0xffffff, g5m.SOLID_LIGHT);
+scene4DirLight.position.set(1, 2, 1);
+scene4.add(scene4AmbientLight);
+scene4.add(scene4DirLight);
 
-function buildEdges(){
+function buildMesh5(){
   while(group5.children.length){
     const c = group5.children[0];
     if(c.geometry) c.geometry.dispose();
     group5.remove(c);
   }
   group5Mats = [];
+  group5SolidMats = [];
   if(!glbScene) return;
   glbScene.updateMatrixWorld(true);
   glbScene.traverse(obj => {
     if(!obj.isMesh) return;
+    // solid mesh
+    const solidMat = new THREE.MeshLambertMaterial({
+      color: new THREE.Color(g5m.SOLID_COLOR),
+      transparent: true, opacity: 0, depthWrite: true,
+      flatShading: true,
+      polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
+    });
+    const solidMesh = new THREE.Mesh(obj.geometry, solidMat);
+    solidMesh.matrixAutoUpdate = false;
+    solidMesh.matrix.copy(obj.matrixWorld);
+    group5.add(solidMesh);
+    group5SolidMats.push(solidMat);
+    // edge lines (render on top)
     const edgesGeo = new THREE.EdgesGeometry(obj.geometry, g5m.MESH_EDGE_ANGLE);
     const mat = new THREE.LineBasicMaterial({
       color: new THREE.Color(g5m.MESH_COLOR),
@@ -907,7 +929,7 @@ function applyMeshTransform(){
   const loader = new THREE.GLTFLoader();
   loader.load(MESH_GLB_URL, gltf => {
     glbScene = gltf.scene;
-    buildEdges();
+    buildMesh5();
     applyMeshTransform();
     const minRingR  = P.RINGS_RADIUS * (1 - g4.RINGS4_SIZE_VAR);
     const fitOuterR = 0.9 * minRingR;
@@ -1073,6 +1095,13 @@ function frame(now){
       mat.color.copy(mc);
       mat.opacity = g5m.MESH_ALPHA * meshZoneFade * (1 + level5 * g5m.MESH_AUDIO_ALPHA);
     }
+    const sc = new THREE.Color(g5m.SOLID_COLOR);
+    const solidOpacity = Math.min(1, g5m.SOLID_ALPHA * meshZoneFade * (1 + level5 * g5m.MESH_AUDIO_ALPHA));
+    for (const mat of group5SolidMats) {
+      mat.color.copy(sc);
+      mat.opacity = g5m.MESH_SOLID ? solidOpacity : 0;
+      mat.visible = g5m.MESH_SOLID;
+    }
   } else {
     group5orbit.visible = false;
   }
@@ -1214,7 +1243,7 @@ fScene4.open();
 const fScene5 = gui.addFolder('Scene5 Mesh');
 fScene5.add(g5m, 'MESH_ON');
 fScene5.add(g5m, 'MESH_ALPHA',      0, 0.5,   0.005);
-fScene5.add(g5m, 'MESH_EDGE_ANGLE', 1, 60,    1).onChange(() => buildEdges());
+fScene5.add(g5m, 'MESH_EDGE_ANGLE', 1, 60,    1).onChange(() => buildMesh5());
 fScene5.add(g5m, 'MESH_SCALE_R',    0.1, 5,   0.05).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_SCALE_LEN',  0.1, 5,   0.05).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_Z_OFFSET',   -50, 50,  1).onChange(() => applyMeshTransform());
@@ -1227,7 +1256,7 @@ fScene5.add(g5m, 'MESH_SPIN',       0, 2,     0.01);
 fScene5.add(g5m, 'MESH_PIVOT_AHEAD',0, 30,    0.5);
 fScene5.add(g5m, 'MESH_AUDIO_ALPHA',0, 5,     0.05);
 fScene5.add(g5m, 'MESH_AUDIO_SCALE',0, 0.3,   0.005);
-// colour picker — dark-console style matching the project's param panel aesthetic
+// MESH_COLOR picker
 (function(){
   const row = document.createElement('li');
   row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
@@ -1251,6 +1280,39 @@ fScene5.add(g5m, 'MESH_AUDIO_SCALE',0, 0.3,   0.005);
   }
   swatch.addEventListener('click', () => inp.click());
   inp.addEventListener('input', e => applyColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fScene5.domElement.querySelector('ul').appendChild(row);
+})();
+fScene5.add(g5m, 'MESH_SOLID');
+fScene5.add(g5m, 'SOLID_ALPHA',   0, 1,   0.01);
+fScene5.add(g5m, 'SOLID_LIGHT',   0, 3,   0.05).onChange(v => { scene4DirLight.intensity = v; });
+fScene5.add(g5m, 'SOLID_AMBIENT', 0, 2,   0.05).onChange(v => { scene4AmbientLight.intensity = v; });
+// SOLID_COLOR picker
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = g5m.SOLID_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = g5m.SOLID_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = g5m.SOLID_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applySolidColor(hex){
+    g5m.SOLID_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+    const sc = new THREE.Color(hex);
+    for(const mat of group5SolidMats) mat.color.copy(sc);
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applySolidColor(e.target.value));
   row.appendChild(swatch);
   row.appendChild(hexLabel);
   row.appendChild(inp);
