@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v29-scene5-solid -->
+<!-- build: journey-v30-scene5-defaults -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -845,13 +845,13 @@ const MESH_LONG_SPAN      = 5.7252; // glTF Y axis span (Blender Z → glTF Y)
 const MESH_MAX_R_GLTF     = 1.323;  // max radius from glTF Y-axis (cross-section outer)
 const MESH_MIN_R_GLTF     = 0.534;  // min radius from glTF Y-axis (hollow centre)
 const g5m = {
-  MESH_ON: true, MESH_ALPHA: 0.205, MESH_COLOR: '#ffffff',
+  MESH_ON: true, MESH_ALPHA: 0.1, MESH_COLOR: '#ffffff',
   MESH_EDGE_ANGLE: 17, MESH_SCALE_R: 0.85, MESH_SCALE_LEN: 1.0,
-  MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.4,
-  MESH_ROT_X: -96, MESH_ROT_Y: -8, MESH_ROT_Z: 0, MESH_SPIN: 0,
+  MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.6,
+  MESH_ROT_X: -96, MESH_ROT_Y: -19, MESH_ROT_Z: 0, MESH_SPIN: 0,
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
-  MESH_SOLID: false, SOLID_COLOR: '#8a8a8a', SOLID_ALPHA: 0.85,
-  SOLID_LIGHT: 1.0, SOLID_AMBIENT: 0.35
+  MESH_SOLID: true, SOLID_COLOR: '#193a9f', SOLID_ALPHA: 1.0,
+  SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45
 };
 const group5orbit = new THREE.Group();
 const group5      = new THREE.Group();
