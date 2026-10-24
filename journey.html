@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v33-scene5-own-orbit -->
+<!-- build: journey-v34-scene5-vibrate -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -875,7 +875,8 @@ const g5m = {
   MESH_ROT_X: -96, MESH_ROT_Y: -19, MESH_ROT_Z: 0, MESH_SPIN: 0,
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
   MESH_SOLID: true, SOLID_COLOR: '#a62626', SOLID_ALPHA: 1.0,
-  SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45
+  SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45,
+  MESH_VIBRATE: 0.02, MESH_VIB_FREQ: 6
 };
 const group5orbit = new THREE.Group();
 const group5      = new THREE.Group();
@@ -883,12 +884,21 @@ group5orbit.add(group5);
 scene4.add(group5orbit);
 let group5Mats = [];
 let group5SolidMats = [];
+let group5Beams = []; // [{lines, solid, baseMat, speed, phase1, phase2, phase3}]
 let glbScene   = null;
+const _vibMat  = new THREE.Matrix4(); // scratch — reused every frame
 const scene4AmbientLight = new THREE.AmbientLight(0xffffff, g5m.SOLID_AMBIENT);
 const scene4DirLight     = new THREE.DirectionalLight(0xffffff, g5m.SOLID_LIGHT);
 scene4DirLight.position.set(1, 2, 1);
 scene4.add(scene4AmbientLight);
 scene4.add(scene4DirLight);
+
+// seeded RNG (mulberry32) — always produces the same sequence
+function rng55(){
+  let s = 55;
+  return function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const _rng = rng55();
 
 function buildMesh5(){
   while(group5.children.length){
@@ -898,6 +908,7 @@ function buildMesh5(){
   }
   group5Mats = [];
   group5SolidMats = [];
+  group5Beams = [];
   if(!glbScene) return;
   glbScene.updateMatrixWorld(true);
   glbScene.traverse(obj => {
@@ -925,6 +936,15 @@ function buildMesh5(){
     lines.matrix.copy(obj.matrixWorld);
     group5.add(lines);
     group5Mats.push(mat);
+    // vibration seed — deterministic per-beam random data
+    group5Beams.push({
+      lines, solid: solidMesh,
+      baseMat: obj.matrixWorld.clone(),
+      speed:  0.7 + _rng() * 0.6,
+      phase1: _rng() * Math.PI * 2,
+      phase2: _rng() * Math.PI * 2,
+      phase3: _rng() * Math.PI * 2
+    });
   });
 }
 
@@ -1140,6 +1160,25 @@ function frame(now){
       mat.color.copy(sc);
       mat.opacity = g5m.MESH_SOLID ? solidOpacity : 0;
       mat.visible = g5m.MESH_SOLID;
+    }
+    // per-beam vibration
+    if (g5m.MESH_VIBRATE > 0 && amod > 0) {
+      const tau = Math.PI * 2 * g5m.MESH_VIB_FREQ;
+      for (const b of group5Beams) {
+        const sp = b.speed;
+        const dx = (Math.sin(t * tau * sp        + b.phase1) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase2) * 0.4) * amod * g5m.MESH_VIBRATE;
+        const dz = (Math.sin(t * tau * sp        + b.phase2) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase3) * 0.4) * amod * g5m.MESH_VIBRATE;
+        _vibMat.copy(b.baseMat);
+        _vibMat.elements[12] += dx;
+        _vibMat.elements[14] += dz;
+        b.lines.matrix.copy(_vibMat);
+        b.solid.matrix.copy(_vibMat);
+      }
+    } else if (g5m.MESH_VIBRATE === 0 || amod === 0) {
+      for (const b of group5Beams) {
+        b.lines.matrix.copy(b.baseMat);
+        b.solid.matrix.copy(b.baseMat);
+      }
     }
   } else {
     group5orbit.visible = false;
@@ -1368,6 +1407,8 @@ fScene5.add(g5m, 'SOLID_AMBIENT', 0, 2,   0.05).onChange(v => { scene4AmbientLig
   row.appendChild(inp);
   fScene5.domElement.querySelector('ul').appendChild(row);
 })();
+fScene5.add(g5m, 'MESH_VIBRATE',   0, 0.2,  0.001);
+fScene5.add(g5m, 'MESH_VIB_FREQ', 0.5, 20, 0.5);
 fScene5.open();
 gui.close();
 
