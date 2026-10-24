@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v30-scene5-defaults -->
+<!-- build: journey-v31-audio-env -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -55,7 +55,7 @@ const P = {
   TD_PT:   0.74,   // line1.pointsizemultiplier
 
   // math1–4 range maps (audio 0→1) — used when AUDIO_MOD=true
-  LAG_DOWN: 0.8,
+
   FRACTAL: [0, 9],
   NOISE1:  [0, 10],
   NOISE2:  [1, 12],
@@ -597,7 +597,7 @@ function playBuffer(arr){
     const src = actx.createBufferSource();
     src.buffer = buf; src.loop = true;
     src.loopStart = 0; src.loopEnd = LOOP_SEC;
-    analyser = actx.createAnalyser(); analyser.fftSize = 2048;
+    analyser = actx.createAnalyser(); analyser.fftSize = 1024;
     abuf = new Float32Array(analyser.fftSize);
     src.connect(analyser); analyser.connect(actx.destination);
     audioStartTime = actx.currentTime;
@@ -612,14 +612,17 @@ function loadURL(url){
 }
 function musicBeat(){ return actx && audioStartTime != null ? ((actx.currentTime - audioStartTime) % LOOP_SEC) / BEAT_SEC : 0; }
 function readLevel(dt){
-  let ms = 0;
+  let rms = 0;
   if (analyser){
     analyser.getFloatTimeDomainData(abuf);
-    for (let i = 0; i < abuf.length; i++) ms += abuf[i]*abuf[i];
-    ms /= abuf.length;
+    for (let i = 0; i < abuf.length; i++) rms += abuf[i]*abuf[i];
+    rms = Math.sqrt(rms / abuf.length);
   }
-  if (ms >= env) env = ms;
-  else env += (ms - env) * (1 - Math.exp(-dt / P.LAG_DOWN));
+  const db     = 20 * Math.log10(Math.max(rms, 1e-6));
+  const over   = Math.max(0, db - gaudio.AUDIO_THRESH_DB);
+  const target = gaudio.AUDIO_GAIN * (over / gaudio.AUDIO_RATIO) / 10;
+  if (target > env) env += (target - env) * (1 - Math.exp(-dt / (gaudio.AUDIO_ATTACK_MS  / 1000)));
+  else              env += (target - env) * (1 - Math.exp(-dt / (gaudio.AUDIO_RELEASE_MS / 1000)));
   return env;
 }
 
@@ -847,10 +850,10 @@ const MESH_MIN_R_GLTF     = 0.534;  // min radius from glTF Y-axis (hollow centr
 const g5m = {
   MESH_ON: true, MESH_ALPHA: 0.1, MESH_COLOR: '#ffffff',
   MESH_EDGE_ANGLE: 17, MESH_SCALE_R: 0.85, MESH_SCALE_LEN: 1.0,
-  MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.6,
+  MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.13,
   MESH_ROT_X: -96, MESH_ROT_Y: -19, MESH_ROT_Z: 0, MESH_SPIN: 0,
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
-  MESH_SOLID: true, SOLID_COLOR: '#193a9f', SOLID_ALPHA: 1.0,
+  MESH_SOLID: true, SOLID_COLOR: '#a62626', SOLID_ALPHA: 1.0,
   SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45
 };
 const group5orbit = new THREE.Group();
@@ -1001,7 +1004,7 @@ function frame(now){
   nc.w = gpts.PT_ALPHA;
 
   // compute amod once; shared with drawScatter and zone 3
-  const amod = gaudio.AUDIO_ON ? Math.max(0, (rawLevel - gaudio.AUDIO_THRESH) / Math.max(0.001, 1 - gaudio.AUDIO_THRESH)) : 0;
+  const amod = gaudio.AUDIO_ON ? rawLevel : 0;
   lastAmod = amod;
   U.uN1K.value    = gfx.N1_K    * (1 + amod * 8);
   U.uFK.value     = gfx.FRAC_K  * (1 + amod * 3);
@@ -1085,18 +1088,17 @@ function frame(now){
       g5m.MESH_OFFSET_Y * _fitOuterR5,
       (-70 + g5m.MESH_Z_OFFSET) - group5orbit.position.z
     );
-    const level5 = gaudio.AUDIO_ON ? Math.max(0, (rawLevel - gaudio.AUDIO_THRESH) / Math.max(0.001, 1 - gaudio.AUDIO_THRESH)) : 0;
-    const audioScale5 = 1 + level5 * g5m.MESH_AUDIO_SCALE;
+    const audioScale5 = 1 + amod * g5m.MESH_AUDIO_SCALE;
     const sR5 = (_fitOuterR5 / MESH_MAX_R_GLTF) * g5m.MESH_SCALE_R * audioScale5;
     const sLen5 = (70 / MESH_LONG_SPAN) * g5m.MESH_SCALE_LEN;
     group5.scale.set(sR5, sLen5, sR5);
     const mc = new THREE.Color(g5m.MESH_COLOR);
     for (const mat of group5Mats) {
       mat.color.copy(mc);
-      mat.opacity = g5m.MESH_ALPHA * meshZoneFade * (1 + level5 * g5m.MESH_AUDIO_ALPHA);
+      mat.opacity = g5m.MESH_ALPHA * meshZoneFade * (1 + amod * g5m.MESH_AUDIO_ALPHA);
     }
     const sc = new THREE.Color(g5m.SOLID_COLOR);
-    const solidOpacity = Math.min(1, g5m.SOLID_ALPHA * meshZoneFade * (1 + level5 * g5m.MESH_AUDIO_ALPHA));
+    const solidOpacity = Math.min(1, g5m.SOLID_ALPHA * meshZoneFade * (1 + amod * g5m.MESH_AUDIO_ALPHA));
     for (const mat of group5SolidMats) {
       mat.color.copy(sc);
       mat.opacity = g5m.MESH_SOLID ? solidOpacity : 0;
@@ -1138,7 +1140,12 @@ gui.domElement.style.zIndex = '10';
 
 const gfx   = { N1_K: 0.95, N1_FREQ: 1.5, FRAC_K: 0, N2_K: 0.25, SPEED: 0.05 };
 const glines = { LINE_ALPHA: 0.14, LINE_WIDTH: 5 };
-const gaudio = { AUDIO_ON: true, AUDIO_THRESH: 0.024, AUDIO_FREQ_MOD: 2.4 };
+const gaudio = {
+  AUDIO_ON: true,
+  AUDIO_THRESH_DB: -40, AUDIO_RATIO: 4, AUDIO_GAIN: 0.13,
+  AUDIO_ATTACK_MS: 8, AUDIO_RELEASE_MS: 350,
+  AUDIO_FREQ_MOD: 2.4
+};
 const gbloom = { BLOOM_ON: true, BLOOM_STRENGTH: 0.4, BLOOM_RADIUS: 0.5, BLOOM_THRESHOLD: 0.2 };
 const gpts   = { PT_SCALE: 1.6, PT_ALPHA: 0.36, PT_COLOR: '#ff631b' };
 const gatmos = { FOG_NEAR: 6, FOG_FAR: 24.5 };
@@ -1171,8 +1178,12 @@ fAtmos.open();
 
 const fAudio = gui.addFolder('Audio');
 fAudio.add(gaudio, 'AUDIO_ON');
-fAudio.add(gaudio, 'AUDIO_THRESH', 0, 0.3, 0.001);
-fAudio.add(gaudio, 'AUDIO_FREQ_MOD', 0, 5.0, 0.1);
+fAudio.add(gaudio, 'AUDIO_THRESH_DB',  -70, 0,    1);
+fAudio.add(gaudio, 'AUDIO_RATIO',        1, 20,   0.5);
+fAudio.add(gaudio, 'AUDIO_GAIN',         0, 1,    0.005);
+fAudio.add(gaudio, 'AUDIO_ATTACK_MS',    1, 200,  1);
+fAudio.add(gaudio, 'AUDIO_RELEASE_MS',  20, 2000, 10);
+fAudio.add(gaudio, 'AUDIO_FREQ_MOD',     0, 5.0,  0.1);
 fAudio.open();
 
 const fBloom = gui.addFolder('Bloom');
