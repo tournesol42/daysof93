@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v36-plexus -->
+<!-- build: journey-v37-scene5-guides -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -902,86 +902,90 @@ function rng55(){
 }
 const _rng = rng55();
 
-/* ===== PLEXUS ===== */
-const gplex = {
-  PLEX_ON: true, PLEX_COUNT: 250, PLEX_RADIUS: 1.6, PLEX_AHEAD: 4,
-  PLEX_DIST: 0.9, PLEX_MAX_LINKS: 2, PLEX_ALPHA: 0.35,
-  PLEX_PT_ALPHA: 0.5, PLEX_PT_SIZE: 1.5, PLEX_ROT: 0.1,
-  PLEX_DRIFT: 0.15, PLEX_AUDIO: 0.6, PLEX_COLOR: '#ffffff'
-};
-const PLEX_COUNT_MAX = 600;
-const PLEX_MAX_LINKS_MAX = 6;
-
-let plexTargets = [];
-let plexCloud   = [];
-const _plexV3   = new THREE.Vector3();
-const _targetGrid = new Map();
-
-function rng77fn(){
-  let s = 77;
+/* ===== GUIDE LINES ===== */
+function rng91fn(){
+  let s = 91;
   return function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
+const gg = {
+  GUIDE_ON: true, GUIDE_COUNT: 200, GUIDE_OFF_MIN: 0.03, GUIDE_OFF_MAX: 0.12,
+  GUIDE_ORTHO: true, GUIDE_LEN_VAR: 0.5, GUIDE_EXTEND: 0.1,
+  GUIDE_ALPHA: 0.25, GUIDE_VIBRATE: 0.05, GUIDE_COLOR: '#ffffff'
+};
+let guideLines    = null;
+let guideMat      = null;
+let guideBasePos  = null;
+let guideSpeeds   = null;
+let guidePhases   = null;
+let guideCount5   = 0;
 
-function buildPlexCloud(){
-  const posAttr = gPts.attributes.position;
-  const N = posAttr.count;
-  let maxLen = 0;
-  for (let i = 0; i < N; i++){
-    const x = posAttr.getX(i), y = posAttr.getY(i), z = posAttr.getZ(i);
-    const l = Math.sqrt(x*x + y*y + z*z);
-    if (l > maxLen) maxLen = l;
+function buildGuides(){
+  if (guideLines){ guideLines.geometry.dispose(); group5.remove(guideLines); guideLines = null; }
+  guideMat = null; guideBasePos = null; guideSpeeds = null; guidePhases = null; guideCount5 = 0;
+  if (!glbScene || !group5Beams.length) return;
+  const rng = rng91fn();
+  // collect unique edge vertices in group5-local space + find Y extent
+  const seen = new Set();
+  const verts = [];
+  let meshYMin = Infinity, meshYMax = -Infinity;
+  for (const b of group5Beams){
+    const epa = b.lines.geometry.attributes.position;
+    for (let vi = 0; vi < epa.count; vi++){
+      const vx = epa.getX(vi), vy = epa.getY(vi), vz = epa.getZ(vi);
+      const gv = new THREE.Vector3(vx, vy, vz).applyMatrix4(b.baseMat);
+      const key = gv.x.toFixed(4)+','+gv.y.toFixed(4)+','+gv.z.toFixed(4);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      verts.push(gv);
+      if (gv.y < meshYMin) meshYMin = gv.y;
+      if (gv.y > meshYMax) meshYMax = gv.y;
+    }
   }
-  const inv = maxLen > 0 ? 1 / maxLen : 1;
-  const rng = rng77fn();
-  const count = Math.min(gplex.PLEX_COUNT, PLEX_COUNT_MAX);
-  plexCloud = [];
+  if (!verts.length) return;
+  const meshSpan = meshYMax - meshYMin;
+  const extend   = meshSpan * gg.GUIDE_EXTEND;
+  const yLow     = meshYMin - extend / 2;
+  const span     = meshSpan * (1 + gg.GUIDE_EXTEND);
+  const count    = gg.GUIDE_COUNT;
+  const base     = new Float32Array(count * 6);
+  const spds     = new Float32Array(count);
+  const phs      = new Float32Array(count * 3);
   for (let i = 0; i < count; i++){
-    const idx = Math.floor(i / count * N);
-    plexCloud.push({
-      nx: posAttr.getX(idx) * inv,
-      ny: posAttr.getY(idx) * inv,
-      nz: posAttr.getZ(idx) * inv,
-      px: rng() * Math.PI * 2,
-      py: rng() * Math.PI * 2,
-      pz: rng() * Math.PI * 2,
-      wx: 0, wy: 0, wz: 0
-    });
+    const v   = verts[Math.floor(i / count * verts.length)];
+    const mag = gg.GUIDE_OFF_MIN + rng() * (gg.GUIDE_OFF_MAX - gg.GUIDE_OFF_MIN);
+    let ox, oz;
+    if (gg.GUIDE_ORTHO){
+      const dir = Math.floor(rng() * 4);
+      ox = dir === 0 ? mag : dir === 1 ? -mag : 0;
+      oz = dir === 2 ? mag : dir === 3 ? -mag : 0;
+    } else {
+      const angle = rng() * Math.PI * 2;
+      ox = Math.cos(angle) * mag; oz = Math.sin(angle) * mag;
+    }
+    const len    = span * (1 - rng() * gg.GUIDE_LEN_VAR);
+    const yRoom  = Math.max(0, span - len);
+    const yStart = yLow + rng() * yRoom;
+    const bx = v.x + ox, bz = v.z + oz;
+    const i6 = i * 6;
+    base[i6]   = bx; base[i6+1] = yStart;     base[i6+2] = bz;
+    base[i6+3] = bx; base[i6+4] = yStart+len; base[i6+5] = bz;
+    spds[i] = 0.7 + rng() * 0.6;
+    const i3 = i * 3;
+    phs[i3] = rng()*Math.PI*2; phs[i3+1] = rng()*Math.PI*2; phs[i3+2] = rng()*Math.PI*2;
   }
+  guideBasePos = base;
+  guideSpeeds  = spds;
+  guidePhases  = phs;
+  guideCount5  = count;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(base.slice(), 3));
+  guideMat = new THREE.LineBasicMaterial({
+    color: new THREE.Color(gg.GUIDE_COLOR), transparent: true, opacity: 0,
+    depthWrite: false, depthTest: true
+  });
+  guideLines = new THREE.LineSegments(geo, guideMat);
+  group5.add(guideLines);
 }
-
-// preallocated line segments buffer
-const plexLinePos = new Float32Array(PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2 * 3);
-const plexLineCol = new Float32Array(PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2 * 3);
-const plexLinesGeo = new THREE.BufferGeometry();
-plexLinesGeo.setAttribute('position', new THREE.BufferAttribute(plexLinePos, 3));
-plexLinesGeo.setAttribute('color',    new THREE.BufferAttribute(plexLineCol, 3));
-plexLinesGeo.setDrawRange(0, 0);
-const plexLinesMat = new THREE.LineBasicMaterial({
-  vertexColors: true, transparent: true, depthWrite: false,
-  blending: THREE.AdditiveBlending, opacity: 0
-});
-const plexLines = new THREE.LineSegments(plexLinesGeo, plexLinesMat);
-plexLines.frustumCulled = false;
-scene4.add(plexLines);
-
-// preallocated cloud points buffer
-const plexPtsPos = new Float32Array(PLEX_COUNT_MAX * 3);
-const plexPtsGeo = new THREE.BufferGeometry();
-plexPtsGeo.setAttribute('position', new THREE.BufferAttribute(plexPtsPos, 3));
-plexPtsGeo.setDrawRange(0, 0);
-const _dpr = Math.min(window.devicePixelRatio || 1, 2);
-const plexPtsMat = new THREE.PointsMaterial({
-  color: new THREE.Color(gplex.PLEX_COLOR),
-  transparent: true, depthWrite: false,
-  blending: THREE.AdditiveBlending,
-  sizeAttenuation: false, size: gplex.PLEX_PT_SIZE * _dpr,
-  opacity: 0
-});
-const plexPoints = new THREE.Points(plexPtsGeo, plexPtsMat);
-plexPoints.frustumCulled = false;
-scene4.add(plexPoints);
-
-buildPlexCloud();
 
 function buildMesh5(){
   while(group5.children.length){
@@ -992,7 +996,6 @@ function buildMesh5(){
   group5Mats = [];
   group5SolidMats = [];
   group5Beams = [];
-  plexTargets = [];
   if(!glbScene) return;
   glbScene.updateMatrixWorld(true);
   glbScene.traverse(obj => {
@@ -1031,25 +1034,8 @@ function buildMesh5(){
       phase3: _rng() * Math.PI * 2,
       vdx: 0, vdz: 0
     });
-    // collect unique edge vertices → plexus targets in group5-local space
-    const seen = new Set();
-    const epa = edgesGeo.attributes.position;
-    for (let vi = 0; vi < epa.count; vi++){
-      const vx = epa.getX(vi), vy = epa.getY(vi), vz = epa.getZ(vi);
-      const key = vx.toFixed(4)+','+vy.toFixed(4)+','+vz.toFixed(4);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      _plexV3.set(vx, vy, vz).applyMatrix4(obj.matrixWorld);
-      plexTargets.push({ lx: _plexV3.x, ly: _plexV3.y, lz: _plexV3.z, bi: beamIdx, wx: 0, wy: 0, wz: 0 });
-    }
   });
-  // cap targets at 2000 by even sampling
-  if (plexTargets.length > 2000){
-    const step = plexTargets.length / 2000;
-    const capped = [];
-    for (let i = 0; i < 2000; i++) capped.push(plexTargets[Math.floor(i * step)]);
-    plexTargets = capped;
-  }
+  buildGuides();
 }
 
 function applyMeshTransform(){
@@ -1291,94 +1277,41 @@ function frame(now){
         b.solid.matrix.copy(b.baseMat);
       }
     }
-    // update world matrices before plexus uses group5.matrixWorld
-    group5orbit.updateMatrixWorld(true);
-    // plexus
-    if (gplex.PLEX_ON && meshZoneFade > 0 && plexTargets.length) {
-      plexLines.visible = true;
-      plexPoints.visible = true;
-      // update target world positions
-      for (const tgt of plexTargets) {
-        const b = group5Beams[tgt.bi];
-        _plexV3.set(tgt.lx + b.vdx, tgt.ly, tgt.lz + b.vdz);
-        _plexV3.applyMatrix4(group5.matrixWorld);
-        tgt.wx = _plexV3.x; tgt.wy = _plexV3.y; tgt.wz = _plexV3.z;
-      }
-      // build spatial grid of targets
-      _targetGrid.clear();
-      const cellSz = gplex.PLEX_DIST;
-      for (let ti = 0; ti < plexTargets.length; ti++){
-        const tgt = plexTargets[ti];
-        const cx = Math.floor(tgt.wx / cellSz), cy = Math.floor(tgt.wy / cellSz), cz = Math.floor(tgt.wz / cellSz);
-        const k = `${cx},${cy},${cz}`;
-        if (!_targetGrid.has(k)) _targetGrid.set(k, []);
-        _targetGrid.get(k).push(ti);
-      }
-      // update cloud positions + find links
-      const axA = t * gplex.PLEX_ROT * 0.7, ayA = t * gplex.PLEX_ROT;
-      const caxA = Math.cos(axA), saxA = Math.sin(axA), cayA = Math.cos(ayA), sayA = Math.sin(ayA);
-      const pR = gplex.PLEX_RADIUS * (1 + amod * gplex.PLEX_AUDIO);
-      const dAmp = 0.15 * gplex.PLEX_RADIUS, dFreq = gplex.PLEX_DRIFT;
-      const cCZ = camera.position.z - gplex.PLEX_AHEAD;
-      const dist2 = cellSz * cellSz;
-      const maxSegs = PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2;
-      let segIdx = 0;
-      for (let ci = 0; ci < plexCloud.length; ci++){
-        const cp = plexCloud[ci];
-        // rotateX then rotateY
-        let rx = cp.nx, ry = cp.ny * caxA - cp.nz * saxA, rz = cp.ny * saxA + cp.nz * caxA;
-        const rx2 = rx * cayA + rz * sayA, rz2 = -rx * sayA + rz * cayA;
-        cp.wx = rx2 * pR + Math.sin(t * dFreq + cp.px) * dAmp;
-        cp.wy = ry  * pR + Math.sin(t * dFreq + cp.py) * dAmp;
-        cp.wz = cCZ + rz2 * pR + Math.sin(t * dFreq + cp.pz) * dAmp;
-        const i3 = ci * 3;
-        plexPtsPos[i3] = cp.wx; plexPtsPos[i3+1] = cp.wy; plexPtsPos[i3+2] = cp.wz;
-        // find nearest targets via grid
-        const gcx = Math.floor(cp.wx / cellSz), gcy = Math.floor(cp.wy / cellSz), gcz = Math.floor(cp.wz / cellSz);
-        const links = [];
-        for (let dX = -1; dX <= 1; dX++) for (let dY = -1; dY <= 1; dY++) for (let dZ = -1; dZ <= 1; dZ++){
-          const cell = _targetGrid.get(`${gcx+dX},${gcy+dY},${gcz+dZ}`);
-          if (!cell) continue;
-          for (const ti of cell){
-            const tgt = plexTargets[ti];
-            const ddx = cp.wx - tgt.wx, ddy = cp.wy - tgt.wy, ddz = cp.wz - tgt.wz;
-            const d2 = ddx*ddx + ddy*ddy + ddz*ddz;
-            if (d2 < dist2) links.push({d: Math.sqrt(d2), ti});
+    // guide lines
+    if (gg.GUIDE_ON && guideLines) {
+      guideLines.visible = meshZoneFade > 0;
+      if (meshZoneFade > 0) {
+        guideMat.color.set(gg.GUIDE_COLOR);
+        guideMat.opacity = gg.GUIDE_ALPHA * meshZoneFade * (1 + amod * g5m.MESH_AUDIO_ALPHA);
+        const geoAttr = guideLines.geometry.attributes.position;
+        const arr = geoAttr.array;
+        if (amod > 0 && gg.GUIDE_VIBRATE > 0) {
+          const tau = Math.PI * 2 * g5m.MESH_VIB_FREQ;
+          for (let i = 0; i < guideCount5; i++){
+            const sp = guideSpeeds[i];
+            const i3 = i * 3;
+            const ph1 = guidePhases[i3], ph2 = guidePhases[i3+1], ph3 = guidePhases[i3+2];
+            const gdx = (Math.sin(t * tau * sp + ph1) * 0.6 + Math.sin(t * tau * 1.7 * sp + ph2) * 0.4) * amod * gg.GUIDE_VIBRATE;
+            const gdz = (Math.sin(t * tau * sp + ph2) * 0.6 + Math.sin(t * tau * 1.7 * sp + ph3) * 0.4) * amod * gg.GUIDE_VIBRATE;
+            const i6 = i * 6;
+            arr[i6]   = guideBasePos[i6]   + gdx; arr[i6+2] = guideBasePos[i6+2] + gdz;
+            arr[i6+3] = guideBasePos[i6+3] + gdx; arr[i6+5] = guideBasePos[i6+5] + gdz;
+          }
+        } else {
+          for (let i = 0; i < guideCount5; i++){
+            const i6 = i * 6;
+            arr[i6]   = guideBasePos[i6];   arr[i6+2] = guideBasePos[i6+2];
+            arr[i6+3] = guideBasePos[i6+3]; arr[i6+5] = guideBasePos[i6+5];
           }
         }
-        links.sort((a, b) => a.d - b.d);
-        const nL = Math.min(links.length, gplex.PLEX_MAX_LINKS);
-        for (let li = 0; li < nL && segIdx < maxSegs; li++){
-          const {d, ti} = links[li];
-          const tgt = plexTargets[ti];
-          const br = Math.pow(1 - d / cellSz, 2);
-          const b0 = segIdx * 3, b1 = (segIdx+1) * 3;
-          plexLinePos[b0] = cp.wx;   plexLinePos[b0+1] = cp.wy;   plexLinePos[b0+2] = cp.wz;
-          plexLineCol[b0] = br;      plexLineCol[b0+1] = br;      plexLineCol[b0+2] = br;
-          plexLinePos[b1] = tgt.wx;  plexLinePos[b1+1] = tgt.wy;  plexLinePos[b1+2] = tgt.wz;
-          plexLineCol[b1] = br;      plexLineCol[b1+1] = br;      plexLineCol[b1+2] = br;
-          segIdx += 2;
-        }
+        geoAttr.needsUpdate = true;
       }
-      plexPtsGeo.attributes.position.needsUpdate = true;
-      plexLinesGeo.attributes.position.needsUpdate = true;
-      plexLinesGeo.attributes.color.needsUpdate = true;
-      plexLinesGeo.setDrawRange(0, segIdx);
-      plexPtsGeo.setDrawRange(0, plexCloud.length);
-      const plexC = new THREE.Color(gplex.PLEX_COLOR);
-      plexLinesMat.color.copy(plexC);
-      plexLinesMat.opacity = gplex.PLEX_ALPHA * meshZoneFade;
-      plexPtsMat.color.copy(plexC);
-      plexPtsMat.opacity = gplex.PLEX_PT_ALPHA * meshZoneFade;
-      plexPtsMat.size = gplex.PLEX_PT_SIZE * _dpr;
-    } else {
-      plexLines.visible = false;
-      plexPoints.visible = false;
+    } else if (guideLines) {
+      guideLines.visible = false;
     }
   } else {
     group5orbit.visible = false;
-    plexLines.visible = false;
-    plexPoints.visible = false;
+    if (guideLines) guideLines.visible = false;
   }
 
   // blend bloom between dat.GUI and ZONE3 as we transition
@@ -1609,47 +1542,45 @@ fScene5.add(g5m, 'MESH_VIBRATE',   0, 0.2,  0.001);
 fScene5.add(g5m, 'MESH_VIB_FREQ', 0.5, 20, 0.5);
 fScene5.open();
 
-const fPlexus = gui.addFolder('Scene5 Plexus');
-fPlexus.add(gplex, 'PLEX_ON');
-fPlexus.add(gplex, 'PLEX_COUNT',    20, PLEX_COUNT_MAX, 1).onChange(() => buildPlexCloud());
-fPlexus.add(gplex, 'PLEX_RADIUS',   0.2, 5,    0.05);
-fPlexus.add(gplex, 'PLEX_AHEAD',    0, 20,     0.5);
-fPlexus.add(gplex, 'PLEX_DIST',     0.1, 3,    0.05);
-fPlexus.add(gplex, 'PLEX_MAX_LINKS',1, PLEX_MAX_LINKS_MAX, 1);
-fPlexus.add(gplex, 'PLEX_ALPHA',    0, 1,      0.01);
-fPlexus.add(gplex, 'PLEX_PT_ALPHA', 0, 1,      0.01);
-fPlexus.add(gplex, 'PLEX_PT_SIZE',  0.5, 5,    0.1);
-fPlexus.add(gplex, 'PLEX_ROT',      0, 1,      0.01);
-fPlexus.add(gplex, 'PLEX_DRIFT',    0, 2,      0.05);
-fPlexus.add(gplex, 'PLEX_AUDIO',    0, 3,      0.05);
-// PLEX_COLOR picker
+const rebuildGuides = () => buildGuides();
+const fGuides = gui.addFolder('Scene5 Guides');
+fGuides.add(gg, 'GUIDE_ON');
+fGuides.add(gg, 'GUIDE_COUNT',   10, 800,  1).onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_OFF_MIN', 0, 0.5,   0.005).onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_OFF_MAX', 0, 1,     0.01).onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_ORTHO').onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_LEN_VAR', 0, 1,     0.01).onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_EXTEND',  0, 1,     0.01).onChange(rebuildGuides);
+fGuides.add(gg, 'GUIDE_ALPHA',   0, 1,     0.01);
+fGuides.add(gg, 'GUIDE_VIBRATE', 0, 0.3,   0.005);
+// GUIDE_COLOR picker
 (function(){
   const row = document.createElement('li');
   row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
   const swatch = document.createElement('div');
   swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
-  swatch.style.background = gplex.PLEX_COLOR;
+  swatch.style.background = gg.GUIDE_COLOR;
   const hexLabel = document.createElement('span');
   hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
-  hexLabel.textContent = gplex.PLEX_COLOR.toUpperCase();
+  hexLabel.textContent = gg.GUIDE_COLOR.toUpperCase();
   const inp = document.createElement('input');
   inp.type = 'color';
-  inp.value = gplex.PLEX_COLOR;
+  inp.value = gg.GUIDE_COLOR;
   inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
-  function applyPlexColor(hex){
-    gplex.PLEX_COLOR = hex;
+  function applyGuideColor(hex){
+    gg.GUIDE_COLOR = hex;
     swatch.style.background = hex;
     hexLabel.textContent = hex.toUpperCase();
     inp.value = hex;
   }
   swatch.addEventListener('click', () => inp.click());
-  inp.addEventListener('input', e => applyPlexColor(e.target.value));
+  inp.addEventListener('input', e => applyGuideColor(e.target.value));
   row.appendChild(swatch);
   row.appendChild(hexLabel);
   row.appendChild(inp);
-  fPlexus.domElement.querySelector('ul').appendChild(row);
+  fGuides.domElement.querySelector('ul').appendChild(row);
 })();
-fPlexus.open();
+fGuides.open();
 gui.close();
 
 addEventListener('resize', resize);
