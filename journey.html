@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v35-defaults -->
+<!-- build: journey-v36-plexus -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -85,7 +85,7 @@ const P = {
   ROT_DEG_PER_FRAME: 0.2,
 
   FOV: 45,
-  CAM_START: [1.1, 0.45, 8.5],
+  CAM_START: [0, 0, 8.5],
   CAM_END_Z: -140,
   SCROLL_PX: 32200,
   RINGS4_LENGTH: 30, RINGS4_GAP_MIN: 0.4, RINGS4_GAP_MAX: 2.5, RINGS4_SIZE_VAR: 0.15, RINGS4_ALPHA: 0.08,
@@ -656,6 +656,7 @@ fileEl.addEventListener('change', () => {
 let orbitYaw = 0, orbitPitch = 0, yawVel = 0, pitchVel = 0, dragging = false, lastX = 0, lastY = 0;
 let orbit5Yaw = 0, orbit5Pitch = 0;
 let orbit5YawVel = 0, orbit5PitchVel = 0;
+let rotY5 = 0;
 let meshZoneFade = 0; // updated each frame; used by input handlers
 
 /* ===== SCROLL → CAMERA ===== */
@@ -876,7 +877,8 @@ const g5m = {
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
   MESH_SOLID: true, SOLID_COLOR: '#a62626', SOLID_ALPHA: 1.0,
   SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45,
-  MESH_VIBRATE: 0.02, MESH_VIB_FREQ: 6
+  MESH_VIBRATE: 0.152, MESH_VIB_FREQ: 1,
+  MESH_ROT_Y_SPEED: 3
 };
 const group5orbit = new THREE.Group();
 const group5      = new THREE.Group();
@@ -900,6 +902,87 @@ function rng55(){
 }
 const _rng = rng55();
 
+/* ===== PLEXUS ===== */
+const gplex = {
+  PLEX_ON: true, PLEX_COUNT: 250, PLEX_RADIUS: 1.6, PLEX_AHEAD: 4,
+  PLEX_DIST: 0.9, PLEX_MAX_LINKS: 2, PLEX_ALPHA: 0.35,
+  PLEX_PT_ALPHA: 0.5, PLEX_PT_SIZE: 1.5, PLEX_ROT: 0.1,
+  PLEX_DRIFT: 0.15, PLEX_AUDIO: 0.6, PLEX_COLOR: '#ffffff'
+};
+const PLEX_COUNT_MAX = 600;
+const PLEX_MAX_LINKS_MAX = 6;
+
+let plexTargets = [];
+let plexCloud   = [];
+const _plexV3   = new THREE.Vector3();
+const _targetGrid = new Map();
+
+function rng77fn(){
+  let s = 77;
+  return function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+function buildPlexCloud(){
+  const posAttr = gPts.attributes.position;
+  const N = posAttr.count;
+  let maxLen = 0;
+  for (let i = 0; i < N; i++){
+    const x = posAttr.getX(i), y = posAttr.getY(i), z = posAttr.getZ(i);
+    const l = Math.sqrt(x*x + y*y + z*z);
+    if (l > maxLen) maxLen = l;
+  }
+  const inv = maxLen > 0 ? 1 / maxLen : 1;
+  const rng = rng77fn();
+  const count = Math.min(gplex.PLEX_COUNT, PLEX_COUNT_MAX);
+  plexCloud = [];
+  for (let i = 0; i < count; i++){
+    const idx = Math.floor(i / count * N);
+    plexCloud.push({
+      nx: posAttr.getX(idx) * inv,
+      ny: posAttr.getY(idx) * inv,
+      nz: posAttr.getZ(idx) * inv,
+      px: rng() * Math.PI * 2,
+      py: rng() * Math.PI * 2,
+      pz: rng() * Math.PI * 2,
+      wx: 0, wy: 0, wz: 0
+    });
+  }
+}
+
+// preallocated line segments buffer
+const plexLinePos = new Float32Array(PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2 * 3);
+const plexLineCol = new Float32Array(PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2 * 3);
+const plexLinesGeo = new THREE.BufferGeometry();
+plexLinesGeo.setAttribute('position', new THREE.BufferAttribute(plexLinePos, 3));
+plexLinesGeo.setAttribute('color',    new THREE.BufferAttribute(plexLineCol, 3));
+plexLinesGeo.setDrawRange(0, 0);
+const plexLinesMat = new THREE.LineBasicMaterial({
+  vertexColors: true, transparent: true, depthWrite: false,
+  blending: THREE.AdditiveBlending, opacity: 0
+});
+const plexLines = new THREE.LineSegments(plexLinesGeo, plexLinesMat);
+plexLines.frustumCulled = false;
+scene4.add(plexLines);
+
+// preallocated cloud points buffer
+const plexPtsPos = new Float32Array(PLEX_COUNT_MAX * 3);
+const plexPtsGeo = new THREE.BufferGeometry();
+plexPtsGeo.setAttribute('position', new THREE.BufferAttribute(plexPtsPos, 3));
+plexPtsGeo.setDrawRange(0, 0);
+const _dpr = Math.min(window.devicePixelRatio || 1, 2);
+const plexPtsMat = new THREE.PointsMaterial({
+  color: new THREE.Color(gplex.PLEX_COLOR),
+  transparent: true, depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  sizeAttenuation: false, size: gplex.PLEX_PT_SIZE * _dpr,
+  opacity: 0
+});
+const plexPoints = new THREE.Points(plexPtsGeo, plexPtsMat);
+plexPoints.frustumCulled = false;
+scene4.add(plexPoints);
+
+buildPlexCloud();
+
 function buildMesh5(){
   while(group5.children.length){
     const c = group5.children[0];
@@ -909,6 +992,7 @@ function buildMesh5(){
   group5Mats = [];
   group5SolidMats = [];
   group5Beams = [];
+  plexTargets = [];
   if(!glbScene) return;
   glbScene.updateMatrixWorld(true);
   glbScene.traverse(obj => {
@@ -937,15 +1021,35 @@ function buildMesh5(){
     group5.add(lines);
     group5Mats.push(mat);
     // vibration seed — deterministic per-beam random data
+    const beamIdx = group5Beams.length;
     group5Beams.push({
       lines, solid: solidMesh,
       baseMat: obj.matrixWorld.clone(),
       speed:  0.7 + _rng() * 0.6,
       phase1: _rng() * Math.PI * 2,
       phase2: _rng() * Math.PI * 2,
-      phase3: _rng() * Math.PI * 2
+      phase3: _rng() * Math.PI * 2,
+      vdx: 0, vdz: 0
     });
+    // collect unique edge vertices → plexus targets in group5-local space
+    const seen = new Set();
+    const epa = edgesGeo.attributes.position;
+    for (let vi = 0; vi < epa.count; vi++){
+      const vx = epa.getX(vi), vy = epa.getY(vi), vz = epa.getZ(vi);
+      const key = vx.toFixed(4)+','+vy.toFixed(4)+','+vz.toFixed(4);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      _plexV3.set(vx, vy, vz).applyMatrix4(obj.matrixWorld);
+      plexTargets.push({ lx: _plexV3.x, ly: _plexV3.y, lz: _plexV3.z, bi: beamIdx, wx: 0, wy: 0, wz: 0 });
+    }
   });
+  // cap targets at 2000 by even sampling
+  if (plexTargets.length > 2000){
+    const step = plexTargets.length / 2000;
+    const capped = [];
+    for (let i = 0; i < 2000; i++) capped.push(plexTargets[Math.floor(i * step)]);
+    plexTargets = capped;
+  }
 }
 
 function applyMeshTransform(){
@@ -1145,6 +1249,13 @@ function frame(now){
       g5m.MESH_OFFSET_Y * _fitOuterR5,
       (-70 + g5m.MESH_Z_OFFSET) - group5orbit.position.z
     );
+    // Y-rotation accumulation
+    rotY5 += g5m.MESH_ROT_Y_SPEED * dt;
+    group5.rotation.set(
+      THREE.MathUtils.degToRad(g5m.MESH_ROT_X),
+      THREE.MathUtils.degToRad(g5m.MESH_ROT_Y + rotY5),
+      THREE.MathUtils.degToRad(g5m.MESH_ROT_Z)
+    );
     const audioScale5 = 1 + amod * g5m.MESH_AUDIO_SCALE;
     const sR5 = (_fitOuterR5 / MESH_MAX_R_GLTF) * g5m.MESH_SCALE_R * audioScale5;
     const sLen5 = (70 / MESH_LONG_SPAN) * g5m.MESH_SCALE_LEN;
@@ -1161,27 +1272,113 @@ function frame(now){
       mat.opacity = g5m.MESH_SOLID ? solidOpacity : 0;
       mat.visible = g5m.MESH_SOLID;
     }
-    // per-beam vibration
-    if (g5m.MESH_VIBRATE > 0 && amod > 0) {
-      const tau = Math.PI * 2 * g5m.MESH_VIB_FREQ;
-      for (const b of group5Beams) {
+    // per-beam vibration (stores vdx/vdz for plexus)
+    const doVib = g5m.MESH_VIBRATE > 0 && amod > 0;
+    const tau = Math.PI * 2 * g5m.MESH_VIB_FREQ;
+    for (const b of group5Beams) {
+      if (doVib) {
         const sp = b.speed;
-        const dx = (Math.sin(t * tau * sp        + b.phase1) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase2) * 0.4) * amod * g5m.MESH_VIBRATE;
-        const dz = (Math.sin(t * tau * sp        + b.phase2) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase3) * 0.4) * amod * g5m.MESH_VIBRATE;
+        b.vdx = (Math.sin(t * tau * sp + b.phase1) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase2) * 0.4) * amod * g5m.MESH_VIBRATE;
+        b.vdz = (Math.sin(t * tau * sp + b.phase2) * 0.6 + Math.sin(t * tau * 1.7 * sp + b.phase3) * 0.4) * amod * g5m.MESH_VIBRATE;
         _vibMat.copy(b.baseMat);
-        _vibMat.elements[12] += dx;
-        _vibMat.elements[14] += dz;
+        _vibMat.elements[12] += b.vdx;
+        _vibMat.elements[14] += b.vdz;
         b.lines.matrix.copy(_vibMat);
         b.solid.matrix.copy(_vibMat);
-      }
-    } else if (g5m.MESH_VIBRATE === 0 || amod === 0) {
-      for (const b of group5Beams) {
+      } else {
+        b.vdx = 0; b.vdz = 0;
         b.lines.matrix.copy(b.baseMat);
         b.solid.matrix.copy(b.baseMat);
       }
     }
+    // update world matrices before plexus uses group5.matrixWorld
+    group5orbit.updateMatrixWorld(true);
+    // plexus
+    if (gplex.PLEX_ON && meshZoneFade > 0 && plexTargets.length) {
+      plexLines.visible = true;
+      plexPoints.visible = true;
+      // update target world positions
+      for (const tgt of plexTargets) {
+        const b = group5Beams[tgt.bi];
+        _plexV3.set(tgt.lx + b.vdx, tgt.ly, tgt.lz + b.vdz);
+        _plexV3.applyMatrix4(group5.matrixWorld);
+        tgt.wx = _plexV3.x; tgt.wy = _plexV3.y; tgt.wz = _plexV3.z;
+      }
+      // build spatial grid of targets
+      _targetGrid.clear();
+      const cellSz = gplex.PLEX_DIST;
+      for (let ti = 0; ti < plexTargets.length; ti++){
+        const tgt = plexTargets[ti];
+        const cx = Math.floor(tgt.wx / cellSz), cy = Math.floor(tgt.wy / cellSz), cz = Math.floor(tgt.wz / cellSz);
+        const k = `${cx},${cy},${cz}`;
+        if (!_targetGrid.has(k)) _targetGrid.set(k, []);
+        _targetGrid.get(k).push(ti);
+      }
+      // update cloud positions + find links
+      const axA = t * gplex.PLEX_ROT * 0.7, ayA = t * gplex.PLEX_ROT;
+      const caxA = Math.cos(axA), saxA = Math.sin(axA), cayA = Math.cos(ayA), sayA = Math.sin(ayA);
+      const pR = gplex.PLEX_RADIUS * (1 + amod * gplex.PLEX_AUDIO);
+      const dAmp = 0.15 * gplex.PLEX_RADIUS, dFreq = gplex.PLEX_DRIFT;
+      const cCZ = camera.position.z - gplex.PLEX_AHEAD;
+      const dist2 = cellSz * cellSz;
+      const maxSegs = PLEX_COUNT_MAX * PLEX_MAX_LINKS_MAX * 2;
+      let segIdx = 0;
+      for (let ci = 0; ci < plexCloud.length; ci++){
+        const cp = plexCloud[ci];
+        // rotateX then rotateY
+        let rx = cp.nx, ry = cp.ny * caxA - cp.nz * saxA, rz = cp.ny * saxA + cp.nz * caxA;
+        const rx2 = rx * cayA + rz * sayA, rz2 = -rx * sayA + rz * cayA;
+        cp.wx = rx2 * pR + Math.sin(t * dFreq + cp.px) * dAmp;
+        cp.wy = ry  * pR + Math.sin(t * dFreq + cp.py) * dAmp;
+        cp.wz = cCZ + rz2 * pR + Math.sin(t * dFreq + cp.pz) * dAmp;
+        const i3 = ci * 3;
+        plexPtsPos[i3] = cp.wx; plexPtsPos[i3+1] = cp.wy; plexPtsPos[i3+2] = cp.wz;
+        // find nearest targets via grid
+        const gcx = Math.floor(cp.wx / cellSz), gcy = Math.floor(cp.wy / cellSz), gcz = Math.floor(cp.wz / cellSz);
+        const links = [];
+        for (let dX = -1; dX <= 1; dX++) for (let dY = -1; dY <= 1; dY++) for (let dZ = -1; dZ <= 1; dZ++){
+          const cell = _targetGrid.get(`${gcx+dX},${gcy+dY},${gcz+dZ}`);
+          if (!cell) continue;
+          for (const ti of cell){
+            const tgt = plexTargets[ti];
+            const ddx = cp.wx - tgt.wx, ddy = cp.wy - tgt.wy, ddz = cp.wz - tgt.wz;
+            const d2 = ddx*ddx + ddy*ddy + ddz*ddz;
+            if (d2 < dist2) links.push({d: Math.sqrt(d2), ti});
+          }
+        }
+        links.sort((a, b) => a.d - b.d);
+        const nL = Math.min(links.length, gplex.PLEX_MAX_LINKS);
+        for (let li = 0; li < nL && segIdx < maxSegs; li++){
+          const {d, ti} = links[li];
+          const tgt = plexTargets[ti];
+          const br = Math.pow(1 - d / cellSz, 2);
+          const b0 = segIdx * 3, b1 = (segIdx+1) * 3;
+          plexLinePos[b0] = cp.wx;   plexLinePos[b0+1] = cp.wy;   plexLinePos[b0+2] = cp.wz;
+          plexLineCol[b0] = br;      plexLineCol[b0+1] = br;      plexLineCol[b0+2] = br;
+          plexLinePos[b1] = tgt.wx;  plexLinePos[b1+1] = tgt.wy;  plexLinePos[b1+2] = tgt.wz;
+          plexLineCol[b1] = br;      plexLineCol[b1+1] = br;      plexLineCol[b1+2] = br;
+          segIdx += 2;
+        }
+      }
+      plexPtsGeo.attributes.position.needsUpdate = true;
+      plexLinesGeo.attributes.position.needsUpdate = true;
+      plexLinesGeo.attributes.color.needsUpdate = true;
+      plexLinesGeo.setDrawRange(0, segIdx);
+      plexPtsGeo.setDrawRange(0, plexCloud.length);
+      const plexC = new THREE.Color(gplex.PLEX_COLOR);
+      plexLinesMat.color.copy(plexC);
+      plexLinesMat.opacity = gplex.PLEX_ALPHA * meshZoneFade;
+      plexPtsMat.color.copy(plexC);
+      plexPtsMat.opacity = gplex.PLEX_PT_ALPHA * meshZoneFade;
+      plexPtsMat.size = gplex.PLEX_PT_SIZE * _dpr;
+    } else {
+      plexLines.visible = false;
+      plexPoints.visible = false;
+    }
   } else {
     group5orbit.visible = false;
+    plexLines.visible = false;
+    plexPoints.visible = false;
   }
 
   // blend bloom between dat.GUI and ZONE3 as we transition
@@ -1340,8 +1537,9 @@ fScene5.add(g5m, 'MESH_OFFSET_X',   -1.5, 1.5, 0.01).onChange(() => applyMeshTra
 fScene5.add(g5m, 'MESH_OFFSET_Y',   -1.5, 1.5, 0.01).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_ROT_X',      -180, 180, 1).onChange(() => applyMeshTransform());
 fScene5.add(g5m, 'MESH_ROT_Y',      -180, 180, 1).onChange(() => applyMeshTransform());
-fScene5.add(g5m, 'MESH_ROT_Z',      -180, 180, 1).onChange(() => applyMeshTransform());
-fScene5.add(g5m, 'MESH_SPIN',       0, 2,     0.01);
+fScene5.add(g5m, 'MESH_ROT_Z',        -180, 180, 1).onChange(() => applyMeshTransform());
+fScene5.add(g5m, 'MESH_ROT_Y_SPEED', -30, 30, 0.5);
+fScene5.add(g5m, 'MESH_SPIN',        0, 2,    0.01);
 fScene5.add(g5m, 'MESH_PIVOT_AHEAD',0, 30,    0.5);
 fScene5.add(g5m, 'MESH_AUDIO_ALPHA',0, 5,     0.05);
 fScene5.add(g5m, 'MESH_AUDIO_SCALE',0, 0.3,   0.005);
@@ -1410,6 +1608,48 @@ fScene5.add(g5m, 'SOLID_AMBIENT', 0, 2,   0.05).onChange(v => { scene4AmbientLig
 fScene5.add(g5m, 'MESH_VIBRATE',   0, 0.2,  0.001);
 fScene5.add(g5m, 'MESH_VIB_FREQ', 0.5, 20, 0.5);
 fScene5.open();
+
+const fPlexus = gui.addFolder('Scene5 Plexus');
+fPlexus.add(gplex, 'PLEX_ON');
+fPlexus.add(gplex, 'PLEX_COUNT',    20, PLEX_COUNT_MAX, 1).onChange(() => buildPlexCloud());
+fPlexus.add(gplex, 'PLEX_RADIUS',   0.2, 5,    0.05);
+fPlexus.add(gplex, 'PLEX_AHEAD',    0, 20,     0.5);
+fPlexus.add(gplex, 'PLEX_DIST',     0.1, 3,    0.05);
+fPlexus.add(gplex, 'PLEX_MAX_LINKS',1, PLEX_MAX_LINKS_MAX, 1);
+fPlexus.add(gplex, 'PLEX_ALPHA',    0, 1,      0.01);
+fPlexus.add(gplex, 'PLEX_PT_ALPHA', 0, 1,      0.01);
+fPlexus.add(gplex, 'PLEX_PT_SIZE',  0.5, 5,    0.1);
+fPlexus.add(gplex, 'PLEX_ROT',      0, 1,      0.01);
+fPlexus.add(gplex, 'PLEX_DRIFT',    0, 2,      0.05);
+fPlexus.add(gplex, 'PLEX_AUDIO',    0, 3,      0.05);
+// PLEX_COLOR picker
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = gplex.PLEX_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = gplex.PLEX_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = gplex.PLEX_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applyPlexColor(hex){
+    gplex.PLEX_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applyPlexColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fPlexus.domElement.querySelector('ul').appendChild(row);
+})();
+fPlexus.open();
 gui.close();
 
 addEventListener('resize', resize);
