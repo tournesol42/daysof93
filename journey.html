@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v39-glitch-zone -->
+<!-- build: journey-v40-rings-ramp-folded -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -100,7 +100,7 @@ const P = {
   INTRO_SEC: 3,
   BPM: 120, BARS: 92, BEATS_PER_BAR: 4,
   DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5,
-  RINGS_ALPHA: 0.245, RINGS_RADIUS: 3.5, RINGS_SPACING: 4,
+  RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4,
   SPACE_NEAR_FADE: 6, SPACE_FAR: 30
 };
 
@@ -884,9 +884,9 @@ const g5m = {
   MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.13,
   MESH_ROT_X: -87, MESH_ROT_Y: -16, MESH_ROT_Z: 0, MESH_SPIN: 0,
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
-  MESH_SOLID: true, SOLID_COLOR: '#a62626', SOLID_ALPHA: 1.0,
-  SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45,
-  MESH_VIBRATE: 0.152, MESH_VIB_FREQ: 1,
+  MESH_SOLID: true, SOLID_COLOR: '#A62626', SOLID_ALPHA: 1,
+  SOLID_LIGHT: 1.45, SOLID_AMBIENT: 1.65,
+  MESH_VIBRATE: 0.152, MESH_VIB_FREQ: 0.5,
   MESH_ROT_Y_SPEED: 3
 };
 const group5orbit = new THREE.Group();
@@ -917,9 +917,9 @@ function rng91fn(){
   return function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 const gg = {
-  GUIDE_ON: true, GUIDE_COUNT: 200, GUIDE_OFF_MIN: 0.03, GUIDE_OFF_MAX: 0.12,
-  GUIDE_ORTHO: true, GUIDE_LEN_VAR: 0.5, GUIDE_EXTEND: 0.1,
-  GUIDE_ALPHA: 0.25, GUIDE_VIBRATE: 0.05, GUIDE_COLOR: '#ffffff'
+  GUIDE_ON: true, GUIDE_COUNT: 321, GUIDE_OFF_MIN: 0.03, GUIDE_OFF_MAX: 0.12,
+  GUIDE_ORTHO: true, GUIDE_LEN_VAR: 0.5, GUIDE_EXTEND: 0.08,
+  GUIDE_ALPHA: 0.42, GUIDE_VIBRATE: 0, GUIDE_COLOR: '#DE600D'
 };
 let guideLines    = null;
 let guideMat      = null;
@@ -1212,7 +1212,8 @@ function frame(now){
   dustUniforms.uNearFade.value  = P.SPACE_NEAR_FADE;
   dustUniforms.uFar.value       = gspace.SPACE_FAR;
   ringUniforms.uCamPos.value.copy(camera.position);
-  ringUniforms.uRingsAlpha.value = gspace.RINGS_ALPHA;
+  { const t = Math.max(0, Math.min(1, -camZf / 6)); const k = t * t * (3 - 2 * t);
+    ringUniforms.uRingsAlpha.value = gspace.RINGS_ALPHA_START + (gspace.RINGS_ALPHA - gspace.RINGS_ALPHA_START) * k; }
   ringUniforms.uNearFade.value   = P.SPACE_NEAR_FADE;
   ringUniforms.uFar.value        = gspace.SPACE_FAR;
   dustMesh.visible  = gspace.DUST_ON;
@@ -1479,25 +1480,21 @@ fNoise.add(gfx, 'N1_FREQ',0.1, 5.0, 0.1);
 fNoise.add(gfx, 'FRAC_K', 0, 0.5,  0.005);
 fNoise.add(gfx, 'N2_K',   0, 1.0,  0.01);
 fNoise.add(gfx, 'SPEED',  0, 3.0,  0.05);
-fNoise.open();
 
 const fLines = gui.addFolder('Lines');
 fLines.add(glines, 'LINE_ALPHA', 0, 1.0, 0.01);
 // LINE_WIDTH exposed for future use; WebGL LineSegments is always 1px on most GPUs
 fLines.add(glines, 'LINE_WIDTH', 0.1, 5.0, 0.1);
 fLines.add({GRID: '75 rows × 80 cols (6000 pts)'}, 'GRID').listen();
-fLines.open();
 
 const fPts = gui.addFolder('Points');
 fPts.add(gpts, 'PT_SCALE', 0, 5.0,  0.01);
 fPts.add(gpts, 'PT_ALPHA', 0, 1.0,  0.01);
 fPts.addColor(gpts, 'PT_COLOR');
-fPts.open();
 
 const fAtmos = gui.addFolder('Atmosphere');
 fAtmos.add(gatmos, 'FOG_NEAR', 0, 30, 0.5);
 fAtmos.add(gatmos, 'FOG_FAR',  0, 40, 0.5);
-fAtmos.open();
 
 const fAudio = gui.addFolder('Audio');
 fAudio.add(gaudio, 'AUDIO_ON');
@@ -1509,14 +1506,12 @@ fAudio.add(gaudio, 'AUDIO_ATTACK_MS',     1, 200,  1);
 fAudio.add(gaudio, 'AUDIO_RELEASE_MS',   20, 2000, 10);
 fAudio.add(gaudio, 'AUDIO_FREQ_SMOOTH_MS',20, 2000, 10);
 fAudio.add(gaudio, 'AUDIO_FREQ_MOD',      0, 5.0,  0.1);
-fAudio.open();
 
 const fBloom = gui.addFolder('Bloom');
 fBloom.add(gbloom, 'BLOOM_ON');
 fBloom.add(gbloom, 'BLOOM_STRENGTH', 0, 3.0, 0.05);
 fBloom.add(gbloom, 'BLOOM_RADIUS',   0, 2.0, 0.05);
 fBloom.add(gbloom, 'BLOOM_THRESHOLD',0, 1.0, 0.01);
-fBloom.open();
 
 const fMotion = gui.addFolder('Motion');
 fMotion.add(P, 'DRIFT_GAIN',     0.01, 0.5,    0.01);
@@ -1524,11 +1519,10 @@ fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995,  0.001);
 fMotion.add(P, 'ORBIT_GAIN',     0.0001, 0.002, 0.0001);
 fMotion.add(P, 'ORBIT_FRICTION', 0.85, 0.99,   0.001);
 fMotion.add(gmotion, 'CAM_SPEED').listen();
-fMotion.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:100, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#ee7c0e',
-  LINES_ON:true, LINES_OPACITY:3,
+  LINES_ON:true, LINES_OPACITY:15,
   WORD_AUDIO_NOISE:3, WORD_AUDIO_SIZE:0.3, WORD_AUDIO_LINES:1.5};
 
 const fWords = gui.addFolder('Words');
@@ -1546,9 +1540,8 @@ fWords.add(gwords, 'WORD_AUDIO_NOISE', 0, 10,  0.1);
 fWords.add(gwords, 'WORD_AUDIO_SIZE',  0, 2,   0.05);
 fWords.add(gwords, 'WORD_AUDIO_LINES', 0, 5,   0.1);
 
-fWords.open();
 
-const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA: 0.245, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
 const rebuildRings = () => {
   scene.remove(ringsMesh);
   P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
@@ -1561,11 +1554,11 @@ fSpace.add(gspace, 'DUST_ON');
 fSpace.add(gspace, 'DUST_ALPHA',      0, 1,   0.01);
 fSpace.add(gspace, 'SPACE_DUST_SIZE', 0.5, 4, 0.1);
 fSpace.add(gspace, 'RINGS_ON');
-fSpace.add(gspace, 'RINGS_ALPHA',     0, 0.5, 0.005);
+fSpace.add(gspace, 'RINGS_ALPHA_START', 0, 0.5, 0.005);
+fSpace.add(gspace, 'RINGS_ALPHA',       0, 0.5, 0.005);
 fSpace.add(gspace, 'RINGS_RADIUS',    1, 10,  0.1).onChange(rebuildRings);
 fSpace.add(gspace, 'RINGS_SPACING',   1, 12,  0.5).onChange(rebuildRings);
 fSpace.add(gspace, 'SPACE_FAR',       10, 60, 1);
-fSpace.open();
 
 const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
@@ -1574,7 +1567,6 @@ fScene4.add(g4, 'RINGS4_GAP_MIN',  0.1, 4,  0.1).onChange(() => buildGroup4());
 fScene4.add(g4, 'RINGS4_GAP_MAX',  0.5, 8,  0.1).onChange(() => buildGroup4());
 fScene4.add(g4, 'RINGS4_SIZE_VAR', 0, 0.5,  0.01).onChange(() => buildGroup4());
 fScene4.add(g4, 'RINGS4_LENGTH',   5, 30,   1).onChange(() => buildGroup4());
-fScene4.open();
 
 const fScene5 = gui.addFolder('Scene5 Mesh');
 fScene5.add(g5m, 'MESH_ON');
@@ -1657,7 +1649,6 @@ fScene5.add(g5m, 'SOLID_AMBIENT', 0, 2,   0.05).onChange(v => { scene4AmbientLig
 })();
 fScene5.add(g5m, 'MESH_VIBRATE',   0, 0.2,  0.001);
 fScene5.add(g5m, 'MESH_VIB_FREQ', 0.5, 20, 0.5);
-fScene5.open();
 
 const rebuildGuides = () => buildGuides();
 const fGuides = gui.addFolder('Scene5 Guides');
@@ -1697,7 +1688,6 @@ fGuides.add(gg, 'GUIDE_VIBRATE', 0, 0.3,   0.005);
   row.appendChild(inp);
   fGuides.domElement.querySelector('ul').appendChild(row);
 })();
-fGuides.open();
 
 const fGlitch = gui.addFolder('Glitch Video');
 fGlitch.add(ggfx, 'GLITCH_ON');
@@ -1718,7 +1708,6 @@ fGlitch.add(ggfx, 'BLEND_ALPHA', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_MAX', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_RATE_MS', 16, 200, 1);
 fGlitch.add(ggfx, 'GLITCH_NOW').listen();
-fGlitch.open();
 gui.close();
 
 addEventListener('resize', resize);
