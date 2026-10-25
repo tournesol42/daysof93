@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v43-slab-shade -->
+<!-- build: journey-v44-grid-params -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -134,11 +134,11 @@ function resize(){
 function rng(seed){ let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
   t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-function buildGeometry(){
-  const rand = rng(P.SEED);
+function buildGeometry(rows, cols, div, seed, showRows, showCols){
+  const rand = rng(seed);
   // fine grid: FR rows (0=top pole, FR-1=bottom pole), FC cols (wrap)
-  const FR = (P.BASE_ROWS - 1) * P.DIV + 1;  // 77
-  const FC = P.BASE_COLS * P.DIV;              // 80
+  const FR = (rows - 1) * div + 1;
+  const FC = cols * div;
   const pos = [], grid = [], jit = [], edges = [];
   const id = (r,c) => r * FC + (c % FC);
 
@@ -161,8 +161,8 @@ function buildGeometry(){
   // lines on rows/cols only; poles: no fan edges (skip r=0 and r=FR-1 row edges, skip col edges touching poles)
   for (let r = 0; r < FR; r++){
     for (let c = 0; c < FC; c++){
-      if (r > 0 && r < FR-1) edges.push(id(r,c), id(r,(c+1)%FC));   // row ring (non-pole only)
-      if (r > 0 && r < FR-1) edges.push(id(r,c), id(r+1,c));         // col segment (skip pole fans)
+      if (showRows && r > 0 && r < FR-1) edges.push(id(r,c), id(r,(c+1)%FC));
+      if (showCols && r > 0 && r < FR-1) edges.push(id(r,c), id(r+1,c));
     }
   }
 
@@ -264,6 +264,19 @@ void main(){
   gl_FragColor=vec4(col.rgb*a,a);  // premultiplied: blendSrc=ONE requires RGB*alpha
 }`;
 
+/* ===== GRID PARAMS ===== */
+const ggrid1 = { ROWS: 20, COLS: 20, DIV: 4, SEED: 1, LINE_ROWS: true, LINE_COLS: true };
+const ggrid2 = { ROWS: 20, COLS: 20, DIV: 4, SEED: 1, LINE_ROWS: true, LINE_COLS: true };
+const gridLabel1 = { pts: '' };
+const gridLabel2 = { pts: '' };
+function ptLabel(rows, cols, div) {
+  const FR = (rows - 1) * div + 1;
+  const FC = cols * div;
+  return FR + ' × ' + FC + ' (' + (FR * FC) + ' pts)';
+}
+gridLabel1.pts = ptLabel(ggrid1.ROWS, ggrid1.COLS, ggrid1.DIV);
+gridLabel2.pts = ptLabel(ggrid2.ROWS, ggrid2.COLS, ggrid2.DIV);
+
 /* ===== MESH ===== */
 const U = {
   uTime:{value:0}, uN1:{value:P.TD_N1}, uN2:{value:P.TD_N2}, uFrac:{value:P.TD_FRAC},
@@ -284,7 +297,7 @@ const mkMat = (U_set, frag, near, far) => new THREE.ShaderMaterial({
   blendDst: THREE.OneMinusSrcAlphaFactor
 });
 
-const {gPts, gLin} = buildGeometry();
+let {gPts, gLin} = buildGeometry(ggrid1.ROWS, ggrid1.COLS, ggrid1.DIV, ggrid1.SEED, ggrid1.LINE_ROWS, ggrid1.LINE_COLS);
 const group = new THREE.Group();
 const lines  = new THREE.LineSegments(gLin, mkMat(U, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
 const points = new THREE.Points(gPts, mkMat(U, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
@@ -314,14 +327,32 @@ U2.uLineA.value   = ZONE3.LINE_ALPHA;
 U2.uIntro.value   = 0;
 U2.uTime.value    = 0;
 
+let {gPts: gPts2, gLin: gLin2} = buildGeometry(ggrid2.ROWS, ggrid2.COLS, ggrid2.DIV, ggrid2.SEED, ggrid2.LINE_ROWS, ggrid2.LINE_COLS);
 const group2  = new THREE.Group();
-const lines2  = new THREE.LineSegments(gLin, mkMat(U2, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
-const points2 = new THREE.Points(gPts, mkMat(U2, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
+const lines2  = new THREE.LineSegments(gLin2, mkMat(U2, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const points2 = new THREE.Points(gPts2, mkMat(U2, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
 lines2.renderOrder = 0; points2.renderOrder = 1;
 group2.add(lines2, points2);
 group2.position.z = -48;
 scene.add(group2);
 const mesh2Pos = new THREE.Vector3(0, 0, -48);
+
+function rebuildMesh1Geo() {
+  const r = buildGeometry(ggrid1.ROWS, ggrid1.COLS, ggrid1.DIV, ggrid1.SEED, ggrid1.LINE_ROWS, ggrid1.LINE_COLS);
+  gPts.dispose(); gLin.dispose();
+  gPts = r.gPts; gLin = r.gLin;
+  lines.geometry = gLin; points.geometry = gPts;
+  U.uBR.value = ggrid1.ROWS; U.uBC.value = ggrid1.COLS; U.uDiv.value = ggrid1.DIV;
+  gridLabel1.pts = ptLabel(ggrid1.ROWS, ggrid1.COLS, ggrid1.DIV);
+}
+function rebuildMesh2Geo() {
+  const r = buildGeometry(ggrid2.ROWS, ggrid2.COLS, ggrid2.DIV, ggrid2.SEED, ggrid2.LINE_ROWS, ggrid2.LINE_COLS);
+  gPts2.dispose(); gLin2.dispose();
+  gPts2 = r.gPts; gLin2 = r.gLin;
+  lines2.geometry = gLin2; points2.geometry = gPts2;
+  U2.uBR.value = ggrid2.ROWS; U2.uBC.value = ggrid2.COLS; U2.uDiv.value = ggrid2.DIV;
+  gridLabel2.pts = ptLabel(ggrid2.ROWS, ggrid2.COLS, ggrid2.DIV);
+}
 
 /* ===== POST-PROCESSING ===== */
 const composer = new THREE.EffectComposer(renderer);
@@ -1603,7 +1634,22 @@ const fLines = gui.addFolder('Lines');
 fLines.add(glines, 'LINE_ALPHA', 0, 1.0, 0.01);
 // LINE_WIDTH exposed for future use; WebGL LineSegments is always 1px on most GPUs
 fLines.add(glines, 'LINE_WIDTH', 0.1, 5.0, 0.1);
-fLines.add({GRID: '75 rows × 80 cols (6000 pts)'}, 'GRID').listen();
+
+const fGrid = gui.addFolder('Mesh Grid');
+fGrid.add(ggrid1, 'ROWS',     2, 60, 1).name('GRID1 ROWS').onChange(rebuildMesh1Geo);
+fGrid.add(ggrid1, 'COLS',     2, 60, 1).name('GRID1 COLS').onChange(rebuildMesh1Geo);
+fGrid.add(ggrid1, 'DIV',      1, 8,  1).name('GRID1 DIV').onChange(rebuildMesh1Geo);
+fGrid.add(ggrid1, 'SEED',     1, 99, 1).name('GRID1 SEED').onChange(rebuildMesh1Geo);
+fGrid.add(ggrid1, 'LINE_ROWS').name('GRID1 LINE_ROWS').onChange(rebuildMesh1Geo);
+fGrid.add(ggrid1, 'LINE_COLS').name('GRID1 LINE_COLS').onChange(rebuildMesh1Geo);
+fGrid.add(gridLabel1, 'pts').name('mesh1 pts').listen();
+fGrid.add(ggrid2, 'ROWS',     2, 60, 1).name('GRID2 ROWS').onChange(rebuildMesh2Geo);
+fGrid.add(ggrid2, 'COLS',     2, 60, 1).name('GRID2 COLS').onChange(rebuildMesh2Geo);
+fGrid.add(ggrid2, 'DIV',      1, 8,  1).name('GRID2 DIV').onChange(rebuildMesh2Geo);
+fGrid.add(ggrid2, 'SEED',     1, 99, 1).name('GRID2 SEED').onChange(rebuildMesh2Geo);
+fGrid.add(ggrid2, 'LINE_ROWS').name('GRID2 LINE_ROWS').onChange(rebuildMesh2Geo);
+fGrid.add(ggrid2, 'LINE_COLS').name('GRID2 LINE_COLS').onChange(rebuildMesh2Geo);
+fGrid.add(gridLabel2, 'pts').name('mesh2 pts').listen();
 
 const fPts = gui.addFolder('Points');
 fPts.add(gpts, 'PT_SCALE', 0, 5.0,  0.01);
