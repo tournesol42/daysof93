@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v40-rings-ramp-folded -->
+<!-- build: journey-v41-glitch5 -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -29,6 +29,7 @@
 <input id="file" type="file" accept="audio/*">
 <canvas id="scatter"></canvas>
 <video id="glitchVideo" src="https://daysof93-cdn.b-cdn.net/journeyglitch1.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="glitchVideo5" src="https://daysof93-cdn.b-cdn.net/journeyglitch5.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <canvas id="glitchCanvas"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -464,7 +465,8 @@ let scatterAnim = 0, scatterLastMS = null, scatterPts = [], scatterConns = [], s
 
 const glitchCanvas = document.getElementById('glitchCanvas');
 const gctx = glitchCanvas.getContext('2d');
-const glitchVideo = document.getElementById('glitchVideo');
+const glitchVideo  = document.getElementById('glitchVideo');
+const glitchVideo5 = document.getElementById('glitchVideo5');
 
 function makeScatterPoints(count) {
   const smin = gwords.WORD_SIZE_MIN;
@@ -653,6 +655,7 @@ startEl.addEventListener('click', () => {
   document.body.style.cursor = 'grab';
   introStart = performance.now();
   glitchVideo.play().catch(() => {});
+  glitchVideo5.play().catch(() => {});
 });
 fileEl.addEventListener('change', () => {
   const f = fileEl.files[0]; if (!f) return;
@@ -1400,8 +1403,9 @@ function frame(now){
         glitchCanvas.style.mixBlendMode = 'normal';
         glitchTimer = now + (ggfx.GAP_MIN + Math.random() * Math.abs(ggfx.GAP_MAX - ggfx.GAP_MIN)) * 1000;
       }
-      if (glitchOn && glitchVideo.readyState >= 2) {
-        const VW = glitchVideo.videoWidth, VH = glitchVideo.videoHeight;
+      const glitchSrc = meshZoneFade > 0 ? glitchVideo5 : glitchVideo;
+      if (glitchOn && glitchSrc.readyState >= 2) {
+        const VW = glitchSrc.videoWidth, VH = glitchSrc.videoHeight;
         if (VW > 0 && VH > 0) {
           const cw = innerWidth, ch = innerHeight;
           const vAspect = VW / VH, cAspect = cw / ch;
@@ -1426,13 +1430,13 @@ function frame(now){
             for (const cut of glitchCuts) {
               const vx = sx + (cut.x / cw) * sw;
               const vwc = Math.max(1, (cut.w / cw) * sw);
-              gctx.drawImage(glitchVideo, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
+              gctx.drawImage(glitchSrc, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
             }
           } else if (glitchEffect === 'blend') {
             const bmode = ggfx.BLEND_MODE === 'alternate' ? glitchBlendCurrent : ggfx.BLEND_MODE;
             glitchCanvas.style.mixBlendMode = bmode;
             gctx.globalAlpha = ggfx.BLEND_ALPHA;
-            gctx.drawImage(glitchVideo, sx, sy, sw, sh, 0, 0, cw, ch);
+            gctx.drawImage(glitchSrc, sx, sy, sw, sh, 0, 0, cw, ch);
             gctx.globalAlpha = 1;
           } else if (glitchEffect === 'strobe') {
             glitchCanvas.style.mixBlendMode = 'normal';
@@ -1443,7 +1447,7 @@ function frame(now){
             }
             if (strobeOpacity > 0) {
               gctx.globalAlpha = strobeOpacity;
-              gctx.drawImage(glitchVideo, sx, sy, sw, sh, 0, 0, cw, ch);
+              gctx.drawImage(glitchSrc, sx, sy, sw, sh, 0, 0, cw, ch);
               gctx.globalAlpha = 1;
             }
           }
