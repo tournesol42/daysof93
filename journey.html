@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v42-scene5-slabs -->
+<!-- build: journey-v43-slab-shade -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -1087,12 +1087,22 @@ const gslabs = {
   SLAB_DRIFT: 0.4, SLAB_R_MIN: 0.3, SLAB_R_MAX: 2.2,
   SLAB_AHEAD: 25, SLAB_BEHIND: 3,
   SLAB_GROW: 0.6, SLAB_AUDIO: 0.5,
-  SLAB_COLOR: '#000000'
+  SLAB_COLOR: '#000000', SLAB_SHADE_COLOR: '#ffffff', SLAB_SHADE: 0.5
 };
 const SLAB_COUNT_MAX = 150;
 const slab5 = new THREE.Group();
 scene4.add(slab5);
-const slabMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(gslabs.SLAB_COLOR), depthWrite: true, depthTest: true });
+const SLAB_FACE_FACTORS = [0.0, 0.18, 0.45, 0.3, 0.1, 0.25]; // +x,-x,+y,-y,+z,-z
+const slabMats = SLAB_FACE_FACTORS.map(() => new THREE.MeshBasicMaterial({ depthWrite: true, depthTest: true }));
+function updateSlabShading() {
+  const base  = new THREE.Color(gslabs.SLAB_COLOR);
+  const shade = new THREE.Color(gslabs.SLAB_SHADE_COLOR);
+  for (let i = 0; i < 6; i++) {
+    const f = Math.min(1, SLAB_FACE_FACTORS[i] * gslabs.SLAB_SHADE);
+    slabMats[i].color.copy(base).lerp(shade, f);
+  }
+}
+updateSlabShading();
 const _slabPos5 = new THREE.Vector3();
 const _slabQuat5 = new THREE.Quaternion();
 const _slabScaleW = new THREE.Vector3();
@@ -1119,7 +1129,7 @@ function rebuildSlabSizes() {
 }
 (function initSlabPool(){
   for (let i = 0; i < SLAB_COUNT_MAX; i++) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), slabMat);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), slabMats);
     mesh.matrixAutoUpdate = false;
     mesh.visible = false;
     slab5.add(mesh);
@@ -1405,7 +1415,6 @@ function frame(now){
     _prevCamLocalSlabY = _camLocalSlab.y;
 
     const audioMul = 1 + amod * gslabs.SLAB_AUDIO;
-    slabMat.color.set(gslabs.SLAB_COLOR);
     for (let i = 0; i < SLAB_COUNT_MAX; i++) {
       const s = slabs[i];
       // fully shrunk and leaving — hide and skip
@@ -1816,6 +1825,7 @@ fSlabs.add(gslabs, 'SLAB_AHEAD',    5, 80, 1);
 fSlabs.add(gslabs, 'SLAB_BEHIND',   0.5, 20, 0.5);
 fSlabs.add(gslabs, 'SLAB_GROW',     0.05, 3, 0.05);
 fSlabs.add(gslabs, 'SLAB_AUDIO',    0, 3,  0.05);
+fSlabs.add(gslabs, 'SLAB_SHADE',   0, 2,  0.01).onChange(updateSlabShading);
 // SLAB_COLOR picker
 (function(){
   const row = document.createElement('li');
@@ -1835,9 +1845,38 @@ fSlabs.add(gslabs, 'SLAB_AUDIO',    0, 3,  0.05);
     swatch.style.background = hex;
     hexLabel.textContent = hex.toUpperCase();
     inp.value = hex;
+    updateSlabShading();
   }
   swatch.addEventListener('click', () => inp.click());
   inp.addEventListener('input', e => applySlabColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fSlabs.domElement.querySelector('ul').appendChild(row);
+})();
+// SLAB_SHADE_COLOR picker
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = gslabs.SLAB_SHADE_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = gslabs.SLAB_SHADE_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = gslabs.SLAB_SHADE_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applySlabShadeColor(hex){
+    gslabs.SLAB_SHADE_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+    updateSlabShading();
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applySlabShadeColor(e.target.value));
   row.appendChild(swatch);
   row.appendChild(hexLabel);
   row.appendChild(inp);
