@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v41-glitch5 -->
+<!-- build: journey-v42-scene5-slabs -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -666,8 +666,6 @@ fileEl.addEventListener('change', () => {
 
 /* ===== ORBIT STATE ===== */
 let orbitYaw = 0, orbitPitch = 0, yawVel = 0, pitchVel = 0, dragging = false, lastX = 0, lastY = 0;
-let orbit5Yaw = 0, orbit5Pitch = 0;
-let orbit5YawVel = 0, orbit5PitchVel = 0;
 let rotY5 = 0;
 let meshZoneFade = 0; // updated each frame; used by input handlers
 
@@ -690,10 +688,7 @@ renderer.domElement.addEventListener('pointermove', e => {
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
   lastX = e.clientX; lastY = e.clientY;
-  if (meshZoneFade > 0) {
-    orbit5YawVel   -= dx * P.ORBIT_GAIN;
-    orbit5PitchVel += dy * P.ORBIT_GAIN;
-  } else {
+  if (meshZoneFade === 0) {
     yawVel   -= dx * P.ORBIT_GAIN;
     pitchVel += dy * P.ORBIT_GAIN;
   }
@@ -720,10 +715,7 @@ addEventListener('touchmove', e => {
     twoFinger = true;
     const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    if (meshZoneFade > 0) {
-      orbit5YawVel   -= (mx - lastX) * P.ORBIT_GAIN;
-      orbit5PitchVel += (my - lastY) * P.ORBIT_GAIN;
-    } else {
+    if (meshZoneFade === 0) {
       yawVel   -= (mx - lastX) * P.ORBIT_GAIN;
       pitchVel += (my - lastY) * P.ORBIT_GAIN;
     }
@@ -1085,6 +1077,57 @@ function applyMeshTransform(){
   });
 })();
 
+/* ===== SCENE 5 — FALLING SLABS ===== */
+const gslabs = {
+  SLAB_ON: true, SLAB_COUNT: 40,
+  SLAB_LEN_MIN: 0.5, SLAB_LEN_MAX: 3,
+  SLAB_W_MIN: 0.08, SLAB_W_MAX: 0.4,
+  SLAB_T_MIN: 0.02, SLAB_T_MAX: 0.08,
+  SLAB_SPEED_MIN: 0.6, SLAB_SPEED_MAX: 1.4,
+  SLAB_DRIFT: 0.4, SLAB_R_MIN: 0.3, SLAB_R_MAX: 2.2,
+  SLAB_AHEAD: 25, SLAB_BEHIND: 3,
+  SLAB_GROW: 0.6, SLAB_AUDIO: 0.5,
+  SLAB_COLOR: '#000000'
+};
+const SLAB_COUNT_MAX = 150;
+const slab5 = new THREE.Group();
+scene4.add(slab5);
+const slabMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(gslabs.SLAB_COLOR), depthWrite: true, depthTest: true });
+const _slabPos5 = new THREE.Vector3();
+const _slabQuat5 = new THREE.Quaternion();
+const _slabScaleW = new THREE.Vector3();
+const _camLocalSlab = new THREE.Vector3();
+const _slabV3 = new THREE.Vector3();
+const _slabQ4 = new THREE.Quaternion();
+const _slabUp = new THREE.Vector3(0, 1, 0);
+const _slabScl = new THREE.Vector3();
+let _prevCamLocalSlabY = 0;
+let slabsWereActive = false;
+let slabRespawnRng = rng(456);
+const slabs = [];
+function rebuildSlabSizes() {
+  const r = rng(123);
+  for (let i = 0; i < SLAB_COUNT_MAX; i++) {
+    const s = slabs[i];
+    s.len = gslabs.SLAB_LEN_MIN + r() * (gslabs.SLAB_LEN_MAX - gslabs.SLAB_LEN_MIN);
+    s.w   = gslabs.SLAB_W_MIN   + r() * (gslabs.SLAB_W_MAX   - gslabs.SLAB_W_MIN);
+    s.th  = gslabs.SLAB_T_MIN   + r() * (gslabs.SLAB_T_MAX   - gslabs.SLAB_T_MIN);
+    s.rotY = Math.floor(r() * 4) * Math.PI * 0.5;
+    s.speedFactor = gslabs.SLAB_SPEED_MIN + r() * (gslabs.SLAB_SPEED_MAX - gslabs.SLAB_SPEED_MIN);
+    s.driftFactor = 0.5 + r(); // 0.5–1.5
+  }
+}
+(function initSlabPool(){
+  for (let i = 0; i < SLAB_COUNT_MAX; i++) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), slabMat);
+    mesh.matrixAutoUpdate = false;
+    mesh.visible = false;
+    slab5.add(mesh);
+    slabs.push({ mesh, len:1, w:0.1, th:0.03, rotY:0, speedFactor:1, driftFactor:1, angle:0, radius:1, y:0, growT:0, growing:false, growDir:1 });
+  }
+  rebuildSlabSizes();
+})();
+
 /* ===== GLITCH VIDEO ===== */
 const ggfx = {
   GLITCH_ON: true, GLITCH_FORCE: 'random', GAP_MIN: 2, GAP_MAX: 2,
@@ -1238,26 +1281,10 @@ function frame(now){
 
   // ── scene 5 ──
   meshZoneFade = Math.min(1, Math.max(0, (-camZf - 58) / 10));
-  // orbit5 physics — only active while mesh is visible
-  const orbitF5 = Math.pow(P.ORBIT_FRICTION, dt * 60);
-  if (meshZoneFade > 0.01) {
-    orbit5Yaw   += orbit5YawVel;   orbit5YawVel   *= orbitF5;
-    orbit5Pitch += orbit5PitchVel; orbit5PitchVel *= orbitF5;
-    orbit5Pitch = Math.max(-1.4, Math.min(1.4, orbit5Pitch));
-  } else {
-    // before mesh zone: hold at 0
-    orbit5Yaw = 0; orbit5Pitch = 0; orbit5YawVel = 0; orbit5PitchVel = 0;
-  }
-  // ease back to 0 when scrolling out (meshZoneFade falling back toward 0)
-  if (meshZoneFade < 1) {
-    const easeK = 1 - Math.exp(-dt / 1.0);
-    orbit5Yaw   += (0 - orbit5Yaw)   * easeK * (1 - meshZoneFade);
-    orbit5Pitch += (0 - orbit5Pitch) * easeK * (1 - meshZoneFade);
-  }
   if (g5m.MESH_ON && group5Mats.length) {
     group5orbit.visible = true;
     group5orbit.position.set(0, 0, camera.position.z - g5m.MESH_PIVOT_AHEAD);
-    group5orbit.rotation.set(orbit5Pitch, orbit5Yaw, t * g5m.MESH_SPIN);
+    group5orbit.rotation.set(0, 0, t * g5m.MESH_SPIN);
     // update z offset since pivot moves with camera
     const _minRingR5  = P.RINGS_RADIUS * (1 - g4.RINGS4_SIZE_VAR);
     const _fitOuterR5 = 0.9 * _minRingR5;
@@ -1344,6 +1371,83 @@ function frame(now){
     group5orbit.visible = false;
     if (guideLines) guideLines.visible = false;
   }
+
+  // ── scene 5 slabs ──
+  const slabNearZ = -70 + g5m.MESH_Z_OFFSET - 2;
+  const slabFarZ  = -140 + g5m.MESH_Z_OFFSET + 2;
+  const slabsActive = gslabs.SLAB_ON && camZf < slabNearZ && camZf > slabFarZ;
+  if (slabsActive || slabsWereActive) {
+    group5.updateWorldMatrix(true, false);
+    group5.matrixWorld.decompose(_slabPos5, _slabQuat5, _slabScaleW);
+    slab5.position.copy(_slabPos5);
+    slab5.quaternion.copy(_slabQuat5);
+    slab5.updateMatrixWorld(true);
+
+    _camLocalSlab.copy(camera.position);
+    slab5.worldToLocal(_camLocalSlab);
+    let camDeltaY = _camLocalSlab.y - _prevCamLocalSlabY;
+
+    if (!slabsWereActive && slabsActive) {
+      camDeltaY = 0;
+      const r2 = rng(789);
+      for (let i = 0; i < SLAB_COUNT_MAX; i++) {
+        const s = slabs[i];
+        s.angle   = r2() * Math.PI * 2;
+        s.radius  = gslabs.SLAB_R_MIN + r2() * (gslabs.SLAB_R_MAX - gslabs.SLAB_R_MIN);
+        s.y       = _camLocalSlab.y - gslabs.SLAB_BEHIND + r2() * (gslabs.SLAB_AHEAD + gslabs.SLAB_BEHIND);
+        s.growT = 0; s.growing = true; s.growDir = 1;
+        s.mesh.visible = i < gslabs.SLAB_COUNT;
+      }
+      slabRespawnRng = rng(456);
+    } else if (slabsWereActive && !slabsActive) {
+      for (const s of slabs) { s.growing = true; s.growDir = -1; }
+    }
+    _prevCamLocalSlabY = _camLocalSlab.y;
+
+    const audioMul = 1 + amod * gslabs.SLAB_AUDIO;
+    slabMat.color.set(gslabs.SLAB_COLOR);
+    for (let i = 0; i < SLAB_COUNT_MAX; i++) {
+      const s = slabs[i];
+      // fully shrunk and leaving — hide and skip
+      if (!slabsActive && s.growDir < 0 && s.growT >= gslabs.SLAB_GROW) { s.mesh.visible = false; continue; }
+      // beyond active count
+      if (slabsActive && i >= gslabs.SLAB_COUNT) { s.mesh.visible = false; continue; }
+
+      if (s.growing) {
+        s.growT = Math.min(s.growT + dt, gslabs.SLAB_GROW);
+        if (s.growDir > 0 && s.growT >= gslabs.SLAB_GROW) s.growing = false;
+      }
+      const gf = s.growT / Math.max(0.001, gslabs.SLAB_GROW);
+      const gs = gf * gf * (3 - 2 * gf); // smoothstep
+      const scale = s.growDir > 0 ? gs : (1 - gs);
+
+      s.y += (camDeltaY * s.speedFactor + gslabs.SLAB_DRIFT * s.driftFactor * dt) * audioMul;
+
+      if (slabsActive) {
+        if (s.y < _camLocalSlab.y - gslabs.SLAB_BEHIND) {
+          s.angle = slabRespawnRng() * Math.PI * 2;
+          s.radius = gslabs.SLAB_R_MIN + slabRespawnRng() * (gslabs.SLAB_R_MAX - gslabs.SLAB_R_MIN);
+          s.y = _camLocalSlab.y + (0.6 + slabRespawnRng() * 0.4) * gslabs.SLAB_AHEAD;
+          s.growT = 0; s.growing = true; s.growDir = 1;
+        } else if (s.y > _camLocalSlab.y + gslabs.SLAB_AHEAD) {
+          s.angle = slabRespawnRng() * Math.PI * 2;
+          s.radius = gslabs.SLAB_R_MIN + slabRespawnRng() * (gslabs.SLAB_R_MAX - gslabs.SLAB_R_MIN);
+          s.y = _camLocalSlab.y - gslabs.SLAB_BEHIND;
+          s.growT = 0; s.growing = true; s.growDir = 1;
+        }
+      }
+
+      _slabV3.set(Math.cos(s.angle) * s.radius, s.y, Math.sin(s.angle) * s.radius);
+      _slabQ4.setFromAxisAngle(_slabUp, s.rotY);
+      _slabScl.set(s.w * scale, s.len * scale, s.th * scale);
+      s.mesh.matrix.compose(_slabV3, _slabQ4, _slabScl);
+      s.mesh.visible = scale > 0.001;
+    }
+  } else if (!slabsActive && !slabsWereActive) {
+    // never entered or fully done
+    if (slabs.length && slabs[0].mesh.visible) for (const s of slabs) s.mesh.visible = false;
+  }
+  slabsWereActive = slabsActive;
 
   // blend bloom between dat.GUI and ZONE3 as we transition
   const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
@@ -1433,7 +1537,8 @@ function frame(now){
               gctx.drawImage(glitchSrc, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
             }
           } else if (glitchEffect === 'blend') {
-            const bmode = ggfx.BLEND_MODE === 'alternate' ? glitchBlendCurrent : ggfx.BLEND_MODE;
+            const bmode = meshZoneFade > 0 ? 'color-dodge'
+              : (ggfx.BLEND_MODE === 'alternate' ? glitchBlendCurrent : ggfx.BLEND_MODE);
             glitchCanvas.style.mixBlendMode = bmode;
             gctx.globalAlpha = ggfx.BLEND_ALPHA;
             gctx.drawImage(glitchSrc, sx, sy, sw, sh, 0, 0, cw, ch);
@@ -1691,6 +1796,52 @@ fGuides.add(gg, 'GUIDE_VIBRATE', 0, 0.3,   0.005);
   row.appendChild(hexLabel);
   row.appendChild(inp);
   fGuides.domElement.querySelector('ul').appendChild(row);
+})();
+
+const fSlabs = gui.addFolder('Scene5 Slabs');
+fSlabs.add(gslabs, 'SLAB_ON');
+fSlabs.add(gslabs, 'SLAB_COUNT',    0, 150, 1);
+fSlabs.add(gslabs, 'SLAB_LEN_MIN',  0.05, 10, 0.05).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_LEN_MAX',  0.05, 10, 0.05).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_W_MIN',    0.01, 2,  0.005).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_W_MAX',    0.01, 2,  0.005).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_T_MIN',    0.005, 1, 0.005).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_T_MAX',    0.005, 1, 0.005).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_SPEED_MIN',0, 2, 0.05).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_SPEED_MAX',0, 2, 0.05).onChange(rebuildSlabSizes);
+fSlabs.add(gslabs, 'SLAB_DRIFT',    0, 5,  0.05);
+fSlabs.add(gslabs, 'SLAB_R_MIN',    0, 5,  0.05);
+fSlabs.add(gslabs, 'SLAB_R_MAX',    0, 5,  0.05);
+fSlabs.add(gslabs, 'SLAB_AHEAD',    5, 80, 1);
+fSlabs.add(gslabs, 'SLAB_BEHIND',   0.5, 20, 0.5);
+fSlabs.add(gslabs, 'SLAB_GROW',     0.05, 3, 0.05);
+fSlabs.add(gslabs, 'SLAB_AUDIO',    0, 3,  0.05);
+// SLAB_COLOR picker
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = gslabs.SLAB_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = gslabs.SLAB_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = gslabs.SLAB_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applySlabColor(hex){
+    gslabs.SLAB_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applySlabColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fSlabs.domElement.querySelector('ul').appendChild(row);
 })();
 
 const fGlitch = gui.addFolder('Glitch Video');
