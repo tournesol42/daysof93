@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v38-glitch-video -->
+<!-- build: journey-v39-glitch-zone -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -1084,15 +1084,19 @@ function applyMeshTransform(){
 
 /* ===== GLITCH VIDEO ===== */
 const ggfx = {
-  GLITCH_ON: true, GLITCH_FORCE: 'random', GAP_MIN: 3, GAP_MAX: 6,
-  ON_MIN: 1, ON_MAX: 3, FX_CUTS: true, FX_BLEND: true, FX_STROBE: true,
-  CUT_COUNT: 14, CUT_W_MIN: 2, CUT_W_MAX: 18, CUT_SHUFFLE_MS: 120,
-  BLEND_MODE: 'screen', BLEND_ALPHA: 0.7, STROBE_MAX: 0.8, STROBE_RATE_MS: 40,
+  GLITCH_ON: true, GLITCH_FORCE: 'random', GAP_MIN: 2, GAP_MAX: 2,
+  ON_MIN: 1, ON_MAX: 0.1, FX_CUTS: false, FX_BLEND: true, FX_STROBE: true,
+  CUT_COUNT: 1, CUT_W_MIN: 2, CUT_W_MAX: 6, CUT_SHUFFLE_MS: 20,
+  BLEND_MODE: 'alternate', BLEND_ALPHA: 0.5, STROBE_MAX: 0.65, STROBE_RATE_MS: 54,
   GLITCH_NOW: 'off'
 };
+const GLITCH_START_Z = -2; // camZ where binary scatter fades in
 let glitchOn = false;
 let glitchEffect = 'cuts';
-let glitchTimer = performance.now() + 3000 + Math.random() * 3000;
+let glitchTimer = Infinity;
+let glitchZoneActive = false;
+let glitchBlendAlt = 0;    // increments each time blend effect turns on
+let glitchBlendCurrent = 'color-dodge'; // resolved blend mode for current on-period
 let glitchCuts = [], glitchCutTimer = 0;
 let strobeOpacity = 0, strobeTimer = 0;
 
@@ -1360,76 +1364,93 @@ function frame(now){
   }
   // glitch video overlay
   gctx.clearRect(0, 0, innerWidth, innerHeight);
-  if (ggfx.GLITCH_ON) {
-    if (!glitchOn && now >= glitchTimer) {
-      const choices = [];
-      if (ggfx.FX_CUTS)   choices.push('cuts');
-      if (ggfx.FX_BLEND)  choices.push('blend');
-      if (ggfx.FX_STROBE) choices.push('strobe');
-      if (choices.length) {
-        glitchOn = true;
-        glitchEffect = ggfx.GLITCH_FORCE !== 'random' ? ggfx.GLITCH_FORCE
-          : choices[Math.floor(Math.random() * choices.length)];
-        ggfx.GLITCH_NOW = glitchEffect;
-        glitchTimer = now + (ggfx.ON_MIN + Math.random() * (ggfx.ON_MAX - ggfx.ON_MIN)) * 1000;
-        glitchCuts = []; glitchCutTimer = 0; strobeOpacity = 0; strobeTimer = 0;
-      }
-    } else if (glitchOn && now >= glitchTimer) {
-      glitchOn = false;
-      ggfx.GLITCH_NOW = 'off';
-      glitchCanvas.style.mixBlendMode = 'normal';
-      glitchTimer = now + (ggfx.GAP_MIN + Math.random() * (ggfx.GAP_MAX - ggfx.GAP_MIN)) * 1000;
+  if (camZf > GLITCH_START_Z) {
+    // outside glitch zone — reset immediately
+    if (glitchOn) { glitchOn = false; ggfx.GLITCH_NOW = 'off'; glitchCanvas.style.mixBlendMode = 'normal'; }
+    if (glitchZoneActive) { glitchZoneActive = false; glitchTimer = Infinity; }
+  } else {
+    // inside glitch zone — arm scheduler on first entry
+    if (!glitchZoneActive) {
+      glitchZoneActive = true;
+      glitchTimer = now + (ggfx.GAP_MIN + Math.random() * Math.abs(ggfx.GAP_MAX - ggfx.GAP_MIN)) * 1000;
     }
-    if (glitchOn && glitchVideo.readyState >= 2) {
-      const VW = glitchVideo.videoWidth, VH = glitchVideo.videoHeight;
-      if (VW > 0 && VH > 0) {
-        const cw = innerWidth, ch = innerHeight;
-        const vAspect = VW / VH, cAspect = cw / ch;
-        let sx, sy, sw, sh;
-        if (vAspect > cAspect) {
-          sh = VH; sw = VH * cAspect; sx = (VW - sw) / 2; sy = 0;
-        } else {
-          sw = VW; sh = VW / cAspect; sx = 0; sy = (VH - sh) / 2;
+    if (ggfx.GLITCH_ON) {
+      if (!glitchOn && now >= glitchTimer) {
+        const choices = [];
+        if (ggfx.FX_CUTS)   choices.push('cuts');
+        if (ggfx.FX_BLEND)  choices.push('blend');
+        if (ggfx.FX_STROBE) choices.push('strobe');
+        if (choices.length) {
+          glitchOn = true;
+          glitchEffect = ggfx.GLITCH_FORCE !== 'random' ? ggfx.GLITCH_FORCE
+            : choices[Math.floor(Math.random() * choices.length)];
+          ggfx.GLITCH_NOW = glitchEffect;
+          if (glitchEffect === 'blend' && ggfx.BLEND_MODE === 'alternate') {
+            glitchBlendCurrent = glitchBlendAlt % 2 === 0 ? 'color-dodge' : 'screen';
+            glitchBlendAlt++;
+          }
+          const onDur = Math.min(ggfx.ON_MIN, ggfx.ON_MAX) + Math.random() * Math.abs(ggfx.ON_MAX - ggfx.ON_MIN);
+          glitchTimer = now + onDur * 1000;
+          glitchCuts = []; glitchCutTimer = 0; strobeOpacity = 0; strobeTimer = 0;
         }
-        if (glitchEffect === 'cuts') {
-          glitchCanvas.style.mixBlendMode = 'normal';
-          if (now - glitchCutTimer > ggfx.CUT_SHUFFLE_MS || !glitchCuts.length) {
-            glitchCuts = [];
-            for (let i = 0; i < ggfx.CUT_COUNT; i++) {
-              glitchCuts.push({
-                x: Math.random() * cw,
-                w: ggfx.CUT_W_MIN + Math.random() * (ggfx.CUT_W_MAX - ggfx.CUT_W_MIN)
-              });
+      } else if (glitchOn && now >= glitchTimer) {
+        glitchOn = false;
+        ggfx.GLITCH_NOW = 'off';
+        glitchCanvas.style.mixBlendMode = 'normal';
+        glitchTimer = now + (ggfx.GAP_MIN + Math.random() * Math.abs(ggfx.GAP_MAX - ggfx.GAP_MIN)) * 1000;
+      }
+      if (glitchOn && glitchVideo.readyState >= 2) {
+        const VW = glitchVideo.videoWidth, VH = glitchVideo.videoHeight;
+        if (VW > 0 && VH > 0) {
+          const cw = innerWidth, ch = innerHeight;
+          const vAspect = VW / VH, cAspect = cw / ch;
+          let sx, sy, sw, sh;
+          if (vAspect > cAspect) {
+            sh = VH; sw = VH * cAspect; sx = (VW - sw) / 2; sy = 0;
+          } else {
+            sw = VW; sh = VW / cAspect; sx = 0; sy = (VH - sh) / 2;
+          }
+          if (glitchEffect === 'cuts') {
+            glitchCanvas.style.mixBlendMode = 'normal';
+            if (now - glitchCutTimer > ggfx.CUT_SHUFFLE_MS || !glitchCuts.length) {
+              glitchCuts = [];
+              for (let i = 0; i < ggfx.CUT_COUNT; i++) {
+                glitchCuts.push({
+                  x: Math.random() * cw,
+                  w: ggfx.CUT_W_MIN + Math.random() * (ggfx.CUT_W_MAX - ggfx.CUT_W_MIN)
+                });
+              }
+              glitchCutTimer = now;
             }
-            glitchCutTimer = now;
-          }
-          for (const cut of glitchCuts) {
-            const vx = sx + (cut.x / cw) * sw;
-            const vwc = Math.max(1, (cut.w / cw) * sw);
-            gctx.drawImage(glitchVideo, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
-          }
-        } else if (glitchEffect === 'blend') {
-          glitchCanvas.style.mixBlendMode = ggfx.BLEND_MODE;
-          gctx.globalAlpha = ggfx.BLEND_ALPHA;
-          gctx.drawImage(glitchVideo, sx, sy, sw, sh, 0, 0, cw, ch);
-          gctx.globalAlpha = 1;
-        } else if (glitchEffect === 'strobe') {
-          glitchCanvas.style.mixBlendMode = 'normal';
-          if (now - strobeTimer > ggfx.STROBE_RATE_MS) {
-            strobeOpacity = Math.random() < 0.55 ? 0
-              : ggfx.STROBE_MAX * (0.6 + Math.random() * 0.4);
-            strobeTimer = now;
-          }
-          if (strobeOpacity > 0) {
-            gctx.globalAlpha = strobeOpacity;
+            for (const cut of glitchCuts) {
+              const vx = sx + (cut.x / cw) * sw;
+              const vwc = Math.max(1, (cut.w / cw) * sw);
+              gctx.drawImage(glitchVideo, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
+            }
+          } else if (glitchEffect === 'blend') {
+            const bmode = ggfx.BLEND_MODE === 'alternate' ? glitchBlendCurrent : ggfx.BLEND_MODE;
+            glitchCanvas.style.mixBlendMode = bmode;
+            gctx.globalAlpha = ggfx.BLEND_ALPHA;
             gctx.drawImage(glitchVideo, sx, sy, sw, sh, 0, 0, cw, ch);
             gctx.globalAlpha = 1;
+          } else if (glitchEffect === 'strobe') {
+            glitchCanvas.style.mixBlendMode = 'normal';
+            if (now - strobeTimer > ggfx.STROBE_RATE_MS) {
+              strobeOpacity = Math.random() < 0.55 ? 0
+                : ggfx.STROBE_MAX * (0.6 + Math.random() * 0.4);
+              strobeTimer = now;
+            }
+            if (strobeOpacity > 0) {
+              gctx.globalAlpha = strobeOpacity;
+              gctx.drawImage(glitchVideo, sx, sy, sw, sh, 0, 0, cw, ch);
+              gctx.globalAlpha = 1;
+            }
           }
         }
       }
+    } else {
+      if (glitchOn) { glitchOn = false; ggfx.GLITCH_NOW = 'off'; glitchCanvas.style.mixBlendMode = 'normal'; }
     }
-  } else {
-    if (glitchOn) { glitchOn = false; ggfx.GLITCH_NOW = 'off'; glitchCanvas.style.mixBlendMode = 'normal'; }
   }
   requestAnimationFrame(frame);
 }
@@ -1692,7 +1713,7 @@ fGlitch.add(ggfx, 'CUT_COUNT', 1, 60, 1);
 fGlitch.add(ggfx, 'CUT_W_MIN', 1, 50, 1);
 fGlitch.add(ggfx, 'CUT_W_MAX', 1, 200, 1);
 fGlitch.add(ggfx, 'CUT_SHUFFLE_MS', 20, 1000, 1);
-fGlitch.add(ggfx, 'BLEND_MODE', ['screen','lighten','difference','overlay','soft-light','exclusion','color-dodge']);
+fGlitch.add(ggfx, 'BLEND_MODE', ['alternate','screen','lighten','difference','overlay','soft-light','exclusion','color-dodge']);
 fGlitch.add(ggfx, 'BLEND_ALPHA', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_MAX', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_RATE_MS', 16, 200, 1);
