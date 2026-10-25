@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v34-scene5-vibrate -->
+<!-- build: journey-v35-defaults -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -97,7 +97,7 @@ const P = {
   INTRO_SEC: 3,
   BPM: 120, BARS: 92, BEATS_PER_BAR: 4,
   DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5,
-  RINGS_ALPHA: 0.07, RINGS_RADIUS: 3.5, RINGS_SPACING: 4,
+  RINGS_ALPHA: 0.245, RINGS_RADIUS: 3.5, RINGS_SPACING: 4,
   SPACE_NEAR_FADE: 6, SPACE_FAR: 30
 };
 
@@ -872,7 +872,7 @@ const g5m = {
   MESH_ON: true, MESH_ALPHA: 0.5, MESH_COLOR: '#1a2b7f',
   MESH_EDGE_ANGLE: 17, MESH_SCALE_R: 0.85, MESH_SCALE_LEN: 1.0,
   MESH_Z_OFFSET: -2, MESH_OFFSET_X: 0.17, MESH_OFFSET_Y: -0.13,
-  MESH_ROT_X: -96, MESH_ROT_Y: -19, MESH_ROT_Z: 0, MESH_SPIN: 0,
+  MESH_ROT_X: -87, MESH_ROT_Y: -16, MESH_ROT_Z: 0, MESH_SPIN: 0,
   MESH_PIVOT_AHEAD: 1.5, MESH_AUDIO_ALPHA: 1.5, MESH_AUDIO_SCALE: 0.04,
   MESH_SOLID: true, SOLID_COLOR: '#a62626', SOLID_ALPHA: 1.0,
   SOLID_LIGHT: 2.2, SOLID_AMBIENT: 1.45,
@@ -1281,7 +1281,7 @@ fMotion.open();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:100, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#ee7c0e',
-  LINES_ON:true, LINES_OPACITY:28,
+  LINES_ON:true, LINES_OPACITY:3,
   WORD_AUDIO_NOISE:3, WORD_AUDIO_SIZE:0.3, WORD_AUDIO_LINES:1.5};
 
 const fWords = gui.addFolder('Words');
@@ -1301,7 +1301,7 @@ fWords.add(gwords, 'WORD_AUDIO_LINES', 0, 5,   0.1);
 
 fWords.open();
 
-const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA: 0.07, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA: 0.245, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
 const rebuildRings = () => {
   scene.remove(ringsMesh);
   P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
