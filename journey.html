@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v45-scene6-mesh -->
+<!-- build: journey-v47-scene6-line-audio -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -357,12 +357,12 @@ function rebuildMesh2Geo() {
 
 /* ===== ZONE6 CONFIG ===== */
 const ZONE6 = {
-  N1_K: 1.08, N1_FREQ: 1.1, FRAC_K: 0, N2_K: 0, SPEED: 0.75,
-  LINE_ALPHA: 0.37, LINE_WIDTH: 5,
-  PT_SCALE: 1.4, PT_ALPHA: 0.31, PT_COLOR: '#ff631b',
-  FOG_NEAR: 7.5, FOG_FAR: 16.5
+  N1_K: 0.97, N1_FREQ: 1.5, FRAC_K: 0.105, N2_K: 0.55, SPEED: 0.05,
+  LINE_ALPHA: 0.12, LINE_WIDTH: 0.8, LINE_AUDIO: 4,
+  PT_SCALE: 2.49, PT_ALPHA: 0.31, PT_COLOR: '#FF6318',
+  FOG_NEAR: 4, FOG_FAR: 19.5
 };
-const ggrid3 = { ROWS: 5, COLS: 7, DIV: 2, SEED: 24, LINE_ROWS: true, LINE_COLS: true };
+const ggrid3 = { ROWS: 6, COLS: 5, DIV: 2, SEED: 5, LINE_ROWS: true, LINE_COLS: true };
 const gridLabel3 = { pts: '' };
 gridLabel3.pts = ptLabel(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV);
 
@@ -1348,7 +1348,7 @@ function frame(now){
     U3.uN2K.value    = ZONE6.N2_K;
     U3.uFogNear.value  = ZONE6.FOG_NEAR;
     U3.uFogFar.value   = ZONE6.FOG_FAR;
-    U3.uLineA.value    = ZONE6.LINE_ALPHA;
+    U3.uLineA.value    = Math.min(1, ZONE6.LINE_ALPHA * (1 + amod * ZONE6.LINE_AUDIO));
     U3.uPt.value       = ZONE6.PT_SCALE * (1 + amod * 2);
     U3.uNear.value     = Math.max(0, camera.position.distanceTo(mesh3Pos) - P.MESH_RADIUS);
     U3.uIntro.value    = 1;
@@ -2006,6 +2006,7 @@ fScene6.add(ZONE6, 'FRAC_K',     0, 0.5,  0.005);
 fScene6.add(ZONE6, 'N2_K',       0, 1.0,  0.01);
 fScene6.add(ZONE6, 'SPEED',      0, 3.0,  0.05);
 fScene6.add(ZONE6, 'LINE_ALPHA', 0, 1.0,  0.01);
+fScene6.add(ZONE6, 'LINE_AUDIO', 0, 20,   0.1);
 fScene6.add(ZONE6, 'LINE_WIDTH', 0.1, 5.0, 0.1);
 fScene6.add(ZONE6, 'PT_SCALE',   0, 5.0,  0.01);
 fScene6.add(ZONE6, 'PT_ALPHA',   0, 1.0,  0.01);
