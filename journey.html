@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v44-grid-params -->
+<!-- build: journey-v45-scene6-mesh -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -90,8 +90,8 @@ const P = {
 
   FOV: 45,
   CAM_START: [0, 0, 8.5],
-  CAM_END_Z: -140,
-  SCROLL_PX: 32200,
+  CAM_END_Z: -150,
+  SCROLL_PX: 34400,
   RINGS4_LENGTH: 30, RINGS4_GAP_MIN: 0.4, RINGS4_GAP_MAX: 2.5, RINGS4_SIZE_VAR: 0.15, RINGS4_ALPHA: 0.08,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
@@ -125,6 +125,7 @@ function resize(){
   // pt size = 0.74 × PT_DEFAULT_PX × (canvasHeight/1920) × dpr
   U.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
   if (typeof U2 !== 'undefined') U2.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
+  if (typeof U3 !== 'undefined') U3.uPxBase.value = P.TD_PT * P.PT_DEFAULT_PX * (innerHeight / 1920) * dpr;
   if (typeof composer !== 'undefined') { composer.setPixelRatio(dpr); composer.setSize(innerWidth, innerHeight); }
   if (typeof scatterCanvas !== 'undefined') { scatterCanvas.width = innerWidth * dpr; scatterCanvas.height = innerHeight * dpr; sctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
   if (typeof glitchCanvas !== 'undefined') { glitchCanvas.width = innerWidth * dpr; glitchCanvas.height = innerHeight * dpr; gctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
@@ -352,6 +353,49 @@ function rebuildMesh2Geo() {
   lines2.geometry = gLin2; points2.geometry = gPts2;
   U2.uBR.value = ggrid2.ROWS; U2.uBC.value = ggrid2.COLS; U2.uDiv.value = ggrid2.DIV;
   gridLabel2.pts = ptLabel(ggrid2.ROWS, ggrid2.COLS, ggrid2.DIV);
+}
+
+/* ===== ZONE6 CONFIG ===== */
+const ZONE6 = {
+  N1_K: 1.08, N1_FREQ: 1.1, FRAC_K: 0, N2_K: 0, SPEED: 0.75,
+  LINE_ALPHA: 0.37, LINE_WIDTH: 5,
+  PT_SCALE: 1.4, PT_ALPHA: 0.31, PT_COLOR: '#ff631b',
+  FOG_NEAR: 7.5, FOG_FAR: 16.5
+};
+const ggrid3 = { ROWS: 5, COLS: 7, DIV: 2, SEED: 24, LINE_ROWS: true, LINE_COLS: true };
+const gridLabel3 = { pts: '' };
+gridLabel3.pts = ptLabel(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV);
+
+/* ===== THIRD MESH (zone 6, centered at Z=-158) ===== */
+const U3 = {};
+for (const k in U) U3[k] = {value: U[k].value};
+U3.uN1K.value     = ZONE6.N1_K;
+U3.uN1Freq.value  = ZONE6.N1_FREQ;
+U3.uFK.value      = ZONE6.FRAC_K;
+U3.uN2K.value     = ZONE6.N2_K;
+U3.uFogNear.value = ZONE6.FOG_NEAR;
+U3.uFogFar.value  = ZONE6.FOG_FAR;
+U3.uLineA.value   = ZONE6.LINE_ALPHA;
+U3.uIntro.value   = 1;
+U3.uTime.value    = 0;
+
+let {gPts: gPts3, gLin: gLin3} = buildGeometry(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV, ggrid3.SEED, ggrid3.LINE_ROWS, ggrid3.LINE_COLS);
+const group3  = new THREE.Group();
+const lines3  = new THREE.LineSegments(gLin3, mkMat(U3, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const points3 = new THREE.Points(gPts3, mkMat(U3, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
+lines3.renderOrder = 0; points3.renderOrder = 1;
+group3.add(lines3, points3);
+group3.position.z = -158;
+scene.add(group3);
+const mesh3Pos = new THREE.Vector3(0, 0, -158);
+
+function rebuildMesh3Geo() {
+  const r = buildGeometry(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV, ggrid3.SEED, ggrid3.LINE_ROWS, ggrid3.LINE_COLS);
+  gPts3.dispose(); gLin3.dispose();
+  gPts3 = r.gPts; gLin3 = r.gLin;
+  lines3.geometry = gLin3; points3.geometry = gPts3;
+  U3.uBR.value = ggrid3.ROWS; U3.uBC.value = ggrid3.COLS; U3.uDiv.value = ggrid3.DIV;
+  gridLabel3.pts = ptLabel(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV);
 }
 
 /* ===== POST-PROCESSING ===== */
@@ -719,7 +763,7 @@ renderer.domElement.addEventListener('pointermove', e => {
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
   lastX = e.clientX; lastY = e.clientY;
-  if (meshZoneFade === 0) {
+  if (meshZoneFade === 0 || camera.position.z < -144) {
     yawVel   -= dx * P.ORBIT_GAIN;
     pitchVel += dy * P.ORBIT_GAIN;
   }
@@ -746,7 +790,7 @@ addEventListener('touchmove', e => {
     twoFinger = true;
     const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    if (meshZoneFade === 0) {
+    if (meshZoneFade === 0 || camera.position.z < -144) {
       yawVel   -= (mx - lastX) * P.ORBIT_GAIN;
       pitchVel += (my - lastY) * P.ORBIT_GAIN;
     }
@@ -1290,6 +1334,32 @@ function frame(now){
   nc2.y = parseInt(hex2.slice(2,4),16)/255;
   nc2.z = parseInt(hex2.slice(4,6),16)/255;
   nc2.w = ZONE3.PT_ALPHA;
+
+  // ── group3 / zone 6 ─────────────────────────────────────────────────────────
+  group3.rotation.set(orbitPitch, autoYaw + orbitYaw, 0);
+  if (Math.abs(camZf + 158) < 40) {
+    U3.uN1.value     = P.TD_N1;
+    U3.uN2.value     = P.TD_N2;
+    U3.uFrac.value   = P.TD_FRAC;
+    U3.uTime.value   = t * ZONE6.SPEED;
+    U3.uN1K.value    = ZONE6.N1_K    * (1 + amod * 8);
+    U3.uN1Freq.value = ZONE6.N1_FREQ + freqEnv * gaudio.AUDIO_FREQ_MOD;
+    U3.uFK.value     = ZONE6.FRAC_K  * (1 + amod * 3);
+    U3.uN2K.value    = ZONE6.N2_K;
+    U3.uFogNear.value  = ZONE6.FOG_NEAR;
+    U3.uFogFar.value   = ZONE6.FOG_FAR;
+    U3.uLineA.value    = ZONE6.LINE_ALPHA;
+    U3.uPt.value       = ZONE6.PT_SCALE * (1 + amod * 2);
+    U3.uNear.value     = Math.max(0, camera.position.distanceTo(mesh3Pos) - P.MESH_RADIUS);
+    U3.uIntro.value    = 1;
+    lines3.material.linewidth = ZONE6.LINE_WIDTH;
+    const nc3 = points3.material.uniforms.uNearC.value;
+    const hex3 = ZONE6.PT_COLOR.replace('#','');
+    nc3.x = parseInt(hex3.slice(0,2),16)/255;
+    nc3.y = parseInt(hex3.slice(2,4),16)/255;
+    nc3.z = parseInt(hex3.slice(4,6),16)/255;
+    nc3.w = ZONE6.PT_ALPHA;
+  }
 
   // ── space layer ──
   const dpr = Math.min(window.devicePixelRatio||1, 2);
@@ -1928,6 +1998,45 @@ fSlabs.add(gslabs, 'SLAB_SHADE',   0, 2,  0.01).onChange(updateSlabShading);
   row.appendChild(inp);
   fSlabs.domElement.querySelector('ul').appendChild(row);
 })();
+
+const fScene6 = gui.addFolder('Scene6 Mesh');
+fScene6.add(ZONE6, 'N1_K',       0, 3.0,  0.01);
+fScene6.add(ZONE6, 'N1_FREQ',    0.1, 5.0, 0.1);
+fScene6.add(ZONE6, 'FRAC_K',     0, 0.5,  0.005);
+fScene6.add(ZONE6, 'N2_K',       0, 1.0,  0.01);
+fScene6.add(ZONE6, 'SPEED',      0, 3.0,  0.05);
+fScene6.add(ZONE6, 'LINE_ALPHA', 0, 1.0,  0.01);
+fScene6.add(ZONE6, 'LINE_WIDTH', 0.1, 5.0, 0.1);
+fScene6.add(ZONE6, 'PT_SCALE',   0, 5.0,  0.01);
+fScene6.add(ZONE6, 'PT_ALPHA',   0, 1.0,  0.01);
+fScene6.add(ZONE6, 'FOG_NEAR',   0, 30, 0.5);
+fScene6.add(ZONE6, 'FOG_FAR',    0, 40, 0.5);
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = ZONE6.PT_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = ZONE6.PT_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = ZONE6.PT_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applyPtColor6(hex){ ZONE6.PT_COLOR = hex; swatch.style.background = hex; hexLabel.textContent = hex.toUpperCase(); inp.value = hex; }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applyPtColor6(e.target.value));
+  row.appendChild(swatch); row.appendChild(hexLabel); row.appendChild(inp);
+  fScene6.domElement.querySelector('ul').appendChild(row);
+})();
+fScene6.add(ggrid3, 'ROWS',     2, 60, 1).name('GRID3 ROWS').onChange(rebuildMesh3Geo);
+fScene6.add(ggrid3, 'COLS',     2, 60, 1).name('GRID3 COLS').onChange(rebuildMesh3Geo);
+fScene6.add(ggrid3, 'DIV',      1, 8,  1).name('GRID3 DIV').onChange(rebuildMesh3Geo);
+fScene6.add(ggrid3, 'SEED',     1, 99, 1).name('GRID3 SEED').onChange(rebuildMesh3Geo);
+fScene6.add(ggrid3, 'LINE_ROWS').name('GRID3 LINE_ROWS').onChange(rebuildMesh3Geo);
+fScene6.add(ggrid3, 'LINE_COLS').name('GRID3 LINE_COLS').onChange(rebuildMesh3Geo);
+fScene6.add(gridLabel3, 'pts').name('mesh3 pts').listen();
 
 const fGlitch = gui.addFolder('Glitch Video');
 fGlitch.add(ggfx, 'GLITCH_ON');
