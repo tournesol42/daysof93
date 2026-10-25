@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v47-scene6-line-audio -->
+<!-- build: journey-v48-scene6-audio-glitch4 -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -30,6 +30,7 @@
 <canvas id="scatter"></canvas>
 <video id="glitchVideo" src="https://daysof93-cdn.b-cdn.net/journeyglitch1.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <video id="glitchVideo5" src="https://daysof93-cdn.b-cdn.net/journeyglitch5.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="glitchVideo4" src="https://daysof93-cdn.b-cdn.net/journeyglitch4.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <canvas id="glitchCanvas"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -381,7 +382,7 @@ U3.uTime.value    = 0;
 
 let {gPts: gPts3, gLin: gLin3} = buildGeometry(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV, ggrid3.SEED, ggrid3.LINE_ROWS, ggrid3.LINE_COLS);
 const group3  = new THREE.Group();
-const lines3  = new THREE.LineSegments(gLin3, mkMat(U3, FRAG_LIN, P.LN_NEAR, P.LN_FAR));
+const lines3  = new THREE.LineSegments(gLin3, mkMat(U3, FRAG_LIN, [1,1,1,1.0], [1,1,1,0.5]));
 const points3 = new THREE.Points(gPts3, mkMat(U3, FRAG_PTS, P.PT_NEAR, P.PT_FAR));
 lines3.renderOrder = 0; points3.renderOrder = 1;
 group3.add(lines3, points3);
@@ -542,6 +543,7 @@ const glitchCanvas = document.getElementById('glitchCanvas');
 const gctx = glitchCanvas.getContext('2d');
 const glitchVideo  = document.getElementById('glitchVideo');
 const glitchVideo5 = document.getElementById('glitchVideo5');
+const glitchVideo4 = document.getElementById('glitchVideo4');
 
 function makeScatterPoints(count) {
   const smin = gwords.WORD_SIZE_MIN;
@@ -731,6 +733,7 @@ startEl.addEventListener('click', () => {
   introStart = performance.now();
   glitchVideo.play().catch(() => {});
   glitchVideo5.play().catch(() => {});
+  glitchVideo4.play().catch(() => {});
 });
 fileEl.addEventListener('change', () => {
   const f = fileEl.files[0]; if (!f) return;
@@ -1230,6 +1233,8 @@ let glitchBlendAlt = 0;    // increments each time blend effect turns on
 let glitchBlendCurrent = 'color-dodge'; // resolved blend mode for current on-period
 let glitchCuts = [], glitchCutTimer = 0;
 let strobeOpacity = 0, strobeTimer = 0;
+const audioLevelDisplay = { AUDIO_LEVEL: '0.000' };
+let _aLevelT = 0;
 
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
@@ -1295,6 +1300,7 @@ function frame(now){
   // compute amod once; shared with drawScatter and zone 3
   const amod = gaudio.AUDIO_ON ? rawLevel : 0;
   lastAmod = amod;
+  if (now - _aLevelT >= 100) { audioLevelDisplay.AUDIO_LEVEL = amod.toFixed(3); _aLevelT = now; }
   U.uN1K.value    = gfx.N1_K    * (1 + amod * 8);
   U.uFK.value     = gfx.FRAC_K  * (1 + amod * 3);
   U.uPt.value     = gpts.PT_SCALE * (1 + amod * 2);
@@ -1348,7 +1354,7 @@ function frame(now){
     U3.uN2K.value    = ZONE6.N2_K;
     U3.uFogNear.value  = ZONE6.FOG_NEAR;
     U3.uFogFar.value   = ZONE6.FOG_FAR;
-    U3.uLineA.value    = Math.min(1, ZONE6.LINE_ALPHA * (1 + amod * ZONE6.LINE_AUDIO));
+    U3.uLineA.value    = Math.min(1, ZONE6.LINE_ALPHA + amod * ZONE6.LINE_AUDIO);
     U3.uPt.value       = ZONE6.PT_SCALE * (1 + amod * 2);
     U3.uNear.value     = Math.max(0, camera.position.distanceTo(mesh3Pos) - P.MESH_RADIUS);
     U3.uIntro.value    = 1;
@@ -1617,7 +1623,7 @@ function frame(now){
         glitchCanvas.style.mixBlendMode = 'normal';
         glitchTimer = now + (ggfx.GAP_MIN + Math.random() * Math.abs(ggfx.GAP_MAX - ggfx.GAP_MIN)) * 1000;
       }
-      const glitchSrc = meshZoneFade > 0 ? glitchVideo5 : glitchVideo;
+      const glitchSrc = camZf < -144 ? glitchVideo4 : (meshZoneFade > 0 ? glitchVideo5 : glitchVideo);
       if (glitchOn && glitchSrc.readyState >= 2) {
         const VW = glitchSrc.videoWidth, VH = glitchSrc.videoHeight;
         if (VW > 0 && VH > 0) {
@@ -1647,7 +1653,7 @@ function frame(now){
               gctx.drawImage(glitchSrc, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
             }
           } else if (glitchEffect === 'blend') {
-            const bmode = meshZoneFade > 0 ? 'color-dodge'
+            const bmode = (glitchSrc === glitchVideo5) ? 'color-dodge'
               : (ggfx.BLEND_MODE === 'alternate' ? glitchBlendCurrent : ggfx.BLEND_MODE);
             glitchCanvas.style.mixBlendMode = bmode;
             gctx.globalAlpha = ggfx.BLEND_ALPHA;
@@ -1740,6 +1746,7 @@ fAudio.add(gaudio, 'AUDIO_ATTACK_MS',     1, 200,  1);
 fAudio.add(gaudio, 'AUDIO_RELEASE_MS',   20, 2000, 10);
 fAudio.add(gaudio, 'AUDIO_FREQ_SMOOTH_MS',20, 2000, 10);
 fAudio.add(gaudio, 'AUDIO_FREQ_MOD',      0, 5.0,  0.1);
+fAudio.add(audioLevelDisplay, 'AUDIO_LEVEL').listen();
 
 const fBloom = gui.addFolder('Bloom');
 fBloom.add(gbloom, 'BLOOM_ON');
@@ -2006,7 +2013,7 @@ fScene6.add(ZONE6, 'FRAC_K',     0, 0.5,  0.005);
 fScene6.add(ZONE6, 'N2_K',       0, 1.0,  0.01);
 fScene6.add(ZONE6, 'SPEED',      0, 3.0,  0.05);
 fScene6.add(ZONE6, 'LINE_ALPHA', 0, 1.0,  0.01);
-fScene6.add(ZONE6, 'LINE_AUDIO', 0, 20,   0.1);
+fScene6.add(ZONE6, 'LINE_AUDIO', 0, 40,   0.1);
 fScene6.add(ZONE6, 'LINE_WIDTH', 0.1, 5.0, 0.1);
 fScene6.add(ZONE6, 'PT_SCALE',   0, 5.0,  0.01);
 fScene6.add(ZONE6, 'PT_ALPHA',   0, 1.0,  0.01);
