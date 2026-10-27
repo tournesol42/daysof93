@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v52-s2-lfo-rates -->
+<!-- build: journey-v53-s2-smin-lfo -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -523,7 +523,7 @@ const WORDS = [
 const gs2 = {
   S2_ON: true,
   COUNT: 21, WIN: 322,
-  SMIN: 120, SMAX: 120, SBIAS: 83,
+  SMIN: 18, SMAX: 44, SBIAS: 83,
   OPACITY: 100, OP_SPREAD: 40,
   NOISE_AMT: 11, NOISE_SPD: 1230, NOISE_MOD: 23,
   TEXT_COLOR: '#F4F4F4',
@@ -539,6 +539,8 @@ const gs2 = {
   S2_LFO_OPQ_RATE: 6,  S2_LFO_OPQ_SLEW: 2,
   S2_LFO_SPD_RATE: 3,  S2_LFO_SPD_SLEW: 4,
   S2_LFO_MOD_RATE: 5,  S2_LFO_MOD_SLEW: 3,
+  S2_LFO_SMIN_RATE: 2, S2_LFO_SMIN_SLEW: 1.5,
+  S2_SMIN_LFO_MIN: 18, S2_SMIN_LFO_MAX: 300,
 };
 
 function gaussRand2() {
@@ -564,6 +566,11 @@ let s2LfoFirstT = null;
 let s2LfoActive = false;
 let _s2LfoPrevCount = gs2.COUNT;
 let _s2LfoPrevBias  = gs2.SBIAS;
+// smin LFO state (separate from the 6-channel array)
+let s2LfoSminVal  = gs2.SMIN;
+let s2LfoSminTgt  = gs2.SMIN;
+let s2LfoSminNext = 0;
+let _s2LfoPrevSmin = gs2.SMIN;
 
 function makePoints2() {
   const bExp = biasExp2(gs2.SBIAS);
@@ -605,7 +612,10 @@ function drawScatter2(ms, opacity) {
   const noiseAmt    = gs2.NOISE_AMT / 100;
   const noiseSpd    = (s2LfoActive ? s2LfoVals[4] : gs2.NOISE_SPD) / 100;
   const noiseModAmt = (s2LfoActive ? s2LfoVals[5] : gs2.NOISE_MOD) / 100;
-  const gOpacity    = (s2LfoActive ? s2LfoVals[3] : gs2.OPACITY) / 100;
+  const _rawOpacity = (s2LfoActive ? s2LfoVals[3] : gs2.OPACITY) / 100;
+  const _sminCur    = s2LfoActive ? s2LfoSminVal : gs2.SMIN;
+  const _sminK      = Math.min(1, Math.max(0, (_sminCur - gs2.S2_SMIN_LFO_MIN) / Math.max(1, gs2.S2_SMIN_LFO_MAX - gs2.S2_SMIN_LFO_MIN)));
+  const gOpacity    = _rawOpacity * (1 - _sminK);
   const opSpread    = gs2.OP_SPREAD / 100;
   const textCol     = gs2.TEXT_COLOR;
   const _lfoWin     = s2LfoActive ? Math.round(s2LfoVals[1]) : gs2.WIN;
@@ -1815,6 +1825,7 @@ function frame(now){
       s2LfoVals[3] = gs2.OPACITY; s2LfoTgts[3] = gs2.OPACITY;
       s2LfoVals[4] = gs2.NOISE_SPD; s2LfoTgts[4] = gs2.NOISE_SPD;
       s2LfoVals[5] = gs2.NOISE_MOD; s2LfoTgts[5] = gs2.NOISE_MOD;
+      s2LfoSminVal = gs2.SMIN; s2LfoSminTgt = gs2.SMIN;
     }
     if (s2LfoActive) {
       const _lfoRates = [gs2.S2_LFO_BIAS_RATE, gs2.S2_LFO_WIN_RATE,  gs2.S2_LFO_CNT_RATE,
@@ -1857,8 +1868,26 @@ function frame(now){
       const _lfoBiasR = Math.round(s2LfoVals[0]);
       if (_lfoBiasR !== _s2LfoPrevBias) {
         const bExp = biasExp2(_lfoBiasR);
-        for (const p of s2pts) p.sz = sizeSample2(gs2.SMIN, gs2.SMAX, bExp);
+        const _sminEff = Math.min(s2LfoSminVal, gs2.SMAX);
+        const _smaxEff = Math.max(gs2.SMAX, s2LfoSminVal);
+        for (const p of s2pts) p.sz = sizeSample2(_sminEff, _smaxEff, bExp);
         _s2LfoPrevBias = _lfoBiasR;
+      }
+      // smin LFO tick
+      if (now >= s2LfoSminNext) {
+        s2LfoSminTgt  = gs2.S2_SMIN_LFO_MIN + Math.random() * (gs2.S2_SMIN_LFO_MAX - gs2.S2_SMIN_LFO_MIN);
+        s2LfoSminNext = now + gs2.S2_LFO_SMIN_RATE * 1000 * (0.7 + Math.random() * 0.6);
+      }
+      const _sminAlpha = 1 - Math.exp(-dtS / Math.max(0.001, gs2.S2_LFO_SMIN_SLEW));
+      s2LfoSminVal += (s2LfoSminTgt - s2LfoSminVal) * _sminAlpha;
+      // in-place smin change: recompute sizes
+      const _sminR = Math.round(s2LfoSminVal);
+      if (_sminR !== _s2LfoPrevSmin) {
+        const bExp = biasExp2(Math.round(s2LfoVals[0]));
+        const _sminEff = Math.min(_sminR, gs2.SMAX);
+        const _smaxEff = Math.max(gs2.SMAX, _sminR);
+        for (const p of s2pts) p.sz = sizeSample2(_sminEff, _smaxEff, bExp);
+        _s2LfoPrevSmin = _sminR;
       }
     }
   } else if (s2opacity <= 0 && s2LfoActive) {
@@ -1868,6 +1897,7 @@ function frame(now){
     s2LfoVals[0] = gs2.SBIAS; s2LfoVals[1] = gs2.WIN; s2LfoVals[2] = gs2.COUNT;
     s2LfoVals[3] = gs2.OPACITY; s2LfoVals[4] = gs2.NOISE_SPD; s2LfoVals[5] = gs2.NOISE_MOD;
     _s2LfoPrevCount = gs2.COUNT; _s2LfoPrevBias = gs2.SBIAS;
+    s2LfoSminVal = gs2.SMIN; s2LfoSminTgt = gs2.SMIN; _s2LfoPrevSmin = gs2.SMIN;
     makePoints2();
   }
 
@@ -2383,6 +2413,10 @@ fScene6S.add(gs2, 'S2_LFO_SPD_RATE',  1, 60, 0.5);
 fScene6S.add(gs2, 'S2_LFO_SPD_SLEW',  0.5, 20, 0.5);
 fScene6S.add(gs2, 'S2_LFO_MOD_RATE',  1, 30, 0.5);
 fScene6S.add(gs2, 'S2_LFO_MOD_SLEW',  0.5, 20, 0.5);
+fScene6S.add(gs2, 'S2_LFO_SMIN_RATE', 0.5, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_SMIN_SLEW', 0.1, 20, 0.1);
+fScene6S.add(gs2, 'S2_SMIN_LFO_MIN',  4,  300, 1);
+fScene6S.add(gs2, 'S2_SMIN_LFO_MAX',  4,  600, 1);
 (function(){
   const row = document.createElement('li');
   row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
