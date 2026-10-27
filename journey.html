@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v49-music-v2 -->
+<!-- build: journey-v50-scene6-scatter -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -16,6 +16,12 @@
   #file{display:none}
   #scatter{position:fixed;inset:0;width:100vw;height:100vh;z-index:5;pointer-events:none;image-rendering:auto;opacity:1;}
   #glitchCanvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:6;pointer-events:none;image-rendering:auto;}
+</style>
+<style>
+@font-face {
+  font-family: 'DigitTech9';
+  src: url('fonts/DigitTech9-Regular.ttf') format('truetype');
+}
 </style>
 <style>
 @font-face {
@@ -91,8 +97,8 @@ const P = {
 
   FOV: 45,
   CAM_START: [0, 0, 8.5],
-  CAM_END_Z: -150,
-  SCROLL_PX: 34400,
+  CAM_END_Z: -154,
+  SCROLL_PX: 35317,
   RINGS4_LENGTH: 30, RINGS4_GAP_MIN: 0.4, RINGS4_GAP_MAX: 2.5, RINGS4_SIZE_VAR: 0.15, RINGS4_ALPHA: 0.08,
   TOUCH_K: 2.5,
   CAM_EASE: 0.05,
@@ -387,7 +393,7 @@ const points3 = new THREE.Points(gPts3, mkMat(U3, FRAG_PTS, P.PT_NEAR, P.PT_FAR)
 lines3.renderOrder = 0; points3.renderOrder = 1;
 group3.add(lines3, points3);
 group3.position.z = -158;
-scene.add(group3);
+group3.renderOrder = 1;
 const mesh3Pos = new THREE.Vector3(0, 0, -158);
 
 function rebuildMesh3Geo() {
@@ -512,6 +518,167 @@ const WORDS = [
 'firmware','network','redundancy','4','UNIX','linked','analog-to-digital','UART','Tommy Flowers','automata',
 'bit serial'
 ];
+
+/* ===== SCENE 6 SCATTER (journey2 preset) ===== */
+const gs2 = {
+  S2_ON: true,
+  COUNT: 21, WIN: 322,
+  SMIN: 120, SMAX: 120, SBIAS: 83,
+  OPACITY: 100, OP_SPREAD: 40,
+  NOISE_AMT: 11, NOISE_SPD: 1230, NOISE_MOD: 23,
+  TEXT_COLOR: '#F4F4F4',
+  FOCUS_CX: 0.7930817610062892,
+  LINES_ON: true, LINES_MAX_DIST: 343, LINES_MAX_PER: 3,
+  LINES_DUR: 203, LINES_OPAC: 46,
+  S2_AUDIO_NOISE: 3, S2_AUDIO_SIZE: 0.3, S2_AUDIO_LINES: 1.5,
+};
+
+function gaussRand2() {
+  const u = 1 - Math.random(), v = 1 - Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function lerp2(a, b, t) { return a + (b - a) * t; }
+function biasExp2(slider) {
+  if (slider <= 50) return 4.0 - (slider / 50) * 3.0;
+  return 1.0 - ((slider - 50) / 50) * 0.75;
+}
+function sizeSample2(sMin, sMax, bExp) {
+  return Math.round(sMin + Math.pow(Math.random(), bExp) * (sMax - sMin));
+}
+
+let s2pts = [], s2conns = [], s2anim = 0, s2LastMS = null, s2ConnLastMS = 0;
+
+function makePoints2() {
+  const bExp = biasExp2(gs2.SBIAS);
+  const attract = 2 / 100;
+  s2pts = Array.from({ length: gs2.COUNT }, () => {
+    const rx = Math.random(), ry = Math.random();
+    const ox2 = gs2.FOCUS_CX, oy2 = Math.random();
+    const jitter = 0.018 * (1 - attract * 0.4);
+    const bx = Math.max(0, Math.min(1, lerp2(rx, ox2, attract) + gaussRand2() * jitter));
+    const by = Math.max(0, Math.min(1, lerp2(ry, oy2, attract) + gaussRand2() * jitter));
+    return {
+      bx, by,
+      ox: Math.random() * 64,
+      oy: Math.random() * 64,
+      sz: sizeSample2(gs2.SMIN, gs2.SMAX, bExp),
+      opacityRand: Math.random(),
+      noiseMod: Math.random(),
+    };
+  });
+  s2conns = [];
+}
+makePoints2();
+
+const S2_CW = 1080, S2_CH = 1920;
+const s2Canvas = document.createElement('canvas');
+s2Canvas.width  = S2_CW; s2Canvas.height = S2_CH;
+const s2ctx = s2Canvas.getContext('2d');
+const s2Texture = new THREE.CanvasTexture(s2Canvas);
+s2Texture.minFilter = THREE.LinearFilter;
+s2Texture.generateMipmaps = false;
+
+function drawScatter2(ms, opacity) {
+  if (s2LastMS === null) s2LastMS = ms;
+  const dt = Math.min((ms - s2LastMS) / 1000, 0.05);
+  s2LastMS = ms;
+
+  s2ctx.clearRect(0, 0, S2_CW, S2_CH);
+
+  const noiseAmt    = gs2.NOISE_AMT / 100;
+  const noiseSpd    = gs2.NOISE_SPD / 100;
+  const noiseModAmt = gs2.NOISE_MOD / 100;
+  const gOpacity    = gs2.OPACITY / 100;
+  const opSpread    = gs2.OP_SPREAD / 100;
+  const textCol     = gs2.TEXT_COLOR;
+
+  s2anim += dt * noiseSpd * 1.8;
+
+  const aDispMax  = noiseAmt * 120 * (1 + lastAmod * gs2.S2_AUDIO_NOISE);
+
+  s2ctx.fillStyle    = textCol;
+  s2ctx.textBaseline = 'middle';
+  s2ctx.textAlign    = 'left';
+
+  for (let i = 0; i < s2pts.length; i++) {
+    const wi = gs2.WIN + i;
+    if (wi >= WORDS.length) continue;
+    const word = WORDS[wi];
+    if (!word) continue;
+    const p = s2pts[i];
+    const nx   = vnoise2(p.ox + s2anim * 0.6, p.oy + 17.3      ) * 2 - 1;
+    const ny   = vnoise2(p.ox + 31.7,         p.oy + s2anim * 0.6) * 2 - 1;
+    const nMod = 1 + ((p.noiseMod - 0.5) * noiseModAmt * 2);
+    const fsz  = Math.max(4, Math.round(p.sz * (1 + lastAmod * gs2.S2_AUDIO_SIZE)));
+    s2ctx.font        = fsz + "px 'DigitTech9', 'Courier New', monospace";
+    s2ctx.globalAlpha = Math.max(0.01, Math.min(1, gOpacity + (p.opacityRand - 0.5) * opSpread)) * opacity;
+    s2ctx.fillText(word, p.bx * S2_CW + nx * aDispMax * nMod, p.by * S2_CH + ny * aDispMax * nMod);
+  }
+  s2ctx.globalAlpha = 1;
+
+  if (gs2.LINES_ON && s2pts.length > 1) {
+    const now     = ms;
+    const maxDist = gs2.LINES_MAX_DIST;
+    const maxPer  = gs2.LINES_MAX_PER;
+    const durMs   = gs2.LINES_DUR * 16;
+    const lMaxOp  = Math.min(1, (gs2.LINES_OPAC / 100) * (1 + lastAmod * gs2.S2_AUDIO_LINES));
+
+    if (now - s2ConnLastMS > 48) {
+      s2ConnLastMS = now;
+      const used  = new Map();
+      const cands = [];
+      for (let a = 0; a < s2pts.length; a++) {
+        const pa = s2pts[a];
+        const ax = pa.bx * S2_CW + (vnoise2(pa.ox + s2anim * 0.6, pa.oy + 17.3      ) * 2 - 1) * aDispMax;
+        const ay = pa.by * S2_CH + (vnoise2(pa.ox + 31.7,          pa.oy + s2anim * 0.6) * 2 - 1) * aDispMax;
+        for (let b = a + 1; b < s2pts.length; b++) {
+          const pb = s2pts[b];
+          const bx = pb.bx * S2_CW + (vnoise2(pb.ox + s2anim * 0.6, pb.oy + 17.3      ) * 2 - 1) * aDispMax;
+          const by = pb.by * S2_CH + (vnoise2(pb.ox + 31.7,          pb.oy + s2anim * 0.6) * 2 - 1) * aDispMax;
+          const ddx = ax - bx, ddy = ay - by;
+          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (dist < maxDist) cands.push({a, b, dist});
+        }
+      }
+      cands.sort(function(x, y) { return x.dist - y.dist; });
+      for (let k = 0; k < cands.length; k++) {
+        const c = cands[k], a = c.a, b = c.b;
+        const ca = used.get(a) || 0, cb = used.get(b) || 0;
+        if (ca >= maxPer || cb >= maxPer) continue;
+        let already = false;
+        for (let m = 0; m < s2conns.length; m++) {
+          const sc = s2conns[m];
+          if ((sc.i === a && sc.j === b) || (sc.i === b && sc.j === a)) { already = true; break; }
+        }
+        if (already) continue;
+        s2conns.push({i: a, j: b, born: now,
+          dur: durMs * (0.7 + Math.random() * 0.6),
+          maxOpacity: lMaxOp * (0.4 + Math.random() * 0.6)});
+        used.set(a, ca + 1);
+        used.set(b, cb + 1);
+      }
+    }
+
+    s2ctx.strokeStyle = textCol;
+    s2ctx.lineWidth   = 0.75;
+    s2conns = s2conns.filter(function(c) {
+      const age = now - c.born;
+      if (age > c.dur) return false;
+      const tl  = age / c.dur;
+      const opT = tl < 0.15 ? tl / 0.15 : tl > 0.6 ? 1 - (tl - 0.6) / 0.4 : 1;
+      const pa  = s2pts[c.i], pb = s2pts[c.j];
+      if (!pa || !pb) return false;
+      const ax = pa.bx * S2_CW + (vnoise2(pa.ox + s2anim * 0.6, pa.oy + 17.3      ) * 2 - 1) * aDispMax;
+      const ay = pa.by * S2_CH + (vnoise2(pa.ox + 31.7,          pa.oy + s2anim * 0.6) * 2 - 1) * aDispMax;
+      const bx = pb.bx * S2_CW + (vnoise2(pb.ox + s2anim * 0.6, pb.oy + 17.3      ) * 2 - 1) * aDispMax;
+      const by = pb.by * S2_CH + (vnoise2(pb.ox + 31.7,          pb.oy + s2anim * 0.6) * 2 - 1) * aDispMax;
+      s2ctx.globalAlpha = c.maxOpacity * opT * opacity;
+      s2ctx.beginPath(); s2ctx.moveTo(ax, ay); s2ctx.lineTo(bx, by); s2ctx.stroke();
+      return true;
+    });
+    s2ctx.globalAlpha = 1;
+  }
+}
 
 /* ===== ENGINE 2: 2D BINARY SCATTER CANVAS ===== */
 const PERM = new Uint8Array(512);
@@ -907,6 +1074,21 @@ scene.add(dustMesh, ringsMesh);
 
 /* ===== SCENE 4 — COLOURED TUNNEL RINGS ===== */
 const scene4 = new THREE.Scene();
+
+// mesh3 and scatter2 plane render post-bloom (crisp, no glow)
+scene4.add(group3);
+(function() {
+  const s2Dist   = 7; // |-154 - (-161)|
+  const s2PlaneH = 2 * Math.tan(P.FOV * 0.5 * Math.PI / 180) * s2Dist;
+  const s2PlaneW = s2PlaneH * (S2_CW / S2_CH);
+  const s2Geo    = new THREE.PlaneGeometry(s2PlaneW, s2PlaneH);
+  const s2Mat    = new THREE.MeshBasicMaterial({ map: s2Texture, transparent: true, depthWrite: false });
+  window._s2Plane = new THREE.Mesh(s2Geo, s2Mat);
+  window._s2Plane.position.z = -161;
+  window._s2Plane.renderOrder = 0;
+  scene4.add(window._s2Plane);
+})();
+
 const RAL4_COLORS = [0x6c8daa, 0xe5e1d4, 0x417e57, 0xe6be05, 0xc7750f, 0xebecea];
 const g4 = { RINGS4_ON: true, RINGS4_ALPHA: P.RINGS4_ALPHA, RINGS4_GAP_MIN: P.RINGS4_GAP_MIN, RINGS4_GAP_MAX: P.RINGS4_GAP_MAX, RINGS4_SIZE_VAR: P.RINGS4_SIZE_VAR, RINGS4_LENGTH: P.RINGS4_LENGTH };
 let group4;
@@ -1579,8 +1761,18 @@ function frame(now){
   } else {
     renderer.render(scene, camera);
   }
+  // scatter2 opacity: smoothstep camZ -150(0) to -153(1)
+  const s2Raw     = Math.min(1, Math.max(0, (-camZf - 150) / 3));
+  const s2opacity = s2Raw * s2Raw * (3 - 2 * s2Raw);
+  if (gs2.S2_ON && s2opacity > 0) {
+    drawScatter2(now, s2opacity);
+    s2Texture.needsUpdate = true;
+  }
+  if (window._s2Plane) window._s2Plane.visible = gs2.S2_ON && s2opacity > 0;
+
   // composite scene4 after bloom — crisp, no glow
-  if (g4.RINGS4_ON || g5m.MESH_ON) {
+  const scene6Active = s2opacity > 0 || Math.abs(camZf + 158) < 40;
+  if (g4.RINGS4_ON || g5m.MESH_ON || scene6Active) {
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(scene4, camera);
@@ -2045,6 +2237,49 @@ fScene6.add(ggrid3, 'SEED',     1, 99, 1).name('GRID3 SEED').onChange(rebuildMes
 fScene6.add(ggrid3, 'LINE_ROWS').name('GRID3 LINE_ROWS').onChange(rebuildMesh3Geo);
 fScene6.add(ggrid3, 'LINE_COLS').name('GRID3 LINE_COLS').onChange(rebuildMesh3Geo);
 fScene6.add(gridLabel3, 'pts').name('mesh3 pts').listen();
+fScene6.close();
+
+const fScene6S = gui.addFolder('Scene6 Scatter');
+fScene6S.add(gs2, 'S2_ON');
+fScene6S.add(gs2, 'COUNT',         1, 50,  1).onChange(makePoints2);
+fScene6S.add(gs2, 'WIN',           0, 600, 1).onChange(makePoints2);
+fScene6S.add(gs2, 'SMIN',         10, 300, 1).onChange(makePoints2);
+fScene6S.add(gs2, 'SMAX',         10, 300, 1).onChange(makePoints2);
+fScene6S.add(gs2, 'SBIAS',         0, 100, 1).onChange(makePoints2);
+fScene6S.add(gs2, 'OPACITY',       0, 100, 1);
+fScene6S.add(gs2, 'OP_SPREAD',     0, 100, 1);
+fScene6S.add(gs2, 'NOISE_AMT',     0, 100, 1);
+fScene6S.add(gs2, 'NOISE_SPD',     0, 2000, 1);
+fScene6S.add(gs2, 'NOISE_MOD',     0, 100, 1);
+fScene6S.add(gs2, 'FOCUS_CX',      0, 1,   0.001).onChange(makePoints2);
+fScene6S.add(gs2, 'LINES_ON');
+fScene6S.add(gs2, 'LINES_MAX_DIST',0, 1000, 1);
+fScene6S.add(gs2, 'LINES_MAX_PER', 1, 10,   1);
+fScene6S.add(gs2, 'LINES_DUR',     1, 500,  1);
+fScene6S.add(gs2, 'LINES_OPAC',    0, 100,  1);
+fScene6S.add(gs2, 'S2_AUDIO_NOISE',0, 20,   0.1);
+fScene6S.add(gs2, 'S2_AUDIO_SIZE', 0, 5,    0.05);
+fScene6S.add(gs2, 'S2_AUDIO_LINES',0, 10,   0.1);
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = gs2.TEXT_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = gs2.TEXT_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = gs2.TEXT_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applyS2Color(hex){ gs2.TEXT_COLOR = hex; swatch.style.background = hex; hexLabel.textContent = hex.toUpperCase(); inp.value = hex; }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applyS2Color(e.target.value));
+  row.appendChild(swatch); row.appendChild(hexLabel); row.appendChild(inp);
+  fScene6S.domElement.querySelector('ul').appendChild(row);
+})();
+fScene6S.close();
 
 const fGlitch = gui.addFolder('Glitch Video');
 fGlitch.add(ggfx, 'GLITCH_ON');
