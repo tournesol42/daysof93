@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v50-scene6-scatter -->
+<!-- build: journey-v51-s2-lfo-fixes -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -531,6 +531,14 @@ const gs2 = {
   LINES_ON: true, LINES_MAX_DIST: 343, LINES_MAX_PER: 3,
   LINES_DUR: 203, LINES_OPAC: 46,
   S2_AUDIO_NOISE: 3, S2_AUDIO_SIZE: 0.3, S2_AUDIO_LINES: 1.5,
+  S2_IN_START: -152, S2_IN_END: -153.8,
+  S2_LFO_ON: true, S2_LFO_DELAY: 5,
+  S2_LFO_BIAS_RATE: 14, S2_LFO_BIAS_SLEW: 10,
+  S2_LFO_WIN_RATE: 6,  S2_LFO_WIN_SLEW: 3,
+  S2_LFO_CNT_RATE: 5,  S2_LFO_CNT_SLEW: 3,
+  S2_LFO_OPQ_RATE: 4,  S2_LFO_OPQ_SLEW: 2,
+  S2_LFO_SPD_RATE: 7,  S2_LFO_SPD_SLEW: 4,
+  S2_LFO_MOD_RATE: 5,  S2_LFO_MOD_SLEW: 3,
 };
 
 function gaussRand2() {
@@ -547,6 +555,15 @@ function sizeSample2(sMin, sMax, bExp) {
 }
 
 let s2pts = [], s2conns = [], s2anim = 0, s2LastMS = null, s2ConnLastMS = 0;
+
+// LFO state: [Bias, Win, Count, Opacity, Speed, Mod]
+let s2LfoVals = [gs2.SBIAS, gs2.WIN, gs2.COUNT, gs2.OPACITY, gs2.NOISE_SPD, gs2.NOISE_MOD];
+const s2LfoTgts = [...s2LfoVals];
+const s2LfoNext = [0, 0, 0, 0, 0, 0];
+let s2LfoFirstT = null;
+let s2LfoActive = false;
+let _s2LfoPrevCount = gs2.COUNT;
+let _s2LfoPrevBias  = gs2.SBIAS;
 
 function makePoints2() {
   const bExp = biasExp2(gs2.SBIAS);
@@ -586,11 +603,12 @@ function drawScatter2(ms, opacity) {
   s2ctx.clearRect(0, 0, S2_CW, S2_CH);
 
   const noiseAmt    = gs2.NOISE_AMT / 100;
-  const noiseSpd    = gs2.NOISE_SPD / 100;
-  const noiseModAmt = gs2.NOISE_MOD / 100;
-  const gOpacity    = gs2.OPACITY / 100;
+  const noiseSpd    = (s2LfoActive ? s2LfoVals[4] : gs2.NOISE_SPD) / 100;
+  const noiseModAmt = (s2LfoActive ? s2LfoVals[5] : gs2.NOISE_MOD) / 100;
+  const gOpacity    = (s2LfoActive ? s2LfoVals[3] : gs2.OPACITY) / 100;
   const opSpread    = gs2.OP_SPREAD / 100;
   const textCol     = gs2.TEXT_COLOR;
+  const _lfoWin     = s2LfoActive ? Math.round(s2LfoVals[1]) : gs2.WIN;
 
   s2anim += dt * noiseSpd * 1.8;
 
@@ -601,7 +619,7 @@ function drawScatter2(ms, opacity) {
   s2ctx.textAlign    = 'left';
 
   for (let i = 0; i < s2pts.length; i++) {
-    const wi = gs2.WIN + i;
+    const wi = _lfoWin + i;
     if (wi >= WORDS.length) continue;
     const word = WORDS[wi];
     if (!word) continue;
@@ -1042,7 +1060,7 @@ function buildDustGeo(){
   const n = 1200; const pos = new Float32Array(n*3);
   let s = 42;
   const rand = () => { s = (s*1664525+1013904223)>>>0; return s/4294967296; };
-  const zMax = 12, zMin = P.CAM_END_Z - 10;
+  const zMax = 12, zMin = P.CAM_END_Z - P.SPACE_FAR - 10;
   for(let i=0;i<n;i++){
     const r = 2 + rand()*10;
     const a = rand()*Math.PI*2;
@@ -1056,7 +1074,7 @@ function buildDustGeo(){
 }
 function buildRingsGeo(){
   const segs = 128, pos = [];
-  for(let z=8; z>=P.CAM_END_Z; z-=P.RINGS_SPACING){
+  for(let z=8; z>=(P.CAM_END_Z - P.SPACE_FAR - 10); z-=P.RINGS_SPACING){
     for(let i=0;i<segs;i++){
       const a0=(i/segs)*Math.PI*2, a1=((i+1)/segs)*Math.PI*2;
       pos.push(Math.cos(a0)*P.RINGS_RADIUS, Math.sin(a0)*P.RINGS_RADIUS, z,
@@ -1353,7 +1371,7 @@ const SLAB_COUNT_MAX = 150;
 const slab5 = new THREE.Group();
 scene4.add(slab5);
 const SLAB_FACE_FACTORS = [0.0, 0.18, 0.45, 0.3, 0.1, 0.25]; // +x,-x,+y,-y,+z,-z
-const slabMats = SLAB_FACE_FACTORS.map(() => new THREE.MeshBasicMaterial({ depthWrite: true, depthTest: true }));
+const slabMats = SLAB_FACE_FACTORS.map(() => new THREE.MeshBasicMaterial({ depthWrite: true, depthTest: true, transparent: true }));
 function updateSlabShading() {
   const base  = new THREE.Color(gslabs.SLAB_COLOR);
   const shade = new THREE.Color(gslabs.SLAB_SHADE_COLOR);
@@ -1675,7 +1693,24 @@ function frame(now){
   const slabNearZ = -70 + g5m.MESH_Z_OFFSET - 2;
   const slabFarZ  = -140 + g5m.MESH_Z_OFFSET + 2;
   const slabsActive = gslabs.SLAB_ON && camZf < slabNearZ && camZf > slabFarZ;
-  if (slabsActive || slabsWereActive) {
+
+  // Far-end opacity fade: 1 at slabFarZ, 0 at slabFarZ-6
+  const _slabFadeT = Math.min(1, Math.max(0, (camZf - (slabFarZ - 6)) / 6));
+  const SLAB_FADE  = _slabFadeT * _slabFadeT * (3 - 2 * _slabFadeT);
+  for (let _fi = 0; _fi < 6; _fi++) slabMats[_fi].opacity = SLAB_FADE;
+
+  // Keep running while active, or while in far fade zone, or while any slab is still shrinking
+  let _anySlabShrinking = false;
+  if (!slabsActive) {
+    for (let i = 0; i < SLAB_COUNT_MAX; i++) {
+      if (slabs[i].growing && slabs[i].growDir < 0 && slabs[i].growT < gslabs.SLAB_GROW) {
+        _anySlabShrinking = true; break;
+      }
+    }
+  }
+  const slabRunning = slabsActive || (gslabs.SLAB_ON && SLAB_FADE > 0) || _anySlabShrinking;
+
+  if (slabRunning || slabsWereActive) {
     group5.updateWorldMatrix(true, false);
     group5.matrixWorld.decompose(_slabPos5, _slabQuat5, _slabScaleW);
     slab5.position.copy(_slabPos5);
@@ -1686,7 +1721,7 @@ function frame(now){
     slab5.worldToLocal(_camLocalSlab);
     let camDeltaY = _camLocalSlab.y - _prevCamLocalSlabY;
 
-    if (!slabsWereActive && slabsActive) {
+    if (!slabsWereActive && slabRunning) {
       camDeltaY = 0;
       const r2 = rng(789);
       for (let i = 0; i < SLAB_COUNT_MAX; i++) {
@@ -1698,7 +1733,8 @@ function frame(now){
         s.mesh.visible = i < gslabs.SLAB_COUNT;
       }
       slabRespawnRng = rng(456);
-    } else if (slabsWereActive && !slabsActive) {
+    } else if (slabsWereActive && !slabsActive && !_anySlabShrinking && camZf >= slabNearZ) {
+      // exiting via near end (scrolled back) — shrink all
       for (const s of slabs) { s.growing = true; s.growDir = -1; }
     }
     _prevCamLocalSlabY = _camLocalSlab.y;
@@ -1706,8 +1742,10 @@ function frame(now){
     const audioMul = 1 + amod * gslabs.SLAB_AUDIO;
     for (let i = 0; i < SLAB_COUNT_MAX; i++) {
       const s = slabs[i];
-      // fully shrunk and leaving — hide and skip
+      // fully shrunk (near-exit animation complete) — hide
       if (!slabsActive && s.growDir < 0 && s.growT >= gslabs.SLAB_GROW) { s.mesh.visible = false; continue; }
+      // fully faded — hide
+      if (!slabsActive && SLAB_FADE <= 0 && !_anySlabShrinking) { s.mesh.visible = false; continue; }
       // beyond active count
       if (slabsActive && i >= gslabs.SLAB_COUNT) { s.mesh.visible = false; continue; }
 
@@ -1741,11 +1779,11 @@ function frame(now){
       s.mesh.matrix.compose(_slabV3, _slabQ4, _slabScl);
       s.mesh.visible = scale > 0.001;
     }
-  } else if (!slabsActive && !slabsWereActive) {
+  } else if (!slabRunning && !slabsWereActive) {
     // never entered or fully done
     if (slabs.length && slabs[0].mesh.visible) for (const s of slabs) s.mesh.visible = false;
   }
-  slabsWereActive = slabsActive;
+  slabsWereActive = slabRunning;
 
   // blend bloom between dat.GUI and ZONE3 as we transition
   const blmStrength  = gbloom.BLOOM_STRENGTH  * (1 - zone3Factor) + ZONE3.BLOOM_STRENGTH  * zone3Factor;
@@ -1761,9 +1799,78 @@ function frame(now){
   } else {
     renderer.render(scene, camera);
   }
-  // scatter2 opacity: smoothstep camZ -150(0) to -153(1)
-  const s2Raw     = Math.min(1, Math.max(0, (-camZf - 150) / 3));
+  // scatter2 opacity: smoothstep S2_IN_START(0) to S2_IN_END(1)
+  const s2Raw     = Math.min(1, Math.max(0, (camZf - gs2.S2_IN_START) / (gs2.S2_IN_END - gs2.S2_IN_START)));
   const s2opacity = s2Raw * s2Raw * (3 - 2 * s2Raw);
+
+  // scatter2 LFO: sample-and-hold with one-pole slew
+  if (s2opacity > 0 && gs2.S2_LFO_ON) {
+    if (s2LfoFirstT === null) { s2LfoFirstT = now; s2LfoActive = false; }
+    if (!s2LfoActive && (now - s2LfoFirstT) / 1000 >= gs2.S2_LFO_DELAY) {
+      s2LfoActive = true;
+      // seed initial values from current GUI
+      s2LfoVals[0] = gs2.SBIAS; s2LfoTgts[0] = gs2.SBIAS;
+      s2LfoVals[1] = gs2.WIN;   s2LfoTgts[1] = gs2.WIN;
+      s2LfoVals[2] = gs2.COUNT; s2LfoTgts[2] = gs2.COUNT;
+      s2LfoVals[3] = gs2.OPACITY; s2LfoTgts[3] = gs2.OPACITY;
+      s2LfoVals[4] = gs2.NOISE_SPD; s2LfoTgts[4] = gs2.NOISE_SPD;
+      s2LfoVals[5] = gs2.NOISE_MOD; s2LfoTgts[5] = gs2.NOISE_MOD;
+    }
+    if (s2LfoActive) {
+      const _lfoRates = [gs2.S2_LFO_BIAS_RATE, gs2.S2_LFO_WIN_RATE,  gs2.S2_LFO_CNT_RATE,
+                         gs2.S2_LFO_OPQ_RATE,  gs2.S2_LFO_SPD_RATE,  gs2.S2_LFO_MOD_RATE];
+      const _lfoSlews = [gs2.S2_LFO_BIAS_SLEW, gs2.S2_LFO_WIN_SLEW,  gs2.S2_LFO_CNT_SLEW,
+                         gs2.S2_LFO_OPQ_SLEW,  gs2.S2_LFO_SPD_SLEW,  gs2.S2_LFO_MOD_SLEW];
+      const _lfoMins  = [0,  0,                1,  0,   100, 0  ];
+      const _lfoMaxs  = [100, Math.max(0, WORDS.length - 35), 35, 100, 2400, 100];
+      const dtS = Math.min(dt, 0.05);
+      for (let li = 0; li < 6; li++) {
+        if (now >= s2LfoNext[li]) {
+          s2LfoTgts[li] = _lfoMins[li] + Math.random() * (_lfoMaxs[li] - _lfoMins[li]);
+          s2LfoNext[li] = now + _lfoRates[li] * 1000 * (0.7 + Math.random() * 0.6);
+        }
+        const alpha = 1 - Math.exp(-dtS / Math.max(0.001, _lfoSlews[li]));
+        s2LfoVals[li] += (s2LfoTgts[li] - s2LfoVals[li]) * alpha;
+      }
+      // in-place count change: add or remove one point at a time
+      const _lfoCount = Math.round(s2LfoVals[2]);
+      if (_lfoCount !== _s2LfoPrevCount) {
+        if (_lfoCount > s2pts.length) {
+          const bExp = biasExp2(Math.round(s2LfoVals[0]));
+          const attract = 2 / 100;
+          const rx = Math.random(), ry = Math.random();
+          const ox2 = gs2.FOCUS_CX, oy2 = Math.random();
+          const jitter = 0.018 * (1 - attract * 0.4);
+          s2pts.push({
+            bx: Math.max(0, Math.min(1, lerp2(rx, ox2, attract) + gaussRand2() * jitter)),
+            by: Math.max(0, Math.min(1, lerp2(ry, oy2, attract) + gaussRand2() * jitter)),
+            ox: Math.random() * 64, oy: Math.random() * 64,
+            sz: sizeSample2(gs2.SMIN, gs2.SMAX, bExp),
+            opacityRand: Math.random(), noiseMod: Math.random(),
+          });
+        } else if (_lfoCount < s2pts.length) {
+          s2pts.pop();
+        }
+        _s2LfoPrevCount = _lfoCount;
+      }
+      // in-place bias change: recompute sizes
+      const _lfoBiasR = Math.round(s2LfoVals[0]);
+      if (_lfoBiasR !== _s2LfoPrevBias) {
+        const bExp = biasExp2(_lfoBiasR);
+        for (const p of s2pts) p.sz = sizeSample2(gs2.SMIN, gs2.SMAX, bExp);
+        _s2LfoPrevBias = _lfoBiasR;
+      }
+    }
+  } else if (s2opacity <= 0 && s2LfoActive) {
+    // reset LFO when scatter fades out
+    s2LfoActive = false;
+    s2LfoFirstT = null;
+    s2LfoVals[0] = gs2.SBIAS; s2LfoVals[1] = gs2.WIN; s2LfoVals[2] = gs2.COUNT;
+    s2LfoVals[3] = gs2.OPACITY; s2LfoVals[4] = gs2.NOISE_SPD; s2LfoVals[5] = gs2.NOISE_MOD;
+    _s2LfoPrevCount = gs2.COUNT; _s2LfoPrevBias = gs2.SBIAS;
+    makePoints2();
+  }
+
   if (gs2.S2_ON && s2opacity > 0) {
     drawScatter2(now, s2opacity);
     s2Texture.needsUpdate = true;
@@ -2260,6 +2367,22 @@ fScene6S.add(gs2, 'LINES_OPAC',    0, 100,  1);
 fScene6S.add(gs2, 'S2_AUDIO_NOISE',0, 20,   0.1);
 fScene6S.add(gs2, 'S2_AUDIO_SIZE', 0, 5,    0.05);
 fScene6S.add(gs2, 'S2_AUDIO_LINES',0, 10,   0.1);
+fScene6S.add(gs2, 'S2_IN_START',  -160, -144, 0.1);
+fScene6S.add(gs2, 'S2_IN_END',    -160, -144, 0.1);
+fScene6S.add(gs2, 'S2_LFO_ON');
+fScene6S.add(gs2, 'S2_LFO_DELAY', 0, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_BIAS_RATE', 1, 60, 0.5);
+fScene6S.add(gs2, 'S2_LFO_BIAS_SLEW', 0.5, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_WIN_RATE',  1, 60, 0.5);
+fScene6S.add(gs2, 'S2_LFO_WIN_SLEW',  0.5, 20, 0.5);
+fScene6S.add(gs2, 'S2_LFO_CNT_RATE',  1, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_CNT_SLEW',  0.5, 20, 0.5);
+fScene6S.add(gs2, 'S2_LFO_OPQ_RATE',  1, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_OPQ_SLEW',  0.5, 15, 0.5);
+fScene6S.add(gs2, 'S2_LFO_SPD_RATE',  1, 60, 0.5);
+fScene6S.add(gs2, 'S2_LFO_SPD_SLEW',  0.5, 20, 0.5);
+fScene6S.add(gs2, 'S2_LFO_MOD_RATE',  1, 30, 0.5);
+fScene6S.add(gs2, 'S2_LFO_MOD_SLEW',  0.5, 20, 0.5);
 (function(){
   const row = document.createElement('li');
   row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
