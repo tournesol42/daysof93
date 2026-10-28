@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v58-solid-defaults -->
+<!-- build: journey-v59-bg-color -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -2027,6 +2027,41 @@ const gaudio = {
 const gbloom = { BLOOM_ON: true, BLOOM_STRENGTH: 0.4, BLOOM_RADIUS: 0.5, BLOOM_THRESHOLD: 0.2 };
 const gpts   = { PT_SCALE: 1.6, PT_ALPHA: 0.36, PT_COLOR: '#ff631b' };
 const gatmos = { FOG_NEAR: 6, FOG_FAR: 24.5 };
+
+const gbg = { BG_COLOR: '#000000' };
+
+const fGlobal = gui.addFolder('Global');
+fGlobal.close();
+// BG_COLOR picker
+(function(){
+  const row = document.createElement('li');
+  row.style.cssText = 'list-style:none;display:flex;align-items:center;padding:0 4px 0 6px;height:27px;box-sizing:border-box;gap:6px';
+  const swatch = document.createElement('div');
+  swatch.style.cssText = 'width:14px;height:14px;border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer';
+  swatch.style.background = gbg.BG_COLOR;
+  const hexLabel = document.createElement('span');
+  hexLabel.style.cssText = 'font-size:9px;font-family:monospace;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;flex:1';
+  hexLabel.textContent = gbg.BG_COLOR.toUpperCase();
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = gbg.BG_COLOR;
+  inp.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none';
+  function applyBgColor(hex){
+    gbg.BG_COLOR = hex;
+    swatch.style.background = hex;
+    hexLabel.textContent = hex.toUpperCase();
+    inp.value = hex;
+    renderer.setClearColor(hex, 1);
+    document.documentElement.style.background = hex;
+    document.body.style.background = hex;
+  }
+  swatch.addEventListener('click', () => inp.click());
+  inp.addEventListener('input', e => applyBgColor(e.target.value));
+  row.appendChild(swatch);
+  row.appendChild(hexLabel);
+  row.appendChild(inp);
+  fGlobal.domElement.querySelector('ul').appendChild(row);
+})();
 
 const fNoise = gui.addFolder('Noise');
 fNoise.add(gfx, 'N1_K',   0, 2.0,  0.01);
