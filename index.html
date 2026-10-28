@@ -468,6 +468,28 @@
       top: 80.8vh;
     }
   }
+  #journey-btn {
+    display: none;
+    position: fixed;
+    left: 60vw;
+    top: 18vh;
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: #FF7900;
+    text-decoration: none;
+    z-index: 51;
+    animation: dot-slow 2.5s ease-in-out infinite;
+  }
+  @media (min-width: 720px) {
+    #journey-btn {
+      left: 60vw;
+      top: 15vh;
+      width: 120px; height: 120px;
+    }
+  }
+  @media (max-width:720px) {
+    #journey-btn { width: 90px; height: 90px; }
+  }
 </style>
 </head>
 <body>
@@ -1390,6 +1412,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 <a href="explore4.html" id="explore3-btn" aria-label="Explore 4" style="pointer-events:auto;"></a>
 <a href="explore3.html" id="explore4-btn" aria-label="Explore 3" style="pointer-events:auto;"></a>
 <a href="music.html" id="music-btn" aria-label="Music" style="pointer-events:auto;"></a>
+<a href="https://daysof93.com/journey" id="journey-btn" aria-label="Journey" style="pointer-events:auto;"></a>
 </div>
 <div id="dot-hint">push dots to explore →</div>
 <script>
@@ -1401,6 +1424,7 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
   setTimeout(function() { musicBtn.style.display = 'block'; }, 2000);
   setTimeout(function() { explore3Btn.style.display = 'block'; }, 3200);
   setTimeout(function() { document.getElementById('explore4-btn').style.display = 'block'; }, 3800);
+  setTimeout(function() { document.getElementById('journey-btn').style.display = 'block'; }, 3800);
   setTimeout(function() {
     exploreBtn.classList.add('visible');
     setTimeout(function() { exploreBtn.classList.add('phase2'); }, 2000);
@@ -1906,7 +1930,7 @@ function draw(ms){
     var bsR=bsCanvas.getBoundingClientRect();
     if(!bsR.width||!points.length)return;
     var scX=CW/bsR.width, scY=CH/bsR.height;
-    var dotIds=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+    var dotIds=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
     ctx.strokeStyle=textCol;
     ctx.lineWidth=0.8;
     dotIds.forEach(function(id){
@@ -1973,7 +1997,7 @@ requestAnimationFrame(draw);
 <script>
 /* Layout + rotation editor — E to toggle */
 (function(){
-  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
   var HINT=document.getElementById('dot-hint');
   var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
   var meshCv=document.getElementById('mesh-canvas');
@@ -2171,7 +2195,7 @@ requestAnimationFrame(draw);
 <script>
 /* Ripple on dot click — ring expands 1x→5x, fades, then navigates */
 (function(){
-  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn'];
+  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
   IDS.forEach(function(id){
     var el=document.getElementById(id);
     if(!el)return;
