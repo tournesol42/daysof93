@@ -2009,7 +2009,8 @@ requestAnimationFrame(draw);
     window._meshRotManual=window._meshRotY||0;
     window._meshRotLocked=true;
     if(meshCv){ meshCv.style.cursor='ew-resize'; meshCv.style.pointerEvents='auto'; meshCv.style.zIndex='9995'; }
-    if(HINT){ HINT.style.visibility='visible'; HINT.style.transform='none'; HINT.style.opacity='1'; HINT.style.cursor='grab'; HINT.style.pointerEvents='auto'; HINT.style.outline='2px dashed orange'; }
+    if(HINT){ HINT.style.visibility='visible'; HINT.style.transform='none'; HINT.style.opacity='1'; HINT.style.cursor='grab'; HINT.style.pointerEvents='auto'; HINT.style.outline='2px dashed orange'; HINT.style.zIndex='9998'; }
+    IDS.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.zIndex='9998'; });
   }
 
   function exit(){
@@ -2025,7 +2026,7 @@ requestAnimationFrame(draw);
       var el=document.getElementById(id);
       if(el){ el.style.cursor=''; el.style.zIndex=''; }
     });
-    if(HINT){ HINT.style.cursor=''; HINT.style.pointerEvents='none'; HINT.style.outline=''; }
+    if(HINT){ HINT.style.cursor=''; HINT.style.pointerEvents='none'; HINT.style.outline=''; HINT.style.zIndex=''; }
   }
 
   function doExport(){
@@ -2050,24 +2051,24 @@ requestAnimationFrame(draw);
   /* ── Drag ── */
   document.addEventListener('mousedown',function(e){
     if(!editOn)return;
-    // Mesh rotate drag
-    if(e.target===meshCv||e.target.id==='mesh-canvas'){
-      meshDragging=true; meshDragX=e.clientX;
-      meshDragStartRot=window._meshRotManual||0;
-      e.preventDefault(); return;
-    }
     if(HINT&&(e.target===HINT||HINT.contains(e.target))){
       var hr=HINT.getBoundingClientRect();
       drag=HINT; offX=e.clientX-hr.left; offY=e.clientY-hr.top; didDrag=false;
       HINT.style.cursor='grabbing'; e.preventDefault(); return;
     }
     var id=IDS.find(function(id){ return document.getElementById(id)===e.target||document.getElementById(id).contains(e.target); });
-    if(!id)return;
-    var el=document.getElementById(id);
-    var r=el.getBoundingClientRect();
-    drag=el; offX=e.clientX-r.left; offY=e.clientY-r.top; didDrag=false;
-    el.style.cursor='grabbing';
-    e.preventDefault();
+    if(id){
+      var el=document.getElementById(id);
+      var r=el.getBoundingClientRect();
+      drag=el; offX=e.clientX-r.left; offY=e.clientY-r.top; didDrag=false;
+      el.style.cursor='grabbing'; e.preventDefault(); return;
+    }
+    // Mesh rotate drag (only if no dot/hint was hit)
+    if(e.target===meshCv||e.target.id==='mesh-canvas'){
+      meshDragging=true; meshDragX=e.clientX;
+      meshDragStartRot=window._meshRotManual||0;
+      e.preventDefault(); return;
+    }
   });
 
   document.addEventListener('mousemove',function(e){
