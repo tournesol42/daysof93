@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v54-music-v3 -->
+<!-- build: journey-v55-slab-start -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -1375,7 +1375,8 @@ const gslabs = {
   SLAB_DRIFT: 0.4, SLAB_R_MIN: 0.3, SLAB_R_MAX: 2.2,
   SLAB_AHEAD: 25, SLAB_BEHIND: 3,
   SLAB_GROW: 0.6, SLAB_AUDIO: 0.5,
-  SLAB_COLOR: '#000000', SLAB_SHADE_COLOR: '#ffffff', SLAB_SHADE: 0.5
+  SLAB_COLOR: '#000000', SLAB_SHADE_COLOR: '#ffffff', SLAB_SHADE: 0.5,
+  SLAB_START_Z: -66
 };
 const SLAB_COUNT_MAX = 150;
 const slab5 = new THREE.Group();
@@ -1449,7 +1450,8 @@ let _aLevelT = 0;
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
 let prevCamZ = P.CAM_START[2];
-const gmotion = { CAM_SPEED: 0 };
+const gmotion = { CAM_SPEED: 0, CAM_Z: '0.0' };
+let camZDisplayLast = 0;
 function frame(now){
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const t = (now - t0) / 1000;
@@ -1523,6 +1525,7 @@ function frame(now){
   group2.rotation.set(orbitPitch, autoYaw + orbitYaw, 0);
 
   const camZf = camera.position.z;
+  if (now - camZDisplayLast >= 100) { gmotion.CAM_Z = camZf.toFixed(1); camZDisplayLast = now; }
   // zone3Factor: 0 when camZ > -28, ramps to 1 at camZ < -32
   const zone3Factor = Math.min(1, Math.max(0, (-camZf - 28) / 4));
   // mesh2 fade-in: 0 at camZ=-32, 1 at camZ=-34
@@ -1700,7 +1703,7 @@ function frame(now){
   }
 
   // ── scene 5 slabs ──
-  const slabNearZ = -70 + g5m.MESH_Z_OFFSET - 2;
+  const slabNearZ = gslabs.SLAB_START_Z;
   const slabFarZ  = -140 + g5m.MESH_Z_OFFSET + 2;
   const slabsActive = gslabs.SLAB_ON && camZf < slabNearZ && camZf > slabFarZ;
 
@@ -2089,6 +2092,7 @@ fMotion.add(P, 'DRIFT_FRICTION', 0.9,  0.995,  0.001);
 fMotion.add(P, 'ORBIT_GAIN',     0.0001, 0.002, 0.0001);
 fMotion.add(P, 'ORBIT_FRICTION', 0.85, 0.99,   0.001);
 fMotion.add(gmotion, 'CAM_SPEED').listen();
+fMotion.add(gmotion, 'CAM_Z').listen();
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:100, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#ee7c0e',
@@ -2261,6 +2265,7 @@ fGuides.add(gg, 'GUIDE_VIBRATE', 0, 0.3,   0.005);
 
 const fSlabs = gui.addFolder('Scene5 Slabs');
 fSlabs.add(gslabs, 'SLAB_ON');
+fSlabs.add(gslabs, 'SLAB_START_Z', -100, -50, 1);
 fSlabs.add(gslabs, 'SLAB_COUNT',    0, 150, 1);
 fSlabs.add(gslabs, 'SLAB_LEN_MIN',  0.05, 10, 0.05).onChange(rebuildSlabSizes);
 fSlabs.add(gslabs, 'SLAB_LEN_MAX',  0.05, 10, 0.05).onChange(rebuildSlabSizes);
