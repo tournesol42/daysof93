@@ -5,21 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v1-orbits -->
-<script>// build: music5-v1-orbits
-console.log('d93: music5 v1-orbits');</script>
+<!-- build: music5-v2-eccentric -->
+<script>// build: music5-v2-eccentric
+console.log('d93: music5 v2-eccentric');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#f0f0ee}
-.orbit-svg{display:block;width:100vw;height:100vh}
+html,body{width:100%;height:100%;background:#f0f0ee}
+body{display:flex;align-items:center;justify-content:center}
+.osv{display:block;max-width:100vw;height:100vh;width:auto}
 a.plink{text-decoration:none;cursor:pointer}
 a.plink .ps{stroke:rgba(0,0,0,0.65);transition:stroke 0.15s}
 a.plink:hover .ps{stroke:rgba(0,0,0,1)}
-a.plink .pl{fill:rgba(0,0,0,0.55);transition:fill 0.15s}
-a.plink:hover .pl{fill:rgba(0,0,0,0.9)}
 a.plink .hit{fill:transparent}
 </style>
 </head>
@@ -34,147 +33,181 @@ const PLANET_LINKS = {
 };
 </script>
 
-<svg id="sv" class="orbit-svg"
-     viewBox="0 0 540 720"
-     preserveAspectRatio="xMidYMid slice"
+<!--
+  Eccentric orbit model:
+  Each orbit is a circle with its LEFT tangent near x=15 (left of image)
+  and its RIGHT tangent at the planet position on the horizontal axis (y=435).
+  Sun at (155,435) sits off-centre inside every orbit.
+  viewBox matches reference image 585×864.
+-->
+<svg id="sv" class="osv"
+     viewBox="0 0 585 864"
+     preserveAspectRatio="xMidYMid meet"
      shape-rendering="geometricPrecision"
      xmlns="http://www.w3.org/2000/svg">
+
 <defs>
   <filter id="grain" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.72 0.65" numOctaves="4" stitchTiles="stitch" result="n"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.68 0.60" numOctaves="4" stitchTiles="stitch" result="n"/>
     <feColorMatrix type="saturate" values="0" in="n" result="g"/>
     <feBlend in="SourceGraphic" in2="g" mode="multiply" result="b"/>
     <feComposite in="b" in2="SourceGraphic" operator="in"/>
   </filter>
-  <!-- Saturn outer ring clip -->
-  <clipPath id="src">
-    <ellipse cx="454" cy="360" rx="50" ry="13" transform="rotate(-28 454 360)"/>
-  </clipPath>
-  <!-- Label paths — CW arcs in upper-right (sweep=1) so text flows upper-left→lower-right -->
-  <!-- Mercury r=85 from 72° to 22° above horizontal -->
-  <path id="lm" d="M 188.5,287.7 A 85,85 0 0,1 243.6,322.1"/>
-  <!-- Venus r=115 from 66° to 19° -->
-  <path id="lv" d="M 211.8,254.9 A 115,115 0 0,1 273.8,318.3"/>
-  <!-- Mars r=163 from 61° to 17° -->
-  <path id="la" d="M 244.1,217.4 A 163,163 0 0,1 320.9,313.4"/>
-  <!-- Jupiter r=225 from 68° to 26° -->
-  <path id="lj" d="M 249.6,151.4 A 225,225 0 0,1 367.3,258.5"/>
-  <!-- Saturn r=289 from 73° to 29° -->
-  <path id="ls" d="M 249.6,83.5 A 289,289 0 0,1 418.0,220.3"/>
-  <!-- Uranus r=337 from 78° to 34° -->
-  <path id="lu" d="M 235.4,29.8 A 337,337 0 0,1 444.6,172.9"/>
-  <!-- Neptune r=363 from 80° to 37° -->
-  <path id="ln" d="M 228.0,3.4 A 363,363 0 0,1 455.3,142.5"/>
-  <!-- Earth r=430 CCW from -47° to -30° (lower right, text reads up-right) -->
-  <path id="le" d="M 458,674 A 430,430 0 0,0 537,580"/>
+
+  <!--
+    Label textPath arcs — CW sweep (sweep=1) for upper-right labels.
+    Each is a short arc on the ECCENTRIC orbit circle, positioned so
+    the • label reads from upper-left to lower-right in the NE quadrant.
+    Angles measured from each orbit's OWN centre, not from the sun.
+
+    Orbits (cx, r):
+      Mercury  cx=142  r=127
+      Venus    cx=154  r=139
+      Mars     cx=178  r=163
+      Jupiter  cx=216  r=201
+      Saturn   cx=250  r=235
+      Uranus   cx=273  r=258
+      Neptune  cx=289  r=274
+
+    All cy=435.
+
+    CW arc: sweep-flag=1, large-arc-flag=0
+    Start angle = higher above horizontal (more "north-east")
+    End angle   = lower, closer to horizontal (more "east")
+  -->
+
+  <!-- Mercury: start 62°, end 22° from orbit centre -->
+  <path id="lm" d="M 201.5,323.2 A 127,127 0 0,1 259.7,387.8"/>
+  <!-- Venus: start 58°, end 19° -->
+  <path id="lv" d="M 227.6,317.9 A 139,139 0 0,1 285.4,388.7"/>
+  <!-- Mars: start 61°, end 17° -->
+  <path id="la" d="M 257.0,292.6 A 163,163 0 0,1 333.9,387.5"/>
+  <!-- Jupiter: start 67°, end 27° -->
+  <path id="lj" d="M 294.5,249.3 A 201,201 0 0,1 395.2,344.3"/>
+  <!-- Saturn: start 72°, end 29° -->
+  <path id="ls" d="M 322.6,211.5 A 235,235 0 0,1 455.5,321.1"/>
+  <!-- Uranus: start 77°, end 32° -->
+  <path id="lu" d="M 331.6,183.7 A 258,258 0 0,1 491.8,298.0"/>
+  <!-- Neptune: start 80°, end 36° -->
+  <path id="ln" d="M 336.6,165.0 A 274,274 0 0,1 510.7,273.9"/>
+  <!-- Earth: CCW arc in lower-right (text reads up-right) -->
+  <!-- Earth orbit: cx=175, cy=440, r=335 -->
+  <path id="le" d="M 367,714 A 335,335 0 0,0 478,582"/>
 </defs>
 
 <!-- Background -->
-<rect width="540" height="720" fill="#f0f0ee"/>
-<rect width="540" height="720" filter="url(#grain)" opacity="0.042"/>
+<rect width="585" height="864" fill="#f0f0ee"/>
+<rect width="585" height="864" filter="url(#grain)" opacity="0.04"/>
 
-<!-- Sparse specks -->
-<g id="specks" fill="rgba(0,0,0,0.22)" stroke="none"></g>
+<!-- Sparse paper specks -->
+<g id="specks" fill="rgba(0,0,0,0.2)" stroke="none"></g>
 
-<!-- Radial rays from sun (165,360) -->
-<g id="rays" stroke="rgba(0,0,0,0.16)" stroke-width="0.55" fill="none" vector-effect="non-scaling-stroke"></g>
+<!-- Radial rays from sun at (155,435) — irregular angles traced from reference -->
+<g id="rays" stroke="rgba(0,0,0,0.15)" stroke-width="0.55" fill="none" vector-effect="non-scaling-stroke"></g>
 
-<!-- Orbit circles -->
-<g stroke="rgba(0,0,0,0.42)" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke">
-  <circle cx="165" cy="360" r="85"/>
-  <circle cx="165" cy="360" r="115"/>
-  <circle cx="165" cy="360" r="163"/>
-  <circle cx="165" cy="360" r="225"/>
-  <circle cx="165" cy="360" r="289"/>
-  <circle cx="165" cy="360" r="337"/>
-  <circle cx="165" cy="360" r="363"/>
-  <!-- Earth orbit -->
-  <circle cx="165" cy="360" r="430"/>
+<!-- ECCENTRIC ORBIT CIRCLES — each cx varies, all cy=435 -->
+<!-- Drawn back-to-front so inner arcs appear on top where they overlap -->
+<g stroke="rgba(0,0,0,0.40)" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke">
+  <!-- Neptune  cx=289 r=274 --> <circle cx="289" cy="435" r="274"/>
+  <!-- Uranus   cx=273 r=258 --> <circle cx="273" cy="435" r="258"/>
+  <!-- Saturn   cx=250 r=235 --> <circle cx="250" cy="435" r="235"/>
+  <!-- Jupiter  cx=216 r=201 --> <circle cx="216" cy="435" r="201"/>
+  <!-- Mars     cx=178 r=163 --> <circle cx="178" cy="435" r="163"/>
+  <!-- Venus    cx=154 r=139 --> <circle cx="154" cy="435" r="139"/>
+  <!-- Mercury  cx=142 r=127 --> <circle cx="142" cy="435" r="127"/>
+  <!-- Earth (large eccentric) cx=175, cy=440, r=335 -->
+  <circle cx="175" cy="440" r="335"/>
 </g>
 
-<!-- Second intersecting circle (centre ~Jupiter, r≈128) -->
-<circle cx="378" cy="360" r="128" stroke="rgba(0,0,0,0.38)" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke"/>
+<!-- Second large circle (artistic / Jupiter region), cx=315, r=188 -->
+<circle cx="315" cy="435" r="188"
+        stroke="rgba(0,0,0,0.38)" stroke-width="0.6" fill="none"
+        vector-effect="non-scaling-stroke"/>
 
-<!-- Dotted diagonal arc (lower-left to upper-right) -->
-<path d="M 18,525 Q 245,230 488,45"
-      stroke="rgba(0,0,0,0.42)" stroke-width="0.6" fill="none"
+<!-- Dotted diagonal arc — lower-left to upper-right -->
+<path d="M 22,560 Q 260,248 510,58"
+      stroke="rgba(0,0,0,0.40)" stroke-width="0.6" fill="none"
       stroke-dasharray="1.5,4.5" vector-effect="non-scaling-stroke"/>
 
 <!-- Dashed ellipse in lower half -->
-<ellipse cx="318" cy="558" rx="178" ry="36"
-         stroke="rgba(0,0,0,0.38)" stroke-width="0.6" fill="none"
-         stroke-dasharray="4,5.5" transform="rotate(-7 318 558)"
+<ellipse cx="315" cy="568" rx="188" ry="40"
+         stroke="rgba(0,0,0,0.36)" stroke-width="0.6" fill="none"
+         stroke-dasharray="4,5.5" transform="rotate(-8 315 568)"
          vector-effect="non-scaling-stroke"/>
 
-<!-- Sun concentric rings (r=80 to r=148, 18 rings, spacing 3.8) -->
-<g id="rings" stroke="rgba(0,0,0,0.30)" stroke-width="0.48" fill="none" vector-effect="non-scaling-stroke"></g>
+<!-- SUN — concentric rings (16, r=72→132 spacing 4) -->
+<g id="rings" stroke="rgba(0,0,0,0.28)" stroke-width="0.48" fill="none" vector-effect="non-scaling-stroke"></g>
 
-<!-- Sun spokes (24, from centre to r=76) -->
-<g id="spokes" stroke="rgba(0,0,0,0.42)" stroke-width="0.48" fill="none" vector-effect="non-scaling-stroke"></g>
+<!-- Sun spokes (24, every 15°, centre→r=70) -->
+<g id="spokes" stroke="rgba(0,0,0,0.40)" stroke-width="0.45" fill="none" vector-effect="non-scaling-stroke"></g>
 
 <!-- Sun heavy outline -->
-<circle cx="165" cy="360" r="76" stroke="rgba(0,0,0,0.88)" stroke-width="1.8" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+<circle cx="155" cy="435" r="70"
+        stroke="rgba(0,0,0,0.88)" stroke-width="1.8" fill="#f0f0ee"
+        vector-effect="non-scaling-stroke"/>
 
-<!-- Asteroid belt (JS-generated) -->
+<!-- ASTEROID BELT — crescent bands between Mars and Jupiter orbits -->
 <g id="ast-fill" fill="rgba(0,0,0,0.68)" stroke="none"></g>
-<g id="ast-ring" fill="none" stroke="rgba(0,0,0,0.58)" stroke-width="0.5" vector-effect="non-scaling-stroke"></g>
+<g id="ast-ring" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="0.5" vector-effect="non-scaling-stroke"></g>
 
-<!-- Mercury (non-clickable) -->
-<circle cx="250" cy="360" r="7" stroke="rgba(0,0,0,0.65)" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+<!-- MERCURY (non-clickable) -->
+<circle cx="268" cy="435" r="8"
+        stroke="rgba(0,0,0,0.62)" stroke-width="0.7" fill="#f0f0ee"
+        vector-effect="non-scaling-stroke"/>
 
-<!-- Venus -->
+<!-- VENUS (clickable) -->
 <a id="al-venus" class="plink">
-  <circle class="hit" cx="280" cy="360" r="33"/>
-  <circle class="ps" cx="280" cy="360" r="11" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+  <circle class="hit" cx="293" cy="435" r="39"/>
+  <circle class="ps" cx="293" cy="435" r="13"
+          stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
 </a>
 
-<!-- Mars (non-clickable) -->
-<circle cx="328" cy="360" r="8" stroke="rgba(0,0,0,0.65)" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+<!-- MARS (non-clickable) -->
+<circle cx="340" cy="435" r="9"
+        stroke="rgba(0,0,0,0.62)" stroke-width="0.7" fill="#f0f0ee"
+        vector-effect="non-scaling-stroke"/>
 
-<!-- Jupiter -->
+<!-- JUPITER (clickable) -->
 <a id="al-jupiter" class="plink">
-  <circle class="hit" cx="390" cy="360" r="78"/>
-  <circle class="ps" cx="390" cy="360" r="26" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+  <circle class="hit" cx="416" cy="435" r="87"/>
+  <circle class="ps" cx="416" cy="435" r="29"
+          stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
 </a>
 
-<!-- Saturn -->
+<!-- SATURN (clickable) — 3 thin ring ellipses (no hatching), planet on top -->
 <a id="al-saturn" class="plink">
-  <circle class="hit" cx="454" cy="360" r="60"/>
-  <!-- Rings behind planet body -->
-  <ellipse cx="454" cy="360" rx="42" ry="10.5" transform="rotate(-28 454 360)"
-           stroke="rgba(0,0,0,0.52)" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke"/>
-  <ellipse cx="454" cy="360" rx="50" ry="13" transform="rotate(-28 454 360)"
-           stroke="rgba(0,0,0,0.48)" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke"/>
-  <!-- Ring hatching clipped to outer ellipse -->
-  <g clip-path="url(#src)" stroke="rgba(0,0,0,0.40)" stroke-width="0.5" fill="none" vector-effect="non-scaling-stroke">
-    <line x1="404" y1="330" x2="392" y2="392"/><line x1="410" y1="328" x2="398" y2="390"/>
-    <line x1="416" y1="326" x2="404" y2="388"/><line x1="422" y1="325" x2="410" y2="387"/>
-    <line x1="428" y1="324" x2="416" y2="386"/><line x1="434" y1="323" x2="422" y2="385"/>
-    <line x1="440" y1="323" x2="428" y2="385"/><line x1="446" y1="323" x2="434" y2="385"/>
-    <line x1="452" y1="323" x2="440" y2="385"/><line x1="458" y1="323" x2="446" y2="385"/>
-    <line x1="464" y1="323" x2="452" y2="385"/><line x1="470" y1="324" x2="458" y2="386"/>
-    <line x1="476" y1="325" x2="464" y2="387"/><line x1="482" y1="326" x2="470" y2="388"/>
-    <line x1="488" y1="328" x2="476" y2="390"/><line x1="494" y1="330" x2="482" y2="392"/>
-    <line x1="500" y1="333" x2="488" y2="395"/>
-  </g>
-  <circle class="ps" cx="454" cy="360" r="19" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+  <circle class="hit" cx="484" cy="435" r="64"/>
+  <!-- Ring ellipses: inner→outer, tilted −28° about planet centre -->
+  <ellipse cx="484" cy="435" rx="32" ry="8"  transform="rotate(-28 484 435)"
+           stroke="rgba(0,0,0,0.50)" stroke-width="0.6" fill="none"
+           vector-effect="non-scaling-stroke"/>
+  <ellipse cx="484" cy="435" rx="40" ry="10" transform="rotate(-28 484 435)"
+           stroke="rgba(0,0,0,0.45)" stroke-width="0.6" fill="none"
+           vector-effect="non-scaling-stroke"/>
+  <ellipse cx="484" cy="435" rx="48" ry="12" transform="rotate(-28 484 435)"
+           stroke="rgba(0,0,0,0.40)" stroke-width="0.6" fill="none"
+           vector-effect="non-scaling-stroke"/>
+  <circle class="ps" cx="484" cy="435" r="21"
+          stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
 </a>
 
-<!-- Uranus -->
+<!-- URANUS (clickable) -->
 <a id="al-uranus" class="plink">
-  <circle class="hit" cx="502" cy="360" r="39"/>
-  <circle class="ps" cx="502" cy="360" r="13" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+  <circle class="hit" cx="530" cy="435" r="42"/>
+  <circle class="ps" cx="530" cy="435" r="14"
+          stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
 </a>
 
-<!-- Neptune -->
+<!-- NEPTUNE (clickable) -->
 <a id="al-neptune" class="plink">
-  <circle class="hit" cx="528" cy="360" r="33"/>
-  <circle class="ps" cx="528" cy="360" r="11" stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
+  <circle class="hit" cx="562" cy="435" r="36"/>
+  <circle class="ps" cx="562" cy="435" r="12"
+          stroke-width="0.7" fill="#f0f0ee" vector-effect="non-scaling-stroke"/>
 </a>
 
-<!-- Planet labels on textPath -->
-<g font-family="'Jost',sans-serif" font-size="6" font-weight="300"
-   letter-spacing="1.15" fill="rgba(0,0,0,0.58)" text-anchor="start">
+<!-- PLANET LABELS on textPath arcs -->
+<g font-family="'Jost',sans-serif" font-size="7" font-weight="300"
+   letter-spacing="1.3" fill="rgba(0,0,0,0.56)" text-anchor="start">
   <text><textPath href="#lm" startOffset="1%">&#x2022; MERCURY</textPath></text>
   <text><textPath href="#lv" startOffset="1%">&#x2022; VENUS</textPath></text>
   <text><textPath href="#la" startOffset="1%">&#x2022; MARS</textPath></text>
@@ -182,105 +215,110 @@ const PLANET_LINKS = {
   <text><textPath href="#ls" startOffset="1%">&#x2022; SATURN</textPath></text>
   <text><textPath href="#lu" startOffset="1%">&#x2022; URANUS</textPath></text>
   <text><textPath href="#ln" startOffset="1%">&#x2022; NEPTUNE</textPath></text>
-  <text><textPath href="#le" startOffset="4%">&#x2022; EARTH</textPath></text>
+  <text><textPath href="#le" startOffset="5%">&#x2022; EARTH</textPath></text>
 </g>
 
 </svg>
 
 <script>
 (function(){
-  var svgNS = 'http://www.w3.org/2000/svg';
-  var SX = 165, SY = 360; // sun centre
+  var NS = 'http://www.w3.org/2000/svg';
+  var SX = 155, SY = 435; // sun centre
 
-  function mkEl(tag, attrs){
-    var el = document.createElementNS(svgNS, tag);
-    for(var k in attrs) el.setAttribute(k, attrs[k]);
-    return el;
+  function mk(tag, a){
+    var e = document.createElementNS(NS, tag);
+    for(var k in a) e.setAttribute(k, a[k]);
+    return e;
   }
 
-  // --- Specks ---
-  var specks = [[82,45,0.8],[200,30,0.6],[310,18,0.9],[450,55,0.7],[505,118,0.6],
-    [522,198,0.8],[512,352,0.7],[526,482,0.9],[492,602,0.6],[402,682,0.8],
-    [278,702,0.7],[148,692,0.6],[48,622,0.9],[28,452,0.7],[14,278,0.6],
-    [58,148,0.8],[372,88,0.7],[178,482,0.6],[422,432,0.8],[98,392,0.7],
-    [345,560,0.6],[72,540,0.7],[480,290,0.6],[195,85,0.8]];
+  // --- Sparse specks ---
+  var sp = [[78,42,0.8],[218,28,0.6],[340,16,0.9],[472,52,0.7],[558,130,0.6],
+            [570,240,0.8],[575,390,0.7],[562,530,0.9],[540,648,0.6],[488,748,0.8],
+            [380,800,0.7],[248,820,0.6],[128,790,0.9],[52,680,0.7],[22,510,0.6],
+            [36,350,0.8],[62,208,0.7],[408,88,0.6],[182,540,0.8],[492,310,0.7],
+            [350,640,0.6],[140,320,0.8],[530,460,0.7],[90,480,0.6]];
   var sg = document.getElementById('specks');
-  specks.forEach(function(s){
-    sg.appendChild(mkEl('circle',{cx:s[0],cy:s[1],r:s[2]}));
+  sp.forEach(function(s){
+    sg.appendChild(mk('circle',{cx:s[0],cy:s[1],r:s[2]}));
   });
 
-  // --- Radial rays ---
-  var rayAngles = [15,30,50,70,88,105,125,148,212,252,270,302,332,348];
+  // --- Radial rays (irregular angles, traced from reference) ---
+  // Angles in degrees CCW from positive x-axis (standard maths convention)
+  var rayA = [12, 28, 46, 61, 76, 92, 112, 138, 162, 205, 248, 272, 308, 342];
   var rg = document.getElementById('rays');
-  rayAngles.forEach(function(deg){
-    var rad = deg * Math.PI / 180;
-    var ex = SX + 570 * Math.cos(rad);
-    var ey = SY - 570 * Math.sin(rad);
-    rg.appendChild(mkEl('line',{x1:SX,y1:SY,x2:ex.toFixed(1),y2:ey.toFixed(1)}));
+  rayA.forEach(function(d){
+    var r = d * Math.PI / 180;
+    rg.appendChild(mk('line',{
+      x1:SX, y1:SY,
+      x2:(SX + 640*Math.cos(r)).toFixed(1),
+      y2:(SY - 640*Math.sin(r)).toFixed(1)
+    }));
   });
 
-  // --- Concentric rings ---
+  // --- Sun concentric rings (16 rings, r=72 to r=132) ---
   var ringsG = document.getElementById('rings');
-  for(var ri = 0; ri < 18; ri++){
-    var rr = 80 + ri * 4;
-    ringsG.appendChild(mkEl('circle',{cx:SX,cy:SY,r:rr}));
+  for(var i=0;i<16;i++){
+    ringsG.appendChild(mk('circle',{cx:SX, cy:SY, r: 72 + i*4}));
   }
 
-  // --- Sun spokes (24, every 15°) ---
+  // --- Sun spokes (24, every 15°, from centre to r=70) ---
   var spokesG = document.getElementById('spokes');
-  for(var si = 0; si < 24; si++){
-    var srad = si * 15 * Math.PI / 180;
-    var ex2 = SX + 76 * Math.cos(srad);
-    var ey2 = SY - 76 * Math.sin(srad);
-    spokesG.appendChild(mkEl('line',{x1:SX,y1:SY,x2:ex2.toFixed(1),y2:ey2.toFixed(1)}));
+  for(var i=0;i<24;i++){
+    var a = i * 15 * Math.PI / 180;
+    spokesG.appendChild(mk('line',{
+      x1:SX, y1:SY,
+      x2:(SX + 70*Math.cos(a)).toFixed(1),
+      y2:(SY - 70*Math.sin(a)).toFixed(1)
+    }));
   }
 
-  // --- Asteroid belt (r in [168,222] from sun, upper and lower) ---
-  // Pre-computed (r, angle_deg) pairs where angle avoids ±20° of horizontal
-  var beltFill = [
-    // upper (angle 30°–80°)
-    [175,70],[192,60],[170,50],[212,55],[185,45],[198,38],[222,48],
-    [175,35],[216,42],[182,30],[168,27],[224,52],[196,65],[202,73],
-    [180,57],[168,43],[208,62],[190,32],[178,68],[220,40],
-    // lower (angle 280°–330°, i.e., below axis)
-    [175,290],[192,300],[170,310],[212,305],[185,315],[198,322],[222,312],
-    [175,325],[216,318],[182,330],[168,333],[224,308],[196,295],[202,287],
-    [180,303],[168,317],[208,298],[190,328],[178,292],[220,320]
+  // --- Asteroid belt ---
+  // Crescent bands between Mars orbit (cx=178,r=163) and Jupiter orbit (cx=216,r=201).
+  // Upper crescent: positions in the NE quadrant of the diagram.
+  // Lower crescent: mirrored below axis.
+  // Using (dist-from-sun, angle) in the eccentric coordinate sense
+  // but simplified as (x, y) pairs traced from reference.
+  var astFill = [
+    // upper crescent band  (above y=435)
+    [284,307],[295,294],[308,282],[322,272],[335,263],
+    [350,258],[365,256],[378,260],[390,265],[400,272],
+    [296,316],[312,300],[326,288],[342,277],[358,270],
+    [372,265],[384,268],[395,274],[405,280],
+    [288,322],[304,308],[318,294],[334,283],[348,275],
+    // lower crescent band (below y=435)
+    [284,563],[295,576],[308,588],[322,598],[335,607],
+    [350,612],[365,614],[378,610],[390,605],[400,598],
+    [296,554],[312,570],[326,582],[342,593],[358,600],
+    [372,605],[384,602],[395,596],[405,590],
+    [288,548],[304,562],[318,576],[334,587],[348,595]
   ];
-  var beltRing = [
-    [202,45],[186,65],[172,40],[204,315],[188,295],[174,320]
+  var astRing = [
+    [302,290],[348,262],[382,264],[298,312],[346,283],
+    [302,580],[348,608],[382,606],[298,558],[346,587]
   ];
   var afg = document.getElementById('ast-fill');
   var arg = document.getElementById('ast-ring');
-  beltFill.forEach(function(b){
-    var rad = b[1] * Math.PI / 180;
-    var cx = SX + b[0] * Math.cos(rad);
-    var cy = SY - b[0] * Math.sin(rad);
-    // size 1.0–2.4
-    var sz = 1.0 + (b[0] + b[1]) % 14 * 0.1;
-    afg.appendChild(mkEl('circle',{cx:cx.toFixed(1),cy:cy.toFixed(1),r:sz.toFixed(1)}));
+  astFill.forEach(function(a,i){
+    var sz = 1.0 + (i % 5)*0.28;
+    afg.appendChild(mk('circle',{cx:a[0],cy:a[1],r:sz.toFixed(1)}));
   });
-  beltRing.forEach(function(b){
-    var rad = b[1] * Math.PI / 180;
-    var cx = SX + b[0] * Math.cos(rad);
-    var cy = SY - b[0] * Math.sin(rad);
-    arg.appendChild(mkEl('circle',{cx:cx.toFixed(1),cy:cy.toFixed(1),r:'3.2'}));
+  astRing.forEach(function(a){
+    arg.appendChild(mk('circle',{cx:a[0],cy:a[1],r:'3.5'}));
   });
 
   // --- Wire planet links ---
-  var links = {
+  var lmap = {
     'al-venus':   PLANET_LINKS.venus,
     'al-jupiter': PLANET_LINKS.jupiter,
     'al-saturn':  PLANET_LINKS.saturn,
     'al-uranus':  PLANET_LINKS.uranus,
     'al-neptune': PLANET_LINKS.neptune
   };
-  Object.keys(links).forEach(function(id){
+  Object.keys(lmap).forEach(function(id){
     var el = document.getElementById(id);
     if(!el) return;
-    var href = links[id];
-    if(href){ el.setAttribute('href', href); }
-    else { el.style.cursor = 'default'; el.style.pointerEvents = 'none'; }
+    if(lmap[id]){ el.setAttribute('href', lmap[id]); }
+    else { el.style.cursor='default'; el.style.pointerEvents='none'; }
   });
 })();
 </script>
