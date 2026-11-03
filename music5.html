@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v6-measured -->
-<script>// build: music5-v6-measured
-console.log('d93: music5 v6-measured');</script>
+<!-- build: music5-v6b-console-fix -->
+<script>// build: music5-v6b-console-fix
+console.log('d93: music5 v6b-console-fix');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@ const PLANET_LINKS = {
       window._d93.setDotSize(p.dotSize);
       window._d93.speedMul = p.speed;
     }
-    ORBITS.forEach(function(o){
+    window._d93ORBITS.forEach(function(o){
       var el=document.getElementById('orbit-'+o.name);
       if(el) el.setAttribute('stroke-width', p.ringWidth);
     });
@@ -939,7 +939,7 @@ const PLANET_LINKS = {
   panel.appendChild(sec('Orbit rings'));
   panel.appendChild(rowEl('Width 0.2–3', slider(P.ringWidth, 0.2, 3, 0.1, function(v){
     P.ringWidth=v;
-    ORBITS.forEach(function(o){
+    window._d93ORBITS.forEach(function(o){
       var el=document.getElementById('orbit-'+o.name); if(el) el.setAttribute('stroke-width',v);
     });
     var hr=document.getElementById('sun-rings');
