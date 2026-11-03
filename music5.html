@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v5-exact -->
-<script>// build: music5-v5-exact
-console.log('d93: music5 v5-exact');</script>
+<!-- build: music5-v6-measured -->
+<script>// build: music5-v6-measured
+console.log('d93: music5 v6-measured');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#f0f0ee}
+html,body{width:100%;height:100%;overflow:hidden;background:#efefed}
 #sv{display:block;width:100vw;height:100vh}
 a.plink{text-decoration:none;cursor:pointer}
 a.plink .ps{transition:opacity 0.15s}
@@ -97,61 +97,47 @@ const PLANET_LINKS = {
 </defs>
 
 <!-- Background -->
-<rect id="bg" x="-2000" y="-2000" width="6000" height="6000" fill="#f0f0ee"/>
-<rect id="grain-rect" x="-2000" y="-2000" width="6000" height="6000" fill="#f0f0ee" filter="url(#grain)" opacity="0.04"/>
+<rect id="bg" x="-2000" y="-2000" width="6000" height="6000" fill="#efefed"/>
+<rect id="grain-rect" x="-2000" y="-2000" width="6000" height="6000" fill="#efefed" filter="url(#grain)" opacity="0.04"/>
 
 <!-- Paper specks -->
 <g id="specks" fill="rgba(0,0,0,0.2)" stroke="none"></g>
 
-<!-- Radial rays -->
-<g id="rays" stroke="#ccccca" stroke-width="0.55" fill="none" vector-effect="non-scaling-stroke"></g>
+<!-- Radial rays (JS-generated, measured geometry) -->
+<g id="rays" stroke="#000" stroke-width="0.5" opacity="0.35" fill="none" vector-effect="non-scaling-stroke"></g>
 
-<!-- Orbit circles (generated from ORBITS in JS) -->
-<g id="orbit-rings"></g>
+<!-- Orbit circles (JS-generated from ORBITS) -->
+<g id="orbit-rings" opacity="0.6"></g>
 
-<!-- Earth orbit -->
-<circle id="orbit-earth" cx="175" cy="440" r="335" stroke="#949490" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke"/>
+<!-- Ellipse arcs: earth curve, dashed, dotted (JS-generated) -->
+<g id="arcs" fill="none" vector-effect="non-scaling-stroke"></g>
 
-<!-- Second large decorative circle -->
-<circle cx="315" cy="435" r="188" stroke="#949490" stroke-width="0.6" fill="none" vector-effect="non-scaling-stroke"/>
+<!-- Sun halo rings (JS-generated, seeded offsets) -->
+<g id="sun-rings" stroke="#000" stroke-width="0.4" opacity="0.45" fill="none" vector-effect="non-scaling-stroke"></g>
 
-<!-- Dotted diagonal arc -->
-<path id="diag-arc" d="M -600,900 Q 260,248 1200,-300"
-      stroke="#ccccca" stroke-width="0.6" fill="none"
-      stroke-dasharray="1.5,4.5" vector-effect="non-scaling-stroke"/>
-
-<!-- Dashed ellipse lower half -->
-<ellipse cx="315" cy="568" rx="188" ry="40"
-         stroke="#ccccca" stroke-width="0.6" fill="none"
-         stroke-dasharray="4,5.5" transform="rotate(-8 315 568)"
-         vector-effect="non-scaling-stroke"/>
-
-<!-- Sun halo rings (16, r=63→90, seeded offsets) -->
-<g id="sun-rings" stroke="rgba(0,0,0,0.28)" stroke-width="0.48" fill="none" vector-effect="non-scaling-stroke"></g>
-
-<!-- Sun spokes (24) -->
-<g id="spokes" stroke="rgba(0,0,0,0.40)" stroke-width="0.45" fill="none" vector-effect="non-scaling-stroke"></g>
+<!-- Sun spokes (JS-generated, 19 measured angles) -->
+<g id="spokes" stroke="#000" stroke-width="0.45" opacity="0.5" fill="none" vector-effect="non-scaling-stroke"></g>
 
 <!-- Sun disc -->
 <circle id="sun" cx="132" cy="421" r="56.5"
-        stroke="rgba(0,0,0,0.88)" stroke-width="1.8" fill="#f0f0ee"
+        stroke="rgba(0,0,0,0.88)" stroke-width="1.8" fill="#efefed"
         vector-effect="non-scaling-stroke"/>
 
 <!-- Mercury (non-clickable) -->
 <circle id="planet-mercury" cx="247.5" cy="421" r="4.5"
-        stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+        stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
         vector-effect="non-scaling-stroke"/>
 
 <!-- Venus (non-clickable) -->
 <circle id="planet-venus" cx="273" cy="421" r="9"
-        stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+        stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
         vector-effect="non-scaling-stroke"/>
 
 <!-- Mars (clickable) -->
 <a id="al-mars" class="plink">
   <circle class="hit" cx="316" cy="421" r="18"/>
   <circle id="planet-mars" class="ps" cx="316" cy="421" r="5"
-          stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+          stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
           vector-effect="non-scaling-stroke"/>
 </a>
 
@@ -159,7 +145,7 @@ const PLANET_LINKS = {
 <a id="al-jupiter" class="plink">
   <circle class="hit" cx="387" cy="421" r="50"/>
   <circle id="planet-jupiter" class="ps" cx="387" cy="421" r="28"
-          stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+          stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
           vector-effect="non-scaling-stroke"/>
 </a>
 
@@ -167,7 +153,7 @@ const PLANET_LINKS = {
 <a id="al-saturn" class="plink">
   <circle class="hit" cx="456.5" cy="421" r="42"/>
   <circle id="planet-saturn" class="ps" cx="456.5" cy="421" r="21.5"
-          stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+          stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
           vector-effect="non-scaling-stroke"/>
 </a>
 
@@ -175,7 +161,7 @@ const PLANET_LINKS = {
 <a id="al-uranus" class="plink">
   <circle class="hit" cx="519" cy="421" r="22"/>
   <circle id="planet-uranus" class="ps" cx="519" cy="421" r="10"
-          stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+          stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
           vector-effect="non-scaling-stroke"/>
 </a>
 
@@ -183,16 +169,16 @@ const PLANET_LINKS = {
 <a id="al-neptune" class="plink">
   <circle class="hit" cx="562" cy="421" r="30"/>
   <circle id="planet-neptune" class="ps" cx="562" cy="421" r="12"
-          stroke="#949490" stroke-width="0.7" fill="#f0f0ee"
+          stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#efefed"
           vector-effect="non-scaling-stroke"/>
 </a>
-
-<!-- Orbiting dots -->
-<g id="dots"></g>
 
 <!-- Labels: JS-generated textPaths on orbit arcs -->
 <g id="labels" font-family="'Jost',sans-serif" font-size="7" font-weight="300"
    letter-spacing="1.3" fill="#808080" text-anchor="middle"></g>
+
+<!-- Orbiting dots -->
+<g id="dots"></g>
 
 </svg>
 
@@ -287,30 +273,18 @@ const PLANET_LINKS = {
   var sg = document.getElementById('specks');
   sp.forEach(function(s){ sg.appendChild(mk('circle',{cx:s[0],cy:s[1],r:s[2]})); });
 
-  // Radial rays — varied lengths; only a few run long
-  var RAYS = [
-    {a:12,  l:270},
-    {a:28,  l:380},
-    {a:46,  l:660},
-    {a:61,  l:210},
-    {a:76,  l:240},
-    {a:92,  l:310},
-    {a:112, l:200},
-    {a:138, l:420},
-    {a:162, l:260},
-    {a:205, l:300},
-    {a:248, l:580},
-    {a:272, l:230},
-    {a:308, l:520},
-    {a:342, l:260}
+  // Radial rays — measured reference geometry [angle°, rStart, rEnd] (0=right, 90=down)
+  var RAY_DATA = [
+    [98.6,92,356],[24.5,93,333],[63.3,93,270],[296.9,92,241],[37.4,93,211],
+    [124,93,206],[270,92,171],[309.5,92,167],[141,97,167],[43.9,174,354],
+    [220.2,55,173],[199.6,55,137],[157.2,53,143],[179,56,132]
   ];
   var rg = document.getElementById('rays');
-  RAYS.forEach(function(ray){
-    var r = ray.a * Math.PI / 180;
+  RAY_DATA.forEach(function(ray){
+    var a = ray[0] * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
     rg.appendChild(mk('line',{
-      x1:SX, y1:SY,
-      x2:(SX + ray.l * Math.cos(r)).toFixed(1),
-      y2:(SY - ray.l * Math.sin(r)).toFixed(1)
+      x1:(SX + ray[1]*ca).toFixed(1), y1:(SY + ray[1]*sa).toFixed(1),
+      x2:(SX + ray[2]*ca).toFixed(1), y2:(SY + ray[2]*sa).toFixed(1)
     }));
   });
 
@@ -320,29 +294,54 @@ const PLANET_LINKS = {
   function _hr(){ _hs = (_hs * 1664525 + 1013904223) >>> 0; return _hs / 4294967296; }
   for(var i=0;i<16;i++){
     var _ox = (_hr()-0.5)*3, _oy = (_hr()-0.5)*3;
-    ringsG.appendChild(mk('circle',{cx:(SX+_ox).toFixed(2), cy:(SY+_oy).toFixed(2), r:(63 + i*(90-63)/15).toFixed(2)}));
+    ringsG.appendChild(mk('circle',{cx:(SX+_ox).toFixed(2), cy:(SY+_oy).toFixed(2), r:(63+i*(90-63)/15).toFixed(2)}));
   }
 
-  // Sun spokes (24)
+  // Sun spokes — 19 measured angles (0=right, 90=down), r=56
+  var SPOKE_ANGLES = [0,26,40,65,90,99,110,123,138.5,155,179,197.5,218,245.5,270,281.5,298,311.5,340];
   var spokesG = document.getElementById('spokes');
-  for(var i=0;i<24;i++){
-    var a = i * 15 * Math.PI / 180;
+  SPOKE_ANGLES.forEach(function(deg){
+    var a = deg * Math.PI / 180;
     spokesG.appendChild(mk('line',{
       x1:SX, y1:SY,
-      x2:(SX + 56.5 * Math.cos(a)).toFixed(1),
-      y2:(SY - 56.5 * Math.sin(a)).toFixed(1)
+      x2:(SX + 56 * Math.cos(a)).toFixed(1),
+      y2:(SY + 56 * Math.sin(a)).toFixed(1)
     }));
-  }
+  });
 
   // Orbit circles from ORBITS
   var orbitG = document.getElementById('orbit-rings');
   ORBITS.forEach(function(o){
     orbitG.appendChild(mk('circle',{
       id:'orbit-'+o.name, cx:o.cx, cy:o.cy, r:o.r,
-      stroke:'#949490', 'stroke-width':'0.6', fill:'none',
+      stroke:'#000', 'stroke-width':'0.6', fill:'none',
       'vector-effect':'non-scaling-stroke'
     }));
   });
+
+  // Three ellipse arcs — measured reference geometry
+  function ellipsePolyline(cx,cy,rx,ry,phi,t0,t1,nPts){
+    var pr=phi*Math.PI/180, cp=Math.cos(pr), sp=Math.sin(pr), d='M';
+    for(var i=0;i<nPts;i++){
+      var t=(t0+(t1-t0)*i/(nPts-1))*Math.PI/180;
+      var x=cx+rx*Math.cos(t)*cp-ry*Math.sin(t)*sp;
+      var y=cy+rx*Math.cos(t)*sp+ry*Math.sin(t)*cp;
+      d+=(i>0?' L':'')+x.toFixed(2)+','+y.toFixed(2);
+    }
+    return d;
+  }
+  var arcsG = document.getElementById('arcs');
+  arcsG.appendChild(mk('path',{id:'arc-earth',
+    d:ellipsePolyline(791.9,679.3,228.0,558.4,118.3,11,145,500),
+    stroke:'rgba(0,0,0,0.55)','stroke-width':'0.6'}));
+  var _ad=mk('path',{id:'arc-dashed',
+    d:ellipsePolyline(487.1,209.8,282.6,524.8,59.4,4,95,400),
+    stroke:'rgba(0,0,0,0.45)','stroke-width':'0.5','stroke-dasharray':'3,3'});
+  arcsG.appendChild(_ad);
+  var _ao=mk('path',{id:'arc-dotted',
+    d:ellipsePolyline(300.4,310.4,183.0,461.2,57.0,144,243,500),
+    stroke:'rgba(0,0,0,0.5)','stroke-width':'0.6','stroke-dasharray':'1,3'});
+  arcsG.appendChild(_ao);
 
   // Label path arcs — centred on labelAngle, r+4 radius, text-anchor middle
   var defs = document.querySelector('#sv defs');
@@ -733,11 +732,11 @@ const PLANET_LINKS = {
 
   var PARAMS_DEFAULT = {
     rings: {
-      mars:    {color:'#949490', planet:'#f0f0ee'},
-      jupiter: {color:'#949490', planet:'#f0f0ee'},
-      saturn:  {color:'#949490', planet:'#f0f0ee'},
-      uranus:  {color:'#949490', planet:'#f0f0ee'},
-      neptune: {color:'#949490', planet:'#f0f0ee'}
+      mars:    {color:'#000000', planet:'#efefed'},
+      jupiter: {color:'#000000', planet:'#efefed'},
+      saturn:  {color:'#000000', planet:'#efefed'},
+      uranus:  {color:'#000000', planet:'#efefed'},
+      neptune: {color:'#000000', planet:'#efefed'}
     },
     labelTexts: {
       mars: 'EXPLORE', jupiter: 'JOURNEY', saturn: 'EXPLORE 4',
@@ -748,9 +747,9 @@ const PLANET_LINKS = {
     dotSize:   1,
     speed:     1,
     ringWidth: 0.6,
-    lineColor: '#ccccca',
-    lineWidth: 0.55,
-    bgColor:   '#f0f0ee',
+    lineColor: '#000000',
+    lineWidth: 0.5,
+    bgColor:   '#efefed',
     textColor: '#808080',
     textSize:  7
   };
@@ -804,14 +803,18 @@ const PLANET_LINKS = {
       window._d93.setDotSize(p.dotSize);
       window._d93.speedMul = p.speed;
     }
-    ['mars','jupiter','saturn','uranus','neptune'].forEach(function(n){
-      var el=document.getElementById('orbit-'+n);
+    ORBITS.forEach(function(o){
+      var el=document.getElementById('orbit-'+o.name);
       if(el) el.setAttribute('stroke-width', p.ringWidth);
     });
+    var hr=document.getElementById('sun-rings');
+    if(hr) hr.querySelectorAll('circle').forEach(function(c){ c.setAttribute('stroke-width',p.ringWidth); });
+    var ag=document.getElementById('arcs');
+    if(ag) ag.querySelectorAll('path').forEach(function(pt){ pt.setAttribute('stroke-width',p.ringWidth); });
     var rg=document.getElementById('rays');
     if(rg){ rg.setAttribute('stroke',p.lineColor); rg.setAttribute('stroke-width',p.lineWidth); }
-    var da=document.getElementById('diag-arc');
-    if(da) da.setAttribute('stroke',p.lineColor);
+    var sg=document.getElementById('spokes');
+    if(sg){ sg.setAttribute('stroke',p.lineColor); sg.setAttribute('stroke-width',p.lineWidth); }
     var bg=document.getElementById('bg');
     if(bg) bg.setAttribute('fill',p.bgColor);
     var gr=document.getElementById('grain-rect');
@@ -936,9 +939,14 @@ const PLANET_LINKS = {
   panel.appendChild(sec('Orbit rings'));
   panel.appendChild(rowEl('Width 0.2–3', slider(P.ringWidth, 0.2, 3, 0.1, function(v){
     P.ringWidth=v;
-    ['mars','jupiter','saturn','uranus','neptune'].forEach(function(n){
-      var el=document.getElementById('orbit-'+n); if(el) el.setAttribute('stroke-width',v);
-    }); save();
+    ORBITS.forEach(function(o){
+      var el=document.getElementById('orbit-'+o.name); if(el) el.setAttribute('stroke-width',v);
+    });
+    var hr=document.getElementById('sun-rings');
+    if(hr) hr.querySelectorAll('circle').forEach(function(c){ c.setAttribute('stroke-width',v); });
+    var ag=document.getElementById('arcs');
+    if(ag) ag.querySelectorAll('path').forEach(function(pt){ pt.setAttribute('stroke-width',v); });
+    save();
   })));
 
   // ── Lines ──
@@ -946,11 +954,14 @@ const PLANET_LINKS = {
   panel.appendChild(rowEl('Colour', colorPick(P.lineColor, function(c){
     P.lineColor=c;
     var rg=document.getElementById('rays'); if(rg) rg.setAttribute('stroke',c);
-    var da=document.getElementById('diag-arc'); if(da) da.setAttribute('stroke',c);
+    var sg=document.getElementById('spokes'); if(sg) sg.setAttribute('stroke',c);
     save();
   })));
   panel.appendChild(rowEl('Width 0.2–3', slider(P.lineWidth, 0.2, 3, 0.1, function(v){
-    P.lineWidth=v; var rg=document.getElementById('rays'); if(rg) rg.setAttribute('stroke-width',v); save();
+    P.lineWidth=v;
+    var rg=document.getElementById('rays'); if(rg) rg.setAttribute('stroke-width',v);
+    var sg=document.getElementById('spokes'); if(sg) sg.setAttribute('stroke-width',v);
+    save();
   })));
 
   // ── Display ──
