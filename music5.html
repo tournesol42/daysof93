@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v11-tilt -->
-<script>// build: music5-v11-tilt
+<!-- build: music5-v12-tiltfix -->
+<script>// build: music5-v12-tiltfix
 console.log('d93: music5 v11-tilt');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0A}
 a.plink{text-decoration:none;cursor:pointer}
 a.plink .ps{transition:opacity 0.15s}
 a.plink:hover .ps{opacity:0.7}
-a.plink .hit{fill:transparent}
+a.plink .hit{fill:transparent;pointer-events:all}
 /* ── D93 Extended Colour Chooser ── */
 #d93cc{display:none;position:fixed;z-index:10000;background:#1a1a1a;border:1px solid #444;
   box-shadow:3px 5px 18px rgba(0,0,0,.6);width:292px;font-family:'Jost',sans-serif;font-weight:300;color:#bbb}
@@ -337,10 +337,8 @@ const PLANET_LINKS = {
   var orbitG = document.getElementById('orbit-rings');
   ORBITS.forEach(function(o){
     if(o.labelable){
-      var r2=o.r, cx2=o.cx;
-      var fd='M '+(cx2-r2).toFixed(2)+',421 A '+r2.toFixed(2)+','+r2.toFixed(2)+' 0 1,0 '+(cx2+r2).toFixed(2)+',421 A '+r2.toFixed(2)+','+r2.toFixed(2)+' 0 1,0 '+(cx2-r2).toFixed(2)+',421';
-      orbitG.appendChild(mk('path',{
-        id:'orbit-'+o.name, d:fd,
+      orbitG.appendChild(mk('ellipse',{
+        id:'orbit-'+o.name, cx:o.cx, cy:421, rx:o.r, ry:o.r,
         stroke:'#D0D0D0', 'stroke-width':'0.3', fill:'none',
         'vector-effect':'non-scaling-stroke'
       }));
@@ -462,15 +460,13 @@ const PLANET_LINKS = {
   ORBITS.forEach(function(o){ ORBITS_BY_NAME[o.name] = o; });
   var tiltState = {};
   LINKED.forEach(function(n){
-    tiltState[n] = { theta:0, targetFrac:0, hoverStart:null, spinPhase:false, spinStart:0, spinStartTheta:0, spinUsed:false };
+    tiltState[n] = { theta:0, targetFrac:0, hoverStart:null, spinPhase:false, spinStart:0, spinStartTheta:0, spinUsed:false, lastRy:-1 };
   });
   window._d93TiltParams = { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 };
 
   LINKED.forEach(function(name){
     var al = document.getElementById('al-'+name);
     if(!al) return;
-    var hit = al.querySelector('.hit');
-    if(!hit) return;
     function enterHover(){
       var s = tiltState[name];
       if(!s.spinPhase){ s.targetFrac=1; if(s.hoverStart===null){ s.hoverStart=performance.now(); s.spinUsed=false; } }
@@ -480,11 +476,11 @@ const PLANET_LINKS = {
       s.targetFrac=0;
       if(!s.spinPhase){ s.hoverStart=null; }
     }
-    hit.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') enterHover(); });
-    hit.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') leaveHover(); });
-    hit.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  enterHover(); });
-    hit.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  leaveHover(); });
-    hit.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  leaveHover(); });
+    al.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') enterHover(); });
+    al.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') leaveHover(); });
+    al.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  enterHover(); });
+    al.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  leaveHover(); });
+    al.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  leaveHover(); });
   });
 
   // Animation loop
@@ -520,13 +516,13 @@ const PLANET_LINKS = {
           s.theta = tiltRad + 0.06 * Math.sin(1.3 * t_sec);
         if(s.targetFrac===0 && Math.abs(s.theta) < 0.001) s.theta = 0;
       }
-      // update ring path
-      var r=orb.r, cx=orb.cx;
-      var ry = Math.max(0.5, r * Math.abs(Math.cos(s.theta)));
-      var el = document.getElementById('orbit-'+name);
-      if(el) el.setAttribute('d',
-        'M '+(cx-r).toFixed(2)+',421 A '+r.toFixed(2)+','+ry.toFixed(2)+' 0 1,0 '+
-        (cx+r).toFixed(2)+',421 A '+r.toFixed(2)+','+ry.toFixed(2)+' 0 1,0 '+(cx-r).toFixed(2)+',421');
+      // update ring ellipse ry only when changed
+      var ry = Math.max(0.5, orb.r * Math.abs(Math.cos(s.theta)));
+      if(Math.abs(ry - s.lastRy) >= 0.01){
+        var el = document.getElementById('orbit-'+name);
+        if(el) el.setAttribute('ry', ry.toFixed(2));
+        s.lastRy = ry;
+      }
       // fade label when tilted
       var tp = document.getElementById('tp-'+name);
       if(tp && tp.parentElement){
