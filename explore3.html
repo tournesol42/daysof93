@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v115-sceneb-always -->
+<!-- build: explore3-v116-curtain-early -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2476,6 +2476,7 @@ document.getElementById('audioDot').onclick = function() {
   initAudio();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   document.getElementById('audioDot').style.display = 'none';
+  curtainActive = true;
   var xhrOrch = new XMLHttpRequest();
   xhrOrch.open('GET', 'https://daysof93-cdn.b-cdn.net/Explore3_orch.mp3', true);
   xhrOrch.responseType = 'arraybuffer';
