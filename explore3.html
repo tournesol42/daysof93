@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v116-curtain-early -->
+<!-- build: explore3-v117-mat-cache -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1384,6 +1384,20 @@ function clearTrail() {
 
 // ── Mesh material helpers ──────────────────────────────────────
 function applyMeshMaterials(group) {
+  var _sig = S.meshMode + '|' + (S.lineThickness <= 1 ? 'thin' : 'thick');
+  if (group.userData._matSig === _sig && group.userData._wireMats) {
+    wireMats         = group.userData._wireMats;
+    edgeLines        = group.userData._edgeLines;
+    deformShaderRefs = group.userData._deformRefs;
+    lineMats = [];
+    wireMats.forEach(function (m) {
+      if (m.color) m.color.set(S.wireColor.getHex());
+      m.opacity = S.opacity;
+      m.transparent = true;
+      if (m.isLineMaterial) m.linewidth = S.lineThickness;
+    });
+    return;
+  }
   wireMats = []; lineMats = []; edgeLines = []; deformShaderRefs = [];
 
   // Remove edge overlay children
@@ -1457,6 +1471,10 @@ function applyMeshMaterials(group) {
     }
 
   });
+  group.userData._matSig     = _sig;
+  group.userData._wireMats   = wireMats;
+  group.userData._edgeLines  = edgeLines;
+  group.userData._deformRefs = deformShaderRefs;
 }
 
 function syncWireColor() {
