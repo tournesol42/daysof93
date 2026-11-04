@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v274-dot-ripple -->
+<!-- build: v275-dots-removed -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -101,36 +101,7 @@
   @media (max-width:720px){
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
   }
-  #music-btn {
-    position: fixed; left: 64.4vw; right: auto; top: 90.1vh;
-    width: 100px; height: 100px; border-radius: 50%;
-    background: #d0d0d0; display: none; z-index: 51;
-    text-decoration: none;
-    animation: dot-slow 2.8s ease-in-out infinite;
-  }
-  @media (max-width:720px) {
-    #music-btn { left: 71.1vw; right: auto; top: 76.7vh; bottom: auto; width: 58px; height: 58px; }
-    #explore-btn  { width: 22px; height: 22px; }
-    #explore3-btn { width: 84px; height: 84px; }
-    #explore4-btn { width: 56px; height: 56px; }
-  }
-  #dot-hint {
-    position: fixed;
-    left: 5.7vw;
-    top: 69.3vh;
-    transform: none;
-    font-family: 'Jost', 'Helvetica Neue', sans-serif;
-    font-size: 10.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase;
-    color: #fff; opacity: 0; pointer-events: none; z-index: 52;
-    transition: opacity 1s ease;
-  }
-  @media (max-width:720px) {
-    #dot-hint {
-      left: 2.7vw;
-      top: calc(57.4vh + 52px);
-      transform: translate(0%, -50%);
-    }
-  }
+
   #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
   @keyframes bgvector-breathe{
     0%  { transform:scale(1); }
@@ -398,96 +369,7 @@
     from { transform: translateY(-100vh); }
     to   { transform: translateY(0); }
   }
-  #explore-btn {
-    display: none;
-    position: fixed;
-    left: 11.7vw;
-    top: 28.7vh;
-    right: auto;
-    bottom: auto;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #d0d0d0;
-    text-decoration: none;
-    z-index: 51;
-  }
-  @media (min-width: 720px) {
-    #explore-btn {
-      left: 24.0vw;
-      top: 67.8vh;
-    }
-  }
-  #explore-btn.visible { display: block; }
-  #explore-btn.phase2 { animation: dot-slow 2s ease-in-out infinite; }
-  #explore-btn.phase3-grow { animation: dot-grow 0.5s ease forwards; }
-  #explore-btn.phase3-pulse { transform: scale(2); animation: dot-fast 0.6s ease-in-out infinite; }
-  @keyframes dot-slow { 0%,100%{filter:brightness(1)} 50%{filter:brightness(0.12)} }
   #mesh-canvas { opacity:1; }
-  #dot-veil { position:fixed;inset:0;z-index:55;pointer-events:none;background:rgba(0,0,0,0.3);transition:opacity 0.5s ease; }
-  @keyframes veil-blink { 0%,100%{opacity:1} 50%{opacity:0.04} }
-  .veil-blinking { animation:veil-blink 0.55s ease-in-out infinite; }
-  @keyframes dot-grow { from{transform:scale(1);opacity:1} to{transform:scale(2);opacity:0.9} }
-  @keyframes dot-fast { 0%,100%{opacity:0.85} 50%{opacity:0.08} }
-  #explore3-btn {
-    display: none;
-    position: fixed;
-    left: 2.7vw;
-    top: 57.4vh;
-    right: auto; bottom: auto;
-    width: 84px; height: 84px;
-    border-radius: 50%;
-    background: #d0d0d0;
-    text-decoration: none;
-    z-index: 51;
-    animation: dot-slow 2.4s ease-in-out infinite;
-  }
-  @media (min-width: 720px) {
-    #explore3-btn {
-      left: 33.3vw;
-      top: 79.2vh;
-    }
-  }
-  #explore4-btn {
-    display: none;
-    position: fixed;
-    left: 28.7vw;
-    top: 72.2vh;
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    background: #d0d0d0;
-    text-decoration: none;
-    z-index: 51;
-    animation: dot-slow 2.6s ease-in-out infinite;
-  }
-  @media (min-width: 720px) {
-    #explore4-btn {
-      left: 82.3vw;
-      top: 42.4vh;
-    }
-  }
-  #journey-btn {
-    display: none;
-    position: fixed;
-    left: 60vw;
-    top: 18vh;
-    width: 126px; height: 126px;
-    border-radius: 50%;
-    background: #FF7900;
-    text-decoration: none;
-    z-index: 51;
-    animation: dot-slow 2.5s ease-in-out infinite;
-  }
-  @media (min-width: 720px) {
-    #journey-btn {
-      left: 72.7vw;
-      top: 11.7vh;
-      width: 168px; height: 168px;
-    }
-  }
-  @media (max-width:720px) {
-    #journey-btn { width: 126px; height: 126px; }
-  }
 </style>
 </head>
 <body>
@@ -526,7 +408,7 @@
   <header>
     <nav>
       <a href="#" id="nav-days">about</a>
-      <a href="music.html">music</a>
+      <a href="https://daysof93.com/music5">music</a>
       <a href="#" id="nav-work">work</a>
       <a href="past-clients.html">past clients</a>
       <a href="#" id="nav-clients">contact</a>
@@ -565,7 +447,7 @@
     <header id="site-nav-header" style="position:absolute;top:0;left:0;right:0;z-index:200;padding:20px 28px;display:flex;align-items:center;justify-content:flex-end;">
       <nav style="display:flex;gap:28px;align-items:center;">
         <a href="#" id="about-nav-work" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">work</a>
-        <a href="music.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">music</a>
+        <a href="https://daysof93.com/music5" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">music</a>
         <a href="past-clients.html" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">past clients</a>
         <a href="mailto:contact@daysof93.com" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;opacity:1;">contact</a>
         <a href="#" id="about-close-nav" style="font-family:'Jost',sans-serif;font-size:11px;letter-spacing:0.22em;font-weight:500;text-transform:uppercase;color:#000;text-decoration:none;border-bottom:1.5px solid #000;padding-bottom:1px;">about</a>
@@ -1405,88 +1287,6 @@ window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,15
 })();
 </script>
 
-<div id="dot-group">
-<a href="explore.html" id="explore-btn" aria-label="Explore" style="pointer-events:auto;"></a>
-<a href="explore4.html" id="explore3-btn" aria-label="Explore 4" style="pointer-events:auto;"></a>
-<a href="explore3.html" id="explore4-btn" aria-label="Explore 3" style="pointer-events:auto;"></a>
-<a href="music.html" id="music-btn" aria-label="Music" style="pointer-events:auto;"></a>
-<a href="https://daysof93.com/journey" id="journey-btn" aria-label="Journey" style="pointer-events:auto;"></a>
-</div>
-<div id="dot-hint">push dots to explore →</div>
-<script>
-(function() {
-  var musicBtn    = document.getElementById('music-btn');
-  var explore3Btn = document.getElementById('explore3-btn');
-  var exploreBtn  = document.getElementById('explore-btn');
-  var hint        = document.getElementById('dot-hint');
-  setTimeout(function() { musicBtn.style.display = 'block'; }, 2000);
-  setTimeout(function() { explore3Btn.style.display = 'block'; }, 3200);
-  setTimeout(function() { document.getElementById('explore4-btn').style.display = 'block'; }, 3800);
-  setTimeout(function() { document.getElementById('journey-btn').style.display = 'block'; }, 3800);
-  setTimeout(function() {
-    exploreBtn.classList.add('visible');
-    setTimeout(function() { exploreBtn.classList.add('phase2'); }, 2000);
-    setTimeout(function() {
-      exploreBtn.classList.remove('phase2');
-      exploreBtn.classList.add('phase3-grow');
-      setTimeout(function() {
-        exploreBtn.classList.remove('phase3-grow');
-        exploreBtn.classList.add('phase3-pulse');
-      }, 500);
-    }, 5500);
-  }, 4200);
-  setTimeout(function() {
-    hint.style.opacity = '0.55';
-    setTimeout(function() { hint.style.opacity = '0'; }, 5000);
-  }, 5200);
-})();
-</script>
-
-<script>
-(function() {
-  var dot = document.getElementById('explore-btn');
-  if (!dot) return;
-
-  var x = 0, y = 0, vx = 0, vy = 0;
-  var animating = false;
-
-  var SPRING  = 0.06;
-  var DAMPING = 0.68;
-  var IMPULSE = 22;
-
-  function frame() {
-    vx += -x * SPRING;
-    vy += -y * SPRING;
-    vx *= DAMPING;
-    vy *= DAMPING;
-    x  += vx;
-    y  += vy;
-
-    dot.style.marginLeft = x.toFixed(2) + 'px';
-    dot.style.marginTop  = y.toFixed(2) + 'px';
-
-    var settled = Math.abs(x)  < 0.2 && Math.abs(y)  < 0.2
-               && Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2;
-
-    if (settled) {
-      animating = false;
-      dot.style.marginLeft = '';
-      dot.style.marginTop  = '';
-    } else {
-      requestAnimationFrame(frame);
-    }
-  }
-
-  dot.addEventListener('mouseenter', function() {
-    var angle    = Math.random() * Math.PI * 2;
-    var strength = IMPULSE * (0.6 + Math.random() * 0.4);
-    vx += Math.cos(angle) * strength;
-    vy += Math.sin(angle) * strength;
-    if (!animating) { animating = true; requestAnimationFrame(frame); }
-  });
-})();
-</script>
-
 <script>
 (function(){
   var DFLT=0.3162;
@@ -1928,7 +1728,7 @@ function draw(ms){
     var bsR=bsCanvas.getBoundingClientRect();
     if(!bsR.width||!points.length)return;
     var scX=CW/bsR.width, scY=CH/bsR.height;
-    var dotIds=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
+    var dotIds=[];
     ctx.strokeStyle=textCol;
     ctx.lineWidth=0.8;
     dotIds.forEach(function(id){
@@ -1995,8 +1795,8 @@ requestAnimationFrame(draw);
 <script>
 /* Layout + rotation editor — E to toggle */
 (function(){
-  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
-  var HINT=document.getElementById('dot-hint');
+  var IDS=[];
+  var HINT=null;
   var editOn=false, drag=null, offX=0, offY=0, didDrag=false;
   var meshCv=document.getElementById('mesh-canvas');
   var meshDragging=false, meshDragX=0, meshDragStartRot=0;
@@ -2059,7 +1859,7 @@ requestAnimationFrame(draw);
       var r=el.getBoundingClientRect();
       out+='#'+id+'\n  left: '+vw(r.left)+'   top: '+vh(r.top)+'\n\n';
     });
-    if(HINT){ var hr=HINT.getBoundingClientRect(); out+='#dot-hint\n  left: '+vw(hr.left)+'   top: '+vh(hr.top)+'\n\n'; }
+
     var rot=window._meshRotManual!==undefined?window._meshRotManual:(window._meshRotY||0);
     out+='mesh.rotation.y = '+rot.toFixed(4)+';  // '+(rot*180/Math.PI).toFixed(1)+'deg\n';
     panel.textContent=out;
@@ -2193,7 +1993,7 @@ requestAnimationFrame(draw);
 <script>
 /* Ripple on dot click — ring expands 1x→5x, fades, then navigates */
 (function(){
-  var IDS=['explore-btn','explore3-btn','explore4-btn','music-btn','journey-btn'];
+  var IDS=[];
   IDS.forEach(function(id){
     var el=document.getElementById(id);
     if(!el)return;
