@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v61-music-v5 -->
+<!-- build: journey-v62-music-newv1 -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -54,7 +54,8 @@
 
 /* ===== PARAMETERS ===== */
 const P = {
-  AUDIO_URL: 'https://daysof93-cdn.b-cdn.net/JourneyV5_120bpm_92bars.mp3',
+  AUDIO_URL:     'https://daysof93-cdn.b-cdn.net/JourneyNEWV1_120bpm_92bars.mp3',
+  AUDIO_URL_ALT: 'https://daysof93-cdn.b-cdn.net/JourneyV5_120bpm_92bars.mp3',
 
   // When false: freeze mesh at TD constants (noise/frac/pt not driven by audio)
   AUDIO_MOD: false,
@@ -871,25 +872,59 @@ function drawScatter(ms) {
 }
 
 
-/* ===== AUDIO (XHR + decodeAudioData, iOS-safe) ===== */
+/* ===== AUDIO (XHR + decodeAudioData, iOS-safe, dual-track) ===== */
 let actx = null, analyser = null, abuf = null, env = 0, smoothTarget = 0, freqEnv = 0, audioStartTime = null, lastAmod = 0;
+let mainGain = null, altGain = null;
+let _mainBuf = null, _altBuf = null;
+const gaudioTrack = { TRACK: 'NEW' };
 
-function playBuffer(arr){
-  actx.decodeAudioData(arr, buf => {
-    const src = actx.createBufferSource();
-    src.buffer = buf; src.loop = true;
-    src.loopStart = 0; src.loopEnd = LOOP_SEC;
-    analyser = actx.createAnalyser(); analyser.fftSize = 2048;
-    abuf = new Float32Array(analyser.fftSize);
-    src.connect(analyser); analyser.connect(actx.destination);
-    audioStartTime = actx.currentTime;
-    src.start(0);
-  });
+function _startBoth(){
+  if (!_mainBuf || !_altBuf) return;
+  const startAt = actx.currentTime + 0.1;
+  audioStartTime = startAt;
+
+  analyser = actx.createAnalyser(); analyser.fftSize = 2048;
+  abuf = new Float32Array(analyser.fftSize);
+  analyser.connect(actx.destination);
+
+  const mainSrc = actx.createBufferSource();
+  mainSrc.buffer = _mainBuf; mainSrc.loop = true;
+  mainSrc.loopStart = 0; mainSrc.loopEnd = LOOP_SEC;
+  mainGain = actx.createGain(); mainGain.gain.value = 1;
+  mainSrc.connect(mainGain); mainGain.connect(analyser);
+  mainSrc.start(startAt);
+
+  const altSrc = actx.createBufferSource();
+  altSrc.buffer = _altBuf; altSrc.loop = true;
+  altSrc.loopStart = 0; altSrc.loopEnd = LOOP_SEC;
+  altGain = actx.createGain(); altGain.gain.value = 0;
+  altSrc.connect(altGain); altGain.connect(analyser);
+  altSrc.start(startAt);
 }
-function loadURL(url){
+
+function crossfadeToTrack(name){
+  if (!mainGain || !altGain || !actx) return;
+  const t = actx.currentTime, end = t + 0.3;
+  mainGain.gain.cancelScheduledValues(t);
+  altGain.gain.cancelScheduledValues(t);
+  mainGain.gain.setValueAtTime(mainGain.gain.value, t);
+  altGain.gain.setValueAtTime(altGain.gain.value, t);
+  if (name === 'NEW'){
+    mainGain.gain.linearRampToValueAtTime(1, end);
+    altGain.gain.linearRampToValueAtTime(0, end);
+  } else {
+    mainGain.gain.linearRampToValueAtTime(0, end);
+    altGain.gain.linearRampToValueAtTime(1, end);
+  }
+}
+
+function loadURL(url, isAlt){
   const x = new XMLHttpRequest();
   x.open('GET', url, true); x.responseType = 'arraybuffer';
-  x.onload = () => playBuffer(x.response);
+  x.onload = () => actx.decodeAudioData(x.response, buf => {
+    if (isAlt) _altBuf = buf; else _mainBuf = buf;
+    _startBoth();
+  });
   x.send();
 }
 function musicBeat(){ return actx && audioStartTime != null ? ((actx.currentTime - audioStartTime) % LOOP_SEC) / BEAT_SEC : 0; }
@@ -921,7 +956,8 @@ const fileEl  = document.getElementById('file');
 startEl.addEventListener('click', () => {
   actx = new (window.AudioContext || window.webkitAudioContext)();
   actx.resume();
-  if (P.AUDIO_URL) loadURL(P.AUDIO_URL);
+  if (P.AUDIO_URL)     loadURL(P.AUDIO_URL,     false);
+  if (P.AUDIO_URL_ALT) loadURL(P.AUDIO_URL_ALT, true);
   else fileEl.click();
   startEl.style.display = 'none';
   document.body.style.cursor = 'grab';
@@ -2102,6 +2138,7 @@ fAtmos.add(gatmos, 'FOG_FAR',  0, 40, 0.5);
 
 const fAudio = gui.addFolder('Audio');
 fAudio.add(gaudio, 'AUDIO_ON');
+fAudio.add(gaudioTrack, 'TRACK', ['NEW', 'OLD']).name('TRACK').onChange(v => crossfadeToTrack(v));
 fAudio.add(gaudio, 'AUDIO_THRESH_DB',  -70, 0,    1);
 fAudio.add(gaudio, 'AUDIO_RATIO',        1, 20,   0.5);
 fAudio.add(gaudio, 'AUDIO_GAIN',         0, 1,    0.005);
