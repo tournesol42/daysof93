@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v10-hint -->
-<script>// build: music5-v10-hint
-console.log('d93: music5 v10-hint');</script>
+<!-- build: music5-v11-tilt -->
+<script>// build: music5-v11-tilt
+console.log('d93: music5 v11-tilt');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -333,14 +333,24 @@ const PLANET_LINKS = {
     }));
   });
 
-  // Orbit circles from ORBITS
+  // Orbit rings from ORBITS: linked planets use <path> for tilt animation, others use <circle>
   var orbitG = document.getElementById('orbit-rings');
   ORBITS.forEach(function(o){
-    orbitG.appendChild(mk('circle',{
-      id:'orbit-'+o.name, cx:o.cx, cy:o.cy, r:o.r,
-      stroke:'#D0D0D0', 'stroke-width':'0.3', fill:'none',
-      'vector-effect':'non-scaling-stroke'
-    }));
+    if(o.labelable){
+      var r2=o.r, cx2=o.cx;
+      var fd='M '+(cx2-r2).toFixed(2)+',421 A '+r2.toFixed(2)+','+r2.toFixed(2)+' 0 1,0 '+(cx2+r2).toFixed(2)+',421 A '+r2.toFixed(2)+','+r2.toFixed(2)+' 0 1,0 '+(cx2-r2).toFixed(2)+',421';
+      orbitG.appendChild(mk('path',{
+        id:'orbit-'+o.name, d:fd,
+        stroke:'#D0D0D0', 'stroke-width':'0.3', fill:'none',
+        'vector-effect':'non-scaling-stroke'
+      }));
+    } else {
+      orbitG.appendChild(mk('circle',{
+        id:'orbit-'+o.name, cx:o.cx, cy:o.cy, r:o.r,
+        stroke:'#D0D0D0', 'stroke-width':'0.3', fill:'none',
+        'vector-effect':'non-scaling-stroke'
+      }));
+    }
   });
 
   // Three ellipse arcs — measured reference geometry
@@ -423,6 +433,8 @@ const PLANET_LINKS = {
 
   window._d93 = {
     dotObjs: dotObjs,
+    _curSizeMul: 0.45,
+    _curOpacity: 0.62,
     setDotColor: function(c){
       dotObjs.forEach(function(d){ d.bloom.setAttribute('fill',c); d.sharp.setAttribute('fill',c); });
     },
@@ -431,16 +443,49 @@ const PLANET_LINKS = {
       if(f) f.querySelector('feGaussianBlur').setAttribute('stdDeviation', v);
     },
     setDotSize: function(mul){
+      this._curSizeMul = mul;
       dotObjs.forEach(function(d){
         d.sharp.setAttribute('r', (d.rSize * mul).toFixed(1));
         d.bloom.setAttribute('r', (d.rSize * mul * 2.5).toFixed(1));
       });
     },
     setDotOpacity: function(v){
+      this._curOpacity = v;
       dotObjs.forEach(function(d){ d.g.setAttribute('opacity', v); });
     },
     speedMul: 1
   };
+
+  // ── Tilt state ──
+  var LINKED = ['mars','jupiter','saturn','uranus','neptune'];
+  var ORBITS_BY_NAME = {};
+  ORBITS.forEach(function(o){ ORBITS_BY_NAME[o.name] = o; });
+  var tiltState = {};
+  LINKED.forEach(function(n){
+    tiltState[n] = { theta:0, targetFrac:0, hoverStart:null, spinPhase:false, spinStart:0, spinStartTheta:0, spinUsed:false };
+  });
+  window._d93TiltParams = { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 };
+
+  LINKED.forEach(function(name){
+    var al = document.getElementById('al-'+name);
+    if(!al) return;
+    var hit = al.querySelector('.hit');
+    if(!hit) return;
+    function enterHover(){
+      var s = tiltState[name];
+      if(!s.spinPhase){ s.targetFrac=1; if(s.hoverStart===null){ s.hoverStart=performance.now(); s.spinUsed=false; } }
+    }
+    function leaveHover(){
+      var s = tiltState[name];
+      s.targetFrac=0;
+      if(!s.spinPhase){ s.hoverStart=null; }
+    }
+    hit.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') enterHover(); });
+    hit.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') leaveHover(); });
+    hit.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  enterHover(); });
+    hit.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  leaveHover(); });
+    hit.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  leaveHover(); });
+  });
 
   // Animation loop
   var lastT = null;
@@ -448,12 +493,73 @@ const PLANET_LINKS = {
     if(!lastT) lastT = t;
     var dt = Math.min((t-lastT)/1000, 0.1);
     lastT = t;
+    var t_sec = t / 1000;
     var mul = window._d93.speedMul;
+    var TP = window._d93TiltParams;
+    var tiltRad = TP.tiltAngle * Math.PI / 180;
+
+    // ── tilt state machine + ring paths ──
+    LINKED.forEach(function(name){
+      var s = tiltState[name];
+      var orb = ORBITS_BY_NAME[name];
+      // spin trigger
+      if(!s.spinPhase && !s.spinUsed && s.hoverStart !== null){
+        if((t - s.hoverStart) / 1000 >= TP.spinDelay){
+          s.spinPhase=true; s.spinStart=t; s.spinStartTheta=s.theta; s.spinUsed=true;
+        }
+      }
+      // update theta
+      if(s.spinPhase){
+        var spinS = Math.min(1, (t - s.spinStart) / 1000 / TP.spinDur);
+        s.theta = s.spinStartTheta + (Math.PI*2 - s.spinStartTheta) * (1 - Math.cos(Math.PI*spinS)) / 2;
+        if(spinS >= 1){ s.theta=0; s.spinPhase=false; s.targetFrac=0; s.hoverStart=null; }
+      } else {
+        var easeK = 1 - Math.exp(-TP.tiltEase * dt);
+        s.theta += (s.targetFrac * tiltRad - s.theta) * easeK;
+        if(s.targetFrac===1 && Math.abs(s.theta - tiltRad) < 0.05)
+          s.theta = tiltRad + 0.06 * Math.sin(1.3 * t_sec);
+        if(s.targetFrac===0 && Math.abs(s.theta) < 0.001) s.theta = 0;
+      }
+      // update ring path
+      var r=orb.r, cx=orb.cx;
+      var ry = Math.max(0.5, r * Math.abs(Math.cos(s.theta)));
+      var el = document.getElementById('orbit-'+name);
+      if(el) el.setAttribute('d',
+        'M '+(cx-r).toFixed(2)+',421 A '+r.toFixed(2)+','+ry.toFixed(2)+' 0 1,0 '+
+        (cx+r).toFixed(2)+',421 A '+r.toFixed(2)+','+ry.toFixed(2)+' 0 1,0 '+(cx-r).toFixed(2)+',421');
+      // fade label when tilted
+      var tp = document.getElementById('tp-'+name);
+      if(tp && tp.parentElement){
+        var lop = s.theta < 0.001 ? 1 : Math.max(0, 1 - Math.abs(s.theta) / 0.25);
+        tp.parentElement.setAttribute('opacity', lop.toFixed(3));
+      }
+    });
+
+    // ── dots ──
+    var _sm = window._d93._curSizeMul;
+    var _op = window._d93._curOpacity;
     dotObjs.forEach(function(d){
       d.angle += d.speed * mul * dt;
-      var x = (d.ring.cx + d.ring.r * Math.cos(d.angle)).toFixed(2);
-      var y = (d.ring.cy + d.ring.r * Math.sin(d.angle)).toFixed(2);
-      d.g.setAttribute('transform','translate('+x+','+y+')');
+      var s = d.ring.labelable ? tiltState[d.ring.name] : null;
+      var th = s ? s.theta : 0;
+      if(th !== 0){
+        var r=d.ring.r, cx=d.ring.cx;
+        var cosA=Math.cos(d.angle), sinA=Math.sin(d.angle);
+        var y0=r*sinA;
+        var screenY=421 + y0*Math.cos(th);
+        var z=y0*Math.sin(th);
+        var tiltAmt=Math.abs(Math.sin(th));
+        var k=Math.max(0.3, 1 + (z/r)*0.45*tiltAmt);
+        d.sharp.setAttribute('r', (d.rSize*_sm*k).toFixed(2));
+        d.bloom.setAttribute('r',  (d.rSize*_sm*k*2.5).toFixed(2));
+        d.g.setAttribute('opacity', Math.min(1,(0.55+0.45*k)*_op).toFixed(3));
+        d.g.setAttribute('transform','translate('+(cx+r*cosA).toFixed(2)+','+screenY.toFixed(2)+')');
+      } else {
+        d.sharp.setAttribute('r', (d.rSize*_sm).toFixed(2));
+        d.bloom.setAttribute('r',  (d.rSize*_sm*2.5).toFixed(2));
+        d.g.setAttribute('opacity', _op.toFixed(3));
+        d.g.setAttribute('transform','translate('+(d.ring.cx+d.ring.r*Math.cos(d.angle)).toFixed(2)+','+(d.ring.cy+d.ring.r*Math.sin(d.angle)).toFixed(2)+')');
+      }
     });
     requestAnimationFrame(frame);
   }
@@ -773,7 +879,8 @@ const PLANET_LINKS = {
     lineWidth:  0.2,
     bgColor:    '#0A0A0A',
     textColor:  '#D0D0D0',
-    textSize:   6
+    textSize:   6,
+    tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 }
   };
 
   function cloneDefaults(){ return JSON.parse(JSON.stringify(PARAMS_DEFAULT)); }
@@ -799,6 +906,11 @@ const PLANET_LINKS = {
       if(sp2.labelTexts){
         Object.keys(PARAMS_DEFAULT.labelTexts).forEach(function(n){
           if(sp2.labelTexts[n]!==undefined) P.labelTexts[n]=sp2.labelTexts[n];
+        });
+      }
+      if(sp2.tilt){
+        ['tiltAngle','tiltEase','spinDelay','spinDur'].forEach(function(k){
+          if(sp2.tilt[k]!==undefined) P.tilt[k]=sp2.tilt[k];
         });
       }
     }
@@ -862,6 +974,12 @@ const PLANET_LINKS = {
     });
     var labels=document.getElementById('labels');
     if(labels){ labels.setAttribute('fill',p.textColor); labels.setAttribute('font-size',p.textSize); }
+    if(p.tilt && window._d93TiltParams){
+      window._d93TiltParams.tiltAngle = p.tilt.tiltAngle;
+      window._d93TiltParams.tiltEase  = p.tilt.tiltEase;
+      window._d93TiltParams.spinDelay = p.tilt.spinDelay;
+      window._d93TiltParams.spinDur   = p.tilt.spinDur;
+    }
   }
 
   function applyLabelTexts(lt){
@@ -1057,6 +1175,22 @@ const PLANET_LINKS = {
   })));
   colDisplay.appendChild(rowEl('Text size 4–24', slider(P.textSize, 4, 24, 1, function(v){
     P.textSize=v; var l=document.getElementById('labels'); if(l) l.setAttribute('font-size',v); save();
+  })));
+
+  // ── 3D column ──
+  var col3D = col();
+  col3D.appendChild(sec('3D'));
+  col3D.appendChild(rowEl('Tilt angle 0–89°', slider(P.tilt.tiltAngle, 0, 89, 1, function(v){
+    P.tilt.tiltAngle=v; if(window._d93TiltParams) window._d93TiltParams.tiltAngle=v; save();
+  }, 0)));
+  col3D.appendChild(rowEl('Tilt ease 0.5–10', slider(P.tilt.tiltEase, 0.5, 10, 0.5, function(v){
+    P.tilt.tiltEase=v; if(window._d93TiltParams) window._d93TiltParams.tiltEase=v; save();
+  })));
+  col3D.appendChild(rowEl('Spin delay s', slider(P.tilt.spinDelay, 0.5, 10, 0.5, function(v){
+    P.tilt.spinDelay=v; if(window._d93TiltParams) window._d93TiltParams.spinDelay=v; save();
+  })));
+  col3D.appendChild(rowEl('Spin dur s', slider(P.tilt.spinDur, 0.5, 8, 0.1, function(v){
+    P.tilt.spinDur=v; if(window._d93TiltParams) window._d93TiltParams.spinDur=v; save();
   })));
 
   // ── Buttons column ──
