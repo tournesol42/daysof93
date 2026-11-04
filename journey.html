@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v63-json-export -->
+<!-- build: journey-v64-scene6-presets -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -405,6 +405,135 @@ function rebuildMesh3Geo() {
   lines3.geometry = gLin3; points3.geometry = gPts3;
   U3.uBR.value = ggrid3.ROWS; U3.uBC.value = ggrid3.COLS; U3.uDiv.value = ggrid3.DIV;
   gridLabel3.pts = ptLabel(ggrid3.ROWS, ggrid3.COLS, ggrid3.DIV);
+}
+
+/* ===== SCENE6 PRESET SYSTEM ===== */
+const gPresets = { PRESET_ON: true, PRESET_PEAK_THRESH: 0.08, PRESET_COOLDOWN: 0.5, PRESET_MORPH: 0.2, PRESET_CUT_CHANCE: 0.5, PRESET_IN_MARGIN: 0.3, PRESET_NOW: 'off' };
+const scene6Presets = [];
+let presetActive = false, presetBase = null;
+let presetArmed = true, presetLastSwitch = -Infinity, presetIdx = -1;
+let presetMorph = null; // { from:{ZONE6,BG_COLOR}, to:{ZONE6,BG_COLOR}, t, dur }
+let fPresets; // set in GUI section
+
+(function loadScene6Presets() {
+  for (let i = 1; i <= 6; i++) {
+    const slot = i - 1;
+    fetch('presets/scene6/journey_scene6_' + i + '.json')
+      .then(r => r.json())
+      .then(d => {
+        scene6Presets[slot] = {
+          ZONE6:    d.ZONE6  ? {...d.ZONE6}  : null,
+          ggrid3:   d.ggrid3 ? {...d.ggrid3} : null,
+          S2_ON:    d.gs2    !== undefined   ? d.gs2.S2_ON : undefined,
+          BG_COLOR: d.gbg    ? d.gbg.BG_COLOR : undefined
+        };
+      })
+      .catch(() => {});
+  }
+})();
+
+function _applyZONE6Vals(src) {
+  for (const k in src) if (k in ZONE6) ZONE6[k] = src[k];
+}
+
+function _applyBgDirect(hex) {
+  if (!hex) return;
+  gbg.BG_COLOR = hex;
+  renderer.setClearColor(hex, 1);
+  document.documentElement.style.background = hex;
+  document.body.style.background = hex;
+}
+
+function _lerpHex(a, b, t) {
+  const ar = parseInt(a.slice(1,3),16), ag = parseInt(a.slice(3,5),16), ab_ = parseInt(a.slice(5,7),16);
+  const br = parseInt(b.slice(1,3),16), bg_ = parseInt(b.slice(3,5),16), bb_ = parseInt(b.slice(5,7),16);
+  const r = Math.round(ar+(br-ar)*t), g = Math.round(ag+(bg_-ag)*t), bl = Math.round(ab_+(bb_-ab_)*t);
+  return '#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+bl.toString(16).padStart(2,'0');
+}
+
+function _applyPresetGridAndS2(p) {
+  if (p.ggrid3) { for (const k in p.ggrid3) if (k in ggrid3) ggrid3[k] = p.ggrid3[k]; rebuildMesh3Geo(); }
+  if (p.S2_ON !== undefined) gs2.S2_ON = p.S2_ON;
+}
+
+function _syncPresetGUI() {
+  if (fGlobal) {
+    const bgInp = fGlobal.domElement.querySelector('input[type=color]');
+    if (bgInp) { bgInp.value = gbg.BG_COLOR; bgInp.dispatchEvent(new Event('input')); }
+    fGlobal.__controllers.forEach(c => c.updateDisplay());
+  }
+  if (fScene6)  fScene6.__controllers.forEach(c => c.updateDisplay());
+  if (fScene6S) fScene6S.__controllers.forEach(c => c.updateDisplay());
+  if (fPresets) fPresets.__controllers.forEach(c => c.updateDisplay());
+}
+
+function _switchToPreset(p) {
+  _applyPresetGridAndS2(p);
+  const doCut = Math.random() < gPresets.PRESET_CUT_CHANCE;
+  if (doCut) {
+    if (p.ZONE6)    _applyZONE6Vals(p.ZONE6);
+    if (p.BG_COLOR !== undefined) _applyBgDirect(p.BG_COLOR);
+    presetMorph = null;
+    _syncPresetGUI();
+  } else {
+    presetMorph = {
+      from: { ZONE6: {...ZONE6}, BG_COLOR: gbg.BG_COLOR },
+      to:   { ZONE6: p.ZONE6 ? {...p.ZONE6} : {...ZONE6}, BG_COLOR: p.BG_COLOR !== undefined ? p.BG_COLOR : gbg.BG_COLOR },
+      t: 0, dur: gPresets.PRESET_MORPH
+    };
+  }
+  gPresets.PRESET_NOW = String(presetIdx + 1);
+}
+
+function tickPresets(camZf, amod, dt, now) {
+  if (!gPresets.PRESET_ON) return;
+  const inZone = camZf <= P.CAM_END_Z + gPresets.PRESET_IN_MARGIN;
+
+  if (!presetActive && inZone) {
+    presetActive = true;
+    presetBase = { ZONE6: {...ZONE6}, ggrid3: {...ggrid3}, S2_ON: gs2.S2_ON, BG_COLOR: gbg.BG_COLOR };
+    presetArmed = true;
+    presetLastSwitch = -Infinity;
+  }
+
+  if (presetActive && !inZone) {
+    presetActive = false;
+    if (presetBase) {
+      presetMorph = {
+        from: { ZONE6: {...ZONE6}, BG_COLOR: gbg.BG_COLOR },
+        to:   { ZONE6: {...presetBase.ZONE6}, BG_COLOR: presetBase.BG_COLOR },
+        t: 0, dur: 0.3
+      };
+      _applyPresetGridAndS2(presetBase);
+      gPresets.PRESET_NOW = 'off';
+    }
+    return;
+  }
+
+  if (!presetActive) return;
+
+  if (!presetArmed && amod < gPresets.PRESET_PEAK_THRESH * 0.7) presetArmed = true;
+  const sinceSwitch = (now / 1000) - presetLastSwitch;
+  if (presetArmed && amod >= gPresets.PRESET_PEAK_THRESH && sinceSwitch >= gPresets.PRESET_COOLDOWN) {
+    presetArmed = false;
+    presetLastSwitch = now / 1000;
+    presetIdx = (presetIdx + 1) % 6;
+    const p = scene6Presets[presetIdx];
+    if (p) _switchToPreset(p);
+  }
+
+  if (presetMorph) {
+    presetMorph.t += dt / presetMorph.dur;
+    const done = presetMorph.t >= 1;
+    const ks = done ? 1 : (function(k){ return k*k*(3-2*k); })(presetMorph.t);
+    for (const key in presetMorph.to.ZONE6) {
+      if (!(key in ZONE6)) continue;
+      const fv = presetMorph.from.ZONE6[key], tv = presetMorph.to.ZONE6[key];
+      ZONE6[key] = typeof fv === 'number' ? fv + (tv - fv) * ks : tv;
+    }
+    _applyBgDirect(_lerpHex(presetMorph.from.BG_COLOR, presetMorph.to.BG_COLOR, ks));
+    if (done) { presetMorph = null; _syncPresetGUI(); }
+  }
 }
 
 /* ===== POST-PROCESSING ===== */
@@ -1617,6 +1746,8 @@ function frame(now){
     nc3.w = ZONE6.PT_ALPHA;
   }
 
+  tickPresets(camZf, amod, dt, now);
+
   // ── space layer ──
   const dpr = Math.min(window.devicePixelRatio||1, 2);
   dustUniforms.uCamPos.value.copy(camera.position);
@@ -2513,6 +2644,18 @@ fScene6S.add(gs2, 'S2_SMIN_LFO_MAX',  4,  600, 1);
   fScene6S.domElement.querySelector('ul').appendChild(row);
 })();
 fScene6S.close();
+
+(function(){
+  fPresets = gui.addFolder('Scene6 Presets');
+  fPresets.add(gPresets, 'PRESET_ON');
+  fPresets.add(gPresets, 'PRESET_PEAK_THRESH', 0.01, 0.5, 0.01);
+  fPresets.add(gPresets, 'PRESET_COOLDOWN', 0.1, 5, 0.1);
+  fPresets.add(gPresets, 'PRESET_MORPH', 0.05, 2, 0.05);
+  fPresets.add(gPresets, 'PRESET_CUT_CHANCE', 0, 1, 0.05);
+  fPresets.add(gPresets, 'PRESET_IN_MARGIN', 0, 5, 0.1);
+  fPresets.add(gPresets, 'PRESET_NOW').listen();
+  fPresets.close();
+})();
 
 const fGlitch = gui.addFolder('Glitch Video');
 fGlitch.add(ggfx, 'GLITCH_ON');
