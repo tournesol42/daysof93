@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v62-music-newv1 -->
+<!-- build: journey-v63-json-export -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -33,6 +33,7 @@
 <body>
 <div id="start"><div class="pill">enter</div></div>
 <input id="file" type="file" accept="audio/*">
+<input id="json-import" type="file" accept=".json" style="display:none">
 <canvas id="scatter"></canvas>
 <video id="glitchVideo" src="https://daysof93-cdn.b-cdn.net/journeyglitch1.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <video id="glitchVideo5" src="https://daysof93-cdn.b-cdn.net/journeyglitch5.webm" muted loop playsinline preload="auto" style="display:none"></video>
@@ -2532,6 +2533,125 @@ fGlitch.add(ggfx, 'BLEND_ALPHA', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_MAX', 0, 1, 0.01);
 fGlitch.add(ggfx, 'STROBE_RATE_MS', 16, 200, 1);
 fGlitch.add(ggfx, 'GLITCH_NOW').listen();
+
+/* ===== JSON EXPORT / IMPORT ===== */
+(function(){
+  const jsonImportInput = document.getElementById('json-import');
+
+  function updateAllGUI() {
+    function walkFolder(f) {
+      f.__controllers.forEach(c => c.updateDisplay());
+      Object.values(f.__folders).forEach(walkFolder);
+    }
+    walkFolder(gui);
+  }
+
+  function fireColorInput(folderEl, idx, value) {
+    const inputs = folderEl.querySelectorAll('input[type=color]');
+    if (inputs[idx]) { inputs[idx].value = value; inputs[idx].dispatchEvent(new Event('input')); }
+  }
+
+  function exportParams() {
+    const snap = {
+      gfx:        {...gfx},
+      glines:     {...glines},
+      gpts:       {...gpts},
+      gatmos:     {...gatmos},
+      gaudio:     {...gaudio},
+      gaudioTrack:{...gaudioTrack},
+      gbloom:     {...gbloom},
+      P_motion:   { DRIFT_GAIN: P.DRIFT_GAIN, DRIFT_FRICTION: P.DRIFT_FRICTION, ORBIT_GAIN: P.ORBIT_GAIN, ORBIT_FRICTION: P.ORBIT_FRICTION },
+      gwords:     {...gwords},
+      gspace:     {...gspace},
+      g4:         {...g4},
+      g5m:        {...g5m},
+      gg:         {...gg},
+      gslabs:     {...gslabs},
+      ggrid1:     {...ggrid1},
+      ggrid2:     {...ggrid2},
+      ggrid3:     {...ggrid3},
+      ZONE6:      {...ZONE6},
+      gs2:        {...gs2},
+      ggfx:       {...ggfx},
+      gbg:        { BG_COLOR: gbg.BG_COLOR }
+    };
+    delete snap.ggfx.GLITCH_NOW;
+    const d = new Date();
+    const ts = d.getFullYear() +
+      String(d.getMonth()+1).padStart(2,'0') +
+      String(d.getDate()).padStart(2,'0') + '-' +
+      String(d.getHours()).padStart(2,'0') +
+      String(d.getMinutes()).padStart(2,'0');
+    const a = document.createElement('a');
+    a.href = 'data:application/json,' + encodeURIComponent(JSON.stringify(snap, null, 2));
+    a.download = 'journey-params-' + ts + '.json';
+    a.click();
+  }
+
+  function importParams(json) {
+    let src;
+    try { src = JSON.parse(json); } catch(e) { alert('Invalid JSON'); return; }
+    const merge = (dst, s) => { if (!s) return; for (const k in s) if (k in dst) dst[k] = s[k]; };
+    merge(gfx,        src.gfx);
+    merge(glines,     src.glines);
+    merge(gpts,       src.gpts);
+    merge(gatmos,     src.gatmos);
+    merge(gaudio,     src.gaudio);
+    merge(gaudioTrack,src.gaudioTrack);
+    merge(gbloom,     src.gbloom);
+    merge(gwords,     src.gwords);
+    merge(gspace,     src.gspace);
+    merge(g4,         src.g4);
+    merge(g5m,        src.g5m);
+    merge(gg,         src.gg);
+    merge(gslabs,     src.gslabs);
+    merge(ggrid1,     src.ggrid1);
+    merge(ggrid2,     src.ggrid2);
+    merge(ggrid3,     src.ggrid3);
+    merge(ZONE6,      src.ZONE6);
+    merge(gs2,        src.gs2);
+    if (src.ggfx) { for (const k in src.ggfx) if (k in ggfx && k !== 'GLITCH_NOW') ggfx[k] = src.ggfx[k]; }
+    if (src.P_motion) merge(P, src.P_motion);
+
+    // rebuild geometry and apply effects
+    rebuildMesh1Geo(); rebuildMesh2Geo(); rebuildMesh3Geo();
+    rebuildRings();
+    buildGroup4();
+    buildMesh5(); applyMeshTransform();
+    buildGuides();
+    rebuildSlabSizes(); updateSlabShading();
+    makeScatterPoints(gwords.WORD_COUNT);
+    makePoints2();
+
+    // sync custom color pickers (dispatch input event to trigger their apply fns)
+    if (src.gbg      ?.BG_COLOR)         fireColorInput(fGlobal.domElement,   0, src.gbg.BG_COLOR);
+    if (src.g5m      ?.MESH_COLOR)        fireColorInput(fScene5.domElement,   0, src.g5m.MESH_COLOR);
+    if (src.g5m      ?.SOLID_COLOR)       fireColorInput(fScene5.domElement,   1, src.g5m.SOLID_COLOR);
+    if (src.gg       ?.GUIDE_COLOR)       fireColorInput(fGuides.domElement,   0, src.gg.GUIDE_COLOR);
+    if (src.gslabs   ?.SLAB_COLOR)        fireColorInput(fSlabs.domElement,    0, src.gslabs.SLAB_COLOR);
+    if (src.gslabs   ?.SLAB_SHADE_COLOR)  fireColorInput(fSlabs.domElement,    1, src.gslabs.SLAB_SHADE_COLOR);
+    if (src.ZONE6    ?.PT_COLOR)          fireColorInput(fScene6.domElement,   0, src.ZONE6.PT_COLOR);
+    if (src.gs2      ?.TEXT_COLOR)        fireColorInput(fScene6S.domElement,  0, src.gs2.TEXT_COLOR);
+
+    // audio track crossfade
+    if (src.gaudioTrack?.TRACK) crossfadeToTrack(src.gaudioTrack.TRACK);
+
+    updateAllGUI();
+  }
+
+  jsonImportInput.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => importParams(ev.target.result);
+    r.readAsText(f);
+    e.target.value = '';
+  });
+
+  const _jsonActions = { 'EXPORT JSON': exportParams, 'IMPORT JSON': () => jsonImportInput.click() };
+  fGlobal.add(_jsonActions, 'EXPORT JSON');
+  fGlobal.add(_jsonActions, 'IMPORT JSON');
+})();
+
 gui.close();
 
 addEventListener('resize', resize);
