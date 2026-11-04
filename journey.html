@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v64-scene6-presets -->
+<!-- build: journey-v65-s6-nobloom-flow -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -408,7 +408,7 @@ function rebuildMesh3Geo() {
 }
 
 /* ===== SCENE6 PRESET SYSTEM ===== */
-const gPresets = { PRESET_ON: true, PRESET_PEAK_THRESH: 0.08, PRESET_COOLDOWN: 0.5, PRESET_MORPH: 0.2, PRESET_CUT_CHANCE: 0.5, PRESET_IN_MARGIN: 0.3, PRESET_NOW: 'off' };
+const gPresets = { PRESET_ON: true, PRESET_PEAK_THRESH: 0.05, PRESET_COOLDOWN: 0.5, PRESET_MORPH: 0.2, PRESET_CUT_CHANCE: 0.5, PRESET_IN_MARGIN: 0.3, PRESET_NOW: 'off' };
 const scene6Presets = [];
 let presetActive = false, presetBase = null;
 let presetArmed = true, presetLastSwitch = -Infinity, presetIdx = -1;
@@ -1617,6 +1617,7 @@ let _aLevelT = 0;
 const t0 = performance.now(); let last = t0;
 let prevCamZ = P.CAM_START[2];
 const gmotion = { CAM_SPEED: 0, CAM_Z: '0.0' };
+let ringFlowOffset = 0, dustFlowOffset = 0, ringFlowFactor = 0;
 let camZDisplayLast = 0;
 function frame(now){
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -1762,6 +1763,18 @@ function frame(now){
   ringUniforms.uFar.value        = gspace.SPACE_FAR;
   dustMesh.visible  = gspace.DUST_ON;
   ringsMesh.visible = gspace.RINGS_ON;
+
+  // ── ring / dust flow in zone 6 ──
+  const _flowInZone = camZf <= P.CAM_END_Z + gPresets.PRESET_IN_MARGIN;
+  if (_flowInZone)  ringFlowFactor = Math.min(1, ringFlowFactor + dt);
+  else              ringFlowFactor = Math.max(0, ringFlowFactor - dt);
+  if (ringFlowFactor > 0) {
+    const _fStep = gspace.RING_FLOW_SPEED * ringFlowFactor * dt;
+    ringFlowOffset += _fStep;
+    dustFlowOffset += _fStep;
+    ringsMesh.position.z = ringFlowOffset % gspace.RINGS_SPACING;
+    dustMesh.position.z  = dustFlowOffset % 20;
+  }
 
   // ── scene 4 ──
   if (g4.RINGS4_ON) {
@@ -1969,8 +1982,12 @@ function frame(now){
   const blmThreshold = gbloom.BLOOM_THRESHOLD * (1 - zone3Factor) + ZONE3.BLOOM_THRESHOLD * zone3Factor;
   const blmOn = gbloom.BLOOM_ON || (zone3Factor > 0 && ZONE3.BLOOM_ON);
 
-  if (blmOn) {
-    bloomPass.strength  = blmStrength;
+  // fade bloom to 0 entering scene 6 (camZ -140 → -144, smoothstep)
+  const _z6t = Math.min(1, Math.max(0, (-camZf - 140) / 4));
+  const zone6BloomFade = 1 - _z6t * _z6t * (3 - 2 * _z6t);
+
+  if (blmOn && zone6BloomFade > 0) {
+    bloomPass.strength  = blmStrength * zone6BloomFade;
     bloomPass.radius    = blmRadius;
     bloomPass.threshold = blmThreshold;
     composer.render();
@@ -2316,7 +2333,7 @@ fWords.add(gwords, 'WORD_AUDIO_SIZE',  0, 2,   0.05);
 fWords.add(gwords, 'WORD_AUDIO_LINES', 0, 5,   0.1);
 
 
-const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30 };
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30, RING_FLOW_SPEED: 3 };
 const rebuildRings = () => {
   scene.remove(ringsMesh);
   P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
@@ -2334,6 +2351,7 @@ fSpace.add(gspace, 'RINGS_ALPHA',       0, 0.5, 0.005);
 fSpace.add(gspace, 'RINGS_RADIUS',    1, 10,  0.1).onChange(rebuildRings);
 fSpace.add(gspace, 'RINGS_SPACING',   1, 12,  0.5).onChange(rebuildRings);
 fSpace.add(gspace, 'SPACE_FAR',       10, 60, 1);
+fSpace.add(gspace, 'RING_FLOW_SPEED',  0, 20, 0.5);
 
 const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
