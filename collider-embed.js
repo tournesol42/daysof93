@@ -2923,10 +2923,14 @@ function draw() {
     /** Resume AudioContext and start audio (call from a click handler). */
     start() {
       audioInit();
+      if (AC && AC.state !== 'running') AC.resume();
+      playing = true;
+      syncAudio();
     },
     /** Suspend audio. */
     stop() {
-      if (AC) AC.suspend();
+      playing = false;
+      syncAudio();
     },
     /** Show a named layer. */
     show(name) {
