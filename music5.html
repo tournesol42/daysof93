@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v13-labels -->
-<script>// build: music5-v13-labels
-console.log('d93: music5 v13-labels');</script>
+<!-- build: music5-v14-loop -->
+<script>// build: music5-v14-loop
+console.log('d93: music5 v14-loop');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -70,6 +70,113 @@ a.plink .hit{fill:transparent;pointer-events:all}
 </style>
 </head>
 <body>
+
+<!-- ── TAP-TO-ENTER OVERLAY + AUDIO ── -->
+<style>
+#enter-overlay {
+  position: fixed; inset: 0; background: #000;
+  z-index: 99999; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+}
+#enter-overlay span {
+  color: #fff; font-family: 'Jost', sans-serif; font-weight: 300;
+  font-size: 13px; letter-spacing: 0.3em; text-transform: none;
+  animation: enter-pulse 2.4s ease-in-out infinite;
+}
+@keyframes enter-pulse {
+  0%,100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+</style>
+<div id="enter-overlay"><span>tap to enter</span></div>
+<script>
+(function(){
+  var MP3 = 'https://daysof93-cdn.b-cdn.net/Music5loop_120bpm_64_bars.mp3';
+  var LOOP_DUR = 128.0;
+  var _buf = null, _ctx = null, _src = null, _gain = null;
+  var _tapped = false;
+
+  // XHR preload starts immediately
+  var _xhr = new XMLHttpRequest();
+  _xhr.open('GET', MP3, true);
+  _xhr.responseType = 'arraybuffer';
+  var _xhrDone = false, _xhrData = null;
+  _xhr.onload = function(){ _xhrData = _xhr.response; _xhrDone = true; maybeDecodeAndPlay(); };
+  _xhr.onerror = function(){ console.warn('Audio XHR failed'); };
+  _xhr.send();
+
+  function findLeadOffset(buf) {
+    var ch = buf.getChannelData(0);
+    var limit = Math.min(ch.length, Math.floor(buf.sampleRate * 0.1));
+    for (var i = 0; i < limit; i++) {
+      if (Math.abs(ch[i]) > 0.0005) return i / buf.sampleRate;
+    }
+    return 0;
+  }
+
+  function startPlayback() {
+    var lead = findLeadOffset(_buf);
+    console.log('Audio lead offset:', lead.toFixed(6), 's');
+    var loopStart = lead;
+    var loopEnd = loopStart + LOOP_DUR; // spec: 128.0 s; browser clamps to buffer.duration internally
+    console.log('Audio loopStart:', loopStart, 'loopEnd:', loopEnd, 'span:', (loopEnd - loopStart));
+    _gain = _ctx.createGain();
+    _gain.gain.setValueAtTime(0, _ctx.currentTime);
+    _gain.gain.linearRampToValueAtTime(
+      (window._d93Audio && typeof window._d93Audio.volume === 'number') ? window._d93Audio.volume : 0.8,
+      _ctx.currentTime + 1.5
+    );
+    _gain.connect(_ctx.destination);
+    _src = _ctx.createBufferSource();
+    _src.buffer = _buf;
+    _src.loop = true;
+    _src.loopStart = loopStart;
+    _src.loopEnd = loopEnd;
+    _src.connect(_gain);
+    _src.start(0, loopStart);
+    window._d93Audio = window._d93Audio || {};
+    window._d93Audio.ctx = _ctx;
+    window._d93Audio.src = _src;
+    window._d93Audio.gain = _gain;
+    window._d93Audio.loopStart = loopStart;
+    window._d93Audio.loopEnd = loopEnd;
+  }
+
+  function maybeDecodeAndPlay() {
+    if (!_tapped || !_xhrDone || _buf) return;
+    _ctx.decodeAudioData(_xhrData, function(decoded) {
+      _buf = decoded;
+      startPlayback();
+    }, function(e){ console.warn('decodeAudioData error', e); });
+  }
+
+  function onTap(e) {
+    if (_tapped) return;
+    _tapped = true;
+    // Create AudioContext in tap handler (iOS unlock)
+    _ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_buf) {
+      startPlayback();
+    } else {
+      maybeDecodeAndPlay();
+    }
+    // Fade out overlay
+    var ov = document.getElementById('enter-overlay');
+    if (!ov) return;
+    ov.style.transition = 'opacity 1s ease';
+    ov.style.opacity = '0';
+    setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }, 1050);
+  }
+
+  var ov = document.getElementById('enter-overlay');
+  ov.addEventListener('pointerdown', onTap);
+  ov.addEventListener('touchend', function(e){ e.preventDefault(); onTap(e); });
+  ov.addEventListener('click', onTap);
+  document.addEventListener('keydown', function(e){
+    if (e.code === 'Enter' || e.code === 'Space') onTap(e);
+  });
+})();
+</script>
 
 <script>
 const PLANET_LINKS = {
@@ -876,7 +983,8 @@ const PLANET_LINKS = {
     bgColor:    '#0A0A0A',
     textColor:  '#D0D0D0',
     textSize:   6,
-    tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 }
+    tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
+    audio: { volume: 0.8, mute: false }
   };
 
   function cloneDefaults(){ return JSON.parse(JSON.stringify(PARAMS_DEFAULT)); }
@@ -909,10 +1017,18 @@ const PLANET_LINKS = {
           if(sp2.tilt[k]!==undefined) P.tilt[k]=sp2.tilt[k];
         });
       }
+      if(sp2.audio){
+        if(sp2.audio.volume !== undefined) P.audio.volume = sp2.audio.volume;
+        if(sp2.audio.mute   !== undefined) P.audio.mute   = sp2.audio.mute;
+      }
     }
   } catch(e){}
 
   function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(P)); }catch(e){} }
+
+  // Expose audio volume for the overlay script to pick up
+  window._d93Audio = window._d93Audio || {};
+  window._d93Audio.volume = P.audio.volume;
 
   function applyRingColor(name, color){
     var el = document.getElementById('orbit-'+name);
@@ -1188,6 +1304,37 @@ const PLANET_LINKS = {
   col3D.appendChild(rowEl('Spin dur s', slider(P.tilt.spinDur, 0.5, 8, 0.1, function(v){
     P.tilt.spinDur=v; if(window._d93TiltParams) window._d93TiltParams.spinDur=v; save();
   })));
+
+  // ── Audio column ──
+  var colAudio = col();
+  colAudio.appendChild(sec('Audio'));
+  colAudio.appendChild(rowEl('Volume 0–1', slider(P.audio.volume, 0, 1, 0.01, function(v){
+    P.audio.volume = v;
+    if(window._d93Audio && window._d93Audio.gain && !P.audio.mute){
+      window._d93Audio.gain.gain.setTargetAtTime(v, window._d93Audio.ctx.currentTime, 0.05);
+    }
+    if(window._d93Audio) window._d93Audio.volume = v;
+    save();
+  }, 2)));
+  (function(){
+    var muteRow = document.createElement('div');
+    muteRow.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    var lbl = document.createElement('span'); lbl.style.cssText='min-width:105px;'; lbl.textContent='Mute';
+    var chk = document.createElement('input'); chk.type='checkbox'; chk.checked=P.audio.mute;
+    chk.style.cssText='accent-color:#6698bb;cursor:pointer;';
+    chk.addEventListener('change', function(){
+      P.audio.mute = chk.checked;
+      if(window._d93Audio && window._d93Audio.gain && window._d93Audio.ctx){
+        window._d93Audio.gain.gain.setTargetAtTime(
+          P.audio.mute ? 0 : P.audio.volume,
+          window._d93Audio.ctx.currentTime, 0.05
+        );
+      }
+      save();
+    });
+    muteRow.appendChild(lbl); muteRow.appendChild(chk);
+    colAudio.appendChild(muteRow);
+  })();
 
   // ── Buttons column ──
   var colButtons = col();
