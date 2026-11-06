@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v13-labels -->
-<script>// build: music5-v13-labels
-console.log('d93: music5 v13-labels');</script>
+<!-- build: music5-v15-collider -->
+<script>// build: music5-v15-collider
+console.log('d93: music5 v15-collider');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -70,6 +70,9 @@ a.plink .hit{fill:transparent;pointer-events:all}
 </style>
 </head>
 <body>
+<!-- tap-to-enter overlay -->
+<div id="enter-overlay" style="position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;"></div>
+<style>@keyframes _d93pulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>
 
 <script>
 const PLANET_LINKS = {
@@ -847,6 +850,51 @@ const PLANET_LINKS = {
 })();
 </script>
 
+<script src="collider-embed.js"></script>
+<script>
+(function(){
+  var _colliderHost = document.createElement('div');
+  _colliderHost.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;';
+  document.body.appendChild(_colliderHost);
+
+  var _collider = null, _startPending = false;
+
+  ColliderEmbed.create({
+    container: _colliderHost,
+    layout: 'collider-layout.json',
+  }).then(function(c){
+    _collider = c;
+    window._d93Collider = c;
+    if (_startPending){ _startPending = false; _doStart(); }
+  });
+
+  function _doStart(){
+    _collider.start();
+    var out = _collider.output;
+    if (out && !window._d93VolGain){
+      var ac = out.context;
+      var vg = ac.createGain();
+      var ap = window._d93AudioP || {volume:0.8, mute:false};
+      vg.gain.value = ap.mute ? 0 : ap.volume;
+      out.disconnect(ac.destination);
+      out.connect(vg);
+      vg.connect(ac.destination);
+      window._d93VolGain = vg;
+    }
+  }
+
+  window._d93Enter = function(){
+    var ov = document.getElementById('enter-overlay');
+    if (!ov || ov._gone) return;
+    ov._gone = true;
+    if (_collider){ _doStart(); } else { _startPending = true; }
+    ov.style.transition = 'opacity 1s';
+    ov.style.opacity = '0';
+    setTimeout(function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }, 1050);
+  };
+})();
+</script>
+
 <!-- ── PARAM CONSOLE ── -->
 <script>
 (function(){
@@ -876,7 +924,8 @@ const PLANET_LINKS = {
     bgColor:    '#0A0A0A',
     textColor:  '#D0D0D0',
     textSize:   6,
-    tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 }
+    tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
+    audio: { volume: 0.8, mute: false }
   };
 
   function cloneDefaults(){ return JSON.parse(JSON.stringify(PARAMS_DEFAULT)); }
@@ -908,6 +957,10 @@ const PLANET_LINKS = {
         ['tiltAngle','tiltEase','spinDelay','spinDur'].forEach(function(k){
           if(sp2.tilt[k]!==undefined) P.tilt[k]=sp2.tilt[k];
         });
+      }
+      if(sp2.audio){
+        if(sp2.audio.volume!==undefined) P.audio.volume=sp2.audio.volume;
+        if(sp2.audio.mute!==undefined)   P.audio.mute=sp2.audio.mute;
       }
     }
   } catch(e){}
@@ -987,6 +1040,28 @@ const PLANET_LINKS = {
   }
   applyAll(P);
   applyLabelTexts(P.labelTexts);
+
+  // expose audio params for the Collider gain node
+  window._d93AudioP = P.audio;
+
+  // wire overlay enter targets
+  (function(){
+    var ov = document.getElementById('enter-overlay');
+    if (!ov) return;
+    var txt = document.createElement('span');
+    txt.textContent = 'tap to enter';
+    txt.style.cssText = 'color:#fff;font-family:Jost,sans-serif;font-weight:300;font-size:13px;letter-spacing:0.3em;animation:_d93pulse 2.4s ease-in-out infinite;';
+    ov.appendChild(txt);
+    function fire(){ window._d93Enter && window._d93Enter(); }
+    ov.addEventListener('pointerdown', fire);
+    ov.addEventListener('click', fire);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' '){
+        var ovc = document.getElementById('enter-overlay');
+        if (ovc && !ovc._gone){ e.preventDefault(); fire(); }
+      }
+    });
+  })();
 
   // ── Build UI ──
   var CSS_BTN = 'position:fixed;bottom:16px;left:16px;z-index:9999;background:rgba(24,24,24,0.88);color:#bbb;border:1px solid #555;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1.5px;padding:5px 10px;cursor:pointer;border-radius:3px;';
@@ -1188,6 +1263,29 @@ const PLANET_LINKS = {
   col3D.appendChild(rowEl('Spin dur s', slider(P.tilt.spinDur, 0.5, 8, 0.1, function(v){
     P.tilt.spinDur=v; if(window._d93TiltParams) window._d93TiltParams.spinDur=v; save();
   })));
+
+  // ── Audio column ──
+  var colAudio = col();
+  colAudio.appendChild(sec('Audio'));
+  (function(){
+    colAudio.appendChild(rowEl('Volume 0–1', slider(P.audio.volume, 0, 1, 0.01, function(v){
+      P.audio.volume = v;
+      if (window._d93VolGain && !P.audio.mute) window._d93VolGain.gain.value = v;
+      save();
+    }, 2)));
+    var muteRow = document.createElement('div');
+    muteRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    var muteL = document.createElement('span'); muteL.style.minWidth = '105px'; muteL.textContent = 'Mute';
+    var muteCb = document.createElement('input'); muteCb.type = 'checkbox'; muteCb.checked = P.audio.mute;
+    muteCb.style.cssText = 'width:16px;height:16px;accent-color:#6698bb;cursor:pointer;';
+    muteCb.addEventListener('change', function(){
+      P.audio.mute = muteCb.checked;
+      if (window._d93VolGain) window._d93VolGain.gain.value = P.audio.mute ? 0 : P.audio.volume;
+      save();
+    });
+    muteRow.appendChild(muteL); muteRow.appendChild(muteCb);
+    colAudio.appendChild(muteRow);
+  })();
 
   // ── Buttons column ──
   var colButtons = col();
