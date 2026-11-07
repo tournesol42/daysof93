@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v18-glitch-fit -->
-<script>// build: music5-v18-glitch-fit
-console.log('d93: music5 v18-glitch-fit');</script>
+<!-- build: music5-v19-intro -->
+<script>// build: music5-v19-intro
+console.log('d93: music5 v19-intro');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -75,9 +75,7 @@ a.plink .hit{fill:transparent;pointer-events:all}
 <div id="enter-overlay" style="position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;"></div>
 <style>@keyframes _d93pulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>
 <video id="m5gv1" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage1.webm" muted loop playsinline preload="auto" style="display:none"></video>
-<video id="m5gv2" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage2.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <video id="m5gv3" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage3.webm" muted loop playsinline preload="auto" style="display:none"></video>
-<video id="m5gv4" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage4.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <video id="m5gv5" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage5.webm" muted loop playsinline preload="auto" style="display:none"></video>
 <canvas id="glitchCanvas"></canvas>
 
@@ -112,6 +110,7 @@ const PLANET_LINKS = {
 <rect id="bg" x="-2000" y="-2000" width="6000" height="6000" fill="#0A0A0A"/>
 <rect id="grain-rect" x="-2000" y="-2000" width="6000" height="6000" fill="#0A0A0A" filter="url(#grain)" opacity="0.04"/>
 
+<g class="m5-intro">
 <!-- Paper specks -->
 <g id="specks" fill="rgba(0,0,0,0.2)" stroke="none"></g>
 
@@ -134,6 +133,7 @@ const PLANET_LINKS = {
 <circle id="sun" cx="132" cy="421" r="56.5"
         stroke="rgba(0,0,0,0.88)" stroke-width="1.8" fill="#0A0A0A"
         vector-effect="non-scaling-stroke"/>
+</g>
 
 <!-- Mercury (non-clickable) -->
 <circle id="planet-mercury" cx="247.5" cy="421" r="4.5"
@@ -194,7 +194,7 @@ const PLANET_LINKS = {
 </g>
 
 <!-- Orbiting dots -->
-<g id="dots"></g>
+<g class="m5-intro"><g id="dots"></g></g>
 
 </svg>
 
@@ -933,12 +933,13 @@ const PLANET_LINKS = {
     textSize:   6,
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
+    intro: { startOpacity: 0.15, duration: 5 },
     glitch: {
       on: true, force: 'random',
       fxCuts: false, fxBlend: true, fxStrobe: true,
       blendMode: 'screen', blendAlpha: 0.79, strobeMax: 0.65, strobeRateMs: 54,
       cutCount: 12, cutWMin: 2, cutWMax: 6, cutShuffleMs: 20,
-      gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.45,
+      gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.25,
       fit: 'contain'
     }
   };
@@ -977,6 +978,10 @@ const PLANET_LINKS = {
         if(sp2.audio.volume!==undefined) P.audio.volume=sp2.audio.volume;
         if(sp2.audio.mute!==undefined)   P.audio.mute=sp2.audio.mute;
       }
+      if(sp2.intro){
+        if(sp2.intro.startOpacity!==undefined) P.intro.startOpacity=sp2.intro.startOpacity;
+        if(sp2.intro.duration!==undefined)     P.intro.duration=sp2.intro.duration;
+      }
       if(sp2.glitch){
         ['on','force','fxCuts','fxBlend','fxStrobe','blendMode','blendAlpha','strobeMax','strobeRateMs',
          'cutCount','cutWMin','cutWMax','cutShuffleMs','gapMin','gapMax','onMin','onMax','fit']
@@ -987,6 +992,30 @@ const PLANET_LINKS = {
 
   function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(P)); }catch(e){} }
   window._d93P = P;
+
+  // ── Intro fade ──
+  function introGroups(){ return document.querySelectorAll('.m5-intro'); }
+  function applyIntroOpacity(op){
+    introGroups().forEach(function(g){ g.setAttribute('opacity', op); });
+  }
+  applyIntroOpacity(P.intro.startOpacity);
+
+  function startIntroAnim(){
+    var groups = introGroups();
+    var dur = P.intro.duration * 1000;
+    var t0 = performance.now();
+    var from = parseFloat(groups.length ? groups[0].getAttribute('opacity') || P.intro.startOpacity : P.intro.startOpacity);
+    function step(now){
+      var t = Math.min(1, (now - t0) / dur);
+      var ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      var op = from + (1 - from) * ease;
+      groups.forEach(function(g){ g.setAttribute('opacity', op); });
+      if(t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  var _origIntroEnter = window._d93Enter;
+  window._d93Enter = function(){ _origIntroEnter && _origIntroEnter(); startIntroAnim(); };
 
   function applyRingColor(name, color){
     var el = document.getElementById('orbit-'+name);
@@ -1308,6 +1337,18 @@ const PLANET_LINKS = {
     colAudio.appendChild(muteRow);
   })();
 
+  // ── Intro column ──
+  (function(){
+    var colI = col();
+    colI.appendChild(sec('Intro'));
+    colI.appendChild(rowEl('Start opacity', slider(P.intro.startOpacity, 0, 1, 0.01, function(v){
+      P.intro.startOpacity = v; applyIntroOpacity(v); save();
+    }, 2)));
+    colI.appendChild(rowEl('Duration (s)', slider(P.intro.duration, 0.5, 15, 0.5, function(v){
+      P.intro.duration = v; save();
+    }, 1)));
+  })();
+
   // ── Glitch Video column ──
   (function(){
     var colG = col();
@@ -1402,9 +1443,7 @@ const PLANET_LINKS = {
 (function(){
   var glitchVideos = [
     document.getElementById('m5gv1'),
-    document.getElementById('m5gv2'),
     document.getElementById('m5gv3'),
-    document.getElementById('m5gv4'),
     document.getElementById('m5gv5')
   ];
   var glitchCanvas = document.getElementById('glitchCanvas');
@@ -1454,7 +1493,7 @@ const PLANET_LINKS = {
       on:true, force:'random', fxCuts:false, fxBlend:true, fxStrobe:true,
       blendMode:'screen', blendAlpha:0.79, strobeMax:0.65, strobeRateMs:54,
       cutCount:12, cutWMin:2, cutWMax:6, cutShuffleMs:20,
-      gapMin:4, gapMax:8, onMin:0.10, onMax:0.45,
+      gapMin:4, gapMax:8, onMin:0.10, onMax:0.25,
       fit:'contain'
     };
   }
