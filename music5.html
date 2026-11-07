@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v19-intro -->
-<script>// build: music5-v19-intro
+<!-- build: music5-v20-eclipse -->
+<script>// build: music5-v20-eclipse
 console.log('d93: music5 v19-intro');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,6 +135,14 @@ const PLANET_LINKS = {
         vector-effect="non-scaling-stroke"/>
 </g>
 
+<!-- Orbiting dots -->
+<g class="m5-intro"><g id="dots"></g></g>
+
+<!-- Eclipse ring -->
+<circle id="eclipse-ring" cx="280.5" cy="421" r="281.5"
+        fill="transparent" stroke="none" opacity="1"
+        pointer-events="none" vector-effect="non-scaling-stroke"/>
+
 <!-- Mercury (non-clickable) -->
 <circle id="planet-mercury" cx="247.5" cy="421" r="4.5"
         stroke="#000" stroke-width="0.9" stroke-opacity="0.85" fill="#0A0A0A"
@@ -193,8 +201,6 @@ const PLANET_LINKS = {
     letter-spacing="0.12em" pointer-events="none">&#x2190; push the dots</text>
 </g>
 
-<!-- Orbiting dots -->
-<g class="m5-intro"><g id="dots"></g></g>
 
 </svg>
 
@@ -941,7 +947,8 @@ const PLANET_LINKS = {
       cutCount: 12, cutWMin: 2, cutWMax: 6, cutShuffleMs: 20,
       gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.25,
       fit: 'contain'
-    }
+    },
+    eclipse: { x: 280.5, y: 421, color: 'transparent', opacity: 1 }
   };
 
   function cloneDefaults(){ return JSON.parse(JSON.stringify(PARAMS_DEFAULT)); }
@@ -986,6 +993,11 @@ const PLANET_LINKS = {
         ['on','force','fxCuts','fxBlend','fxStrobe','blendMode','blendAlpha','strobeMax','strobeRateMs',
          'cutCount','cutWMin','cutWMax','cutShuffleMs','gapMin','gapMax','onMin','onMax','fit']
           .forEach(function(k){ if(sp2.glitch[k]!==undefined) P.glitch[k]=sp2.glitch[k]; });
+      }
+      if(sp2.eclipse){
+        ['x','y','color','opacity'].forEach(function(k){
+          if(sp2.eclipse[k]!==undefined) P.eclipse[k]=sp2.eclipse[k];
+        });
       }
     }
   } catch(e){}
@@ -1081,6 +1093,15 @@ const PLANET_LINKS = {
     }
   }
 
+  function applyEclipse(ep){
+    var el = document.getElementById('eclipse-ring');
+    if(!el) return;
+    el.setAttribute('cx', ep.x);
+    el.setAttribute('cy', ep.y);
+    el.setAttribute('fill', ep.color);
+    el.setAttribute('opacity', ep.opacity);
+  }
+
   function applyLabelTexts(lt){
     window._d93Labels = lt;
     Object.keys(lt).forEach(function(n){
@@ -1090,6 +1111,7 @@ const PLANET_LINKS = {
   }
   applyAll(P);
   applyLabelTexts(P.labelTexts);
+  applyEclipse(P.eclipse);
 
   // expose audio params for the Collider gain node
   window._d93AudioP = P.audio;
@@ -1413,6 +1435,63 @@ const PLANET_LINKS = {
     colG.appendChild(bTest);
   })();
 
+  // ── Eclipse column ──
+  (function(){
+    var colE = col();
+    colE.appendChild(sec('Eclipse'));
+    var E = P.eclipse;
+
+    // Colour row
+    var sw = colorPick(E.color === 'transparent' ? '#808080' : E.color, function(c){
+      E.color = c;
+      var el = document.getElementById('eclipse-ring');
+      if(el) el.setAttribute('fill', c);
+      save();
+    });
+    colE.appendChild(rowEl('Colour', sw));
+
+    // Transparent button
+    var bTr = document.createElement('button');
+    bTr.textContent = 'Transparent';
+    bTr.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;margin-bottom:5px;';
+    bTr.addEventListener('click', function(){
+      E.color = 'transparent';
+      var el = document.getElementById('eclipse-ring');
+      if(el) el.setAttribute('fill', 'transparent');
+      save();
+    });
+    colE.appendChild(bTr);
+
+    // Opacity slider
+    colE.appendChild(rowEl('Opacity', slider(E.opacity, 0, 1, 0.01, function(v){
+      E.opacity = v;
+      var el = document.getElementById('eclipse-ring');
+      if(el) el.setAttribute('opacity', v);
+      save();
+    }, 2)));
+
+    // Stroke width slider
+    colE.appendChild(rowEl('Stroke width', slider(0, 0, 8, 0.5, function(v){
+      var el = document.getElementById('eclipse-ring');
+      if(el && !el.getAttribute('stroke-dasharray')){
+        el.setAttribute('stroke-width', v);
+        el.setAttribute('stroke', v > 0 ? (E.color !== 'transparent' ? E.color : '#D0D0D0') : 'none');
+      }
+    }, 1)));
+
+    // Reset position button
+    var bRPos = document.createElement('button');
+    bRPos.textContent = 'Reset position';
+    bRPos.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;margin-top:4px;';
+    bRPos.addEventListener('click', function(){
+      E.x = 280.5; E.y = 421;
+      var el = document.getElementById('eclipse-ring');
+      if(el){ el.setAttribute('cx', E.x); el.setAttribute('cy', E.y); }
+      save();
+    });
+    colE.appendChild(bRPos);
+  })();
+
   // ── Buttons column ──
   var colButtons = col();
   colButtons.appendChild(sec('Buttons'));
@@ -1620,6 +1699,88 @@ const PLANET_LINKS = {
     setStateEl: function(el){ stateEl = el; }
   };
   if(window._d93GlitchStateEl) { stateEl = window._d93GlitchStateEl; delete window._d93GlitchStateEl; }
+})();
+</script>
+
+<!-- ── ECLIPSE SHIFT-DRAG ── -->
+<script>
+(function(){
+  var shiftDown = false, dragging = false;
+  var svg, ctm, startSVGX, startSVGY, startCX, startCY;
+
+  function svgPtFrom(e){
+    var pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(ctm);
+  }
+
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Shift' || shiftDown) return;
+    shiftDown = true;
+    var el = document.getElementById('eclipse-ring');
+    if(!el) return;
+    el.setAttribute('pointer-events', 'all');
+    el.setAttribute('stroke', '#808080');
+    el.setAttribute('stroke-width', '1.5');
+    el.setAttribute('stroke-dasharray', '8 6');
+    el.style.cursor = 'grab';
+  });
+
+  document.addEventListener('keyup', function(e){
+    if(e.key !== 'Shift') return;
+    shiftDown = false;
+    if(dragging) return;
+    var el = document.getElementById('eclipse-ring');
+    if(!el) return;
+    el.setAttribute('pointer-events', 'none');
+    el.setAttribute('stroke', 'none');
+    el.removeAttribute('stroke-dasharray');
+    el.style.cursor = '';
+  });
+
+  document.addEventListener('pointerdown', function(e){
+    if(!shiftDown) return;
+    var el = document.getElementById('eclipse-ring');
+    if(!el || e.target !== el) return;
+    svg = el.ownerSVGElement;
+    ctm = svg.getScreenCTM().inverse();
+    var sp = svgPtFrom(e);
+    startSVGX = sp.x; startSVGY = sp.y;
+    startCX = parseFloat(el.getAttribute('cx'));
+    startCY = parseFloat(el.getAttribute('cy'));
+    dragging = true;
+    el.style.cursor = 'grabbing';
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    var el = document.getElementById('eclipse-ring');
+    if(!el) return;
+    var sp = svgPtFrom(e);
+    el.setAttribute('cx', startCX + (sp.x - startSVGX));
+    el.setAttribute('cy', startCY + (sp.y - startSVGY));
+  });
+
+  document.addEventListener('pointerup', function(e){
+    if(!dragging) return;
+    dragging = false;
+    var el = document.getElementById('eclipse-ring');
+    if(el && window._d93P){
+      window._d93P.eclipse.x = parseFloat(el.getAttribute('cx'));
+      window._d93P.eclipse.y = parseFloat(el.getAttribute('cy'));
+      try{ localStorage.setItem('do93_music5', JSON.stringify(window._d93P)); }catch(ex){}
+    }
+    if(!shiftDown && el){
+      el.setAttribute('pointer-events', 'none');
+      el.setAttribute('stroke', 'none');
+      el.removeAttribute('stroke-dasharray');
+      el.style.cursor = '';
+    } else if(el){
+      el.style.cursor = 'grab';
+    }
+  });
 })();
 </script>
 </body>
