@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v16-glitch -->
-<script>// build: music5-v16-glitch
-console.log('d93: music5 v16-glitch');</script>
+<!-- build: music5-v17-glitch-defaults -->
+<script>// build: music5-v17-glitch-defaults
+console.log('d93: music5 v17-glitch-defaults');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -936,9 +936,9 @@ const PLANET_LINKS = {
     glitch: {
       on: true, force: 'random',
       fxCuts: false, fxBlend: true, fxStrobe: true,
-      blendMode: 'screen', blendAlpha: 0.5, strobeMax: 0.65, strobeRateMs: 54,
+      blendMode: 'screen', blendAlpha: 0.79, strobeMax: 0.65, strobeRateMs: 54,
       cutCount: 12, cutWMin: 2, cutWMax: 6, cutShuffleMs: 20,
-      gapMin: 20, gapMax: 60, onMin: 0.1, onMax: 0.8
+      gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.45
     }
   };
 
@@ -1450,9 +1450,9 @@ const PLANET_LINKS = {
   function getG(){
     return (window._d93P && window._d93P.glitch) ? window._d93P.glitch : {
       on:true, force:'random', fxCuts:false, fxBlend:true, fxStrobe:true,
-      blendMode:'screen', blendAlpha:0.5, strobeMax:0.65, strobeRateMs:54,
+      blendMode:'screen', blendAlpha:0.79, strobeMax:0.65, strobeRateMs:54,
       cutCount:12, cutWMin:2, cutWMax:6, cutShuffleMs:20,
-      gapMin:20, gapMax:60, onMin:0.1, onMax:0.8
+      gapMin:4, gapMax:8, onMin:0.10, onMax:0.45
     };
   }
 
