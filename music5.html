@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v15b-collider-play -->
-<script>// build: music5-v15b-collider-play
-console.log('d93: music5 v15b-collider-play');</script>
+<!-- build: music5-v16-glitch -->
+<script>// build: music5-v16-glitch
+console.log('d93: music5 v16-glitch');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -67,12 +67,19 @@ a.plink .hit{fill:transparent;pointer-events:all}
 #d93savecs:hover{color:#aaa}
 @keyframes hint-pulse{0%,100%{opacity:0.25}50%{opacity:1}}
 #hint-push{animation:hint-pulse 2.4s ease-in-out infinite}
+#glitchCanvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:10;pointer-events:none;image-rendering:auto;}
 </style>
 </head>
 <body>
 <!-- tap-to-enter overlay -->
 <div id="enter-overlay" style="position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;"></div>
 <style>@keyframes _d93pulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>
+<video id="m5gv1" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage1.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="m5gv2" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage2.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="m5gv3" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage3.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="m5gv4" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage4.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<video id="m5gv5" src="https://daysof93-cdn.b-cdn.net/Music%20page_5/music5_collage5.webm" muted loop playsinline preload="auto" style="display:none"></video>
+<canvas id="glitchCanvas"></canvas>
 
 <script>
 const PLANET_LINKS = {
@@ -925,7 +932,14 @@ const PLANET_LINKS = {
     textColor:  '#D0D0D0',
     textSize:   6,
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
-    audio: { volume: 0.8, mute: false }
+    audio: { volume: 0.8, mute: false },
+    glitch: {
+      on: true, force: 'random',
+      fxCuts: false, fxBlend: true, fxStrobe: true,
+      blendMode: 'screen', blendAlpha: 0.5, strobeMax: 0.65, strobeRateMs: 54,
+      cutCount: 12, cutWMin: 2, cutWMax: 6, cutShuffleMs: 20,
+      gapMin: 20, gapMax: 60, onMin: 0.1, onMax: 0.8
+    }
   };
 
   function cloneDefaults(){ return JSON.parse(JSON.stringify(PARAMS_DEFAULT)); }
@@ -962,10 +976,16 @@ const PLANET_LINKS = {
         if(sp2.audio.volume!==undefined) P.audio.volume=sp2.audio.volume;
         if(sp2.audio.mute!==undefined)   P.audio.mute=sp2.audio.mute;
       }
+      if(sp2.glitch){
+        ['on','force','fxCuts','fxBlend','fxStrobe','blendMode','blendAlpha','strobeMax','strobeRateMs',
+         'cutCount','cutWMin','cutWMax','cutShuffleMs','gapMin','gapMax','onMin','onMax']
+          .forEach(function(k){ if(sp2.glitch[k]!==undefined) P.glitch[k]=sp2.glitch[k]; });
+      }
     }
   } catch(e){}
 
   function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(P)); }catch(e){} }
+  window._d93P = P;
 
   function applyRingColor(name, color){
     var el = document.getElementById('orbit-'+name);
@@ -1287,6 +1307,69 @@ const PLANET_LINKS = {
     colAudio.appendChild(muteRow);
   })();
 
+  // ── Glitch Video column ──
+  (function(){
+    var colG = col();
+    colG.appendChild(sec('Glitch Video'));
+    var G = P.glitch;
+
+    // helpers
+    function ck(label, getV, setV){
+      var d = document.createElement('div');
+      d.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+      var l = document.createElement('span'); l.style.minWidth = '105px'; l.textContent = label;
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = getV();
+      cb.style.cssText = 'width:16px;height:16px;accent-color:#6698bb;cursor:pointer;';
+      cb.addEventListener('change', function(){ setV(cb.checked); save(); });
+      d.appendChild(l); d.appendChild(cb); colG.appendChild(d);
+      return cb;
+    }
+    function sel(label, opts, getV, setV){
+      var d = document.createElement('div');
+      d.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+      var l = document.createElement('span'); l.style.minWidth = '105px'; l.textContent = label;
+      var s = document.createElement('select'); s.style.cssText = 'background:#222;color:#aaa;border:1px solid #444;font-size:10px;padding:2px;';
+      opts.forEach(function(o){ var op=document.createElement('option'); op.value=o; op.textContent=o; if(o===getV()) op.selected=true; s.appendChild(op); });
+      s.addEventListener('change', function(){ setV(s.value); save(); });
+      d.appendChild(l); d.appendChild(s); colG.appendChild(d); return s;
+    }
+    function sli(label, min, max, step, getV, setV, dec){
+      colG.appendChild(rowEl(label, slider(getV(), min, max, step, function(v){ setV(v); save(); }, dec)));
+    }
+
+    ck('On', function(){ return G.on; }, function(v){ G.on = v; if(window._d93Glitch) window._d93Glitch.syncOn(); });
+    sel('Force effect', ['random','cuts','blend','strobe'], function(){ return G.force; }, function(v){ G.force = v; });
+    colG.appendChild(sec('FX on/off'));
+    ck('Cuts', function(){ return G.fxCuts; }, function(v){ G.fxCuts = v; });
+    ck('Blend', function(){ return G.fxBlend; }, function(v){ G.fxBlend = v; });
+    ck('Strobe', function(){ return G.fxStrobe; }, function(v){ G.fxStrobe = v; });
+    colG.appendChild(sec('Blend'));
+    sel('Blend mode', ['screen','color-dodge','lighten','difference'], function(){ return G.blendMode; }, function(v){ G.blendMode = v; });
+    sli('Blend opacity', 0, 1, 0.01, function(){ return G.blendAlpha; }, function(v){ G.blendAlpha = v; }, 2);
+    colG.appendChild(sec('Strobe'));
+    sli('Strobe max opacity', 0, 1, 0.01, function(){ return G.strobeMax; }, function(v){ G.strobeMax = v; }, 2);
+    colG.appendChild(sec('Timing'));
+    sli('Gap min (s)', 0, 120, 1, function(){ return G.gapMin; }, function(v){ G.gapMin = v; }, 0);
+    sli('Gap max (s)', 0, 120, 1, function(){ return G.gapMax; }, function(v){ G.gapMax = v; }, 0);
+    sli('On min (s)', 0.05, 5, 0.05, function(){ return G.onMin; }, function(v){ G.onMin = v; }, 2);
+    sli('On max (s)', 0.05, 5, 0.05, function(){ return G.onMax; }, function(v){ G.onMax = v; }, 2);
+
+    // State readout
+    var stateSpan = document.createElement('span');
+    stateSpan.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;';
+    stateSpan.textContent = 'State: off';
+    colG.appendChild(stateSpan);
+    if(window._d93Glitch) window._d93Glitch.setStateEl(stateSpan);
+    else window._d93GlitchStateEl = stateSpan;
+
+    // Test now button
+    var bTest = document.createElement('button');
+    bTest.textContent = 'Test now';
+    bTest.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;margin-top:6px;';
+    bTest.addEventListener('click', function(){ if(window._d93Glitch) window._d93Glitch.testNow(); });
+    colG.appendChild(bTest);
+  })();
+
   // ── Buttons column ──
   var colButtons = col();
   colButtons.appendChild(sec('Buttons'));
@@ -1309,6 +1392,180 @@ const PLANET_LINKS = {
   btn.addEventListener('click',toggle);
   document.addEventListener('keydown',function(e){ if(e.altKey&&e.key.toLowerCase()==='p'){ e.preventDefault(); toggle(); } });
 
+})();
+</script>
+
+<!-- ── GLITCH VIDEO ENGINE ── -->
+<script>
+(function(){
+  var glitchVideos = [
+    document.getElementById('m5gv1'),
+    document.getElementById('m5gv2'),
+    document.getElementById('m5gv3'),
+    document.getElementById('m5gv4'),
+    document.getElementById('m5gv5')
+  ];
+  var glitchCanvas = document.getElementById('glitchCanvas');
+  var gctx = glitchCanvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  glitchCanvas.width  = window.innerWidth  * dpr;
+  glitchCanvas.height = window.innerHeight * dpr;
+  gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  window.addEventListener('resize', function(){
+    dpr = window.devicePixelRatio || 1;
+    glitchCanvas.width  = window.innerWidth  * dpr;
+    glitchCanvas.height = window.innerHeight * dpr;
+    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+
+  // hook enter: play all 5 videos
+  var _origEnter = window._d93Enter;
+  window._d93Enter = function(){
+    _origEnter && _origEnter();
+    glitchVideos.forEach(function(v){ v && v.play().catch(function(){}); });
+    glitchArmed = true;
+    glitchTimer = performance.now() + scheduleGap();
+  };
+
+  // glitch state
+  var glitchArmed = false;
+  var glitchOn = false;
+  var glitchEffect = 'blend';
+  var glitchTimer = Infinity;
+  var glitchCuts = [], glitchCutTimer = 0;
+  var strobeOpacity = 0, strobeTimer = 0;
+  var prevVideoIdx = -1;
+  var curVideoIdx = 0;
+  var stateEl = null;
+
+  function scheduleGap(){
+    var G = getG();
+    return (G.gapMin + Math.random() * Math.abs(G.gapMax - G.gapMin)) * 1000;
+  }
+  function scheduleOn(){
+    var G = getG();
+    return (Math.min(G.onMin, G.onMax) + Math.random() * Math.abs(G.onMax - G.onMin)) * 1000;
+  }
+  function getG(){
+    return (window._d93P && window._d93P.glitch) ? window._d93P.glitch : {
+      on:true, force:'random', fxCuts:false, fxBlend:true, fxStrobe:true,
+      blendMode:'screen', blendAlpha:0.5, strobeMax:0.65, strobeRateMs:54,
+      cutCount:12, cutWMin:2, cutWMax:6, cutShuffleMs:20,
+      gapMin:20, gapMax:60, onMin:0.1, onMax:0.8
+    };
+  }
+
+  function pickVideo(){
+    var idx;
+    do { idx = Math.floor(Math.random() * glitchVideos.length); } while(idx === prevVideoIdx && glitchVideos.length > 1);
+    prevVideoIdx = idx;
+    curVideoIdx = idx;
+    return glitchVideos[idx];
+  }
+
+  function pickEffect(){
+    var G = getG();
+    if(G.force !== 'random') return G.force;
+    var choices = [];
+    if(G.fxCuts)   choices.push('cuts');
+    if(G.fxBlend)  choices.push('blend');
+    if(G.fxStrobe) choices.push('strobe');
+    return choices.length ? choices[Math.floor(Math.random() * choices.length)] : 'blend';
+  }
+
+  function updateState(label){
+    if(stateEl) stateEl.textContent = 'State: ' + label;
+  }
+
+  var curSrc = null;
+
+  function startGlitch(){
+    curSrc = pickVideo();
+    glitchEffect = pickEffect();
+    glitchOn = true;
+    glitchCuts = []; glitchCutTimer = 0; strobeOpacity = 0; strobeTimer = 0;
+    glitchTimer = performance.now() + scheduleOn();
+    glitchCanvas.style.mixBlendMode = 'normal';
+    updateState(glitchEffect + ' v' + (curVideoIdx + 1));
+  }
+
+  function endGlitch(){
+    glitchOn = false;
+    curSrc = null;
+    glitchCanvas.style.mixBlendMode = 'normal';
+    glitchTimer = performance.now() + scheduleGap();
+    updateState('off');
+  }
+
+  function frame(){
+    requestAnimationFrame(frame);
+    gctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    if(!glitchArmed) return;
+    var G = getG();
+    var now = performance.now();
+    if(!G.on){
+      if(glitchOn) endGlitch();
+      return;
+    }
+    if(!glitchOn && now >= glitchTimer) {
+      startGlitch();
+    } else if(glitchOn && now >= glitchTimer) {
+      endGlitch();
+    }
+    if(!glitchOn || !curSrc || curSrc.readyState < 2) return;
+    var VW = curSrc.videoWidth, VH = curSrc.videoHeight;
+    if(!VW || !VH) return;
+    var cw = window.innerWidth, ch = window.innerHeight;
+    var vAspect = VW / VH, cAspect = cw / ch;
+    var sx, sy, sw, sh;
+    if(vAspect > cAspect){ sh=VH; sw=VH*cAspect; sx=(VW-sw)/2; sy=0; }
+    else                  { sw=VW; sh=VW/cAspect; sx=0; sy=(VH-sh)/2; }
+    if(glitchEffect === 'cuts'){
+      glitchCanvas.style.mixBlendMode = 'normal';
+      if(!glitchCuts.length || now - glitchCutTimer > G.cutShuffleMs){
+        glitchCuts = [];
+        for(var i=0; i<G.cutCount; i++){
+          glitchCuts.push({ x: Math.random()*cw, w: G.cutWMin + Math.random()*(G.cutWMax-G.cutWMin) });
+        }
+        glitchCutTimer = now;
+      }
+      glitchCuts.forEach(function(cut){
+        var vx = sx + (cut.x/cw)*sw;
+        var vwc = Math.max(1, (cut.w/cw)*sw);
+        gctx.drawImage(curSrc, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
+      });
+    } else if(glitchEffect === 'blend'){
+      glitchCanvas.style.mixBlendMode = G.blendMode;
+      gctx.globalAlpha = G.blendAlpha;
+      gctx.drawImage(curSrc, sx, sy, sw, sh, 0, 0, cw, ch);
+      gctx.globalAlpha = 1;
+    } else if(glitchEffect === 'strobe'){
+      glitchCanvas.style.mixBlendMode = 'normal';
+      if(now - strobeTimer > G.strobeRateMs){
+        strobeOpacity = Math.random() < 0.55 ? 0 : G.strobeMax * (0.6 + Math.random()*0.4);
+        strobeTimer = now;
+      }
+      if(strobeOpacity > 0){
+        gctx.globalAlpha = strobeOpacity;
+        gctx.drawImage(curSrc, sx, sy, sw, sh, 0, 0, cw, ch);
+        gctx.globalAlpha = 1;
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+
+  // expose API for console
+  window._d93Glitch = {
+    syncOn: function(){ if(!getG().on && glitchOn) endGlitch(); },
+    testNow: function(){
+      if(!glitchArmed) return;
+      if(glitchOn) endGlitch();
+      glitchTimer = 0; // fire immediately on next frame
+    },
+    setStateEl: function(el){ stateEl = el; }
+  };
+  if(window._d93GlitchStateEl) { stateEl = window._d93GlitchStateEl; delete window._d93GlitchStateEl; }
 })();
 </script>
 </body>
