@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v17-glitch-defaults -->
-<script>// build: music5-v17-glitch-defaults
-console.log('d93: music5 v17-glitch-defaults');</script>
+<!-- build: music5-v18-glitch-fit -->
+<script>// build: music5-v18-glitch-fit
+console.log('d93: music5 v18-glitch-fit');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -938,7 +938,8 @@ const PLANET_LINKS = {
       fxCuts: false, fxBlend: true, fxStrobe: true,
       blendMode: 'screen', blendAlpha: 0.79, strobeMax: 0.65, strobeRateMs: 54,
       cutCount: 12, cutWMin: 2, cutWMax: 6, cutShuffleMs: 20,
-      gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.45
+      gapMin: 4, gapMax: 8, onMin: 0.10, onMax: 0.45,
+      fit: 'contain'
     }
   };
 
@@ -978,7 +979,7 @@ const PLANET_LINKS = {
       }
       if(sp2.glitch){
         ['on','force','fxCuts','fxBlend','fxStrobe','blendMode','blendAlpha','strobeMax','strobeRateMs',
-         'cutCount','cutWMin','cutWMax','cutShuffleMs','gapMin','gapMax','onMin','onMax']
+         'cutCount','cutWMin','cutWMax','cutShuffleMs','gapMin','gapMax','onMin','onMax','fit']
           .forEach(function(k){ if(sp2.glitch[k]!==undefined) P.glitch[k]=sp2.glitch[k]; });
       }
     }
@@ -1339,6 +1340,7 @@ const PLANET_LINKS = {
 
     ck('On', function(){ return G.on; }, function(v){ G.on = v; if(window._d93Glitch) window._d93Glitch.syncOn(); });
     sel('Force effect', ['random','cuts','blend','strobe'], function(){ return G.force; }, function(v){ G.force = v; });
+    sel('Fit', ['contain','cover','native'], function(){ return G.fit||'contain'; }, function(v){ G.fit = v; save(); });
     colG.appendChild(sec('FX on/off'));
     ck('Cuts', function(){ return G.fxCuts; }, function(v){ G.fxCuts = v; });
     ck('Blend', function(){ return G.fxBlend; }, function(v){ G.fxBlend = v; });
@@ -1452,7 +1454,8 @@ const PLANET_LINKS = {
       on:true, force:'random', fxCuts:false, fxBlend:true, fxStrobe:true,
       blendMode:'screen', blendAlpha:0.79, strobeMax:0.65, strobeRateMs:54,
       cutCount:12, cutWMin:2, cutWMax:6, cutShuffleMs:20,
-      gapMin:4, gapMax:8, onMin:0.10, onMax:0.45
+      gapMin:4, gapMax:8, onMin:0.10, onMax:0.45,
+      fit:'contain'
     };
   }
 
@@ -1517,28 +1520,40 @@ const PLANET_LINKS = {
     var VW = curSrc.videoWidth, VH = curSrc.videoHeight;
     if(!VW || !VH) return;
     var cw = window.innerWidth, ch = window.innerHeight;
-    var vAspect = VW / VH, cAspect = cw / ch;
-    var sx, sy, sw, sh;
-    if(vAspect > cAspect){ sh=VH; sw=VH*cAspect; sx=(VW-sw)/2; sy=0; }
-    else                  { sw=VW; sh=VW/cAspect; sx=0; sy=(VH-sh)/2; }
+    // compute source rect (in video px) and dest rect (in CSS px)
+    var sx, sy, sw, sh, dx, dy, dw, dh;
+    var fit = G.fit || 'contain';
+    if(fit === 'cover'){
+      var vAspect = VW/VH, cAspect = cw/ch;
+      if(vAspect > cAspect){ sh=VH; sw=VH*cAspect; sx=(VW-sw)/2; sy=0; }
+      else                  { sw=VW; sh=VW/cAspect; sx=0; sy=(VH-sh)/2; }
+      dx=0; dy=0; dw=cw; dh=ch;
+    } else if(fit === 'native'){
+      sx=0; sy=0; sw=VW; sh=VH;
+      dw=VW; dh=VH; dx=(cw-dw)/2; dy=(ch-dh)/2;
+    } else { // contain
+      sx=0; sy=0; sw=VW; sh=VH;
+      var scale = Math.min(cw/VW, ch/VH);
+      dw=VW*scale; dh=VH*scale; dx=(cw-dw)/2; dy=(ch-dh)/2;
+    }
     if(glitchEffect === 'cuts'){
       glitchCanvas.style.mixBlendMode = 'normal';
       if(!glitchCuts.length || now - glitchCutTimer > G.cutShuffleMs){
         glitchCuts = [];
         for(var i=0; i<G.cutCount; i++){
-          glitchCuts.push({ x: Math.random()*cw, w: G.cutWMin + Math.random()*(G.cutWMax-G.cutWMin) });
+          glitchCuts.push({ x: dx + Math.random()*dw, w: G.cutWMin + Math.random()*(G.cutWMax-G.cutWMin) });
         }
         glitchCutTimer = now;
       }
       glitchCuts.forEach(function(cut){
-        var vx = sx + (cut.x/cw)*sw;
-        var vwc = Math.max(1, (cut.w/cw)*sw);
-        gctx.drawImage(curSrc, vx, sy, vwc, sh, cut.x, 0, cut.w, ch);
+        var vx = sx + ((cut.x - dx) / dw) * sw;
+        var vwc = Math.max(1, (cut.w / dw) * sw);
+        gctx.drawImage(curSrc, vx, sy, vwc, sh, cut.x, dy, cut.w, dh);
       });
     } else if(glitchEffect === 'blend'){
       glitchCanvas.style.mixBlendMode = G.blendMode;
       gctx.globalAlpha = G.blendAlpha;
-      gctx.drawImage(curSrc, sx, sy, sw, sh, 0, 0, cw, ch);
+      gctx.drawImage(curSrc, sx, sy, sw, sh, dx, dy, dw, dh);
       gctx.globalAlpha = 1;
     } else if(glitchEffect === 'strobe'){
       glitchCanvas.style.mixBlendMode = 'normal';
@@ -1548,7 +1563,7 @@ const PLANET_LINKS = {
       }
       if(strobeOpacity > 0){
         gctx.globalAlpha = strobeOpacity;
-        gctx.drawImage(curSrc, sx, sy, sw, sh, 0, 0, cw, ch);
+        gctx.drawImage(curSrc, sx, sy, sw, sh, dx, dy, dw, dh);
         gctx.globalAlpha = 1;
       }
     }
