@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v21-eclipse-anim -->
-<script>// build: music5-v21-eclipse-anim
-console.log('d93: music5 v21-eclipse-anim');</script>
+<!-- build: music5-v22-eclipse-audio -->
+<script>// build: music5-v22-eclipse-audio
+console.log('d93: music5 v22-eclipse-audio');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -893,6 +893,12 @@ const PLANET_LINKS = {
       out.connect(vg);
       vg.connect(ac.destination);
       window._d93VolGain = vg;
+      if(!window._d93Analyser){
+        var an=ac.createAnalyser();
+        an.fftSize=1024; an.smoothingTimeConstant=0;
+        out.connect(an);
+        window._d93Analyser=an;
+      }
     }
   }
 
@@ -952,6 +958,8 @@ const PLANET_LINKS = {
       x: 424.92, y: 419.46, color: '#F44611', opacity: 1,
       startX: 280.5, startY: 419.46,
       delay: 4, animDur: 3,
+      holdBeforeMod: 4, fadeDownDur: 2,
+      modGain: 4, modMax: 1, modAttack: 0.03, modRelease: 0.4,
       strobeGapMin: 15, strobeGapMax: 20, strobeOffMs: 80
     }
   };
@@ -1000,7 +1008,7 @@ const PLANET_LINKS = {
           .forEach(function(k){ if(sp2.glitch[k]!==undefined) P.glitch[k]=sp2.glitch[k]; });
       }
       if(sp2.eclipse){
-        ['x','y','color','opacity','startX','startY','delay','animDur','strobeGapMin','strobeGapMax','strobeOffMs'].forEach(function(k){
+        ['x','y','color','opacity','startX','startY','delay','animDur','holdBeforeMod','fadeDownDur','modGain','modMax','modAttack','modRelease','strobeGapMin','strobeGapMax','strobeOffMs'].forEach(function(k){
           if(sp2.eclipse[k]!==undefined) P.eclipse[k]=sp2.eclipse[k];
         });
       }
@@ -1447,13 +1455,11 @@ const PLANET_LINKS = {
     var E = P.eclipse;
     function getER(){ return document.getElementById('eclipse-ring'); }
 
-    // Colour row
+    // Colour + Transparent
     var sw = colorPick(E.color === 'transparent' ? '#808080' : E.color, function(c){
       E.color = c; var el = getER(); if(el) el.setAttribute('fill', c); save();
     });
     colE.appendChild(rowEl('Colour', sw));
-
-    // Transparent button
     var bTr = document.createElement('button');
     bTr.textContent = 'Transparent';
     bTr.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;margin-bottom:5px;';
@@ -1462,15 +1468,12 @@ const PLANET_LINKS = {
     });
     colE.appendChild(bTr);
 
-    // Opacity slider
+    // Opacity
     colE.appendChild(rowEl('Opacity', slider(E.opacity, 0, 1, 0.01, function(v){
-      E.opacity = v;
-      var anim = window._d93EclipseAnim;
-      if(!anim || anim.getState() === 'strobing'){ var el = getER(); if(el) el.setAttribute('opacity', v); }
-      save();
+      E.opacity = v; save();
     }, 2)));
 
-    // Stroke width slider
+    // Stroke width
     colE.appendChild(rowEl('Stroke width', slider(0, 0, 8, 0.5, function(v){
       var el = getER();
       if(el && !el.getAttribute('stroke-dasharray')){
@@ -1492,6 +1495,33 @@ const PLANET_LINKS = {
     colE.appendChild(rowEl('Fade dur (s)', slider(E.animDur !== undefined ? E.animDur : 3, 0.5, 15, 0.5, function(v){
       E.animDur = v; save();
     }, 1)));
+    colE.appendChild(rowEl('Hold before mod (s)', slider(E.holdBeforeMod !== undefined ? E.holdBeforeMod : 4, 0, 20, 0.5, function(v){
+      E.holdBeforeMod = v; save();
+    }, 1)));
+    colE.appendChild(rowEl('Crossfade dur (s)', slider(E.fadeDownDur !== undefined ? E.fadeDownDur : 2, 0.1, 10, 0.1, function(v){
+      E.fadeDownDur = v; save();
+    }, 1)));
+
+    colE.appendChild(sec('Audio mod'));
+    colE.appendChild(rowEl('Mod gain', slider(E.modGain !== undefined ? E.modGain : 4, 0, 20, 0.1, function(v){
+      E.modGain = v; save();
+    }, 1)));
+    colE.appendChild(rowEl('Mod max', slider(E.modMax !== undefined ? E.modMax : 1, 0, 1, 0.01, function(v){
+      E.modMax = v; save();
+    }, 2)));
+    colE.appendChild(rowEl('Attack (s)', slider(E.modAttack !== undefined ? E.modAttack : 0.03, 0.005, 1, 0.005, function(v){
+      E.modAttack = v; save();
+    }, 3)));
+    colE.appendChild(rowEl('Release (s)', slider(E.modRelease !== undefined ? E.modRelease : 0.4, 0.05, 3, 0.05, function(v){
+      E.modRelease = v; save();
+    }, 2)));
+
+    // Live env/op readout
+    var envSpan = document.createElement('div');
+    envSpan.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;margin-top:3px;margin-bottom:4px;font-family:Jost,sans-serif;';
+    envSpan.textContent = 'env –  op –';
+    colE.appendChild(envSpan);
+    window._d93EclipseEnvEl = envSpan;
 
     colE.appendChild(sec('Strobe'));
     colE.appendChild(rowEl('Gap min (s)', slider(E.strobeGapMin !== undefined ? E.strobeGapMin : 15, 1, 60, 1, function(v){
@@ -1519,8 +1549,8 @@ const PLANET_LINKS = {
     bRPos.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;';
     bRPos.addEventListener('click', function(){
       E.x = PARAMS_DEFAULT.eclipse.x; E.y = PARAMS_DEFAULT.eclipse.y;
-      var anim = window._d93EclipseAnim;
-      if(!anim || anim.getState() === 'strobing'){
+      var anim = window._d93EclipseAnim, s = anim ? anim.getState() : '';
+      if(s !== 'pending' && s !== 'animating'){
         var el = getER(); if(el){ el.setAttribute('cx', E.x); el.setAttribute('cy', E.y); }
       }
       save();
@@ -1741,23 +1771,75 @@ const PLANET_LINKS = {
 <!-- ── ECLIPSE ANIMATION ENGINE ── -->
 <script>
 (function(){
-  var state = 'idle'; // idle → pending → animating → strobing
-  var rafId = null, timer = null;
+  var state = 'idle'; // idle→pending→animating→holding→fadingDown→modulating
+  var rafId=null, timer=null, strobeTimer=null;
+  var strobeOn=true;
+  var env=0, modOp=0, lastRafT=0;
+  var holdStart=0, fadeStart=0, fadeFrom=1;
+  var buf=null;
+
   function getEl(){ return document.getElementById('eclipse-ring'); }
-  function setOp(v){ var el=getEl(); if(el) el.setAttribute('opacity',v); }
   function getP(){ return window._d93P; }
+  function clamp(v,lo,hi){ return v<lo?lo:v>hi?hi:v; }
+
+  function setElOp(v){
+    var el=getEl(); if(el) el.setAttribute('opacity', strobeOn ? v : 0);
+  }
+
+  function getRMS(){
+    var an=window._d93Analyser; if(!an) return 0;
+    if(!buf||buf.length!==an.fftSize) buf=new Float32Array(an.fftSize);
+    an.getFloatTimeDomainData(buf);
+    var sum=0; for(var i=0;i<buf.length;i++) sum+=buf[i]*buf[i];
+    return Math.sqrt(sum/buf.length);
+  }
 
   function startStrobe(){
-    var E = getP().eclipse;
+    if(strobeTimer){ clearTimeout(strobeTimer); strobeTimer=null; }
+    var E=getP().eclipse;
     var gMin=(E.strobeGapMin||15)*1000, gMax=(E.strobeGapMax||20)*1000;
     var offMs=E.strobeOffMs||80;
-    timer=setTimeout(function(){
-      setOp(0);
-      timer=setTimeout(function(){
-        setOp(E.opacity);
-        startStrobe();
+    strobeTimer=setTimeout(function(){
+      strobeOn=false;
+      strobeTimer=setTimeout(function(){
+        strobeOn=true; startStrobe();
       }, offMs);
     }, gMin+Math.random()*(gMax-gMin));
+  }
+
+  function mainRaf(now){
+    var P=getP(); if(!P){rafId=requestAnimationFrame(mainRaf);return;}
+    var E=P.eclipse;
+    var dt=lastRafT>0?(now-lastRafT)/1000:0.016;
+    lastRafT=now;
+
+    var rms=getRMS();
+    var aCoef=1-Math.exp(-dt/(E.modAttack||0.03));
+    var rCoef=1-Math.exp(-dt/(E.modRelease||0.4));
+    env=rms>env?env+(rms-env)*aCoef:env+(rms-env)*rCoef;
+    modOp=window._d93Analyser?clamp(env*(E.modGain||4),0,E.modMax||1):0;
+
+    if(window._d93EclipseEnvEl)
+      window._d93EclipseEnvEl.textContent='env '+env.toFixed(3)+'  op '+modOp.toFixed(3);
+
+    var rendOp;
+    if(state==='holding'){
+      rendOp=E.opacity;
+      if((now-holdStart)>=(E.holdBeforeMod||4)*1000){
+        state='fadingDown'; fadeStart=now; fadeFrom=E.opacity;
+      }
+    } else if(state==='fadingDown'){
+      var t=Math.min(1,(now-fadeStart)/((E.fadeDownDur||2)*1000));
+      var ease=t<0.5?2*t*t:-1+(4-2*t)*t;
+      rendOp=fadeFrom+(modOp-fadeFrom)*ease;
+      if(t>=1){ state='modulating'; rendOp=modOp; }
+    } else if(state==='modulating'){
+      rendOp=modOp;
+    } else {
+      rafId=requestAnimationFrame(mainRaf); return;
+    }
+    setElOp(rendOp);
+    rafId=requestAnimationFrame(mainRaf);
   }
 
   function runAnim(){
@@ -1767,7 +1849,7 @@ const PLANET_LINKS = {
     var el=getEl(); if(!el) return;
     var fromX=E.startX!==undefined?E.startX:280.5;
     var fromY=E.startY!==undefined?E.startY:E.y;
-    state='animating';
+    state='animating'; lastRafT=0;
     var t0=performance.now();
     function step(now){
       if(state!=='animating') return;
@@ -1777,12 +1859,14 @@ const PLANET_LINKS = {
       var el2=getEl(); if(!el2) return;
       el2.setAttribute('cx', fromX+(E2.x-fromX)*ease);
       el2.setAttribute('cy', fromY+(E2.y-fromY)*ease);
-      setOp(E2.opacity*ease);
+      setElOp(E2.opacity*ease);
       if(t<1){ rafId=requestAnimationFrame(step); }
-      else {
-        el2.setAttribute('cx', E2.x); el2.setAttribute('cy', E2.y);
-        setOp(E2.opacity);
-        state='strobing'; startStrobe();
+      else{
+        el2.setAttribute('cx',E2.x); el2.setAttribute('cy',E2.y);
+        setElOp(E2.opacity);
+        state='holding'; holdStart=performance.now();
+        startStrobe(); lastRafT=0;
+        rafId=requestAnimationFrame(mainRaf);
       }
     }
     rafId=requestAnimationFrame(step);
@@ -1791,52 +1875,62 @@ const PLANET_LINKS = {
   function skipToFinal(){
     if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
     if(timer){ clearTimeout(timer); timer=null; }
-    state='strobing';
     var E=getP().eclipse, el=getEl(); if(!el) return;
-    el.setAttribute('cx',E.x); el.setAttribute('cy',E.y); setOp(E.opacity);
-    startStrobe();
+    el.setAttribute('cx',E.x); el.setAttribute('cy',E.y);
+    state='modulating'; lastRafT=0;
+    if(!strobeTimer) startStrobe();
+    rafId=requestAnimationFrame(mainRaf);
   }
 
   function replay(){
     if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
     if(timer){ clearTimeout(timer); timer=null; }
+    if(strobeTimer){ clearTimeout(strobeTimer); strobeTimer=null; }
+    strobeOn=true; env=0; modOp=0; lastRafT=0;
     state='pending';
     var P=getP(); if(!P) return;
     var E=P.eclipse, el=getEl(); if(!el) return;
     el.setAttribute('cx', E.startX!==undefined?E.startX:280.5);
     el.setAttribute('cy', E.startY!==undefined?E.startY:E.y);
-    setOp(0);
-    timer=setTimeout(runAnim, 0);
+    setElOp(0);
+    timer=setTimeout(runAnim,0);
   }
 
-  // Initial: ring invisible at start position
   (function init(){
     var P=getP(); if(!P) return;
     var E=P.eclipse, el=getEl(); if(!el) return;
     el.setAttribute('cx', E.startX!==undefined?E.startX:280.5);
     el.setAttribute('cy', E.startY!==undefined?E.startY:E.y);
     el.setAttribute('fill', E.color);
-    setOp(0);
+    setElOp(0);
   })();
 
-  // Fire sequence on enter tap
   var _prev=window._d93Enter;
   window._d93Enter=function(){
     _prev&&_prev();
+    if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
+    if(timer){ clearTimeout(timer); timer=null; }
+    if(strobeTimer){ clearTimeout(strobeTimer); strobeTimer=null; }
+    strobeOn=true; env=0; modOp=0;
     state='pending';
     var P=getP(); if(!P) return;
     var E=P.eclipse;
     var waitMs=((P.intro&&P.intro.duration?P.intro.duration:5)+(E.delay||4))*1000;
-    if(timer) clearTimeout(timer);
-    timer=setTimeout(runAnim, waitMs);
+    timer=setTimeout(runAnim,waitMs);
   };
 
   window._d93EclipseAnim={
     skipToFinal: skipToFinal,
     replay: replay,
     getState: function(){ return state; },
-    suspendStrobe: function(){ if(timer){ clearTimeout(timer); timer=null; } },
-    resumeStrobe: function(){ if(state==='strobing') startStrobe(); }
+    suspendStrobe: function(){
+      if(strobeTimer){ clearTimeout(strobeTimer); strobeTimer=null; }
+      strobeOn=true;
+    },
+    resumeStrobe: function(){
+      var active=state==='holding'||state==='fadingDown'||state==='modulating';
+      if(active&&!strobeTimer) startStrobe();
+    }
   };
 })();
 </script>
