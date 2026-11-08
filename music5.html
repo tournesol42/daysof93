@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v25-kick-8bars -->
-<script>// build: music5-v25-kick-8bars
-console.log('d93: music5 v25-kick-8bars');</script>
+<!-- build: music5-v26-mobile -->
+<script>// build: music5-v26-mobile
+console.log('d93: music5 v26-mobile');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0A}
-#sv{display:block;width:100vw;height:100vh}
+#sv{display:block;width:100vw;height:100vh;height:100dvh}
 a.plink{text-decoration:none;cursor:pointer}
 a.plink .ps{transition:opacity 0.15s}
 a.plink:hover .ps{opacity:0.7}
@@ -89,7 +89,7 @@ const PLANET_LINKS = {
 };
 </script>
 
-<svg id="sv" width="100%" height="100%" preserveAspectRatio="none"
+<svg id="sv" width="100%" height="100%" preserveAspectRatio="xMinYMid meet"
      shape-rendering="geometricPrecision"
      xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -269,18 +269,22 @@ const PLANET_LINKS = {
   // x always starts at 0; wide screens extend right; portrait extends height equally T&B
   var sv = document.getElementById('sv');
   function setVB(){
-    var W = window.innerWidth, H = window.innerHeight;
+    var bcr = sv.getBoundingClientRect();
+    var W = bcr.width || window.innerWidth, H = bcr.height || window.innerHeight;
     var asp = W / H, refAsp = 585 / 864;
     var x, y, w, h;
+    var cropX = (W < H && window._d93P && window._d93P.mobileCropX) ? (window._d93P.mobileCropX || 0) : 0;
     if(asp >= refAsp){
       h = 864; w = 864 * asp;
       x = 0; y = 0;
     } else {
-      w = 585; h = 585 / asp;
-      x = 0; y = (864 - h) / 2;
+      w = 585 - cropX; h = w / asp;
+      x = cropX; y = (864 - h) / 2;
     }
     sv.setAttribute('viewBox', x.toFixed(1)+' '+y.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1));
     updateHintSize();
+    updatePlanetSizes();
+    updateLabelSizes();
   }
   function updateHintSize(){
     var hint = document.getElementById('hint-push');
@@ -295,23 +299,78 @@ const PLANET_LINKS = {
   function positionHint(){
     var hint = document.getElementById('hint-push');
     if(!hint) return;
-    var vb = sv.getAttribute('viewBox').split(' ');
-    var vbRight = parseFloat(vb[0]) + parseFloat(vb[2]);
-    // actual font-size for clip check
-    var fs = parseFloat(hint.getAttribute('font-size') || '6');
-    var approxW = 15 * fs * 0.62;
-    if(582 + approxW > vbRight - 8){
-      hint.setAttribute('x', '574');
-      hint.setAttribute('y', '447');
+    var bcr = sv.getBoundingClientRect();
+    var W = bcr.width || window.innerWidth, H = bcr.height || window.innerHeight;
+    var fs = parseFloat(hint.getAttribute('font-size') || '8');
+    var mars = window._d93ORBITS && window._d93ORBITS.find(function(o){ return o.name==='mars'; });
+    var marsPlanet = document.getElementById('planet-mars');
+    var marsPlanetCx = marsPlanet ? parseFloat(marsPlanet.getAttribute('cx')) : (mars ? mars.cx + mars.r : 316);
+    var marsPlanetR  = marsPlanet ? parseFloat(marsPlanet.getAttribute('r'))  : (mars ? mars.pR : 12);
+    if(W < H && mars){
+      // Portrait: left of Mars planet, below the axis, arrow pointing right
+      var hintX = marsPlanetCx - marsPlanetR - 10;  // left of planet edge
+      var hintY = 421 + fs * 1.2;
+      hint.setAttribute('x', hintX.toFixed(1));
+      hint.setAttribute('y', hintY.toFixed(1));
       hint.setAttribute('text-anchor', 'end');
+      hint.textContent = 'push the dots →';
     } else {
-      hint.setAttribute('x', '582');
-      hint.setAttribute('y', '421');
-      hint.setAttribute('text-anchor', 'start');
+      // Landscape: right of Neptune, left-aligned, arrow pointing left
+      var vb = sv.getAttribute('viewBox').split(' ');
+      var vbRight = parseFloat(vb[0]) + parseFloat(vb[2]);
+      var approxW = 15 * fs * 0.62;
+      if(582 + approxW > vbRight - 8){
+        hint.setAttribute('x', '574');
+        hint.setAttribute('y', '447');
+        hint.setAttribute('text-anchor', 'end');
+      } else {
+        hint.setAttribute('x', '582');
+        hint.setAttribute('y', '421');
+        hint.setAttribute('text-anchor', 'start');
+      }
+      hint.textContent = '← push the dots';
     }
   }
+  function updatePlanetSizes(){
+    var scale = sv.getScreenCTM() ? sv.getScreenCTM().a : 1;
+    var pMin = window._d93P && window._d93P.planetMinPx != null ? window._d93P.planetMinPx : 9;
+    var tMin = window._d93P && window._d93P.tapMinPx    != null ? window._d93P.tapMinPx    : 44;
+    var ORBITS = window._d93ORBITS;
+    if(!ORBITS || !scale) return;
+    ORBITS.forEach(function(orb){
+      if(!orb.labelable) return;  // only linked planets
+      var planet = document.getElementById('planet-' + orb.name);
+      var link   = document.getElementById('al-'     + orb.name);
+      if(!planet) return;
+      var dispR = Math.max(orb.pR, pMin / scale);
+      planet.setAttribute('r', dispR.toFixed(2));
+      // hit circle is first child of link
+      if(link){
+        var hit = link.querySelector('circle.hit');
+        if(hit){
+          var baseHitR = parseFloat(hit.getAttribute('data-hr') || hit.getAttribute('r'));
+          if(!hit.getAttribute('data-hr')) hit.setAttribute('data-hr', baseHitR);
+          var tapR = Math.max(baseHitR, (tMin / 2) / scale);
+          hit.setAttribute('r', tapR.toFixed(2));
+        }
+      }
+    });
+  }
+  function updateLabelSizes(){
+    var scale = sv.getScreenCTM() ? sv.getScreenCTM().a : 1;
+    var lMin  = window._d93P && window._d93P.labelMinPx != null ? window._d93P.labelMinPx : 8;
+    var tSize = window._d93P && window._d93P.textSize   != null ? window._d93P.textSize   : 6;
+    var labelsG = document.getElementById('labels');
+    if(!labelsG || !scale) return;
+    var fs = Math.max(tSize, lMin / scale);
+    labelsG.setAttribute('font-size', fs.toFixed(3));
+  }
+  window._d93UpdatePlanetSizes = updatePlanetSizes;
+  window._d93UpdateLabelSizes  = updateLabelSizes;
   setVB();
   window.addEventListener('resize', setVB);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', setVB);
+  window.addEventListener('orientationchange', setVB);
 
   // Specks
   var sp = [[78,42,0.8],[218,28,0.6],[340,16,0.9],[472,52,0.7],[558,130,0.6],
@@ -959,6 +1018,10 @@ const PLANET_LINKS = {
     textSize:   6,
     hintSize:  8,
     hintMinPx: 12,
+    planetMinPx: 9,
+    tapMinPx: 44,
+    labelMinPx: 8,
+    mobileCropX: 0,
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -994,7 +1057,7 @@ const PLANET_LINKS = {
     var saved = localStorage.getItem(LS_KEY);
     if(saved){
       var sp2 = JSON.parse(saved);
-      ['dotColor','dotBloom','dotSize','dotOpacity','speedPos','ringColor','ringWidth','lineColor','lineWidth','bgColor','textColor','textSize','hintSize','hintMinPx']
+      ['dotColor','dotBloom','dotSize','dotOpacity','speedPos','ringColor','ringWidth','lineColor','lineWidth','bgColor','textColor','textSize','hintSize','hintMinPx','planetMinPx','tapMinPx','labelMinPx','mobileCropX']
         .forEach(function(k){ if(sp2[k]!==undefined) P[k]=sp2[k]; });
       if(sp2.speed !== undefined && sp2.speedPos === undefined){
         P.speedPos = Math.pow(sp2.speed / 5, 1/3);
@@ -1125,7 +1188,8 @@ const PLANET_LINKS = {
       if(el) el.setAttribute('fill',p.bgColor);
     });
     var labels=document.getElementById('labels');
-    if(labels){ labels.setAttribute('fill',p.textColor); labels.setAttribute('font-size',p.textSize); }
+    if(labels){ labels.setAttribute('fill',p.textColor); }
+    if(window._d93UpdateLabelSizes) window._d93UpdateLabelSizes(); else if(labels) labels.setAttribute('font-size',p.textSize);
     if(p.tilt && window._d93TiltParams){
       window._d93TiltParams.tiltAngle = p.tilt.tiltAngle;
       window._d93TiltParams.tiltEase  = p.tilt.tiltEase;
@@ -1359,13 +1423,25 @@ const PLANET_LINKS = {
     P.textColor=c; var l=document.getElementById('labels'); if(l) l.setAttribute('fill',c); save();
   })));
   colDisplay.appendChild(rowEl('Text size 4–24', slider(P.textSize, 4, 24, 1, function(v){
-    P.textSize=v; var l=document.getElementById('labels'); if(l) l.setAttribute('font-size',v); if(window._d93UpdateHintSize) window._d93UpdateHintSize(); save();
+    P.textSize=v; if(window._d93UpdateLabelSizes) window._d93UpdateLabelSizes(); else { var l=document.getElementById('labels'); if(l) l.setAttribute('font-size',v); } if(window._d93UpdateHintSize) window._d93UpdateHintSize(); save();
   })));
   colDisplay.appendChild(rowEl('Hint size 4–30', slider(P.hintSize, 4, 30, 0.5, function(v){
     P.hintSize=v; if(window._d93UpdateHintSize) window._d93UpdateHintSize(); save();
   }, 1)));
   colDisplay.appendChild(rowEl('Hint min px 6–24', slider(P.hintMinPx, 6, 24, 1, function(v){
     P.hintMinPx=v; if(window._d93UpdateHintSize) window._d93UpdateHintSize(); save();
+  }, 0)));
+  colDisplay.appendChild(rowEl('Planet min px 1–30', slider(P.planetMinPx, 1, 30, 0.5, function(v){
+    P.planetMinPx=v; if(window._d93UpdatePlanetSizes) window._d93UpdatePlanetSizes(); save();
+  }, 1)));
+  colDisplay.appendChild(rowEl('Tap min px 20–60', slider(P.tapMinPx, 20, 60, 1, function(v){
+    P.tapMinPx=v; if(window._d93UpdatePlanetSizes) window._d93UpdatePlanetSizes(); save();
+  }, 0)));
+  colDisplay.appendChild(rowEl('Label min px 4–20', slider(P.labelMinPx, 4, 20, 0.5, function(v){
+    P.labelMinPx=v; if(window._d93UpdateLabelSizes) window._d93UpdateLabelSizes(); save();
+  }, 1)));
+  colDisplay.appendChild(rowEl('Mobile crop X 0–150', slider(P.mobileCropX, 0, 150, 1, function(v){
+    P.mobileCropX=v; setVB(); save();
   }, 0)));
 
   // ── 3D column ──
