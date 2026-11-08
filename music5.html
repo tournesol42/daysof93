@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v24b-kick-bars -->
-<script>// build: music5-v24b-kick-bars
-console.log('d93: music5 v24b-kick-bars');</script>
+<!-- build: music5-v24c-pulse-release -->
+<script>// build: music5-v24c-pulse-release
+console.log('d93: music5 v24c-pulse-release');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -2042,7 +2042,7 @@ const PLANET_LINKS = {
   ];
   var buffers = [];
   var kickRafId = null, lastRafT = 0;
-  var env = 0, kTarget = 0;
+  var env = 0, kTarget = 0, pulsePhase = "release";
   var schedRafId = null;
   var nextBar = null, lastBuf = -1;
   var active = false;
@@ -2101,8 +2101,8 @@ const PLANET_LINKS = {
   function triggerPulse(){
     var K = getK();
     var mn = K ? K.pulseMin : 0.10, mx = K ? K.pulseMax : 0.15;
-    var amt = mn + Math.random() * (mx - mn);
-    kTarget = Math.max(kTarget, amt);
+    kTarget = mn + Math.random() * (mx - mn);
+    pulsePhase = 'attack';
     if(!kickRafId){ lastRafT = 0; kickRafId = requestAnimationFrame(pulseRaf); }
   }
 
@@ -2144,17 +2144,17 @@ const PLANET_LINKS = {
     var release = K ? K.release : 1.5;
     var aCoef = 1 - Math.exp(-dt / attack);
     var rCoef = 1 - Math.exp(-dt / release);
-    if(kTarget > env){
+    if(pulsePhase === 'attack'){
       env += (kTarget - env) * aCoef;
+      if(env >= 0.97 * kTarget) pulsePhase = 'release';
     } else {
-      kTarget = 0;
       env += (0 - env) * rCoef;
     }
     if(env > 0.0005){
       applyPulseScale(1 + env);
       kickRafId = requestAnimationFrame(pulseRaf);
     } else {
-      env = 0; kTarget = 0;
+      env = 0; kTarget = 0; pulsePhase = 'release';
       applyPulseScale(1);
       kickRafId = null; lastRafT = 0;
     }
