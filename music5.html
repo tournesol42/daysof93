@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v27b-hint-fix -->
-<script>// build: music5-v27b-hint-fix
-console.log('d93: music5 v27b-hint-fix');</script>
+<!-- build: music5-v28-touch-nav -->
+<script>// build: music5-v28-touch-nav
+console.log('d93: music5 v28-touch-nav');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -292,8 +292,8 @@ const PLANET_LINKS = {
     var hint = document.getElementById('hint-push');
     if(!hint) return;
     var scale = sv.getScreenCTM() ? sv.getScreenCTM().a : 1;
-    var hintSize = window._d93P && window._d93P.hintSize !== undefined ? window._d93P.hintSize : 8;
-    var hintMinPx = window._d93P && window._d93P.hintMinPx !== undefined ? window._d93P.hintMinPx : 12;
+    var hintSize = window._d93P && window._d93P.hintSize !== undefined ? window._d93P.hintSize : 11;
+    var hintMinPx = window._d93P && window._d93P.hintMinPx !== undefined ? window._d93P.hintMinPx : 15;
     hint.setAttribute('font-size', Math.max(hintSize, hintMinPx / scale).toFixed(3));
     positionHint();
   }
@@ -555,11 +555,37 @@ const PLANET_LINKS = {
       s.targetFrac=0;
       if(!s.spinPhase){ s.hoverStart=null; }
     }
-    al.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') enterHover(); });
-    al.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') leaveHover(); });
-    al.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  enterHover(); });
-    al.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  leaveHover(); });
-    al.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  leaveHover(); });
+    var _lastPT = '';
+    al.addEventListener('pointerenter', function(e){ if(e.pointerType==='mouse') enterHover(); });
+    al.addEventListener('pointerleave', function(e){ if(e.pointerType==='mouse') leaveHover(); });
+    al.addEventListener('pointerdown',  function(e){
+      _lastPT = e.pointerType;
+      if(e.pointerType==='touch'||e.pointerType==='pen'){
+        enterHover();
+        if(window._d93SetActivePlanet) window._d93SetActivePlanet(name);
+        if(window._d93StartTouchNav)   window._d93StartTouchNav(name);
+      }
+    });
+    al.addEventListener('pointerup', function(e){
+      if(e.pointerType==='touch'||e.pointerType==='pen'){
+        if(tiltState[name].spinUsed){
+          leaveHover();
+          if(window._d93SetActivePlanet) window._d93SetActivePlanet(null);
+          if(window._d93CancelTouchNav)  window._d93CancelTouchNav(name);
+        }
+        // else: timer running — keep display visible until it fires
+      }
+    });
+    al.addEventListener('pointercancel', function(e){
+      if(e.pointerType==='touch'||e.pointerType==='pen'){
+        leaveHover();
+        if(window._d93SetActivePlanet) window._d93SetActivePlanet(null);
+        if(window._d93CancelTouchNav)  window._d93CancelTouchNav(name);
+      }
+    });
+    al.addEventListener('click', function(e){
+      if(_lastPT==='touch'||_lastPT==='pen') e.preventDefault();
+    });
   });
 
   // Animation loop
@@ -581,6 +607,7 @@ const PLANET_LINKS = {
       if(!s.spinPhase && !s.spinUsed && s.hoverStart !== null){
         if((t - s.hoverStart) / 1000 >= TP.spinDelay){
           s.spinPhase=true; s.spinStart=t; s.spinStartTheta=s.theta; s.spinUsed=true;
+          if(window._d93CancelTouchNav) window._d93CancelTouchNav(name);
         }
       }
       // update theta
@@ -1009,13 +1036,13 @@ const PLANET_LINKS = {
     bgColor:    '#0A0A0A',
     textColor:  '#D0D0D0',
     textSize:   6,
-    hintSize:  8,
-    hintMinPx: 12,
+    hintSize:  11,
+    hintMinPx: 15,
     planetMinPx: 9,
     tapMinPx: 44,
     labelMinPx: 8,
     mobileCropX: 0,
-    vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6 },
+    vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6, touchDelay:2 },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -1095,6 +1122,11 @@ const PLANET_LINKS = {
       if(sp2.kicks){
         ['on','volume','barsMin','barsMax','repeatMin','repeatMax','pulseMin','pulseMax','attack','release'].forEach(function(k){
           if(sp2.kicks[k]!==undefined) P.kicks[k]=sp2.kicks[k];
+        });
+      }
+      if(sp2.vdisp){
+        ['numColor','textColor','margin','fadeIn','fadeOut','mobileScale','touchDelay'].forEach(function(k){
+          if(sp2.vdisp[k]!==undefined) P.vdisp[k]=sp2.vdisp[k];
         });
       }
     }
@@ -1281,13 +1313,46 @@ const PLANET_LINKS = {
     LNAMES.forEach(function(name){
       var al = document.getElementById('al-'+name);
       if(!al) return;
-      al.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') setActive(name); });
-      al.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') setActive(null); });
-      al.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  setActive(name); });
-      al.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  setActive(null); });
-      al.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  setActive(null); });
+      al.addEventListener('pointerenter', function(e){ if(e.pointerType==='mouse') setActive(name); });
+      al.addEventListener('pointerleave', function(e){ if(e.pointerType==='mouse') setActive(null); });
     });
     applyVdispParams();
+  })();
+
+  // ── Touch navigation ──
+  (function(){
+    var active = null;
+    var timer  = null;
+    function cancel(name){
+      if(name === undefined || active === name){
+        if(timer){ clearTimeout(timer); timer = null; }
+        active = null;
+      }
+    }
+    function start(name){
+      if(active && active !== name && window._d93LeaveTilt && window._d93LeaveTilt[active]) window._d93LeaveTilt[active]();
+      cancel();
+      active = name;
+      var delay = (P.vdisp && P.vdisp.touchDelay !== undefined ? P.vdisp.touchDelay : 2) * 1000;
+      timer = setTimeout(function(){
+        var n = active; timer = null; active = null;
+        if(window._d93SetActivePlanet) window._d93SetActivePlanet(null);
+        var href = PLANET_LINKS[n];
+        if(href) window.location.href = href;
+      }, delay);
+    }
+    window._d93StartTouchNav  = start;
+    window._d93CancelTouchNav = cancel;
+    // expose leaveHover lookup for multi-planet cancel (populated by tilt block)
+    window._d93LeaveTilt = window._d93LeaveTilt || {};
+    // Cancel on tap of empty space
+    document.addEventListener('pointerdown', function(e){
+      if(e.pointerType!=='touch' && e.pointerType!=='pen') return;
+      if(!e.target.closest || !e.target.closest('.plink')){
+        cancel();
+        if(window._d93SetActivePlanet) window._d93SetActivePlanet(null);
+      }
+    }, { capture: true });
   })();
 
   applyEclipse(P.eclipse);
@@ -1518,6 +1583,9 @@ const PLANET_LINKS = {
   colDisplay.appendChild(rowEl('Mobile crop X 0–150', slider(P.mobileCropX, 0, 150, 1, function(v){
     P.mobileCropX=v; setVB(); save();
   }, 0)));
+  colDisplay.appendChild(rowEl('Touch delay 0.5–5 s', slider(P.vdisp.touchDelay, 0.5, 5, 0.1, function(v){
+    P.vdisp.touchDelay=v; save();
+  }, 1)));
 
   // ── 3D column ──
   var col3D = col();
