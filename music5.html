@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v26-mobile -->
-<script>// build: music5-v26-mobile
-console.log('d93: music5 v26-mobile');</script>
+<!-- build: music5-v27-value-display -->
+<script>// build: music5-v27-value-display
+console.log('d93: music5 v27-value-display');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0A}
@@ -195,10 +195,10 @@ const PLANET_LINKS = {
 
 <!-- Labels: JS-generated textPaths on orbit arcs -->
 <g id="labels" font-family="'Jost',sans-serif" font-size="6" font-weight="300"
-   letter-spacing="1.3" fill="#808080" text-anchor="middle">
-  <text id="hint-push" x="582" y="421"
-    dominant-baseline="middle" text-anchor="start"
-    letter-spacing="0.12em" pointer-events="none">&#x2190; push the dots</text>
+   letter-spacing="1.3" fill="#808080" text-anchor="middle" style="display:none">
+  <text id="hint-push" x="132" y="421"
+    dominant-baseline="middle" text-anchor="middle"
+    letter-spacing="0.12em" pointer-events="none">push the dots &#x2192;</text>
 </g>
 
 
@@ -299,36 +299,25 @@ const PLANET_LINKS = {
   function positionHint(){
     var hint = document.getElementById('hint-push');
     if(!hint) return;
-    var bcr = sv.getBoundingClientRect();
-    var W = bcr.width || window.innerWidth, H = bcr.height || window.innerHeight;
-    var fs = parseFloat(hint.getAttribute('font-size') || '8');
-    var mars = window._d93ORBITS && window._d93ORBITS.find(function(o){ return o.name==='mars'; });
-    var marsPlanet = document.getElementById('planet-mars');
-    var marsPlanetCx = marsPlanet ? parseFloat(marsPlanet.getAttribute('cx')) : (mars ? mars.cx + mars.r : 316);
-    var marsPlanetR  = marsPlanet ? parseFloat(marsPlanet.getAttribute('r'))  : (mars ? mars.pR : 12);
-    if(W < H && mars){
-      // Portrait: left of Mars planet, below the axis, arrow pointing right
-      var hintX = marsPlanetCx - marsPlanetR - 10;  // left of planet edge
-      var hintY = 421 + fs * 1.2;
-      hint.setAttribute('x', hintX.toFixed(1));
-      hint.setAttribute('y', hintY.toFixed(1));
-      hint.setAttribute('text-anchor', 'end');
-      hint.textContent = 'push the dots →';
-    } else {
-      // Landscape: right of Neptune, left-aligned, arrow pointing left
-      var vb = sv.getAttribute('viewBox').split(' ');
-      var vbRight = parseFloat(vb[0]) + parseFloat(vb[2]);
-      var approxW = 15 * fs * 0.62;
-      if(582 + approxW > vbRight - 8){
-        hint.setAttribute('x', '574');
-        hint.setAttribute('y', '447');
-        hint.setAttribute('text-anchor', 'end');
-      } else {
-        hint.setAttribute('x', '582');
-        hint.setAttribute('y', '421');
-        hint.setAttribute('text-anchor', 'start');
-      }
-      hint.textContent = '← push the dots';
+    hint.setAttribute('x', '132');
+    hint.setAttribute('y', '421');
+    hint.setAttribute('text-anchor', 'middle');
+    hint.setAttribute('dominant-baseline', 'middle');
+    // Set single line, then check if it overflows 85% of sun diameter
+    while(hint.firstChild) hint.removeChild(hint.firstChild);
+    hint.appendChild(document.createTextNode('push the dots →'));
+    var sunEl = document.getElementById('sun');
+    var sunR = sunEl ? parseFloat(sunEl.getAttribute('r')) : 56.5;
+    var maxW = 0.85 * 2 * sunR;
+    var bbox;
+    try { bbox = hint.getBBox(); } catch(e) { bbox = null; }
+    if(bbox && bbox.width > maxW){
+      while(hint.firstChild) hint.removeChild(hint.firstChild);
+      var t1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      t1.setAttribute('x','132'); t1.setAttribute('dy','-0.6em'); t1.textContent='push the';
+      var t2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      t2.setAttribute('x','132'); t2.setAttribute('dy','1.2em'); t2.textContent='dots →';
+      hint.appendChild(t1); hint.appendChild(t2);
     }
   }
   function updatePlanetSizes(){
@@ -1022,6 +1011,7 @@ const PLANET_LINKS = {
     tapMinPx: 44,
     labelMinPx: 8,
     mobileCropX: 0,
+    vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6 },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -1216,6 +1206,84 @@ const PLANET_LINKS = {
   }
   applyAll(P);
   applyLabelTexts(P.labelTexts);
+
+  // ── Value display overlay ──
+  (function(){
+    var PLANET_INFO = [
+      {name:'mars',    num:'01'},
+      {name:'jupiter', num:'02'},
+      {name:'saturn',  num:'03'},
+      {name:'uranus',  num:'04'},
+      {name:'neptune', num:'05'}
+    ];
+    var vd = document.createElement('div');
+    vd.id = 'vdisp';
+    vd.style.cssText = 'position:fixed;right:32px;bottom:32px;pointer-events:none;z-index:100;text-align:left;opacity:0;transition:opacity 0.6s;transform-origin:bottom right;';
+    var vdNum = document.createElement('div');
+    vdNum.id = 'vdisp-num';
+    vdNum.style.cssText = 'font-family:Inter,"Helvetica Neue",Arial,sans-serif;font-weight:700;font-size:96px;letter-spacing:-2px;line-height:1;color:#4A4A4A;';
+    var vdTitle = document.createElement('div');
+    vdTitle.id = 'vdisp-title';
+    vdTitle.style.cssText = 'font-family:Inter,"Helvetica Neue",Arial,sans-serif;font-weight:700;font-size:13px;color:#FFFFFF;max-width:150px;margin-top:22px;line-height:1.3;';
+    var vdLine = document.createElement('div');
+    vdLine.id = 'vdisp-line';
+    vdLine.style.cssText = 'font-family:Inter,"Helvetica Neue",Arial,sans-serif;font-weight:400;font-size:13px;color:#FFFFFF;margin-top:4px;';
+    vdLine.textContent = '-';
+    vd.appendChild(vdNum); vd.appendChild(vdTitle); vd.appendChild(vdLine);
+    document.body.appendChild(vd);
+
+    var activePlanet = null;
+
+    function applyVdispParams(){
+      var VP = P.vdisp || {};
+      var margin    = VP.margin    !== undefined ? VP.margin    : 32;
+      var numColor  = VP.numColor  || '#4A4A4A';
+      var textColor = VP.textColor || '#FFFFFF';
+      vd.style.right  = margin + 'px';
+      vd.style.bottom = margin + 'px';
+      vdNum.style.color   = numColor;
+      vdTitle.style.color = textColor;
+      vdLine.style.color  = textColor;
+      var mobileScale = VP.mobileScale !== undefined ? VP.mobileScale : 0.6;
+      vd.style.transform = window.innerWidth < 600 ? 'scale(' + mobileScale + ')' : '';
+    }
+
+    function setActive(name){
+      var VP = P.vdisp || {};
+      activePlanet = name;
+      if(name){
+        var info = PLANET_INFO.find(function(p){ return p.name === name; });
+        if(info){
+          vdNum.textContent   = info.num;
+          vdTitle.textContent = (P.labelTexts && P.labelTexts[name]) || info.num;
+          applyVdispParams();
+          vd.style.transitionDuration = (VP.fadeIn !== undefined ? VP.fadeIn : 0.2) + 's';
+          vd.style.opacity = '1';
+        }
+      } else {
+        applyVdispParams();
+        vd.style.transitionDuration = (VP.fadeOut !== undefined ? VP.fadeOut : 0.6) + 's';
+        vd.style.opacity = '0';
+      }
+    }
+
+    window._d93SetActivePlanet = setActive;
+    window._d93UpdateVdisp = applyVdispParams;
+
+    var LNAMES = (window._d93ORBITS || []).filter(function(o){ return o.labelable; }).map(function(o){ return o.name; });
+    if(!LNAMES.length) LNAMES = ['mars','jupiter','saturn','uranus','neptune'];
+    LNAMES.forEach(function(name){
+      var al = document.getElementById('al-'+name);
+      if(!al) return;
+      al.addEventListener('pointerenter',  function(e){ if(e.pointerType!=='touch') setActive(name); });
+      al.addEventListener('pointerleave',  function(e){ if(e.pointerType!=='touch') setActive(null); });
+      al.addEventListener('pointerdown',   function(e){ if(e.pointerType==='touch')  setActive(name); });
+      al.addEventListener('pointerup',     function(e){ if(e.pointerType==='touch')  setActive(null); });
+      al.addEventListener('pointercancel', function(e){ if(e.pointerType==='touch')  setActive(null); });
+    });
+    applyVdispParams();
+  })();
+
   applyEclipse(P.eclipse);
   if(window._d93UpdateHintSize) window._d93UpdateHintSize();
 
@@ -1317,10 +1385,11 @@ const PLANET_LINKS = {
     colRings.appendChild(d);
     var lrow=document.createElement('div');
     lrow.style.cssText='display:flex;align-items:center;margin-bottom:5px;margin-left:64px;';
+    var ltitle=document.createElement('span'); ltitle.textContent='Planet title'; ltitle.style.cssText='font-size:9px;color:#555;margin-right:5px;white-space:nowrap;';
     var linp=document.createElement('input'); linp.type='text'; linp.value=P.labelTexts[n];
     linp.style.cssText='flex:1;background:#1a1a1a;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;padding:3px 5px;';
     (function(name,inp){inp.addEventListener('input',function(){P.labelTexts[name]=inp.value;applyLabelTexts(P.labelTexts);save();});})(n,linp);
-    lrow.appendChild(linp); colRings.appendChild(lrow);
+    lrow.appendChild(ltitle); lrow.appendChild(linp); colRings.appendChild(lrow);
   });
 
   // ── Dots column ──
