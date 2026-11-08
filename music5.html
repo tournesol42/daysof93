@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v24c-pulse-release -->
-<script>// build: music5-v24c-pulse-release
-console.log('d93: music5 v24c-pulse-release');</script>
+<!-- build: music5-v25-kick-8bars -->
+<script>// build: music5-v25-kick-8bars
+console.log('d93: music5 v25-kick-8bars');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -981,6 +981,7 @@ const PLANET_LINKS = {
     kicks: {
       on: true, volume: 0.9,
       barsMin: 14, barsMax: 18,
+      repeatMin: 7, repeatMax: 9,
       pulseMin: 0.10, pulseMax: 0.15,
       attack: 0.08, release: 1.5
     }
@@ -1035,7 +1036,7 @@ const PLANET_LINKS = {
         });
       }
       if(sp2.kicks){
-        ['on','volume','barsMin','barsMax','pulseMin','pulseMax','attack','release'].forEach(function(k){
+        ['on','volume','barsMin','barsMax','repeatMin','repeatMax','pulseMin','pulseMax','attack','release'].forEach(function(k){
           if(sp2.kicks[k]!==undefined) P.kicks[k]=sp2.kicks[k];
         });
       }
@@ -1608,11 +1609,17 @@ const PLANET_LINKS = {
     colKicks.appendChild(rowEl('Volume 0–1.5', slider(P.kicks.volume, 0, 1.5, 0.01, function(v){
       P.kicks.volume=v; save();
     }, 2)));
-    colKicks.appendChild(rowEl('Bars min 1–64', slider(P.kicks.barsMin, 1, 64, 1, function(v){
+    colKicks.appendChild(rowEl('First gap min 1–64', slider(P.kicks.barsMin, 1, 64, 1, function(v){
       P.kicks.barsMin=v; save();
     }, 0)));
-    colKicks.appendChild(rowEl('Bars max 1–64', slider(P.kicks.barsMax, 1, 64, 1, function(v){
+    colKicks.appendChild(rowEl('First gap max 1–64', slider(P.kicks.barsMax, 1, 64, 1, function(v){
       P.kicks.barsMax=v; save();
+    }, 0)));
+    colKicks.appendChild(rowEl('Repeat gap min 1–64', slider(P.kicks.repeatMin, 1, 64, 1, function(v){
+      P.kicks.repeatMin=v; save();
+    }, 0)));
+    colKicks.appendChild(rowEl('Repeat gap max 1–64', slider(P.kicks.repeatMax, 1, 64, 1, function(v){
+      P.kicks.repeatMax=v; save();
     }, 0)));
     colKicks.appendChild(rowEl('Pulse min', slider(P.kicks.pulseMin, 0, 0.5, 0.01, function(v){
       P.kicks.pulseMin=v; save();
@@ -2045,7 +2052,7 @@ const PLANET_LINKS = {
   var env = 0, kTarget = 0, pulsePhase = "release";
   var schedRafId = null;
   var nextBar = null, lastBuf = -1;
-  var active = false;
+  var active = false, kicksFired = 0;
 
   window._d93PulseScale = 1;
 
@@ -2166,7 +2173,12 @@ const PLANET_LINKS = {
     if(!col) return;
     var bp = col.barPos();
     if(bp === null) return;
-    var mn = K ? K.barsMin : 14, mx = K ? K.barsMax : 18;
+    var mn, mx;
+    if(kicksFired === 0){
+      mn = K ? K.barsMin : 14; mx = K ? K.barsMax : 18;
+    } else {
+      mn = K ? K.repeatMin : 7; mx = K ? K.repeatMax : 9;
+    }
     var gap = mn + Math.floor(Math.random() * (mx - mn + 1));
     nextBar = Math.ceil(bp) + gap;
     window._d93KicksNextBar = nextBar;
@@ -2187,18 +2199,19 @@ const PLANET_LINKS = {
       pickNextBar();
     } else if(tb - now < 0.15){
       fireKick(tb);
+      kicksFired++;
       pickNextBar();
     }
     schedRafId = requestAnimationFrame(schedRaf);
   }
 
   function startScheduler(){
-    active = true; nextBar = null;
+    active = true; nextBar = null; kicksFired = 0;
     if(!schedRafId) schedRafId = requestAnimationFrame(schedRaf);
   }
 
   window._d93OnEclipseMoveIn = function(){ startScheduler(); };
-  window._d93OnEclipseReplay = function(){ active = false; nextBar = null; };
+  window._d93OnEclipseReplay = function(){ active = false; nextBar = null; kicksFired = 0; };
   window._d93KicksFireNow = function(){ fireKick(); };
   window._d93KicksTriggerPulse = triggerPulse;
   window._d93KicksNextBar = null;
