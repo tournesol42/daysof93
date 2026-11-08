@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v24-kicks -->
-<script>// build: music5-v24-kicks
-console.log('d93: music5 v22-eclipse-audio');</script>
+<!-- build: music5-v24b-kick-bars -->
+<script>// build: music5-v24b-kick-bars
+console.log('d93: music5 v24b-kick-bars');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&display=swap" rel="stylesheet">
@@ -2165,6 +2165,7 @@ const PLANET_LINKS = {
     var col = getCol(), K = getK();
     if(!col) return;
     var bp = col.barPos();
+    if(bp === null) return;
     var mn = K ? K.barsMin : 14, mx = K ? K.barsMax : 18;
     var gap = mn + Math.floor(Math.random() * (mx - mn + 1));
     nextBar = Math.ceil(bp) + gap;

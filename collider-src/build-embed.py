@@ -554,10 +554,10 @@ SUFFIX = r"""
       const key = name.toLowerCase();
       if (key in RHY) RHY[key] = val ? 1 : 0;
     },
-    /** Current position in bars (SEQUENCER 2 grid, 16 steps = 1 bar). */
-    barPos() { return q2Pos(AC.currentTime) / 16; },
-    /** AudioContext time of bar line n. Returns null if sequencer is stopped. */
-    timeOfBar(n) { return q2R ? q2T + (n * 16 - q2P) / q2R : null; },
+    /** Current bar position, phase-locked to seq-2 grid. 1 bar = 4 beats = 240/bpm s. */
+    barPos() { if (!q2R) return null; const barDur = 240 / bpm; const gridT0 = q2T - q2P / q2R; return (AC.currentTime - gridT0) / barDur; },
+    /** AudioContext time of bar line n, phase-locked to seq-2 grid. Null if stopped. */
+    timeOfBar(n) { if (!q2R) return null; const barDur = 240 / bpm; const gridT0 = q2T - q2P / q2R; return gridT0 + n * barDur; },
     /** The final AudioNode (limiter) — connect to your own graph or meter. */
     get output() { return typeof OUT_NODE === 'function' ? OUT_NODE() : null; },
     create,
