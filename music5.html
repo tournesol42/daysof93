@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v23-hint-size -->
-<script>// build: music5-v23-hint-size
+<!-- build: music5-v24-kicks -->
+<script>// build: music5-v24-kicks
 console.log('d93: music5 v22-eclipse-audio');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -487,7 +487,7 @@ const PLANET_LINKS = {
   ORBITS.forEach(function(o){ ORBITS_BY_NAME[o.name] = o; });
   var tiltState = {};
   LINKED.forEach(function(n){
-    tiltState[n] = { theta:0, targetFrac:0, hoverStart:null, spinPhase:false, spinStart:0, spinStartTheta:0, spinUsed:false, lastRy:-1 };
+    tiltState[n] = { theta:0, targetFrac:0, hoverStart:null, spinPhase:false, spinStart:0, spinStartTheta:0, spinUsed:false, lastRy:-1, lastRx:-1 };
   });
   window._d93TiltParams = { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 };
 
@@ -543,12 +543,14 @@ const PLANET_LINKS = {
           s.theta = tiltRad + 0.06 * Math.sin(1.3 * t_sec);
         if(s.targetFrac===0 && Math.abs(s.theta) < 0.001) s.theta = 0;
       }
-      // update ring ellipse ry only when changed
-      var ry = Math.max(0.5, orb.r * Math.abs(Math.cos(s.theta)));
-      if(Math.abs(ry - s.lastRy) >= 0.01){
+      // update ring ellipse rx/ry (ry tilts; rx scales with pulse)
+      var _ps = window._d93PulseScale || 1;
+      var ry = Math.max(0.5, orb.r * _ps * Math.abs(Math.cos(s.theta)));
+      var rx = orb.r * _ps;
+      if(Math.abs(ry - s.lastRy) >= 0.01 || Math.abs(rx - s.lastRx) >= 0.01){
         var el = document.getElementById('orbit-'+name);
-        if(el) el.setAttribute('ry', ry.toFixed(2));
-        s.lastRy = ry;
+        if(el){ el.setAttribute('rx', rx.toFixed(2)); el.setAttribute('ry', ry.toFixed(2)); }
+        s.lastRy = ry; s.lastRx = rx;
       }
       // fade label when tilted
       var tp = document.getElementById('tp-'+name);
@@ -566,7 +568,7 @@ const PLANET_LINKS = {
       var s = d.ring.labelable ? tiltState[d.ring.name] : null;
       var th = s ? s.theta : 0;
       if(th !== 0){
-        var r=d.ring.r, cx=d.ring.cx;
+        var _ps2=window._d93PulseScale||1, r=d.ring.r*_ps2, cx=d.ring.cx;
         var cosA=Math.cos(d.angle), sinA=Math.sin(d.angle);
         var y0=r*sinA;
         var screenY=421 + y0*Math.cos(th);
@@ -581,7 +583,8 @@ const PLANET_LINKS = {
         d.sharp.setAttribute('r', (d.rSize*_sm).toFixed(2));
         d.bloom.setAttribute('r',  (d.rSize*_sm*2.5).toFixed(2));
         d.g.setAttribute('opacity', _op.toFixed(3));
-        d.g.setAttribute('transform','translate('+(d.ring.cx+d.ring.r*Math.cos(d.angle)).toFixed(2)+','+(d.ring.cy+d.ring.r*Math.sin(d.angle)).toFixed(2)+')');
+        var _ps3=window._d93PulseScale||1;
+        d.g.setAttribute('transform','translate('+(d.ring.cx+d.ring.r*_ps3*Math.cos(d.angle)).toFixed(2)+','+(d.ring.cy+d.ring.r*_ps3*Math.sin(d.angle)).toFixed(2)+')');
       }
     });
     requestAnimationFrame(frame);
@@ -974,6 +977,12 @@ const PLANET_LINKS = {
       holdBeforeMod: 4, fadeDownDur: 2,
       modGain: 4, modMax: 1, modAttack: 0.03, modRelease: 0.4,
       strobeGapMin: 15, strobeGapMax: 20, strobeOffMs: 80
+    },
+    kicks: {
+      on: true, volume: 0.9,
+      barsMin: 14, barsMax: 18,
+      pulseMin: 0.10, pulseMax: 0.15,
+      attack: 0.08, release: 1.5
     }
   };
 
@@ -1023,6 +1032,11 @@ const PLANET_LINKS = {
       if(sp2.eclipse){
         ['x','y','color','opacity','startX','startY','delay','animDur','holdBeforeMod','fadeDownDur','modGain','modMax','modAttack','modRelease','strobeGapMin','strobeGapMax','strobeOffMs'].forEach(function(k){
           if(sp2.eclipse[k]!==undefined) P.eclipse[k]=sp2.eclipse[k];
+        });
+      }
+      if(sp2.kicks){
+        ['on','volume','barsMin','barsMax','pulseMin','pulseMax','attack','release'].forEach(function(k){
+          if(sp2.kicks[k]!==undefined) P.kicks[k]=sp2.kicks[k];
         });
       }
     }
@@ -1578,6 +1592,64 @@ const PLANET_LINKS = {
     colE.appendChild(bRPos);
   })();
 
+
+  // ── Kicks column ──
+  var colKicks = col();
+  colKicks.appendChild(sec('Kicks'));
+  (function(){
+    var onRow = document.createElement('div');
+    onRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    var onL = document.createElement('span'); onL.style.minWidth='105px'; onL.textContent='On';
+    var onCb = document.createElement('input'); onCb.type='checkbox'; onCb.checked=P.kicks.on;
+    onCb.style.cssText='width:16px;height:16px;accent-color:#6698bb;cursor:pointer;';
+    onCb.addEventListener('change',function(){ P.kicks.on=onCb.checked; save(); });
+    onRow.appendChild(onL); onRow.appendChild(onCb);
+    colKicks.appendChild(onRow);
+    colKicks.appendChild(rowEl('Volume 0–1.5', slider(P.kicks.volume, 0, 1.5, 0.01, function(v){
+      P.kicks.volume=v; save();
+    }, 2)));
+    colKicks.appendChild(rowEl('Bars min 1–64', slider(P.kicks.barsMin, 1, 64, 1, function(v){
+      P.kicks.barsMin=v; save();
+    }, 0)));
+    colKicks.appendChild(rowEl('Bars max 1–64', slider(P.kicks.barsMax, 1, 64, 1, function(v){
+      P.kicks.barsMax=v; save();
+    }, 0)));
+    colKicks.appendChild(rowEl('Pulse min', slider(P.kicks.pulseMin, 0, 0.5, 0.01, function(v){
+      P.kicks.pulseMin=v; save();
+    }, 2)));
+    colKicks.appendChild(rowEl('Pulse max', slider(P.kicks.pulseMax, 0, 0.5, 0.01, function(v){
+      P.kicks.pulseMax=v; save();
+    }, 2)));
+    colKicks.appendChild(rowEl('Attack s', slider(P.kicks.attack, 0.01, 1, 0.01, function(v){
+      P.kicks.attack=v; save();
+    }, 2)));
+    colKicks.appendChild(rowEl('Release s', slider(P.kicks.release, 0.1, 5, 0.1, function(v){
+      P.kicks.release=v; save();
+    }, 1)));
+    // Test kick button
+    var bTest = document.createElement('button');
+    bTest.textContent = 'Test kick';
+    bTest.style.cssText = 'display:block;width:100%;background:#222;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;letter-spacing:1px;padding:6px;cursor:pointer;border-radius:2px;margin-bottom:5px;';
+    bTest.addEventListener('click', function(){
+      if(window._d93KicksFireNow) window._d93KicksFireNow();
+    });
+    colKicks.appendChild(bTest);
+    // Readout: next kick in N bars
+    var nextKickEl = document.createElement('div');
+    nextKickEl.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;';
+    nextKickEl.textContent = 'Next kick: —';
+    colKicks.appendChild(nextKickEl);
+    setInterval(function(){
+      var col = window._d93Collider, nb = window._d93KicksNextBar;
+      if(!col || nb === null || nb === undefined){ nextKickEl.textContent='Next kick: —'; return; }
+      var tb = col.timeOfBar(nb);
+      if(tb === null){ nextKickEl.textContent='Next kick: stopped'; return; }
+      var bp = col.barPos();
+      var barsLeft = nb - bp;
+      nextKickEl.textContent = 'Next kick: ' + (barsLeft > 0 ? barsLeft.toFixed(1) + ' bars' : 'imminent');
+    }, 250);
+  })();
+
   // ── Buttons column ──
   var colButtons = col();
   colButtons.appendChild(sec('Buttons'));
@@ -1886,6 +1958,7 @@ const PLANET_LINKS = {
         setElOp(E2.opacity);
         state='holding'; holdStart=performance.now();
         startStrobe(); lastRafT=0;
+        if(window._d93OnEclipseMoveIn) window._d93OnEclipseMoveIn();
         rafId=requestAnimationFrame(mainRaf);
       }
     }
@@ -1899,6 +1972,7 @@ const PLANET_LINKS = {
     el.setAttribute('cx',E.x); el.setAttribute('cy',E.y);
     state='modulating'; lastRafT=0;
     if(!strobeTimer) startStrobe();
+    if(window._d93OnEclipseMoveIn) window._d93OnEclipseMoveIn();
     rafId=requestAnimationFrame(mainRaf);
   }
 
@@ -1913,6 +1987,7 @@ const PLANET_LINKS = {
     el.setAttribute('cx', E.startX!==undefined?E.startX:280.5);
     el.setAttribute('cy', E.startY!==undefined?E.startY:E.y);
     setElOp(0);
+    if(window._d93OnEclipseReplay) window._d93OnEclipseReplay();
     timer=setTimeout(runAnim,0);
   }
 
@@ -1951,6 +2026,187 @@ const PLANET_LINKS = {
       var active=state==='holding'||state==='fadingDown'||state==='modulating';
       if(active&&!strobeTimer) startStrobe();
     }
+  };
+})();
+</script>
+
+<!-- ── KICK SCHEDULER ── -->
+<script>
+(function(){
+  var URLS = [
+    'https://daysof93-cdn.b-cdn.net/Music5_kickdrums/Music5_kicks1.wav',
+    'https://daysof93-cdn.b-cdn.net/Music5_kickdrums/Music5_kicks2.wav',
+    'https://daysof93-cdn.b-cdn.net/Music5_kickdrums/Music5_kicks3.wav',
+    'https://daysof93-cdn.b-cdn.net/Music5_kickdrums/Music5_kicks4.wav',
+    'https://daysof93-cdn.b-cdn.net/Music5_kickdrums/Music5_kicks5.wav'
+  ];
+  var buffers = [];
+  var kickRafId = null, lastRafT = 0;
+  var env = 0, kTarget = 0;
+  var schedRafId = null;
+  var nextBar = null, lastBuf = -1;
+  var active = false;
+
+  window._d93PulseScale = 1;
+
+  function getK(){ return window._d93P && window._d93P.kicks; }
+  function getCol(){ return window._d93Collider; }
+
+  // ── Sample loader ──
+  function loadSamples(){
+    var col = getCol();
+    if(!col || !col.output) return;
+    var ac = col.output.context;
+    URLS.forEach(function(url){
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function(){
+        if(xhr.status >= 400) return;
+        ac.decodeAudioData(xhr.response.slice(0), function(buf){ buffers.push(buf); }, function(){});
+      };
+      xhr.send();
+    });
+  }
+
+  function pickBuf(){
+    if(!buffers.length) return null;
+    var idx;
+    do { idx = Math.floor(Math.random() * buffers.length); } while(buffers.length > 1 && idx === lastBuf);
+    lastBuf = idx;
+    return buffers[idx];
+  }
+
+  // ── Fire a kick at audio time `when` (default: now) ──
+  function fireKick(when){
+    var col = getCol(), K = getK();
+    if(!col || !col.output) return;
+    var ac = col.output.context;
+    var buf = pickBuf();
+    if(!buf) return;
+    var src = ac.createBufferSource();
+    src.buffer = buf;
+    var g = ac.createGain();
+    g.gain.value = K ? K.volume : 0.9;
+    src.connect(g);
+    var vg = window._d93VolGain;
+    if(vg) g.connect(vg); else g.connect(ac.destination);
+    var t = (when !== undefined) ? when : ac.currentTime;
+    src.start(t);
+    var delayMs = Math.max(0, (t - ac.currentTime) * 1000);
+    setTimeout(triggerPulse, delayMs);
+  }
+
+  // ── Ring pulse envelope ──
+  function triggerPulse(){
+    var K = getK();
+    var mn = K ? K.pulseMin : 0.10, mx = K ? K.pulseMax : 0.15;
+    var amt = mn + Math.random() * (mx - mn);
+    kTarget = Math.max(kTarget, amt);
+    if(!kickRafId){ lastRafT = 0; kickRafId = requestAnimationFrame(pulseRaf); }
+  }
+
+  function applyPulseScale(s){
+    window._d93PulseScale = s;
+    var ORBITS = window._d93ORBITS;
+    if(!ORBITS) return;
+    // non-labelable orbit rings (circles): scale r
+    ORBITS.forEach(function(orb){
+      if(!orb.labelable){
+        var el = document.getElementById('orbit-' + orb.name);
+        if(el) el.setAttribute('r', (orb.r * s).toFixed(2));
+      }
+      // labelable rx handled by tilt loop reading _d93PulseScale
+    });
+    // sun-rings halo circles
+    var ringsG = document.getElementById('sun-rings');
+    if(ringsG){
+      ringsG.querySelectorAll('circle').forEach(function(c){
+        var br = parseFloat(c.getAttribute('data-br'));
+        if(isNaN(br)){ br = parseFloat(c.getAttribute('r')); c.setAttribute('data-br', String(br)); }
+        c.setAttribute('r', (br * s).toFixed(2));
+      });
+    }
+    // eclipse ring — base r = neptune r
+    var er = document.getElementById('eclipse-ring');
+    if(er && ORBITS.length){
+      var neptune = ORBITS[ORBITS.length - 1];
+      er.setAttribute('r', (neptune.r * s).toFixed(2));
+    }
+  }
+
+  function pulseRaf(now){
+    var K = getK();
+    if(!lastRafT){ lastRafT = now; kickRafId = requestAnimationFrame(pulseRaf); return; }
+    var dt = Math.min((now - lastRafT) / 1000, 0.1);
+    lastRafT = now;
+    var attack  = K ? K.attack  : 0.08;
+    var release = K ? K.release : 1.5;
+    var aCoef = 1 - Math.exp(-dt / attack);
+    var rCoef = 1 - Math.exp(-dt / release);
+    if(kTarget > env){
+      env += (kTarget - env) * aCoef;
+    } else {
+      kTarget = 0;
+      env += (0 - env) * rCoef;
+    }
+    if(env > 0.0005){
+      applyPulseScale(1 + env);
+      kickRafId = requestAnimationFrame(pulseRaf);
+    } else {
+      env = 0; kTarget = 0;
+      applyPulseScale(1);
+      kickRafId = null; lastRafT = 0;
+    }
+  }
+
+  // ── Scheduler ──
+  function pickNextBar(){
+    var col = getCol(), K = getK();
+    if(!col) return;
+    var bp = col.barPos();
+    var mn = K ? K.barsMin : 14, mx = K ? K.barsMax : 18;
+    var gap = mn + Math.floor(Math.random() * (mx - mn + 1));
+    nextBar = Math.ceil(bp) + gap;
+    window._d93KicksNextBar = nextBar;
+  }
+
+  function schedRaf(){
+    if(!active){ schedRafId = null; return; }
+    var col = getCol(), K = getK();
+    if(!col || !K || !K.on){ schedRafId = requestAnimationFrame(schedRaf); return; }
+    var ac = col.output ? col.output.context : null;
+    if(!ac){ schedRafId = requestAnimationFrame(schedRaf); return; }
+    if(nextBar === null) pickNextBar();
+    var tb = col.timeOfBar(nextBar);
+    if(tb === null){ schedRafId = requestAnimationFrame(schedRaf); return; }
+    var now = ac.currentTime;
+    if(tb < now - 0.001){
+      // in the past (tab was hidden) — skip ahead
+      pickNextBar();
+    } else if(tb - now < 0.15){
+      fireKick(tb);
+      pickNextBar();
+    }
+    schedRafId = requestAnimationFrame(schedRaf);
+  }
+
+  function startScheduler(){
+    active = true; nextBar = null;
+    if(!schedRafId) schedRafId = requestAnimationFrame(schedRaf);
+  }
+
+  window._d93OnEclipseMoveIn = function(){ startScheduler(); };
+  window._d93OnEclipseReplay = function(){ active = false; nextBar = null; };
+  window._d93KicksFireNow = function(){ fireKick(); };
+  window._d93KicksTriggerPulse = triggerPulse;
+  window._d93KicksNextBar = null;
+
+  // hook enter tap to load samples
+  var _prevEnter = window._d93Enter;
+  window._d93Enter = function(){
+    _prevEnter && _prevEnter();
+    loadSamples();
   };
 })();
 </script>

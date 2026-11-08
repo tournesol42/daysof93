@@ -554,6 +554,10 @@ SUFFIX = r"""
       const key = name.toLowerCase();
       if (key in RHY) RHY[key] = val ? 1 : 0;
     },
+    /** Current position in bars (SEQUENCER 2 grid, 16 steps = 1 bar). */
+    barPos() { return q2Pos(AC.currentTime) / 16; },
+    /** AudioContext time of bar line n. Returns null if sequencer is stopped. */
+    timeOfBar(n) { return q2R ? q2T + (n * 16 - q2P) / q2R : null; },
     /** The final AudioNode (limiter) — connect to your own graph or meter. */
     get output() { return typeof OUT_NODE === 'function' ? OUT_NODE() : null; },
     create,
