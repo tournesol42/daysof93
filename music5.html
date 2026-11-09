@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v32-orch-early -->
+<!-- build: music5-v33-orch-defaults -->
 <script>// build: music5-v32-from-param
 console.log('d93: music5 v31-swells');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1049,7 +1049,7 @@ const PLANET_LINKS = {
     vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6, touchDelay:2,
              circlePad:18, circleStroke:'#808080', circleStrokeW:0.6,
              lineColor:'', lineWidth:0.6, lineOpacity:0.9, lineAttack:0.08, lineRelease:2.5 },
-    orch: { volume:0.8, fadeIn:0, duckDepth:0.6, duckSens:4, duckAttack:0.2, duckRelease:2.0 },
+    orch: { volume:0.8, fadeIn:2.5, duckDepth:0.91, duckSens:14.2, duckAttack:0.2, duckRelease:2.0 },
     swells: { levelDb:-8, startBar:4, mute:false },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
@@ -1579,7 +1579,7 @@ const PLANET_LINKS = {
       }
       var OR = window._d93P && window._d93P.orch ? window._d93P.orch : {};
       var vol    = OR.volume  !== undefined ? OR.volume  : 0.8;
-      var fadeIn = OR.fadeIn  !== undefined ? OR.fadeIn  : 0;
+      var fadeIn = OR.fadeIn  !== undefined ? OR.fadeIn  : 2.5;
 
       var loopStart = findLoopStart(orchBuf);
       var src = ac.createBufferSource();
@@ -1617,8 +1617,8 @@ const PLANET_LINKS = {
         var P2 = window._d93P && window._d93P.orch ? window._d93P.orch : {};
         var duckAttack  = P2.duckAttack  !== undefined ? P2.duckAttack  : 0.2;
         var duckRelease = P2.duckRelease !== undefined ? P2.duckRelease : 2.0;
-        var duckDepth   = P2.duckDepth   !== undefined ? P2.duckDepth   : 0.6;
-        var duckSens    = P2.duckSens    !== undefined ? P2.duckSens    : 4;
+        var duckDepth   = P2.duckDepth   !== undefined ? P2.duckDepth   : 0.91;
+        var duckSens    = P2.duckSens    !== undefined ? P2.duckSens    : 14.2;
 
         var buf2 = new Float32Array(orchAn.fftSize);
         orchAn.getFloatTimeDomainData(buf2);
