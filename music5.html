@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v29-vdisp-lines -->
-<script>// build: music5-v29-vdisp-lines
-console.log('d93: music5 v29-vdisp-lines');</script>
+<!-- build: music5-v30-orch-duck -->
+<script>// build: music5-v30-orch-duck
+console.log('d93: music5 v30-orch-duck');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -982,10 +982,14 @@ const PLANET_LINKS = {
       var vg = ac.createGain();
       var ap = window._d93AudioP || {volume:0.8, mute:false};
       vg.gain.value = ap.mute ? 0 : ap.volume;
+      var dg = ac.createGain();
+      dg.gain.value = 1;
       out.disconnect(ac.destination);
-      out.connect(vg);
+      out.connect(dg);
+      dg.connect(vg);
       vg.connect(ac.destination);
-      window._d93VolGain = vg;
+      window._d93VolGain  = vg;
+      window._d93DuckGain = dg;
       if(!window._d93Analyser){
         var an=ac.createAnalyser();
         an.fftSize=1024; an.smoothingTimeConstant=0;
@@ -1043,8 +1047,9 @@ const PLANET_LINKS = {
     labelMinPx: 8,
     mobileCropX: 0,
     vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6, touchDelay:2,
-             circlePad:18, circleFill:'#808080', circleFillOpacity:0.08, circleStroke:'#808080', circleStrokeW:0.6,
+             circlePad:18, circleStroke:'#808080', circleStrokeW:0.6,
              lineColor:'', lineWidth:0.6, lineOpacity:0.9, lineAttack:0.08, lineRelease:2.5 },
+    orch: { volume:0.8, fadeIn:0, duckDepth:0.6, duckSens:4, duckAttack:0.2, duckRelease:2.0 },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -1128,9 +1133,14 @@ const PLANET_LINKS = {
       }
       if(sp2.vdisp){
         ['numColor','textColor','margin','fadeIn','fadeOut','mobileScale','touchDelay',
-         'circlePad','circleFill','circleFillOpacity','circleStroke','circleStrokeW',
+         'circlePad','circleStroke','circleStrokeW',
          'lineColor','lineWidth','lineOpacity','lineAttack','lineRelease'].forEach(function(k){
           if(sp2.vdisp[k]!==undefined) P.vdisp[k]=sp2.vdisp[k];
+        });
+      }
+      if(sp2.orch){
+        ['volume','fadeIn','duckDepth','duckSens','duckAttack','duckRelease'].forEach(function(k){
+          if(sp2.orch[k]!==undefined) P.orch[k]=sp2.orch[k];
         });
       }
     }
@@ -1378,6 +1388,7 @@ const PLANET_LINKS = {
 
     var circleEl = document.createElementNS(NS,'circle');
     circleEl.id = 'vdisp-circle';
+    circleEl.setAttribute('opacity', '0');
     svg.appendChild(circleEl);
 
     var lineEls = {};
@@ -1417,15 +1428,13 @@ const PLANET_LINKS = {
       circleCx = W - newRight  - bw / 2;
       circleCy = H - newBottom - bh / 2;
 
-      var circleFill        = VP.circleFill        || '#808080';
-      var circleFillOpacity = VP.circleFillOpacity !== undefined ? VP.circleFillOpacity : 0.08;
       var circleStroke      = VP.circleStroke      || '#808080';
       var circleStrokeW     = VP.circleStrokeW     !== undefined ? VP.circleStrokeW     : 0.6;
       circleEl.setAttribute('cx', circleCx.toFixed(1));
       circleEl.setAttribute('cy', circleCy.toFixed(1));
       circleEl.setAttribute('r',  circleR.toFixed(1));
-      circleEl.setAttribute('fill', circleFill);
-      circleEl.setAttribute('fill-opacity', circleFillOpacity);
+      circleEl.setAttribute('fill', P.bgColor || '#000000');
+      circleEl.setAttribute('fill-opacity', '1');
       circleEl.setAttribute('stroke', circleStroke);
       circleEl.setAttribute('stroke-width', circleStrokeW);
       circleEl.setAttribute('stroke-opacity', '0.6');
@@ -1485,6 +1494,9 @@ const PLANET_LINKS = {
           }
         }
       });
+      var maxEnv = 0;
+      LNAMES.forEach(function(n){ if(envVal[n] > maxEnv) maxEnv = envVal[n]; });
+      circleEl.setAttribute('opacity', maxEnv.toFixed(3));
       if(needMore){ rafId = requestAnimationFrame(loop); } else { lastRafT = null; }
     }
 
@@ -1506,6 +1518,116 @@ const PLANET_LINKS = {
     document.fonts.ready.then(recompute);
     window.addEventListener('resize', recompute);
     setTimeout(recompute, 80);
+  })();
+
+
+  // ── Orch layer + sidechain ducking ──
+  (function(){
+    var orchBuf = null, orchLoaded = false, orchStarted = false;
+    var orchEnv = 0, orchRafId = null, orchLastT = null;
+
+    function loadOrch(){
+      if(orchLoaded) return;
+      orchLoaded = true;
+      var req = new XMLHttpRequest();
+      req.open('GET', 'https://daysof93-cdn.b-cdn.net/Music5_orch.mp3', true);
+      req.responseType = 'arraybuffer';
+      req.onload = function(){
+        var col = window._d93Collider;
+        if(!col || !col.output) return;
+        var ac = col.output.context;
+        ac.decodeAudioData(req.response.slice(0), function(buf){
+          orchBuf = buf;
+          console.log('d93 orch loaded, duration:', buf.duration.toFixed(2) + 's');
+        });
+      };
+      req.send();
+    }
+
+    function findLoopStart(buf){
+      var data = buf.getChannelData(0);
+      var limit = Math.floor(0.1 * buf.sampleRate);
+      for(var i = 0; i < limit && i < data.length; i++){
+        if(Math.abs(data[i]) > 0.0005) return i / buf.sampleRate;
+      }
+      return 0;
+    }
+
+    window._d93StartOrch = function(when){
+      if(orchStarted) return;
+      var col = window._d93Collider;
+      if(!col || !col.output || !orchBuf) return;
+      orchStarted = true;
+      var ac = col.output.context;
+      var OR = window._d93P && window._d93P.orch ? window._d93P.orch : {};
+      var vol    = OR.volume  !== undefined ? OR.volume  : 0.8;
+      var fadeIn = OR.fadeIn  !== undefined ? OR.fadeIn  : 0;
+
+      var loopStart = findLoopStart(orchBuf);
+      var src = ac.createBufferSource();
+      src.buffer    = orchBuf;
+      src.loop      = true;
+      src.loopStart = loopStart;
+      src.loopEnd   = orchBuf.duration;
+
+      var orchGain = ac.createGain();
+      if(fadeIn > 0){
+        orchGain.gain.setValueAtTime(0, when);
+        orchGain.gain.linearRampToValueAtTime(vol, when + fadeIn);
+      } else {
+        orchGain.gain.setValueAtTime(vol, when);
+      }
+
+      var orchAn = ac.createAnalyser();
+      orchAn.fftSize = 1024;
+      orchAn.smoothingTimeConstant = 0;
+
+      var vg = window._d93VolGain || ac.destination;
+      src.connect(orchGain);
+      orchGain.connect(orchAn);
+      orchAn.connect(vg);
+      src.start(when);
+
+      window._d93OrchGain     = orchGain;
+      window._d93OrchAnalyser = orchAn;
+
+      orchEnv = 0; orchLastT = null;
+      (function duckRaf(t){
+        orchRafId = requestAnimationFrame(duckRaf);
+        var dt = orchLastT ? Math.min((t - orchLastT) / 1000, 0.1) : 0.016;
+        orchLastT = t;
+        var P2 = window._d93P && window._d93P.orch ? window._d93P.orch : {};
+        var duckAttack  = P2.duckAttack  !== undefined ? P2.duckAttack  : 0.2;
+        var duckRelease = P2.duckRelease !== undefined ? P2.duckRelease : 2.0;
+        var duckDepth   = P2.duckDepth   !== undefined ? P2.duckDepth   : 0.6;
+        var duckSens    = P2.duckSens    !== undefined ? P2.duckSens    : 4;
+
+        var buf2 = new Float32Array(orchAn.fftSize);
+        orchAn.getFloatTimeDomainData(buf2);
+        var sum = 0;
+        for(var i = 0; i < buf2.length; i++) sum += buf2[i] * buf2[i];
+        var rms = Math.sqrt(sum / buf2.length);
+
+        var tau = rms > orchEnv ? duckAttack : duckRelease;
+        var k = 1 - Math.exp(-dt / Math.max(tau, 0.001));
+        orchEnv += (rms - orchEnv) * k;
+
+        var clampedEnv = Math.min(orchEnv * duckSens, 1);
+        var duck = 1 - duckDepth * clampedEnv;
+
+        var dg = window._d93DuckGain;
+        if(dg) dg.gain.setTargetAtTime(duck, ac.currentTime, 0.05);
+
+        window._d93OrchEnv = orchEnv;
+        window._d93DuckVal = duck;
+      })(performance.now());
+    };
+
+    var _prevEnterOrch = window._d93Enter;
+    window._d93Enter = function(){
+      _prevEnterOrch && _prevEnterOrch();
+      loadOrch();
+    };
   })();
 
   applyEclipse(P.eclipse);
@@ -1743,12 +1865,6 @@ const PLANET_LINKS = {
   colDisplay.appendChild(rowEl('Circle pad 0–60', slider(P.vdisp.circlePad, 0, 60, 1, function(v){
     P.vdisp.circlePad=v; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
   }, 0)));
-  colDisplay.appendChild(rowEl('Circle fill', colorPick(P.vdisp.circleFill, function(c){
-    P.vdisp.circleFill=c; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
-  })));
-  colDisplay.appendChild(rowEl('Fill opacity 0–1', slider(P.vdisp.circleFillOpacity, 0, 1, 0.01, function(v){
-    P.vdisp.circleFillOpacity=v; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
-  }, 2)));
   colDisplay.appendChild(rowEl('Circle stroke', colorPick(P.vdisp.circleStroke, function(c){
     P.vdisp.circleStroke=c; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
   })));
@@ -1809,6 +1925,42 @@ const PLANET_LINKS = {
     });
     muteRow.appendChild(muteL); muteRow.appendChild(muteCb);
     colAudio.appendChild(muteRow);
+  })();
+
+  // ── Orch column ──
+  (function(){
+    var colOrch = col();
+    colOrch.appendChild(sec('Orch'));
+    colOrch.appendChild(rowEl('Volume 0–1.5', slider(P.orch.volume, 0, 1.5, 0.01, function(v){
+      P.orch.volume=v;
+      if(window._d93OrchGain) window._d93OrchGain.gain.setTargetAtTime(v, window._d93Collider.output.context.currentTime, 0.05);
+      save();
+    }, 2)));
+    colOrch.appendChild(rowEl('Fade in 0–10 s', slider(P.orch.fadeIn, 0, 10, 0.1, function(v){
+      P.orch.fadeIn=v; save();
+    }, 1)));
+    colOrch.appendChild(rowEl('Duck depth 0–1', slider(P.orch.duckDepth, 0, 1, 0.01, function(v){
+      P.orch.duckDepth=v; save();
+    }, 2)));
+    colOrch.appendChild(rowEl('Duck sens 0–20', slider(P.orch.duckSens, 0, 20, 0.1, function(v){
+      P.orch.duckSens=v; save();
+    }, 1)));
+    colOrch.appendChild(rowEl('Duck attack 0.01–2 s', slider(P.orch.duckAttack, 0.01, 2, 0.01, function(v){
+      P.orch.duckAttack=v; save();
+    }, 2)));
+    colOrch.appendChild(rowEl('Duck release 0.2–8 s', slider(P.orch.duckRelease, 0.2, 8, 0.1, function(v){
+      P.orch.duckRelease=v; save();
+    }, 1)));
+    // Live readouts
+    var envReadout = document.createElement('div');
+    envReadout.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;';
+    envReadout.textContent = 'orch env: — | duck: —';
+    colOrch.appendChild(envReadout);
+    setInterval(function(){
+      var e = window._d93OrchEnv, d = window._d93DuckVal;
+      if(e === undefined){ envReadout.textContent='orch env: — | duck: —'; return; }
+      envReadout.textContent = 'orch env: ' + e.toFixed(4) + ' | duck: ' + (d !== undefined ? d.toFixed(3) : '—');
+    }, 100);
   })();
 
   // ── Intro column ──
@@ -2504,6 +2656,7 @@ const PLANET_LINKS = {
     if(vg) g.connect(vg); else g.connect(ac.destination);
     var t = (when !== undefined) ? when : ac.currentTime;
     src.start(t);
+    if(when !== undefined && window._d93StartOrch) window._d93StartOrch(t);
     var delayMs = Math.max(0, (t - ac.currentTime) * 1000);
     setTimeout(triggerPulse, delayMs);
   }
