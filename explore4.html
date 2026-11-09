@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore4-v145-rects-2d -->
+<!-- build: explore4-v146-music5-back -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1514,6 +1514,14 @@ if(navigator.requestMIDIAccess){
   // Pulsing menu link appears once the entry screen is gone
   var home=document.getElementById('e4-home');
   (function waitEntry(){if(window.entryActive===false)home.classList.add('visible');else setTimeout(waitEntry,300);})();
+})();
+</script>
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('from')==='music5'){
+    var h=document.getElementById('e4-home');
+    if(h){h.href='music5.html';h.textContent='← back';}
+  }
 })();
 </script>
 </body>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v116-pull-fade -->
+<!-- build: explore-v117-music5-back -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
@@ -1865,6 +1865,16 @@ setTimeout(function() {
     sp.setAttribute('d', muted ? OFF : ON); applyAll();
   });
   applyAll();
+})();
+</script>
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('from')==='music5'){
+    var h=document.getElementById('explore-home');
+    if(h){h.href='music5.html';h.textContent='← back';}
+    var b=document.getElementById('back');
+    if(b){b.href='music5.html';}
+  }
 })();
 </script>
 </body>

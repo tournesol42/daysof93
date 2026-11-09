@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: explore3-v117-mat-cache -->
+<!-- build: explore3-v118-music5-back -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2735,7 +2735,8 @@ if(navigator.requestMIDIAccess){
 </script>
 
 <div style="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:999997;text-align:center;">
-  <a href="/" style="font-family:'Jost',sans-serif;font-size:11px;font-weight:300;letter-spacing:0.22em;color:rgba(255,255,255,0.35);text-decoration:none;">DAYSOF93</a>
+  <a id="e3-home" href="/" style="font-family:'Jost',sans-serif;font-size:11px;font-weight:300;letter-spacing:0.22em;color:rgba(255,255,255,0.35);text-decoration:none;">DAYSOF93</a>
 </div>
+<script>if(new URLSearchParams(location.search).get('from')==='music5'){var e=document.getElementById('e3-home');if(e){e.href='music5.html';e.textContent='← back';}}</script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>days of 93</title>
-<!-- build: v115-arrow-fix -->
+<!-- build: v116-music5-back -->
 <meta name="build" content="v35-framefix">
 <script>console.log('days of 93 — build v35-framefix');</script>
 
@@ -818,5 +818,7 @@ function initCollage(el, video, slot, pieceId, posterUrl, useLive, cfg){
   applyAll();
 })();
 </script>
+<a id="m-back" href="music5.html" style="display:none;position:fixed;top:20px;left:24px;font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#888;text-decoration:none;z-index:200">← back</a>
+<script>if(new URLSearchParams(location.search).get('from')==='music5'){document.getElementById('m-back').style.display='';}</script>
 </body>
 </html>
