@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v65-s6-nobloom-flow -->
+<!-- build: journey-v66-touch-invert -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -1161,7 +1161,7 @@ addEventListener('touchmove', e => {
     lastX = mx; lastY = my;
   } else if (!twoFinger) {
     const y = e.touches[0].clientY;
-    vel += (ty - y) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN;
+    vel += (y - ty) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN * (gmotionTouch.TOUCH_INVERT ? 1 : -1);
     ty = y;
   }
 }, {passive:false});
@@ -1617,6 +1617,7 @@ let _aLevelT = 0;
 const t0 = performance.now(); let last = t0;
 let prevCamZ = P.CAM_START[2];
 const gmotion = { CAM_SPEED: 0, CAM_Z: '0.0' };
+const gmotionTouch = { TOUCH_INVERT: true };
 let ringFlowOffset = 0, dustFlowOffset = 0, ringFlowFactor = 0;
 let camZDisplayLast = 0;
 function frame(now){
@@ -2311,6 +2312,7 @@ fMotion.add(P, 'ORBIT_GAIN',     0.0001, 0.002, 0.0001);
 fMotion.add(P, 'ORBIT_FRICTION', 0.85, 0.99,   0.001);
 fMotion.add(gmotion, 'CAM_SPEED').listen();
 fMotion.add(gmotion, 'CAM_Z').listen();
+fMotion.add(gmotionTouch, 'TOUCH_INVERT');
 
 const gwords = {WORDS_ON:true, WORD_COUNT:50, WORD_SIZE_MIN:10, WORD_SIZE_MAX:32,
   WORD_OPACITY:100, WORD_NOISE:26, WORD_SPEED:60, WORD_COLOR:'#ee7c0e',
