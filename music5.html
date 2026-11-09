@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v28-touch-nav -->
-<script>// build: music5-v28-touch-nav
-console.log('d93: music5 v28-touch-nav');</script>
+<!-- build: music5-v29-vdisp-lines -->
+<script>// build: music5-v29-vdisp-lines
+console.log('d93: music5 v29-vdisp-lines');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -1042,7 +1042,9 @@ const PLANET_LINKS = {
     tapMinPx: 44,
     labelMinPx: 8,
     mobileCropX: 0,
-    vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6, touchDelay:2 },
+    vdisp: { numColor:'#4A4A4A', textColor:'#FFFFFF', margin:32, fadeIn:0.2, fadeOut:0.6, mobileScale:0.6, touchDelay:2,
+             circlePad:18, circleFill:'#808080', circleFillOpacity:0.08, circleStroke:'#808080', circleStrokeW:0.6,
+             lineColor:'', lineWidth:0.6, lineOpacity:0.9, lineAttack:0.08, lineRelease:2.5 },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -1125,7 +1127,9 @@ const PLANET_LINKS = {
         });
       }
       if(sp2.vdisp){
-        ['numColor','textColor','margin','fadeIn','fadeOut','mobileScale','touchDelay'].forEach(function(k){
+        ['numColor','textColor','margin','fadeIn','fadeOut','mobileScale','touchDelay',
+         'circlePad','circleFill','circleFillOpacity','circleStroke','circleStrokeW',
+         'lineColor','lineWidth','lineOpacity','lineAttack','lineRelease'].forEach(function(k){
           if(sp2.vdisp[k]!==undefined) P.vdisp[k]=sp2.vdisp[k];
         });
       }
@@ -1267,6 +1271,7 @@ const PLANET_LINKS = {
     vdLine.id = 'vdisp-line';
     vdLine.style.cssText = 'font-family:Inter,"Helvetica Neue",Arial,sans-serif;font-weight:400;font-size:13px;color:#FFFFFF;margin-top:4px;';
     vdLine.textContent = '-';
+    vdNum.textContent  = '01';  // placeholder so circle has a sized box before first hover
     vd.appendChild(vdNum); vd.appendChild(vdTitle); vd.appendChild(vdLine);
     document.body.appendChild(vd);
 
@@ -1288,6 +1293,7 @@ const PLANET_LINKS = {
 
     function setActive(name){
       var VP = P.vdisp || {};
+      var prev = activePlanet;
       activePlanet = name;
       if(name){
         var info = PLANET_INFO.find(function(p){ return p.name === name; });
@@ -1297,11 +1303,15 @@ const PLANET_LINKS = {
           applyVdispParams();
           vd.style.transitionDuration = (VP.fadeIn !== undefined ? VP.fadeIn : 0.2) + 's';
           vd.style.opacity = '1';
+          if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle();
+          if(window._d93ActivateLine) window._d93ActivateLine(name);
+          if(prev && prev !== name && window._d93DeactivateLine) window._d93DeactivateLine(prev);
         }
       } else {
         applyVdispParams();
         vd.style.transitionDuration = (VP.fadeOut !== undefined ? VP.fadeOut : 0.6) + 's';
         vd.style.opacity = '0';
+        if(window._d93DeactivateLine) window._d93DeactivateLine(null);
       }
     }
 
@@ -1353,6 +1363,149 @@ const PLANET_LINKS = {
         if(window._d93SetActivePlanet) window._d93SetActivePlanet(null);
       }
     }, { capture: true });
+  })();
+
+  // ── Value display: circle + connection lines ──
+  (function(){
+    var NS = 'http://www.w3.org/2000/svg';
+    var LNAMES = ['mars','jupiter','saturn','uranus','neptune'];
+
+    var svg = document.createElementNS(NS,'svg');
+    svg.id = 'vdisp-lines';
+    svg.setAttribute('xmlns', NS);
+    svg.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99;';
+    document.body.appendChild(svg);
+
+    var circleEl = document.createElementNS(NS,'circle');
+    circleEl.id = 'vdisp-circle';
+    svg.appendChild(circleEl);
+
+    var lineEls = {};
+    LNAMES.forEach(function(n){
+      var l = document.createElementNS(NS,'line');
+      l.id = 'vline-'+n;
+      l.style.display = 'none';
+      l.setAttribute('stroke-linecap','round');
+      svg.appendChild(l);
+      lineEls[n] = l;
+    });
+
+    var circleR = 80, circleCx = 0, circleCy = 0;
+
+    function recompute(){
+      var vd = document.getElementById('vdisp');
+      if(!vd) return;
+      var VP = P.vdisp || {};
+      var margin    = VP.margin    !== undefined ? VP.margin    : 32;
+      var circlePad = VP.circlePad !== undefined ? VP.circlePad : 18;
+      var W = window.innerWidth, H = window.innerHeight;
+
+      var bcr = vd.getBoundingClientRect();
+      var bw = bcr.width, bh = bcr.height;
+      if(bw < 10 || bh < 10){ bw = Math.max(bw,120); bh = Math.max(bh,160); }
+
+      var halfDiag = Math.sqrt(bw*bw + bh*bh) / 2;
+      circleR = halfDiag + circlePad;
+
+      // Position div so circle's outermost edge is margin px from viewport edges
+      var newRight  = Math.max(margin, Math.round(circleR + margin - bw / 2));
+      var newBottom = Math.max(margin, Math.round(circleR + margin - bh / 2));
+      vd.style.right  = newRight  + 'px';
+      vd.style.bottom = newBottom + 'px';
+
+      // Circle centre in screen px (box bottom-right corner = W-newRight, H-newBottom)
+      circleCx = W - newRight  - bw / 2;
+      circleCy = H - newBottom - bh / 2;
+
+      var circleFill        = VP.circleFill        || '#808080';
+      var circleFillOpacity = VP.circleFillOpacity !== undefined ? VP.circleFillOpacity : 0.08;
+      var circleStroke      = VP.circleStroke      || '#808080';
+      var circleStrokeW     = VP.circleStrokeW     !== undefined ? VP.circleStrokeW     : 0.6;
+      circleEl.setAttribute('cx', circleCx.toFixed(1));
+      circleEl.setAttribute('cy', circleCy.toFixed(1));
+      circleEl.setAttribute('r',  circleR.toFixed(1));
+      circleEl.setAttribute('fill', circleFill);
+      circleEl.setAttribute('fill-opacity', circleFillOpacity);
+      circleEl.setAttribute('stroke', circleStroke);
+      circleEl.setAttribute('stroke-width', circleStrokeW);
+      circleEl.setAttribute('stroke-opacity', '0.6');
+    }
+
+    // Envelope state
+    var envVal    = {}, envTarget = {};
+    LNAMES.forEach(function(n){ envVal[n] = 0; envTarget[n] = 0; });
+
+    var rafId = null, lastRafT = null;
+
+    function loop(t){
+      rafId = null;
+      var dt = lastRafT ? Math.min((t - lastRafT) / 1000, 0.1) : 0.016;
+      lastRafT = t;
+      var VP = P.vdisp || {};
+      var attack      = VP.lineAttack  !== undefined ? VP.lineAttack  : 0.08;
+      var release     = VP.lineRelease !== undefined ? VP.lineRelease : 2.5;
+      var lineColor   = VP.lineColor   || (P.ringColor) || '#D0D0D0';
+      var lineWidth   = VP.lineWidth   !== undefined ? VP.lineWidth   : 0.6;
+      var lineOpacity = VP.lineOpacity !== undefined ? VP.lineOpacity : 0.9;
+
+      var needMore = false;
+      LNAMES.forEach(function(name){
+        var target = envTarget[name];
+        var cur    = envVal[name];
+        var tau    = (target > cur) ? attack : release;
+        var k = 1 - Math.exp(-dt / Math.max(tau, 0.001));
+        cur = cur + (target - cur) * k;
+        if(Math.abs(cur - target) < 0.001) cur = target;
+        envVal[name] = cur;
+        if(cur > 0.001 || target > 0) needMore = true;
+
+        var el = lineEls[name];
+        if(cur < 0.001){
+          el.style.display = 'none';
+        } else {
+          el.style.display = '';
+          el.setAttribute('stroke', lineColor);
+          el.setAttribute('stroke-width', lineWidth);
+          el.setAttribute('opacity', (cur * lineOpacity).toFixed(3));
+          var planet = document.getElementById('planet-'+name);
+          if(planet){
+            var pbcr = planet.getBoundingClientRect();
+            var px = pbcr.left + pbcr.width  / 2;
+            var py = pbcr.top  + pbcr.height / 2;
+            var pR = pbcr.width / 2;
+            var dx = circleCx - px, dy = circleCy - py;
+            var len = Math.sqrt(dx*dx + dy*dy);
+            if(len > 1){
+              var nx = dx/len, ny = dy/len;
+              el.setAttribute('x1', (px + nx * pR).toFixed(1));
+              el.setAttribute('y1', (py + ny * pR).toFixed(1));
+              el.setAttribute('x2', (circleCx - nx * circleR).toFixed(1));
+              el.setAttribute('y2', (circleCy - ny * circleR).toFixed(1));
+            }
+          }
+        }
+      });
+      if(needMore){ rafId = requestAnimationFrame(loop); } else { lastRafT = null; }
+    }
+
+    function ensureLoop(){ if(!rafId) rafId = requestAnimationFrame(loop); }
+
+    function activateLine(name){
+      if(LNAMES.indexOf(name) >= 0){ envTarget[name] = 1; ensureLoop(); }
+    }
+    function deactivateLine(name){
+      if(name == null){ LNAMES.forEach(function(n){ envTarget[n] = 0; }); }
+      else if(LNAMES.indexOf(name) >= 0){ envTarget[name] = 0; }
+      ensureLoop();
+    }
+
+    window._d93ActivateLine          = activateLine;
+    window._d93DeactivateLine        = deactivateLine;
+    window._d93RecomputeVdispCircle  = recompute;
+
+    document.fonts.ready.then(recompute);
+    window.addEventListener('resize', recompute);
+    setTimeout(recompute, 80);
   })();
 
   applyEclipse(P.eclipse);
@@ -1585,6 +1738,38 @@ const PLANET_LINKS = {
   }, 0)));
   colDisplay.appendChild(rowEl('Touch delay 0.5–5 s', slider(P.vdisp.touchDelay, 0.5, 5, 0.1, function(v){
     P.vdisp.touchDelay=v; save();
+  }, 1)));
+  colDisplay.appendChild(sec('Value circle'));
+  colDisplay.appendChild(rowEl('Circle pad 0–60', slider(P.vdisp.circlePad, 0, 60, 1, function(v){
+    P.vdisp.circlePad=v; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
+  }, 0)));
+  colDisplay.appendChild(rowEl('Circle fill', colorPick(P.vdisp.circleFill, function(c){
+    P.vdisp.circleFill=c; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
+  })));
+  colDisplay.appendChild(rowEl('Fill opacity 0–1', slider(P.vdisp.circleFillOpacity, 0, 1, 0.01, function(v){
+    P.vdisp.circleFillOpacity=v; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
+  }, 2)));
+  colDisplay.appendChild(rowEl('Circle stroke', colorPick(P.vdisp.circleStroke, function(c){
+    P.vdisp.circleStroke=c; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
+  })));
+  colDisplay.appendChild(rowEl('Stroke width 0–3', slider(P.vdisp.circleStrokeW, 0, 3, 0.1, function(v){
+    P.vdisp.circleStrokeW=v; if(window._d93RecomputeVdispCircle) window._d93RecomputeVdispCircle(); save();
+  })));
+  colDisplay.appendChild(sec('Connection lines'));
+  colDisplay.appendChild(rowEl('Line colour', colorPick(P.vdisp.lineColor||P.ringColor, function(c){
+    P.vdisp.lineColor=c; save();
+  })));
+  colDisplay.appendChild(rowEl('Line width 0.1–5', slider(P.vdisp.lineWidth, 0.1, 5, 0.1, function(v){
+    P.vdisp.lineWidth=v; save();
+  })));
+  colDisplay.appendChild(rowEl('Line opacity 0–1', slider(P.vdisp.lineOpacity, 0, 1, 0.01, function(v){
+    P.vdisp.lineOpacity=v; save();
+  }, 2)));
+  colDisplay.appendChild(rowEl('Attack 0.01–1 s', slider(P.vdisp.lineAttack, 0.01, 1, 0.01, function(v){
+    P.vdisp.lineAttack=v; save();
+  }, 2)));
+  colDisplay.appendChild(rowEl('Release 0.1–8 s', slider(P.vdisp.lineRelease, 0.1, 8, 0.1, function(v){
+    P.vdisp.lineRelease=v; save();
   }, 1)));
 
   // ── 3D column ──
