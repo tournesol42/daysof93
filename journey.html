@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v68-hint-size -->
+<!-- build: journey-v69-mobile-rings -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
@@ -118,6 +118,8 @@ const P = {
 const BEAT_SEC = 60 / P.BPM;
 const BAR_SEC  = BEAT_SEC * P.BEATS_PER_BAR;
 const LOOP_SEC = BAR_SEC * P.BARS;
+
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 
 /* ===== RENDERER ===== */
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
@@ -1760,7 +1762,8 @@ function frame(now){
   dustUniforms.uFar.value       = gspace.SPACE_FAR;
   ringUniforms.uCamPos.value.copy(camera.position);
   { const t = Math.max(0, Math.min(1, -camZf / 6)); const k = t * t * (3 - 2 * t);
-    ringUniforms.uRingsAlpha.value = gspace.RINGS_ALPHA_START + (gspace.RINGS_ALPHA - gspace.RINGS_ALPHA_START) * k; }
+    const _rAlpha = gspace.RINGS_ALPHA_START + (gspace.RINGS_ALPHA - gspace.RINGS_ALPHA_START) * k;
+    ringUniforms.uRingsAlpha.value = IS_TOUCH ? Math.min(1, _rAlpha * gspace.MOBILE_RINGS_MUL) : _rAlpha; }
   ringUniforms.uNearFade.value   = P.SPACE_NEAR_FADE;
   ringUniforms.uFar.value        = gspace.SPACE_FAR;
   dustMesh.visible  = gspace.DUST_ON;
@@ -2336,7 +2339,7 @@ fWords.add(gwords, 'WORD_AUDIO_SIZE',  0, 2,   0.05);
 fWords.add(gwords, 'WORD_AUDIO_LINES', 0, 5,   0.1);
 
 
-const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30, RING_FLOW_SPEED: 3 };
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30, RING_FLOW_SPEED: 3, MOBILE_RINGS_MUL: 2 };
 const rebuildRings = () => {
   scene.remove(ringsMesh);
   P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
@@ -2355,6 +2358,7 @@ fSpace.add(gspace, 'RINGS_RADIUS',    1, 10,  0.1).onChange(rebuildRings);
 fSpace.add(gspace, 'RINGS_SPACING',   1, 12,  0.5).onChange(rebuildRings);
 fSpace.add(gspace, 'SPACE_FAR',       10, 60, 1);
 fSpace.add(gspace, 'RING_FLOW_SPEED',  0, 20, 0.5);
+fSpace.add(gspace, 'MOBILE_RINGS_MUL', 1, 5, 0.1);
 
 const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
