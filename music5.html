@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v32-from-param -->
+<!-- build: music5-v32-orch-early -->
 <script>// build: music5-v32-from-param
 console.log('d93: music5 v31-swells');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1531,6 +1531,7 @@ const PLANET_LINKS = {
   (function(){
     var orchBuf = null, orchLoaded = false, orchStarted = false;
     var orchEnv = 0, orchRafId = null, orchLastT = null;
+    var pendingOrchWhen = null;
 
     function loadOrch(){
       if(orchLoaded) return;
@@ -1545,6 +1546,7 @@ const PLANET_LINKS = {
         ac.decodeAudioData(req.response.slice(0), function(buf){
           orchBuf = buf;
           console.log('d93 orch loaded, duration:', buf.duration.toFixed(2) + 's');
+          if(pendingOrchWhen !== null){ var pw = pendingOrchWhen; pendingOrchWhen = null; window._d93StartOrch(pw); }
         });
       };
       req.send();
@@ -1562,9 +1564,19 @@ const PLANET_LINKS = {
     window._d93StartOrch = function(when){
       if(orchStarted) return;
       var col = window._d93Collider;
-      if(!col || !col.output || !orchBuf) return;
+      if(!col || !col.output) return;
+      if(!orchBuf){ pendingOrchWhen = when; return; }
       orchStarted = true;
       var ac = col.output.context;
+      if(when <= ac.currentTime + 0.001){
+        var bp2 = col.barPos(); var tb3 = null;
+        if(bp2 !== null){
+          var nb3 = Math.floor(bp2) + 1;
+          var tmp3 = col.timeOfBar(nb3);
+          if(tmp3 !== null && tmp3 > ac.currentTime + 0.001) tb3 = tmp3;
+        }
+        when = tb3 !== null ? tb3 : ac.currentTime + 0.05;
+      }
       var OR = window._d93P && window._d93P.orch ? window._d93P.orch : {};
       var vol    = OR.volume  !== undefined ? OR.volume  : 0.8;
       var fadeIn = OR.fadeIn  !== undefined ? OR.fadeIn  : 0;
@@ -1693,6 +1705,7 @@ const PLANET_LINKS = {
       src.connect(sg);
       sg.connect(vg);
       src.start(when);
+      if(window._d93StartOrch) window._d93StartOrch(when);
 
       window._d93SwellGain = sg;
       window._d93SwellGainLinear = gain;
@@ -2052,6 +2065,10 @@ const PLANET_LINKS = {
       P.orch.duckRelease=v; save();
     }, 1)));
     // Live readouts
+    var orchInfoEl = document.createElement('div');
+    orchInfoEl.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;margin-bottom:4px;';
+    orchInfoEl.textContent = 'starts with swells (bar ' + ((window._d93P && window._d93P.swells ? window._d93P.swells.startBar : 4)) + ')';
+    colOrch.appendChild(orchInfoEl);
     var envReadout = document.createElement('div');
     envReadout.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;';
     envReadout.textContent = 'orch env: — | duck: —';
@@ -2788,7 +2805,6 @@ const PLANET_LINKS = {
     if(vg) g.connect(vg); else g.connect(ac.destination);
     var t = (when !== undefined) ? when : ac.currentTime;
     src.start(t);
-    if(when !== undefined && window._d93StartOrch) window._d93StartOrch(t);
     var delayMs = Math.max(0, (t - ac.currentTime) * 1000);
     setTimeout(triggerPulse, delayMs);
   }
