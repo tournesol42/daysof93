@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v30-orch-duck -->
-<script>// build: music5-v30-orch-duck
-console.log('d93: music5 v30-orch-duck');</script>
+<!-- build: music5-v31-swells -->
+<script>// build: music5-v31-swells
+console.log('d93: music5 v31-swells');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -1050,6 +1050,7 @@ const PLANET_LINKS = {
              circlePad:18, circleStroke:'#808080', circleStrokeW:0.6,
              lineColor:'', lineWidth:0.6, lineOpacity:0.9, lineAttack:0.08, lineRelease:2.5 },
     orch: { volume:0.8, fadeIn:0, duckDepth:0.6, duckSens:4, duckAttack:0.2, duckRelease:2.0 },
+    swells: { levelDb:-8, startBar:4, mute:false },
     tilt: { tiltAngle:68, tiltEase:3.5, spinDelay:3, spinDur:2.6 },
     audio: { volume: 0.8, mute: false },
     intro: { startOpacity: 0.15, duration: 5 },
@@ -1141,6 +1142,11 @@ const PLANET_LINKS = {
       if(sp2.orch){
         ['volume','fadeIn','duckDepth','duckSens','duckAttack','duckRelease'].forEach(function(k){
           if(sp2.orch[k]!==undefined) P.orch[k]=sp2.orch[k];
+        });
+      }
+      if(sp2.swells){
+        ['levelDb','startBar','mute'].forEach(function(k){
+          if(sp2.swells[k]!==undefined) P.swells[k]=sp2.swells[k];
         });
       }
     }
@@ -1630,6 +1636,100 @@ const PLANET_LINKS = {
     };
   })();
 
+
+  // ── Deep swells layer ──
+  (function(){
+    var swellBuf = null, swellLoaded = false, swellStarted = false;
+
+    function loadSwells(){
+      if(swellLoaded) return;
+      swellLoaded = true;
+      var req = new XMLHttpRequest();
+      req.open('GET', 'https://daysof93-cdn.b-cdn.net/Music5_deepswells.mp3', true);
+      req.responseType = 'arraybuffer';
+      req.onload = function(){
+        var col = window._d93Collider;
+        if(!col || !col.output) return;
+        var ac = col.output.context;
+        ac.decodeAudioData(req.response.slice(0), function(buf){
+          swellBuf = buf;
+          console.log('d93 swells loaded, duration:', buf.duration.toFixed(2) + 's');
+          trySchedule();
+        });
+      };
+      req.send();
+    }
+
+    function findLoopStart(buf){
+      var data = buf.getChannelData(0);
+      var limit = Math.floor(0.1 * buf.sampleRate);
+      for(var i = 0; i < limit && i < data.length; i++){
+        if(Math.abs(data[i]) > 0.0005) return i / buf.sampleRate;
+      }
+      return 0;
+    }
+
+    function doStart(when){
+      if(swellStarted) return;
+      var col = window._d93Collider;
+      if(!col || !col.output || !swellBuf) return;
+      swellStarted = true;
+      var ac = col.output.context;
+      var SP = window._d93P && window._d93P.swells ? window._d93P.swells : {};
+      var levelDb = SP.levelDb !== undefined ? SP.levelDb : -8;
+      var gain = Math.pow(10, levelDb / 20);
+
+      var loopStart = findLoopStart(swellBuf);
+      var src = ac.createBufferSource();
+      src.buffer    = swellBuf;
+      src.loop      = true;
+      src.loopStart = loopStart;
+      src.loopEnd   = swellBuf.duration;
+
+      var sg = ac.createGain();
+      sg.gain.value = (SP.mute) ? 0 : gain;
+
+      var vg = window._d93VolGain || ac.destination;
+      src.connect(sg);
+      sg.connect(vg);
+      src.start(when);
+
+      window._d93SwellGain = sg;
+      window._d93SwellGainLinear = gain;
+    }
+
+    function trySchedule(){
+      if(swellStarted) return;
+      var col = window._d93Collider;
+      if(!col || !col.output || !swellBuf){ setTimeout(trySchedule, 200); return; }
+      var ac = col.output.context;
+      var SP = window._d93P && window._d93P.swells ? window._d93P.swells : {};
+      var startBar = SP.startBar !== undefined ? SP.startBar : 4;
+      var bp = col.barPos();
+      if(bp === null){ setTimeout(trySchedule, 200); return; }
+
+      var tb = col.timeOfBar(startBar);
+      if(tb !== null && tb > ac.currentTime + 0.001){
+        doStart(tb);
+        return;
+      }
+      // target bar passed — start on the very next bar line
+      var nextBar = Math.floor(bp) + 1;
+      var tb2 = col.timeOfBar(nextBar);
+      if(tb2 !== null && tb2 > ac.currentTime + 0.001){
+        doStart(tb2);
+        return;
+      }
+      setTimeout(trySchedule, 50);
+    }
+
+    var _prevEnterSwells = window._d93Enter;
+    window._d93Enter = function(){
+      _prevEnterSwells && _prevEnterSwells();
+      loadSwells();
+    };
+  })();
+
   applyEclipse(P.eclipse);
   if(window._d93UpdateHintSize) window._d93UpdateHintSize();
 
@@ -1961,6 +2061,38 @@ const PLANET_LINKS = {
       if(e === undefined){ envReadout.textContent='orch env: — | duck: —'; return; }
       envReadout.textContent = 'orch env: ' + e.toFixed(4) + ' | duck: ' + (d !== undefined ? d.toFixed(3) : '—');
     }, 100);
+  })();
+
+
+  // ── Swells column ──
+  (function(){
+    var colSw = col();
+    colSw.appendChild(sec('Swells'));
+    colSw.appendChild(rowEl('Level −40…+6 dB', slider(P.swells.levelDb, -40, 6, 0.5, function(v){
+      P.swells.levelDb = v;
+      var lin = Math.pow(10, v / 20);
+      window._d93SwellGainLinear = lin;
+      if(window._d93SwellGain && !P.swells.mute) window._d93SwellGain.gain.value = lin;
+      save();
+    }, 1)));
+    colSw.appendChild(rowEl('Start bar 1–32', slider(P.swells.startBar, 1, 32, 1, function(v){
+      P.swells.startBar = v; save();
+    }, 0)));
+    var muteRow = document.createElement('div');
+    muteRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    var muteL = document.createElement('span'); muteL.style.minWidth = '105px'; muteL.textContent = 'Mute';
+    var muteCb = document.createElement('input'); muteCb.type = 'checkbox'; muteCb.checked = !!P.swells.mute;
+    muteCb.style.cssText = 'width:16px;height:16px;accent-color:#6698bb;cursor:pointer;';
+    muteCb.addEventListener('change', function(){
+      P.swells.mute = muteCb.checked;
+      if(window._d93SwellGain){
+        var lin = window._d93SwellGainLinear !== undefined ? window._d93SwellGainLinear : Math.pow(10, P.swells.levelDb / 20);
+        window._d93SwellGain.gain.value = P.swells.mute ? 0 : lin;
+      }
+      save();
+    });
+    muteRow.appendChild(muteL); muteRow.appendChild(muteCb);
+    colSw.appendChild(muteRow);
   })();
 
   // ── Intro column ──
