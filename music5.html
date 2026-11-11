@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v33-orch-defaults -->
+<!-- build: music5-v34-hint-timing -->
 <script>// build: music5-v32-from-param
 console.log('d93: music5 v31-swells');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@100;200;300&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0A}
@@ -66,7 +66,8 @@ a.plink .hit{fill:transparent;pointer-events:all}
   padding:1px 5px;cursor:pointer;margin:2px 0 0 2px;color:#666}
 #d93savecs:hover{color:#aaa}
 @keyframes hint-pulse{0%,100%{opacity:0.25}50%{opacity:1}}
-#hint-push{animation:hint-pulse 2.4s ease-in-out infinite}
+#hint-push{animation:hint-pulse 2.4s ease-in-out infinite;animation-play-state:paused}
+#hint-g{opacity:0}
 #glitchCanvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:10;pointer-events:none;image-rendering:auto;}
 </style>
 </head>
@@ -1042,6 +1043,7 @@ const PLANET_LINKS = {
     textSize:   6,
     hintSize:  11,
     hintMinPx: 15,
+    hintWeight: 200,
     planetMinPx: 9,
     tapMinPx: 44,
     labelMinPx: 8,
@@ -1086,7 +1088,7 @@ const PLANET_LINKS = {
     var saved = localStorage.getItem(LS_KEY);
     if(saved){
       var sp2 = JSON.parse(saved);
-      ['dotColor','dotBloom','dotSize','dotOpacity','speedPos','ringColor','ringWidth','lineColor','lineWidth','bgColor','textColor','textSize','hintSize','hintMinPx','planetMinPx','tapMinPx','labelMinPx','mobileCropX']
+      ['dotColor','dotBloom','dotSize','dotOpacity','speedPos','ringColor','ringWidth','lineColor','lineWidth','bgColor','textColor','textSize','hintSize','hintMinPx','hintWeight','planetMinPx','tapMinPx','labelMinPx','mobileCropX']
         .forEach(function(k){ if(sp2[k]!==undefined) P[k]=sp2[k]; });
       if(sp2.speed !== undefined && sp2.speedPos === undefined){
         P.speedPos = Math.pow(sp2.speed / 5, 1/3);
@@ -1236,7 +1238,7 @@ const PLANET_LINKS = {
     var labels=document.getElementById('labels');
     if(labels){ labels.setAttribute('fill',p.textColor); }
     var hintG=document.getElementById('hint-g');
-    if(hintG){ hintG.setAttribute('fill',p.textColor); }
+    if(hintG){ hintG.setAttribute('fill',p.textColor); hintG.setAttribute('font-weight', p.hintWeight !== undefined ? p.hintWeight : 200); }
     if(window._d93UpdateLabelSizes) window._d93UpdateLabelSizes(); else if(labels) labels.setAttribute('font-size',p.textSize);
     if(p.tilt && window._d93TiltParams){
       window._d93TiltParams.tiltAngle = p.tilt.tiltAngle;
@@ -1959,6 +1961,28 @@ const PLANET_LINKS = {
   colDisplay.appendChild(rowEl('Hint min px 6–24', slider(P.hintMinPx, 6, 24, 1, function(v){
     P.hintMinPx=v; if(window._d93UpdateHintSize) window._d93UpdateHintSize(); save();
   }, 0)));
+  (function(){
+    var hwRow = document.createElement('div');
+    hwRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    var hwL = document.createElement('span'); hwL.style.minWidth = '105px'; hwL.textContent = 'Hint weight';
+    var hwSel = document.createElement('select');
+    hwSel.style.cssText = 'flex:1;background:#1a1a1a;color:#aaa;border:1px solid #444;font-family:Jost,sans-serif;font-weight:300;font-size:10px;padding:3px 5px;';
+    [100,200,300].forEach(function(w){
+      var opt = document.createElement('option');
+      opt.value = w; opt.textContent = w;
+      if(w === (P.hintWeight !== undefined ? P.hintWeight : 200)) opt.selected = true;
+      hwSel.appendChild(opt);
+    });
+    hwSel.addEventListener('change', function(){
+      P.hintWeight = parseInt(hwSel.value, 10);
+      var hg = document.getElementById('hint-g');
+      if(hg) hg.setAttribute('font-weight', P.hintWeight);
+      save();
+    });
+    hwRow.appendChild(hwL); hwRow.appendChild(hwSel);
+    colDisplay.appendChild(hwRow);
+  })();
+
   colDisplay.appendChild(rowEl('Planet min px 1–30', slider(P.planetMinPx, 1, 30, 0.5, function(v){
     P.planetMinPx=v; if(window._d93UpdatePlanetSizes) window._d93UpdatePlanetSizes(); save();
   }, 1)));
@@ -2655,6 +2679,7 @@ const PLANET_LINKS = {
     var fromY=E.startY!==undefined?E.startY:E.y;
     state='animating'; lastRafT=0;
     var t0=performance.now();
+    if(window._d93OnHintAnimStart) window._d93OnHintAnimStart(dur/1000);
     function step(now){
       if(state!=='animating') return;
       var E2=getP().eclipse;
@@ -2685,6 +2710,7 @@ const PLANET_LINKS = {
     state='modulating'; lastRafT=0;
     if(!strobeTimer) startStrobe();
     if(window._d93OnEclipseMoveIn) window._d93OnEclipseMoveIn();
+    if(window._d93OnHintSkip) window._d93OnHintSkip();
     rafId=requestAnimationFrame(mainRaf);
   }
 
@@ -2738,6 +2764,42 @@ const PLANET_LINKS = {
       var active=state==='holding'||state==='fadingDown'||state==='modulating';
       if(active&&!strobeTimer) startStrobe();
     }
+  };
+})();
+</script>
+
+<script>
+/* ── Hint timing: show with eclipse move-in, hide on replay ── */
+(function(){
+  function getHintG(){ return document.getElementById('hint-g'); }
+  function getHintPush(){ return document.getElementById('hint-push'); }
+
+  function showHint(durSec){
+    var hg = getHintG(), hp = getHintPush();
+    if(!hg) return;
+    hp && (hp.style.animationPlayState = 'running');
+    hg.style.transition = durSec > 0 ? 'opacity ' + durSec.toFixed(1) + 's linear' : '';
+    hg.style.opacity = '1';
+  }
+
+  function hideHint(){
+    var hg = getHintG(), hp = getHintPush();
+    if(!hg) return;
+    hp && (hp.style.animationPlayState = 'paused');
+    hg.style.transition = '';
+    hg.style.opacity = '0';
+  }
+
+  window._d93OnHintAnimStart = function(durSec){
+    showHint(durSec || 3);
+  };
+
+  window._d93OnHintSkip = function(){ showHint(0); };
+
+  var _prevHintReplay = window._d93OnEclipseReplay;
+  window._d93OnEclipseReplay = function(){
+    _prevHintReplay && _prevHintReplay();
+    hideHint();
   };
 })();
 </script>
