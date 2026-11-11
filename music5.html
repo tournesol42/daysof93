@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>days of 93</title>
-<!-- build: music5-v34-hint-timing -->
+<!-- build: music5-v35-hide-console -->
 <script>// build: music5-v32-from-param
 console.log('d93: music5 v31-swells');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1776,6 +1776,7 @@ const PLANET_LINKS = {
   var btn = document.createElement('button');
   btn.textContent = '◆ P';
   btn.style.cssText = CSS_BTN;
+  if(location.search.indexOf('console=1') === -1) btn.style.display = 'none';
   document.body.appendChild(btn);
 
   var panel = document.createElement('div');

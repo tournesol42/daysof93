@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v117-music5-back -->
+<!-- build: explore-v118-ios-bars -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+html, body { width: 100%; height: 100%; min-height:100dvh; background: #000; overflow: hidden; }
 canvas { position: fixed; top: 0; left: 0; display: block; }
 #back {
   position: fixed; top: 20px; left: 24px;
@@ -1800,9 +1800,10 @@ setTimeout(function() {
     if (gone) return; gone = true;
     clearInterval(clockInterval);
     var boot = document.getElementById('c64-boot');
-    if (boot) boot.style.display = 'none';
-    document.documentElement.style.background = '#000';
+    if (boot) boot.remove();
     document.body.style.background = '#000';
+    document.documentElement.style.backgroundColor = '#010101';
+    requestAnimationFrame(function(){ document.documentElement.style.backgroundColor='#000'; var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content','#000000'); });
     unlockAudio();
     loadImages();
   }

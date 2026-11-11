@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>days of 93</title>
-<!-- build: v277-work-login -->
+<!-- build: v278-ios-bars -->
 <meta name="build" content="v168-anchor-flicker">
 <script>console.log('days of 93 — build v168-anchor-flicker');</script>
 
@@ -38,7 +38,7 @@
     --hair:  0.75px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
-  html,body{ background:var(--field); }
+  html,body{ background:var(--field); min-height:100dvh; }
   body{
     font-family: "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -107,7 +107,7 @@
     .hero{ padding:14px 18px 30px; min-height:42vh; flex-direction:column; align-items:flex-start; gap:28px; }
   }
 
-  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
+  #bg-vector{ position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh; object-fit:contain; object-position:center center; z-index:0; pointer-events:none; opacity:0; transition:opacity 4s ease; transform-origin:center center; }
   @keyframes bgvector-breathe{
     0%  { transform:scale(1); }
     50% { transform:scale(1.30); }
@@ -233,7 +233,7 @@
     animation: comfy68Scroll 90s linear infinite;
   }
   .comfy68-inner img{
-    width:100%; height:100vh; object-fit:cover;
+    width:100%; height:100vh; height:100dvh; object-fit:cover;
     display:block; flex-shrink:0;
     filter:grayscale(1);
   }
@@ -366,7 +366,7 @@
     animation: comfyScroll 60s linear infinite;
   }
   .comfy-inner img{
-    height:100vh; width:auto; display:block; flex-shrink:0;
+    height:100vh; height:100dvh; width:auto; display:block; flex-shrink:0;
     -webkit-mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
     mask-image: linear-gradient(to bottom, black 40%, rgba(0,0,0,0.625) 40%);
   }
@@ -626,6 +626,15 @@ let rt;
 window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(build,150); });
 
 /* ---- days of 93 overlay ---- */
+/* ---- iOS theme-color follows page ---- */
+(function(){
+  var fieldColor = getComputedStyle(document.documentElement).getPropertyValue('--field').trim() || '#000000';
+  function setThemeColor(c){ var m=document.getElementById('theme-color-meta'); if(m) m.setAttribute('content',c); document.documentElement.style.backgroundColor=c; }
+  setThemeColor(fieldColor);
+  var aboutEl = document.getElementById('about');
+  if(aboutEl) new MutationObserver(function(){ setThemeColor(aboutEl.classList.contains('open') ? '#ffffff' : fieldColor); }).observe(aboutEl, {attributes:true, attributeFilter:['class']});
+})();
+
 (function(){
   const overlay = document.getElementById('about');
   const open  = document.getElementById('nav-days');
