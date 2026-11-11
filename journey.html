@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v69-mobile-rings -->
+<!-- build: journey-v70-travel-hint-ring-boost -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
   canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;image-rendering:pixelated}
   #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;cursor:pointer}
-  .scroll-hint{font:300 11px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-top:12px}
+  #travelHint{position:fixed;left:0;right:0;top:62%;font:300 11px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#fff;text-align:center;pointer-events:none;z-index:7;opacity:0;display:none}
+  @keyframes hint-travel-pulse{0%,100%{opacity:0.25}50%{opacity:0.8}}
   .pill{font:300 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#fff;
         padding:11px 20px;border-radius:999px;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);
         -webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22)}
@@ -32,7 +33,8 @@
 </style>
 </head>
 <body>
-<div id="start"><div class="pill">enter</div><div class="scroll-hint">scroll to travel</div></div>
+<div id="start"><div class="pill">enter</div></div>
+<div id="travelHint">scroll to travel</div>
 <input id="file" type="file" accept="audio/*">
 <input id="json-import" type="file" accept=".json" style="display:none">
 <canvas id="scatter"></canvas>
@@ -1086,6 +1088,16 @@ function readLevel(dt){
 
 const startEl = document.getElementById('start');
 const fileEl  = document.getElementById('file');
+const travelHintEl = document.getElementById('travelHint');
+let travelHintHidden = false, enterTime = 0;
+function hideTravelHint(){
+  if(travelHintHidden) return;
+  travelHintHidden = true;
+  travelHintEl.style.animation = '';
+  travelHintEl.style.transition = 'opacity 0.5s ease';
+  travelHintEl.style.opacity = '0';
+  setTimeout(() => { travelHintEl.style.display = 'none'; }, 600);
+}
 startEl.addEventListener('click', () => {
   actx = new (window.AudioContext || window.webkitAudioContext)();
   actx.resume();
@@ -1094,6 +1106,16 @@ startEl.addEventListener('click', () => {
   else fileEl.click();
   startEl.style.display = 'none';
   document.body.style.cursor = 'grab';
+  enterTime = performance.now();
+  travelHintEl.style.display = 'block';
+  requestAnimationFrame(() => {
+    travelHintEl.style.transition = 'opacity 0.6s ease';
+    travelHintEl.style.opacity = '1';
+  });
+  setTimeout(() => {
+    travelHintEl.style.transition = '';
+    travelHintEl.style.animation = 'hint-travel-pulse 2s ease-in-out infinite';
+  }, 700);
   introStart = performance.now();
   glitchVideo.play().catch(() => {});
   glitchVideo5.play().catch(() => {});
@@ -1115,6 +1137,7 @@ let meshZoneFade = 0; // updated each frame; used by input handlers
 let target = 0, prog = 0, vel = 0, introStart = null;
 addEventListener('wheel', e => {
   e.preventDefault();
+  if(!travelHintHidden && Math.abs(e.deltaY) > 0 && performance.now() - enterTime > 300) hideTravelHint();
   vel += e.deltaY / P.SCROLL_PX * P.DRIFT_GAIN;
 }, {passive:false});
 
@@ -1164,6 +1187,7 @@ addEventListener('touchmove', e => {
     lastX = mx; lastY = my;
   } else if (!twoFinger) {
     const y = e.touches[0].clientY;
+    if(!travelHintHidden && performance.now() - enterTime > 300) hideTravelHint();
     vel += (y - ty) * P.TOUCH_K / P.SCROLL_PX * P.DRIFT_GAIN * (gmotionTouch.TOUCH_INVERT ? 1 : -1);
     ty = y;
   }
@@ -1619,6 +1643,7 @@ let _aLevelT = 0;
 /* ===== LOOP ===== */
 const t0 = performance.now(); let last = t0;
 let prevCamZ = P.CAM_START[2];
+let ringScrollEnv = 0;
 const gmotion = { CAM_SPEED: 0, CAM_Z: '0.0' };
 const gmotionTouch = { TOUCH_INVERT: true };
 let ringFlowOffset = 0, dustFlowOffset = 0, ringFlowFactor = 0;
@@ -1654,6 +1679,10 @@ function frame(now){
   const s = P.CAM_START;
   const camZ = s[2] + (P.CAM_END_Z - s[2]) * prog;
   gmotion.CAM_SPEED += (Math.abs(camZ - prevCamZ) / dt - gmotion.CAM_SPEED) * Math.min(1, dt / 0.5);
+  { const _rss = Math.abs(camZ - prevCamZ) / dt;
+    const _rsTarget = Math.min(1, _rss / Math.max(0.001, gspace.RINGS_SCROLL_SENS));
+    const _rsTau = _rsTarget > ringScrollEnv ? gspace.RINGS_SCROLL_ATTACK : gspace.RINGS_SCROLL_RELEASE;
+    ringScrollEnv += (_rsTarget - ringScrollEnv) * (1 - Math.exp(-dt / Math.max(0.001, _rsTau))); }
   prevCamZ = camZ;
   // approach: 1 at start, 0 at Z=2 (just before mesh)
   const approach = Math.min(1, Math.max(0, (camZ - 2) / (s[2] - 2)));
@@ -1763,7 +1792,8 @@ function frame(now){
   ringUniforms.uCamPos.value.copy(camera.position);
   { const t = Math.max(0, Math.min(1, -camZf / 6)); const k = t * t * (3 - 2 * t);
     const _rAlpha = gspace.RINGS_ALPHA_START + (gspace.RINGS_ALPHA - gspace.RINGS_ALPHA_START) * k;
-    ringUniforms.uRingsAlpha.value = IS_TOUCH ? Math.min(1, _rAlpha * gspace.MOBILE_RINGS_MUL) : _rAlpha; }
+    const _rBase = IS_TOUCH ? Math.min(1, _rAlpha * gspace.MOBILE_RINGS_MUL) : _rAlpha;
+    ringUniforms.uRingsAlpha.value = Math.min(1, _rBase * (1 + ringScrollEnv * gspace.RINGS_SCROLL_BOOST)); }
   ringUniforms.uNearFade.value   = P.SPACE_NEAR_FADE;
   ringUniforms.uFar.value        = gspace.SPACE_FAR;
   dustMesh.visible  = gspace.DUST_ON;
@@ -2339,7 +2369,7 @@ fWords.add(gwords, 'WORD_AUDIO_SIZE',  0, 2,   0.05);
 fWords.add(gwords, 'WORD_AUDIO_LINES', 0, 5,   0.1);
 
 
-const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30, RING_FLOW_SPEED: 3, MOBILE_RINGS_MUL: 2 };
+const gspace = { DUST_ON: true, DUST_ALPHA: 0.18, SPACE_DUST_SIZE: 1.5, RINGS_ON: true, RINGS_ALPHA_START: 0.045, RINGS_ALPHA: 0.14, RINGS_RADIUS: 3.5, RINGS_SPACING: 4, SPACE_FAR: 30, RING_FLOW_SPEED: 3, MOBILE_RINGS_MUL: 2, RINGS_SCROLL_BOOST: 2.5, RINGS_SCROLL_SENS: 4, RINGS_SCROLL_ATTACK: 0.15, RINGS_SCROLL_RELEASE: 0.8 };
 const rebuildRings = () => {
   scene.remove(ringsMesh);
   P.RINGS_RADIUS  = gspace.RINGS_RADIUS;
@@ -2359,6 +2389,10 @@ fSpace.add(gspace, 'RINGS_SPACING',   1, 12,  0.5).onChange(rebuildRings);
 fSpace.add(gspace, 'SPACE_FAR',       10, 60, 1);
 fSpace.add(gspace, 'RING_FLOW_SPEED',  0, 20, 0.5);
 fSpace.add(gspace, 'MOBILE_RINGS_MUL', 1, 5, 0.1);
+fSpace.add(gspace, 'RINGS_SCROLL_BOOST', 0, 10, 0.1);
+fSpace.add(gspace, 'RINGS_SCROLL_SENS',  0.5, 20, 0.5);
+fSpace.add(gspace, 'RINGS_SCROLL_ATTACK', 0.01, 2, 0.01);
+fSpace.add(gspace, 'RINGS_SCROLL_RELEASE', 0.05, 5, 0.05);
 
 const fScene4 = gui.addFolder('Scene4');
 fScene4.add(g4, 'RINGS4_ON');
