@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>days of 93 — explore</title>
-<!-- build: explore-v119-ios-tint -->
+<!-- build: explore-v120-fastload -->
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; min-height:100dvh; background: #000; overflow: hidden; }
@@ -286,7 +286,7 @@ const AUDIO_CFG = {
 
 // ── Image paths — put 60 files in explore/ named 001.jpg … 060.jpg ──────────
 const IMAGE_SRCS = Array.from({length: 60}, (_, i) =>
-  `explore/${String(i + 1).padStart(3, '0')}.jpg`
+  `explore-web/${String(i + 1).padStart(3, '0')}.jpg`
 );
 
 // ── Canvas ───────────────────────────────────────────────────────────────────
@@ -1057,7 +1057,30 @@ function unlockAudio() {
     });
   }
 
-  Promise.all(urls.map(xhrDecode)).then(function(buffers) {
+  // load with ≤4 parallel requests
+  function xhrPool(list, concurrency) {
+    return new Promise(function(resolve) {
+      var results = [], pending = 0, i = 0;
+      function next() {
+        while (pending < concurrency && i < list.length) {
+          var idx = i++;
+          pending++;
+          xhrDecode(list[idx]).then(function(buf) {
+            results.push(buf); pending--;
+            if (i < list.length) next();
+            else if (pending === 0) resolve(results);
+          }).catch(function() {
+            pending--;
+            if (i < list.length) next();
+            else if (pending === 0) resolve(results);
+          });
+        }
+      }
+      if (!list.length) { resolve(results); return; }
+      next();
+    });
+  }
+  xhrPool(urls, 4).then(function(buffers) {
     shortBuffers = buffers;
     audioReady   = true;
     console.log('d93: audio unlocked, short buffers:', shortBuffers.length);
@@ -1508,24 +1531,35 @@ function startEngine() {
 
 // ── Image loading ─────────────────────────────────────────────────────────────
 async function loadImages() {
-  const loaded = [];
-  await Promise.all(IMAGE_SRCS.map(src => new Promise(resolve => {
+  const CONCURRENCY = 6;
+  const START_COUNT = 6;
+  let engineStarted = false;
+
+  // shuffle load order for perceived variety
+  const srcs = IMAGE_SRCS.slice().sort(() => Math.random() - 0.5);
+
+  function onImageReady(img) {
+    images.push(img);
+    if (!engineStarted && images.length >= START_COUNT) {
+      engineStarted = true;
+      currentIndex = Math.floor(Math.random() * images.length);
+      lastRollEndTs = performance.now();
+      startEngine();
+    }
+  }
+
+  // pool-limited loader
+  let idx = 0;
+  function next() {
+    if (idx >= srcs.length) return;
+    const src = srcs[idx++];
     const img = new Image();
     img._filename = src.split('/').pop();
-    img.onload  = () => { loaded.push(img); resolve(); };
-    img.onerror = () => resolve();
-    img.src     = src;
-  })));
-
-  if (!loaded.length) return;
-
-  images = loaded.sort((a, b) =>
-    (a._filename || '').localeCompare(b._filename || '', undefined, {numeric: true, sensitivity: 'base'})
-  );
-
-  currentIndex = Math.floor(Math.random() * images.length);
-  lastRollEndTs = performance.now();
-  startEngine();
+    img.onload  = () => { onImageReady(img); next(); };
+    img.onerror = () => next();
+    img.src = src;
+  }
+  for (let i = 0; i < CONCURRENCY; i++) next();
 }
 
 startAnim();
