@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Journey</title>
-<!-- build: journey-v71-faster-presets -->
+<!-- build: journey-v72-preset-margin-big-hint -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none}
   canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;image-rendering:pixelated}
   #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;cursor:pointer}
-  #travelHint{position:fixed;left:0;right:0;top:62%;font:300 11px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#fff;text-align:center;pointer-events:none;z-index:7;opacity:0;display:none}
+  #travelHint{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font:300 clamp(32px,7vw,96px)/1 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#fff;text-align:center;white-space:nowrap;pointer-events:none;z-index:7;opacity:0}
   @keyframes hint-travel-pulse{0%,100%{opacity:0.25}50%{opacity:0.8}}
   .pill{font:300 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#fff;
         padding:11px 20px;border-radius:999px;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);
@@ -413,7 +413,7 @@ function rebuildMesh3Geo() {
 }
 
 /* ===== SCENE6 PRESET SYSTEM ===== */
-const gPresets = { PRESET_ON: true, PRESET_PEAK_THRESH: 0.035, PRESET_COOLDOWN: 0.25, PRESET_MORPH: 0.2, PRESET_CUT_CHANCE: 0.5, PRESET_IN_MARGIN: 0.3, PRESET_NOW: 'off' };
+const gPresets = { PRESET_ON: true, PRESET_PEAK_THRESH: 0.035, PRESET_COOLDOWN: 0.25, PRESET_MORPH: 0.2, PRESET_CUT_CHANCE: 0.5, PRESET_IN_MARGIN: 1.5, PRESET_NOW: 'off' };
 const scene6Presets = [];
 let presetActive = false, presetBase = null;
 let presetArmed = true, presetLastSwitch = -Infinity, presetIdx = -1;
@@ -1107,7 +1107,7 @@ startEl.addEventListener('click', () => {
   startEl.style.display = 'none';
   document.body.style.cursor = 'grab';
   enterTime = performance.now();
-  travelHintEl.style.display = 'block';
+  travelHintEl.style.display = 'flex';
   requestAnimationFrame(() => {
     travelHintEl.style.transition = 'opacity 0.6s ease';
     travelHintEl.style.opacity = '1';
